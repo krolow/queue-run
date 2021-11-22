@@ -1,0 +1,34 @@
+{
+  "name": "@assaf/untitled",
+  "version": "1.0.0",
+  "description": "👋",
+  "main": "src/index.js",
+  "types": "types/index.d.ts",
+  "scripts": {
+    "dev": "swc -w src/index.ts -d dist",
+    "lint": "yarn eslint src --fix ; tsc --noEmit"
+  },
+  "author": "Assaf Arkin <assaf@labnotes.org> (https://labnotes.org/)",
+  "homepage": "",
+  "license": "MIT",
+  "repository": "github:assaf/untitled.git",
+  "private": true,
+  "dependencies": {
+    "@swc/core": "^1.2.111"
+  },
+  "devDependencies": {
+    "@swc/cli": "^0.1.51",
+    "@types/node": "^16.11.9",
+    "@typescript-eslint/eslint-plugin": "^5.4.0",
+    "chokidar": "^3.5.2",
+    "eslint": "8.3.0",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-import": "^2.25.3",
+    "eslint-plugin-prettier": "^4.0.0",
+    "eslint-plugin-promise": "^5.1.1",
+    "eslint-plugin-sonarjs": "^0.10.0",
+    "eslint-plugin-typescript": "^0.14.0",
+    "prettier": "^2.4.1",
+    "typescript": "^4.5.2"
+  }
+}
