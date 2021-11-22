@@ -1,10 +1,8 @@
+import { CreateQueueCommand, SQSClient } from "@aws-sdk/client-sqs";
 import * as swc from "@swc/core";
 import { readdir, readFile } from "fs/promises";
-import { join } from "path";
-import { register } from "ts-node";
+import { basename, extname, join } from "path";
 import * as vm from "vm";
-
-register();
 
 async function configureQueues() {
   const filenames = await listFilenames("queue");
@@ -14,6 +12,9 @@ async function configureQueues() {
     const fn = exports.default;
     if (typeof fn !== "function")
       throw new Error(`Expected ${filename} to export a default function`);
+    const prefix = "untitled-dev";
+    const queueName = `${prefix}_${basename(filename, extname(filename))}`;
+    await createQueue(queueName, exports.config);
   }
 }
 
@@ -42,6 +43,22 @@ async function readScript(filename: string) {
     module: { type: "commonjs" },
   });
   return code;
+}
+
+async function createQueue(name: string, config?: {}) {
+  const client = new SQSClient({
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    },
+  });
+  // https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-sqs/interfaces/createqueuecommandinput.html
+  const command = new CreateQueueCommand({
+    Attributes: {},
+    QueueName: name,
+  });
+  await client.send(command);
+  console.log("Created queue %s", name);
 }
 
 async function setup() {
