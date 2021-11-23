@@ -3,6 +3,7 @@
     "type": "commonjs"
   },
   "jsc": {
+    "baseUrl": ".",
     "parser": {
       "syntax": "typescript",
       "decorators": false,

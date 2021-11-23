@@ -1,38 +1,34 @@
 import * as swc from "@swc/core";
 import chokidar from "chokidar";
+import { existsSync } from "fs";
 import * as fs from "fs/promises";
 import * as path from "path";
 import * as vm from "vm";
 
-export type Module<
-  Payload = unknown,
-  Config = unknown,
-  Handler = (payload: Payload) => unknown
-> = {
-  handler: Handler;
-  config?: Config;
+type Module = {
+  handler: () => Promise<void> | void;
+  config?: Record<string, unknown>;
 };
 
-export default async function loadModules<Payload, Config>(
-  dir: string
-): Promise<Map<string, Module<Payload, Config>>> {
-  const filenames = await listFilenames(dir);
+export default async function loadModules(
+  dirname: string,
+  watch: boolean
+): Promise<Map<string, Module>> {
+  const filenames = await listFilenames(dirname);
   const map = await Promise.all(
     filenames.map(async (filename) => {
       const name = path.basename(filename, path.extname(filename));
-      const module = await loadModule<Payload, Config>(filename);
-      return [name, module] as [string, Module<Payload, Config>];
+      const module = await loadModule(filename, watch);
+      return [name, module] as [string, Module];
     })
   );
   return new Map(map);
 }
 
-async function loadModule<Payload, Config>(
-  filename: string
-): Promise<Module<Payload, Config>> {
-  const module = await loadScript<Payload, Config>(filename);
+async function loadModule(filename: string, watch: boolean): Promise<Module> {
+  const module = await loadScript(filename);
 
-  if (process.env.NODE_ENV === "development") {
+  if (watch) {
     const watcher = chokidar.watch(filename, {
       persistent: true,
       ignoreInitial: true,
@@ -50,8 +46,8 @@ async function loadModule<Payload, Config>(
   return module;
 }
 
-async function listFilenames(dir: string): Promise<string[]> {
-  const dirname = path.join("background", dir);
+async function listFilenames(dirname: string): Promise<string[]> {
+  if (!(await existsSync(dirname))) return [];
   const filenames = await fs.readdir(dirname);
   const onlyScripts = filenames
     .filter((filename) => filename.endsWith(".ts") || filename.endsWith(".js"))
@@ -66,9 +62,7 @@ async function listFilenames(dir: string): Promise<string[]> {
   return onlyScripts.map((filename) => path.join(dirname, filename));
 }
 
-async function loadScript<Payload, Config>(
-  filename: string
-): Promise<Module<Payload, Config>> {
+async function loadScript(filename: string): Promise<Module> {
   const source = await readScript(filename);
   const script = new vm.Script(source, { filename });
   const context = vm.createContext({ exports: {}, console });

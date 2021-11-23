@@ -1,10 +1,10 @@
 import { CreateQueueCommand } from "@aws-sdk/client-sqs";
 import client from "../client";
-import loadModules from "../loadModules";
+import getTopology from "../topology";
 
 export default async function createQueues() {
-  const modules = await loadModules("queue");
-  for (const [name, { config }] of modules) {
+  const { queues } = await await getTopology();
+  for (const [name, { config }] of queues) {
     await createQueue(name, exports.config);
   }
 }

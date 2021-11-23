@@ -3,30 +3,29 @@ import {
   ListQueuesCommand,
   ReceiveMessageCommand,
 } from "@aws-sdk/client-sqs";
+import { JSONObject, Queue } from "../../../types";
 import client from "../client";
-import loadModules, { Module } from "../loadModules";
+import getTopology from "../topology";
 
 const VisibilityTimeout = 60 * 5;
 const WaitTimeSeconds = 20;
 
-type Handler = (payload: unknown) => unknown;
-
 export default async function receiveMessages(prefix: string) {
+  const { queues } = await getTopology();
   const queueURLs = await listQueuesURLs(prefix);
-  const modules = await loadModules("queue");
 
   console.info(
     "Queue: receiving messages for %s",
-    [...modules.keys()].join(", ")
+    [...queues.keys()].join(", ")
   );
-  modules.forEach((module, name) => {
+  queues.forEach((module, name) => {
     const queueURL = getQueueURL({ name, prefix, queueURLs });
     if (!queueURL) throw new Error(`Queue ${name} not found`);
     receiveMessagesForQueue(queueURL, module);
   });
 }
 
-async function receiveMessagesForQueue(queueURL: string, module: Module) {
+async function receiveMessagesForQueue(queueURL: string, module: Queue.Module) {
   while (true) {
     const command = new ReceiveMessageCommand({
       QueueUrl: queueURL,
@@ -45,7 +44,7 @@ async function receiveMessagesForQueue(queueURL: string, module: Module) {
           queueURL.split("/").slice(-1)
         );
 
-        const payload = JSON.parse(message.Body);
+        const payload = JSON.parse(message.Body) as JSONObject;
         await module.handler(payload);
 
         const command = new DeleteMessageCommand({
