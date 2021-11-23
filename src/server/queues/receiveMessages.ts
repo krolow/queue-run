@@ -26,6 +26,7 @@ export default async function receiveMessages(prefix: string) {
 }
 
 async function receiveMessagesForQueue(queueURL: string, module: Queue.Module) {
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     const command = new ReceiveMessageCommand({
       QueueUrl: queueURL,

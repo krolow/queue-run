@@ -9,7 +9,7 @@ export default async function createQueues() {
   }
 }
 
-async function createQueue(name: string, _config?: {}) {
+async function createQueue(name: string, _config?: unknown) {
   // https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-sqs/interfaces/createqueuecommandinput.html
   const command = new CreateQueueCommand({
     Attributes: {},

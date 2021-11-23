@@ -6,6 +6,7 @@
   },
   "extends": [
     "eslint:recommended",
+    "plugin:@typescript-eslint/eslint-recommended",
     "plugin:@typescript-eslint/recommended",
     "plugin:import/typescript",
     "plugin:prettier/recommended",
@@ -16,8 +17,5 @@
   "parserOptions": {
     "ecmaVersion": 12,
     "sourceType": "module"
-  },
-  "rules": {
-    "@typescript-eslint/explicit-module-boundary-types": 0
   }
 }

@@ -15,7 +15,8 @@
   "private": true,
   "dependencies": {
     "@aws-sdk/client-sqs": "^3.42.0",
-    "@swc/core": "^1.2.111"
+    "@swc/core": "^1.2.111",
+    "@typescript-eslint/parser": "^5.4.0"
   },
   "devDependencies": {
     "@swc/cli": "^0.1.51",

@@ -23,7 +23,7 @@ async function listFilenames(dirname: string): Promise<string[]> {
     .filter((filename) => filename.endsWith(".ts") || filename.endsWith(".js"))
     .filter((filename) => !filename.startsWith("_"));
   const notAllowed = onlyScripts.find(
-    (filename) => !/^[a-zA-Z0-9_\-]+.(js|ts)$/.test(path.basename(filename))
+    (filename) => !/^[a-zA-Z0-9_-]+.(js|ts)$/.test(path.basename(filename))
   );
   if (notAllowed) {
     throw new Error(
