@@ -1,5 +1,5 @@
 export default function (payload: { text: string }) {
-  console.log("Payload: %o", payload);
+  console.log("Payload 7: %o", payload);
 }
 
 export const config = {

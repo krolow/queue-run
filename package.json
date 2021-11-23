@@ -5,7 +5,7 @@
   "main": "src/index.js",
   "types": "types/index.d.ts",
   "scripts": {
-    "dev": "swc -w src/index.ts -d dist",
+    "dev": "swc src -d dist --delete-dir-on-start --watch",
     "lint": "yarn eslint src --fix ; tsc --noEmit"
   },
   "author": "Assaf Arkin <assaf@labnotes.org> (https://labnotes.org/)",
