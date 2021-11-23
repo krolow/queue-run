@@ -10,9 +10,7 @@
     "plugin:import/typescript",
     "plugin:prettier/recommended",
     "plugin:promise/recommended",
-    "plugin:react/recommended",
-    "plugin:react-hooks/recommended",
-    "plugin:sonarjs/recommended",
+    "plugin:sonarjs/recommended"
   ],
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
@@ -20,6 +18,6 @@
     "sourceType": "module"
   },
   "rules": {
-    "@typescript-eslint/explicit-module-boundary-types": 0,
+    "@typescript-eslint/explicit-module-boundary-types": 0
   }
 }

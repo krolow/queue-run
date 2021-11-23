@@ -44,7 +44,7 @@ async function receiveMessagesForQueue(queueURL: string, module: Queue.Module) {
           queueURL.split("/").slice(-1)
         );
 
-        const payload = JSON.parse(message.Body) as JSONObject;
+        const payload = JSON.parse(message.Body!) as JSONObject;
         await module.handler(payload);
 
         const command = new DeleteMessageCommand({
@@ -65,7 +65,7 @@ function getQueueURL({
   name: string;
   prefix: string;
   queueURLs: Set<string>;
-}): string {
+}): string | undefined {
   const ending = `/${prefix}-${name}`;
   return [...queueURLs].find((url) => url.endsWith(ending));
 }
