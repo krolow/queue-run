@@ -1,43 +1,48 @@
 import {
   DeleteMessageCommand,
   ListQueuesCommand,
+  Message,
   ReceiveMessageCommand,
 } from "@aws-sdk/client-sqs";
 import ms from "ms";
-import { JSONObject } from "../../../types";
+import { QueueConfig, QueueHandler } from "../../../types";
 import client from "../client";
-import { loadGroup } from "../functions";
-import { QueueConfig, QueueHandler } from "./../../../types/index.d";
 
 const VisibilityTimeout = 60 * 5;
 const WaitTimeSeconds = 20;
 
-export default async function receiveMessages(prefix: string) {
-  const queues = loadGroup("queue", true);
-  const queueURLs = await listQueuesURLs(prefix);
+export default async function pollMessages(
+  prefix: string,
+  queues: Map<string, { handler: QueueHandler; config: QueueConfig }>
+) {
+  const queueURLs = await getQueuesURLs(prefix);
 
   console.info(
     "Receiving messages for queues %s",
-    [...queues.keys()].join(", ")
+    [...queues.keys()].map((name) => `${prefix}-${name}`).join(", ")
   );
   queues.forEach(({ handler, config }, name) => {
-    const queueURL = getQueueURL({ name, prefix, queueURLs });
+    const queueName = `${prefix}-${name}`;
+    const queueURL = queueURLs.get(queueName);
     if (!queueURL) throw new Error(`Queue ${name} not found`);
-    receiveMessagesForQueue({ queueURL, handler, config });
+    receiveMessagesForQueue({ queueURL, queueName, handler, config });
   });
 }
 
 async function receiveMessagesForQueue({
+  config,
   handler,
+  queueName,
   queueURL,
 }: {
   config: QueueConfig;
   handler: QueueHandler;
+  queueName: string;
   queueURL: string;
 }) {
   // eslint-disable-next-line no-constant-condition
   while (true) {
-    const messages = await receiveMessaegs(queueURL);
+    const messages = await receiveMessages({ queueName, queueURL });
     if (!messages) continue;
 
     await Promise.all(
@@ -46,13 +51,10 @@ async function receiveMessagesForQueue({
           console.debug(
             "Received message %s on queue %s",
             message.MessageId,
-            getQueueName(queueURL)
+            queueName
           );
 
-          console.log(message);
-
-          const payload = JSON.parse(message.Body!) as JSONObject;
-          await handler(payload);
+          await handleMessage(message, handler, config);
 
           const command = new DeleteMessageCommand({
             QueueUrl: queueURL,
@@ -63,7 +65,7 @@ async function receiveMessagesForQueue({
           console.error(
             "Error handling message %s on queue %s",
             message.MessageId,
-            getQueueName(queueURL),
+            queueName,
             error
           );
         }
@@ -72,7 +74,13 @@ async function receiveMessagesForQueue({
   }
 }
 
-async function receiveMessaegs(queueURL: string) {
+async function receiveMessages({
+  queueName,
+  queueURL,
+}: {
+  queueName: string;
+  queueURL: string;
+}) {
   try {
     const command = new ReceiveMessageCommand({
       AttributeNames: ["All"],
@@ -84,37 +92,30 @@ async function receiveMessaegs(queueURL: string) {
     const response = await client.send(command);
     return response.Messages;
   } catch (error) {
-    console.error(
-      "Error reading message from queue %s",
-      getQueueName(queueURL),
-      error
-    );
+    console.error("Error reading message from queue %s", queueName, error);
     await new Promise((resolve) => setTimeout(resolve, ms("10s")));
     return null;
   }
 }
 
-function getQueueURL({
-  name,
-  prefix,
-  queueURLs,
-}: {
-  name: string;
-  prefix: string;
-  queueURLs: Set<string>;
-}): string | undefined {
-  const ending = `/${prefix}-${name}`;
-  return [...queueURLs].find((url) => url.endsWith(ending));
+async function handleMessage(
+  message: Message,
+  handler: QueueHandler,
+  config: QueueConfig
+) {
+  const payload =
+    config.json === false
+      ? message.Body ?? ""
+      : JSON.parse(message.Body ?? "{}");
+  await handler(payload);
 }
 
-function getQueueName(queueURL: string): string {
-  return queueURL.split("/").slice(-1)[0]!;
-}
-
-async function listQueuesURLs(prefix: string): Promise<Set<string>> {
+async function getQueuesURLs(prefix: string): Promise<Map<string, string>> {
   const command = new ListQueuesCommand({
     QueueNamePrefix: prefix,
   });
   const response = await client.send(command);
-  return new Set(response.QueueUrls);
+  return new Map(
+    response.QueueUrls?.map((url) => [url.split("/").pop()!, url])
+  );
 }

@@ -45,7 +45,7 @@ export default function loadModule({
   require.main = undefined;
   require.extensions = {
     ...globalRequire.extensions,
-    ".ts": compileTSWithSourceMap(sourceMaps),
+    ".ts": compileTypeScript(sourceMaps),
   };
 
   const resolve: NodeJS.RequireResolve = (id: string) => {
@@ -78,7 +78,7 @@ export default function loadModule({
   return module;
 }
 
-function compileTSWithSourceMap(sourceMaps: Map<string, string>) {
+function compileTypeScript(sourceMaps: Map<string, string>) {
   return (module: NodeJS.Module, filename: string) => {
     const { code, map: sourceMap } = swc.transformFileSync(filename, {
       envName: process.env.NODE_ENV,
