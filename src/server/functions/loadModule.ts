@@ -34,8 +34,10 @@ export default async function loadModule({
       console.debug("File %s changed, reloading %s", changed, filename);
       try {
         const watched = module.paths;
+
         Object.assign(module, await loadEntryPoint({ filename, global }));
         delete module.error;
+
         watcher.unwatch(watched);
         watcher.add(module.paths);
       } catch (error) {
@@ -57,19 +59,17 @@ async function loadEntryPoint({
 }): Promise<Module> {
   const start = Date.now();
 
-  const modules = new Map<string, unknown>();
   const cache = {} as NodeJS.Dict<NodeJS.Module>;
   const { config, default: handler } = await compileAndExport({
     cache,
     filename,
     global,
-    modules,
   });
   if (typeof handler !== "function")
     throw new Error(`Expected ${filename} to export a default function`);
 
   console.debug("Loaded module %s in %dms", filename, Date.now() - start);
-  const paths = [...modules.keys()];
+  const paths = Object.keys(cache);
 
   return { config, filename, handler, paths };
 }
@@ -110,11 +110,8 @@ function compileAndExport({
     if (existing) return existing;
 
     if (requirePath.startsWith(".")) {
-      return compileAndExport({
-        cache,
-        filename: require.resolve(requirePath),
-        global,
-      });
+      const resolved = require.resolve(requirePath);
+      return compileAndExport({ cache, filename: resolved, global });
     } else return globalRequire(requirePath);
   }
 
@@ -127,14 +124,11 @@ function compileAndExport({
     return found;
   };
 
-  const script = new vm.Script(code, {
-    displayErrors: true,
-    filename,
-  });
+  const script = new vm.Script(code, { displayErrors: true, filename });
   const context = vm.createContext({ ...global, require, exports: {} });
   script.runInContext(context, { breakOnSigint: true, displayErrors: true });
-  const exports = context.exports;
 
+  const exports = context.exports;
   cached.exports = exports;
   cached.loaded = true;
   return exports;
