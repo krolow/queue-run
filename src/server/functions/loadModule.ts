@@ -1,21 +1,31 @@
 import * as swc from "@swc/core";
 import * as fs from "fs";
 import * as path from "path";
+import sourceMapSupport from "source-map-support";
 import vm from "vm";
 
 const globalRequire = require;
+
+const sourceMaps = new Map<string, string>();
+
+sourceMapSupport.install({
+  handleUncaughtExceptions: false,
+  environment: "node",
+  retrieveSourceMap: (filename) => {
+    const map = sourceMaps.get(filename);
+    return map ? { url: filename, map } : null;
+  },
+});
 
 // Half-assed implementatio of Node's require module loading that support hot reload.
 export default function loadModule({
   cache,
   filename,
   parent,
-  sourceMaps,
 }: {
   cache: NodeJS.Dict<NodeJS.Module>;
   filename: string;
   parent?: NodeJS.Module;
-  sourceMaps: Map<string, string>;
 }): NodeJS.Module {
   const require: NodeJS.Require = (id: string) => {
     if (!id.startsWith(".")) return globalRequire(id);
@@ -25,7 +35,6 @@ export default function loadModule({
         cache,
         filename: require.resolve(id),
         parent: module,
-        sourceMaps,
       });
     if (!module.children.find(({ id }) => id === child.id))
       module.children.push(child);

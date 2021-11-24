@@ -13,11 +13,10 @@ export default function loadFunction(
   watch?: boolean
 ): FunctionExports {
   const paths = new Set<string>();
-  const sourceMaps = new Map<string, string>();
-  const loaded = loadAndVerify({ filename, paths, sourceMaps });
+  const loaded = loadAndVerify({ filename, paths });
 
   if (watch) {
-    const watcher = chokidar.watch([...paths.keys()], { ignoreInitial: true });
+    const watcher = chokidar.watch([...paths], { ignoreInitial: true });
     watcher.on("change", (changed) => {
       console.debug(
         "File %s changed => reloading %s",
@@ -26,11 +25,11 @@ export default function loadFunction(
       );
 
       try {
-        Object.assign(loaded, loadAndVerify({ filename, paths, sourceMaps }));
+        Object.assign(loaded, loadAndVerify({ filename, paths }));
       } catch (error) {
         console.error("Error loading %s", filename, (error as Error).stack);
       }
-      watcher.add([...paths.keys()]);
+      watcher.add([...paths]);
     });
   }
 
@@ -40,18 +39,16 @@ export default function loadFunction(
 function loadAndVerify({
   filename,
   paths,
-  sourceMaps,
 }: {
   filename: string;
   paths: Set<string>;
-  sourceMaps: Map<string, string>;
 }): FunctionExports {
   const cache = {};
   try {
     const start = Date.now();
     const full = path.resolve(process.cwd(), filename);
 
-    const { exports } = loadModule({ filename: full, cache, sourceMaps });
+    const { exports } = loadModule({ filename: full, cache });
 
     const handler = exports.handler || exports.default;
     if (typeof handler !== "function") {
