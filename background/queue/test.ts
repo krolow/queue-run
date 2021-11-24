@@ -1,5 +1,5 @@
 import fs from "fs/promises";
-import data from "./data";
+import data from "./data.json";
 import common from "./_common";
 
 export default async function (payload: { text: string }) {

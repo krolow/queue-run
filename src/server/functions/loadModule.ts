@@ -1,77 +1,62 @@
-import chokidar from "chokidar";
-import * as vm from "vm";
-import { compile } from "./compile";
+import * as fs from "fs";
+import * as path from "path";
 
-type Module = {
-  // Exported from module, depends on module type
-  config: Record<string, unknown>;
-  // Last error, only used when reloading
-  error?: Error;
-  // The filename of the module
-  filename: string;
-  // Exported from module, depends on module type
-  handler: () => Promise<void> | void;
-  // Paths for all files that are watched
-  paths: string[];
-};
+const globalRequire = require;
 
-export default async function loadModule({
+// Half-assed implementatio of Node's require module loading that support hot reload.
+export default function loadModule({
+  cache,
   filename,
-  global,
-  watch,
+  parent,
 }: {
+  cache: NodeJS.Dict<NodeJS.Module>;
   filename: string;
-  global: vm.Context;
-  watch: boolean;
-}): Promise<Readonly<Module>> {
-  const sourceMaps = new Map<string, string>();
-  const module = await loadEntryPoint({ filename, global, sourceMaps });
+  parent?: NodeJS.Module;
+}): NodeJS.Module {
+  const require: NodeJS.Require = (id: string) => {
+    if (!id.startsWith(".")) return globalRequire(id);
+    const child =
+      cache[id] ??
+      loadModule({
+        cache,
+        filename: require.resolve(id),
+        parent: module,
+      });
+    if (!module.children.find(({ id }) => id === child.id))
+      module.children.push(child);
+    return child.exports;
+  };
 
-  if (watch) {
-    const watcher = chokidar.watch(module.paths, { ignoreInitial: true });
-    watcher.on("change", async (changed) => {
-      console.debug("File %s changed, reloading %s", changed, filename);
-      try {
-        const watched = module.paths;
+  require.cache = cache;
+  require.main = undefined;
+  require.extensions = globalRequire.extensions;
 
-        Object.assign(
-          module,
-          await loadEntryPoint({ filename, global, sourceMaps })
-        );
-        delete module.error;
+  const resolve: NodeJS.RequireResolve = (id: string) => {
+    const fullPath = path.resolve(path.dirname(module.filename), id);
+    const found = [".ts", "/index.ts", ".js", "/index.js", ".json", ""]
+      .map((ext) => `${fullPath}${ext}`)
+      .find((path) => fs.existsSync(path));
+    return found ?? globalRequire.resolve(id);
+  };
+  resolve.paths = globalRequire.resolve.paths;
+  require.resolve = resolve;
 
-        watcher.unwatch(watched);
-        watcher.add(module.paths);
-      } catch (error) {
-        console.error("Error loading %s", filename, (error as Error).stack);
-        module.error = error as Error;
-      }
-    });
-  }
+  const module: NodeJS.Module = {
+    children: [],
+    exports: {},
+    filename,
+    id: filename,
+    isPreloading: false,
+    loaded: false,
+    parent,
+    path: path.dirname(filename),
+    paths: parent?.paths ?? globalRequire.resolve.paths("") ?? [],
+    require,
+  };
+  cache[filename] = module;
 
+  const extension = require.extensions[path.extname(filename)];
+  if (extension) extension(module, filename);
+  module.loaded = true;
   return module;
-}
-
-async function loadEntryPoint({
-  filename,
-  global,
-  sourceMaps,
-}: {
-  filename: string;
-  global: vm.Context;
-  sourceMaps: Map<string, string>;
-}): Promise<Module> {
-  const start = Date.now();
-
-  const cache = {} as NodeJS.Dict<NodeJS.Module>;
-  const module = await compile({ cache, id: filename, global, sourceMaps });
-  console.dir(module);
-  const { config, default: handler } = module.exports;
-  if (typeof handler !== "function")
-    throw new Error(`Expected ${filename} to export a default function`);
-
-  console.debug("Loaded module %s in %dms", filename, Date.now() - start);
-  const paths = Object.keys(cache);
-
-  return { config, filename, handler, paths };
 }

@@ -13,7 +13,7 @@ const VisibilityTimeout = 60 * 5;
 const WaitTimeSeconds = 20;
 
 export default async function receiveMessages(prefix: string) {
-  const { queues } = await getTopology();
+  const { queues } = getTopology();
   const queueURLs = await listQueuesURLs(prefix);
 
   console.info(

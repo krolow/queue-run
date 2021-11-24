@@ -1,29 +1,45 @@
-import * as vm from "vm";
+import * as swc from "@swc/core";
+import path from "path";
+import vm from "vm";
 import { QueueConfig, QueueHandler } from "../../../types";
-import loadDirectory from "./loadDirectory";
+import loadGroup from "./loadGroup";
 
-type ModuleTree = {
+type AllGroups = {
   queues: Map<
     string,
     { readonly handler: QueueHandler; readonly config: QueueConfig }
   >;
 };
 
-export default async function loadAllModules(): Promise<ModuleTree> {
-  if (!loadingTree) {
-    const global = vm.createContext({ console, process });
-    loadingTree = (async () => {
-      const watch = process.env.NODE_ENV === "development";
-      return {
-        queues: await loadDirectory({
-          dirname: "background/queue",
-          global,
-          watch,
-        }),
-      };
-    })();
+export default function loadAllModules(): AllGroups {
+  if (!allGroups) {
+    const sourceMaps = new Map<string, string>();
+    require.extensions[".ts"] = compileTSWithSourceMap(sourceMaps);
+    const watch = process.env.NODE_ENV === "development";
+    allGroups = {
+      queues: loadGroup("background/queue", watch),
+    };
   }
-  return await loadingTree;
+  return allGroups;
 }
 
-let loadingTree: Promise<ModuleTree>;
+let allGroups: AllGroups;
+
+function compileTSWithSourceMap(sourceMaps: Map<string, string>) {
+  return (module: NodeJS.Module, filename: string) => {
+    const { code, map: sourceMap } = swc.transformFileSync(filename, {
+      envName: process.env.NODE_ENV,
+      env: { targets: { node: process.versions.node } },
+      jsc: { parser: { syntax: "typescript" } },
+      sourceMaps: true,
+      module: { type: "commonjs" },
+    });
+    if (sourceMap) sourceMaps.set(filename, sourceMap);
+    vm.compileFunction(
+      code,
+      ["exports", "require", "module", "__filename", "__dirname"],
+      { filename }
+    )(module.exports, module.require, module, filename, path.dirname(filename));
+    module.loaded = true;
+  };
+}

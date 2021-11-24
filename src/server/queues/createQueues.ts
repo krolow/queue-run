@@ -3,7 +3,7 @@ import client from "../client";
 import getTopology from "../functions";
 
 export default async function createQueues() {
-  const { queues } = await await getTopology();
+  const { queues } = getTopology();
   for (const [name, { config }] of [...queues.entries()]) {
     await createQueue(name, config);
   }
