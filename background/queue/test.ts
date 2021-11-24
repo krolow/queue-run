@@ -1,4 +1,5 @@
 import fs from "fs/promises";
+import data from "./data";
 import common from "./_common";
 
 export default async function (payload: { text: string }) {
@@ -6,7 +7,13 @@ export default async function (payload: { text: string }) {
   await fs.readdir(".");
 }
 
-console.log("loading test.js with %s", common());
+console.log(
+  "Loading %s with %s and %s in %s",
+  module.id,
+  common(),
+  data,
+  process.env.NODE_ENV
+);
 
 export const config = {
   retries: 2,

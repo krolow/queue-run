@@ -11,7 +11,7 @@ type ModuleTree = {
 
 export default async function loadAllModules(): Promise<ModuleTree> {
   if (!loadingTree) {
-    const global = vm.createContext({ console });
+    const global = vm.createContext({ console, process });
     loadingTree = (async () => {
       const watch = process.env.NODE_ENV === "development";
       return {
