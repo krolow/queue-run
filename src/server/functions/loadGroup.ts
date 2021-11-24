@@ -4,9 +4,10 @@ import loadFunction from "./loadFunction";
 
 // Load a group of functions from the same directory.
 export default function loadGroup(
-  dirname: string,
+  group: string,
   watch?: boolean
 ): Map<string, ReturnType<typeof loadFunction>> {
+  const dirname = path.join("background", group);
   const filenames = listFilenames(dirname);
   return filenames.reduce(
     (map, filename) =>

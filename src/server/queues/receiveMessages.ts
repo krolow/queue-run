@@ -6,14 +6,14 @@ import {
 import ms from "ms";
 import { JSONObject } from "../../../types";
 import client from "../client";
-import getTopology from "../functions";
+import { loadGroup } from "../functions";
 import { QueueConfig, QueueHandler } from "./../../../types/index.d";
 
 const VisibilityTimeout = 60 * 5;
 const WaitTimeSeconds = 20;
 
 export default async function receiveMessages(prefix: string) {
-  const { queues } = getTopology();
+  const queues = loadGroup("queue");
   const queueURLs = await listQueuesURLs(prefix);
 
   console.info(

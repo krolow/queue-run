@@ -7,6 +7,7 @@ async function setup() {
   try {
     await createQueues();
     await receiveMessages("untitled_dev");
+    process.stdin.resume();
   } catch (error) {
     console.error(error);
     process.exit(1);
