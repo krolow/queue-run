@@ -5,7 +5,7 @@ import {
 } from "@aws-sdk/client-sqs";
 import { JSONObject, Queue } from "../../../types";
 import client from "../client";
-import getTopology from "../topology";
+import getTopology from "../functions";
 
 const VisibilityTimeout = 60 * 5;
 const WaitTimeSeconds = 20;
@@ -15,7 +15,7 @@ export default async function receiveMessages(prefix: string) {
   const queueURLs = await listQueuesURLs(prefix);
 
   console.info(
-    "Queue: receiving messages for %s",
+    "Receiving messages for queues %s",
     [...queues.keys()].join(", ")
   );
   queues.forEach((module, name) => {
@@ -40,10 +40,12 @@ async function receiveMessagesForQueue(queueURL: string, module: Queue.Module) {
     await Promise.all(
       messages.map(async (message) => {
         console.debug(
-          "Queue: received message %s on queue %s",
+          "Received message %s on queue %s",
           message.MessageId,
           queueURL.split("/").slice(-1)
         );
+
+        console.log(message);
 
         const payload = JSON.parse(message.Body!) as JSONObject;
         await module.handler(payload);

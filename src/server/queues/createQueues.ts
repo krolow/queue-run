@@ -1,6 +1,6 @@
 import { CreateQueueCommand } from "@aws-sdk/client-sqs";
 import client from "../client";
-import getTopology from "../topology";
+import getTopology from "../functions";
 
 export default async function createQueues() {
   const { queues } = await await getTopology();
@@ -16,5 +16,5 @@ async function createQueue(name: string, _config?: unknown) {
     QueueName: name,
   });
   await client.send(command);
-  console.info("Queue: created queue %s", name);
+  console.debug("Created queue %s", name);
 }

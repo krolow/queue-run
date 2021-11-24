@@ -1,14 +1,23 @@
 import { existsSync } from "fs";
 import * as fs from "fs/promises";
 import * as path from "path";
-import { loadModule } from "./loadModule";
+import * as vm from "vm";
+import loadModule from "./loadModule";
 
-export default async function loadModules(dirname: string, watch: boolean) {
+export default async function loadDirectory({
+  dirname,
+  global,
+  watch,
+}: {
+  dirname: string;
+  global: vm.Context;
+  watch: boolean;
+}) {
   const filenames = await listFilenames(dirname);
   const nameModulePairs = await Promise.all(
     filenames.map(async (filename) => {
       const name = path.basename(filename, path.extname(filename));
-      const module = await loadModule(filename, watch);
+      const module = await loadModule({ filename, global, watch });
       return [name, module] as [string, typeof module];
     })
   );
@@ -16,7 +25,7 @@ export default async function loadModules(dirname: string, watch: boolean) {
 }
 
 async function listFilenames(dirname: string): Promise<string[]> {
-  if (!(await existsSync(dirname))) return [];
+  if (!existsSync(dirname)) return [];
 
   const filenames = await fs.readdir(dirname);
   const onlyScripts = filenames
