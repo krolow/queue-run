@@ -35,6 +35,7 @@
     "@types/glob": "^7.2.0",
     "@types/ms": "^0.7.31",
     "@types/node": "^16.11.9",
+    "@types/node-fetch": "^3.0.3",
     "@types/rimraf": "^3.0.2",
     "@types/source-map-support": "^0.5.4",
     "@typescript-eslint/eslint-plugin": "^5.4.0",

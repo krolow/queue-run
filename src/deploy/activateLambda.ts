@@ -127,7 +127,7 @@ async function createQueues({
 }): Promise<string[]> {
   const fromCode = await getQueuesFromCode(dirname);
   return await Promise.all(
-    [...fromCode].map(async ([name, config]) => {
+    [...fromCode].map(async ([name]) => {
       const { QueueUrl } = await sqs.createQueue({
         QueueName: `${prefix}${name}`,
       });
