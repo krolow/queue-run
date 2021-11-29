@@ -4,14 +4,14 @@ import { copyFile, mkdir, writeFile } from "fs/promises";
 import glob from "glob";
 import path from "path";
 
-export default async function compileSourceFiles(
-  sourceDir: string,
-  targetDir: string
-) {
-  await copyFile(
-    path.resolve(sourceDir, "package.json"),
-    path.resolve(targetDir, "package.json")
-  );
+export default async function compileSourceFiles({
+  sourceDir,
+  targetDir,
+}: {
+  sourceDir: string;
+  targetDir: string;
+}) {
+  console.info("λ: Building %s", sourceDir);
   await copySourceFiles(sourceDir, targetDir);
   await compileTypeScript(sourceDir, targetDir);
 }

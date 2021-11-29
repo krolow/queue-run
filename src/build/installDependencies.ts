@@ -1,7 +1,6 @@
 import { spawn } from "child_process";
 
 export default async function installDependencies(dirname: string) {
-  console.log(dirname);
   const install = await spawn("yarn", ["install", "--production"], {
     cwd: dirname,
     env: {

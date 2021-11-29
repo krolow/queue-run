@@ -45,7 +45,11 @@ export default function loadModule({
   require.main = undefined;
   require.extensions = {
     ...globalRequire.extensions,
-    ".ts": compileTypeScript(sourceMaps),
+    ".json": (module: NodeJS.Module, filename: string) => {
+      module.exports.default = JSON.parse(fs.readFileSync(filename, "utf8"));
+    },
+    ".js": compileSourceFile(sourceMaps, "ecmascript"),
+    ".ts": compileSourceFile(sourceMaps, "typescript"),
   };
 
   const resolve: NodeJS.RequireResolve = (id: string) => {
@@ -78,12 +82,15 @@ export default function loadModule({
   return module;
 }
 
-function compileTypeScript(sourceMaps: Map<string, string>) {
+function compileSourceFile(
+  sourceMaps: Map<string, string>,
+  syntax: "typescript" | "ecmascript"
+) {
   return (module: NodeJS.Module, filename: string) => {
     const { code, map: sourceMap } = swc.transformFileSync(filename, {
       envName: process.env.NODE_ENV,
       env: { targets: { node: 14 } },
-      jsc: { parser: { syntax: "typescript" } },
+      jsc: { parser: { syntax } },
       sourceMaps: true,
       module: { type: "commonjs", noInterop: true },
     });

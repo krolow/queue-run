@@ -1,5 +1,8 @@
 import { IAM, Role } from "@aws-sdk/client-iam";
+import { lambdaAssumeRoleName, lambdaAssumeRolePath } from "./constants";
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
 const iam = new IAM({ profile: "untitled" });
 
 const Version = "2012-10-17";
@@ -14,10 +17,6 @@ const assumeRolePolicy = {
     },
   ],
 };
-
-const rolePath = "/untitled/";
-
-const roleName = "Untitled.Lambda";
 
 const policies = {
   Logging: {
@@ -53,26 +52,27 @@ const policies = {
   },
 };
 
-export default async function createLambdaRole() {
+export default async function createLambdaRole(): Promise<Role> {
   const role = await upsertRole();
   await updatePolicies(role);
+  return role;
 }
 
 async function upsertRole(): Promise<Role> {
   const { Roles } = await iam.listRoles({
-    PathPrefix: rolePath,
+    PathPrefix: lambdaAssumeRolePath,
   });
-  const existing = Roles?.find((r) => r.RoleName === roleName);
+  const existing = Roles?.find((r) => r.RoleName === lambdaAssumeRoleName);
   if (existing) return existing;
 
   const { Role: newRole } = await iam.createRole({
-    Path: rolePath,
-    RoleName: roleName,
+    Path: lambdaAssumeRolePath,
+    RoleName: lambdaAssumeRoleName,
     AssumeRolePolicyDocument: JSON.stringify(assumeRolePolicy),
   });
   if (!newRole) throw new Error("Failed to create role");
 
-  console.debug("Created role %s", newRole.Arn);
+  console.info("λ: Created role %s", newRole.Arn);
   return newRole;
 }
 
@@ -87,6 +87,6 @@ async function updatePolicies(role: Role) {
     });
     if (httpStatusCode !== 200)
       throw new Error(`Failed to update policy ${policyName}`);
-    console.debug("Updated inline policy %s for role %s", policyName, role.Arn);
+    console.info("λ: Updated policy %s %s", role.Arn, policyName);
   }
 }
