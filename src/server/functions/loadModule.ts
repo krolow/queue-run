@@ -28,17 +28,25 @@ export default function loadModule({
   parent?: NodeJS.Module;
 }): NodeJS.Module {
   const require: NodeJS.Require = (id: string) => {
-    if (!id.startsWith(".")) return globalRequire(id);
-    const child =
-      cache[id] ??
-      loadModule({
-        cache,
-        filename: require.resolve(id),
-        parent: module,
-      });
-    if (!module.children.find(({ id }) => id === child.id))
-      module.children.push(child);
-    return child.exports;
+    if (id.startsWith(".")) {
+      const child =
+        cache[id] ??
+        loadModule({
+          cache,
+          filename: require.resolve(id),
+          parent: module,
+        });
+      if (!module.children.find(({ id }) => id === child.id))
+        module.children.push(child);
+      return child.exports;
+    } else {
+      const fromNodeModule = requireFromNodeModules(
+        filename,
+        require.resolve.paths(filename)
+      );
+      if (fromNodeModule) return fromNodeModule;
+      else return globalRequire(id);
+    }
   };
 
   require.cache = cache;
@@ -46,7 +54,9 @@ export default function loadModule({
   require.extensions = {
     ...globalRequire.extensions,
     ".json": (module: NodeJS.Module, filename: string) => {
-      module.exports.default = JSON.parse(fs.readFileSync(filename, "utf8"));
+      module.exports.default = JSON.parse(
+        fs.readFileSync(require.resolve(filename), "utf8")
+      );
     },
     ".js": compileSourceFile(sourceMaps, "ecmascript"),
     ".ts": compileSourceFile(sourceMaps, "typescript"),
@@ -59,7 +69,7 @@ export default function loadModule({
       .find((path) => fs.existsSync(path));
     return found ?? globalRequire.resolve(id);
   };
-  resolve.paths = globalRequire.resolve.paths;
+  resolve.paths = (id) => nodeModulePaths(id);
   require.resolve = resolve;
 
   const module: NodeJS.Module = {
@@ -80,6 +90,25 @@ export default function loadModule({
   if (extension) extension(module, filename);
   module.loaded = true;
   return module;
+}
+
+function requireFromNodeModules(filename: string, paths: string[] | null) {
+  if (!paths) return null;
+  const found = paths
+    .map((dir) => path.resolve(dir, filename))
+    .find((path) => fs.existsSync(path));
+  return found ? require(found) : null;
+}
+
+function nodeModulePaths(filename: string): string[] | null {
+  if (filename.startsWith(".")) return null;
+  const dirname = path.dirname(filename);
+  const paths = [];
+  if (fs.existsSync(path.resolve(dirname, "package.json")))
+    paths.push(path.resolve(dirname, "node_modules"));
+  if (dirname === "/" || dirname === process.cwd()) return paths;
+  const parent = nodeModulePaths(path.dirname(dirname));
+  return parent ? [...parent, ...paths] : paths;
 }
 
 function compileSourceFile(

@@ -7,6 +7,8 @@ import createZip from "./createZip";
 // @ts-ignore
 const lambda = new Lambda({ profile: "untitled" });
 
+const handler = "background/queue/test.handler";
+
 export default async function uploadLambda({
   lambdaName,
   dirname,
@@ -23,15 +25,21 @@ async function createUpdateLambda(
   zipFile: Uint8Array
 ): Promise<string> {
   try {
-    const { Configuration } = await lambda.getFunction({
+    const { Configuration: existing } = await lambda.getFunction({
       FunctionName: lambdaName,
     });
-    if (Configuration) {
-      const updated = await lambda.updateFunctionCode({
+
+    if (existing) {
+      const newCode = await lambda.updateFunctionCode({
         FunctionName: lambdaName,
         Publish: false,
         ZipFile: zipFile,
-        RevisionId: Configuration.RevisionId,
+        RevisionId: existing.RevisionId,
+      });
+      const updated = await lambda.updateFunctionConfiguration({
+        FunctionName: lambdaName,
+        Handler: handler,
+        RevisionId: newCode.RevisionId,
       });
       if (!updated.RevisionId) throw new Error("Could not update function");
       console.info("λ: Updated %s", updated.FunctionArn);
@@ -43,20 +51,20 @@ async function createUpdateLambda(
   }
 
   const role = await createLambdaRole();
-  const created = await lambda.createFunction({
+  const newLambda = await lambda.createFunction({
     Code: { ZipFile: zipFile },
     FunctionName: lambdaName,
-    Handler: "index.handler",
+    Handler: handler,
     PackageType: "Zip",
     Publish: false,
     Role: role.Arn,
     Runtime: "nodejs14.x",
     TracingConfig: { Mode: "Active" },
   });
-  if (!created.RevisionId) throw new Error("Could not create function");
+  if (!newLambda.RevisionId) throw new Error("Could not create function");
 
-  console.info("λ: Created %s", created.FunctionArn);
-  return await waitForNewRevision(lambdaName, created.RevisionId, zipFile);
+  console.info("λ: Created %s", newLambda.FunctionArn);
+  return await waitForNewRevision(lambdaName, newLambda.RevisionId, zipFile);
 }
 
 async function waitForNewRevision(

@@ -16,4 +16,5 @@ export default async function installDependencies(dirname: string) {
     install.on("error", reject);
     install.on("exit", resolve);
   });
+  process.stdout.write("\n");
 }
