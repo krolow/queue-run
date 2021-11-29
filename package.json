@@ -17,6 +17,7 @@
   "repository": "github:assaf/untitled.git",
   "private": true,
   "dependencies": {
+    "@aws-sdk/client-iam": "^3.42.0",
     "@aws-sdk/client-lambda": "^3.42.0",
     "@aws-sdk/client-sqs": "^3.42.0",
     "@swc/core": "^1.2.111",
