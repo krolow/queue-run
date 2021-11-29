@@ -14,33 +14,42 @@ const lambda = new Lambda({ profile: "untitled" });
 // @ts-ignore
 const sqs = new SQS({ profile: "untitled" });
 
-export default async function publishLambda({
+export default async function activateLambda({
+  alias,
   dirname,
   lambdaName,
 }: {
+  alias: string;
   dirname: string;
   lambdaName: string;
 }) {
-  const queueArns = await createQueues({ dirname, lambdaName: lambdaName });
+  const prefix = `${alias}__`;
+  const queueArns = await createQueues({ dirname, prefix });
   await removeTriggers(lambdaName, queueArns);
 
-  const revisionId = await uploadLambda({ dirname, lambdaName: lambdaName });
-  const { FunctionArn: versionedArn } = await lambda.publishVersion({
+  const revisionId = await uploadLambda({ dirname, lambdaName });
+  const { Version: version } = await lambda.publishVersion({
     FunctionName: lambdaName,
     RevisionId: revisionId,
   });
-  if (!versionedArn) throw new Error("Could not publish function");
-  console.info("λ: Published %s", versionedArn);
-  await addTriggers(lambdaName, queueArns);
+  if (!version) throw new Error("Could not publish function");
+
+  const { AliasArn: aliasArn } = await lambda.updateAlias({
+    FunctionName: lambdaName,
+    FunctionVersion: version,
+    Name: alias,
+  });
+  if (!aliasArn) throw new Error("Could not create alias");
+
+  console.info("λ: Published %s", aliasArn);
+  await addTriggers(aliasArn, queueArns);
+
+  await deleteOldQueues(prefix, queueArns);
 }
 
-async function getQueuesFromCode({
-  dirname,
-  lambdaName,
-}: {
-  dirname: string;
-  lambdaName: string;
-}): Promise<Map<string, QueueConfig>> {
+async function getQueuesFromCode(
+  dirname: string
+): Promise<Map<string, QueueConfig>> {
   const filenames = glob.sync(
     path.resolve(dirname, "background", "queue", "[!_.]*.js")
   );
@@ -57,7 +66,7 @@ async function getQueuesFromCode({
     filenames.map(async (filename) => {
       const exports = loadFunction(filename, false);
       const config = exports.config ?? {};
-      const queueName = `${lambdaName}__${path.basename(filename, ".js")}`;
+      const queueName = path.basename(filename, ".js");
       return [queueName, config] as [string, QueueConfig];
     })
   );
@@ -111,21 +120,38 @@ async function addTriggers(lambdaName: string, sourceArns: string[]) {
 
 async function createQueues({
   dirname,
-  lambdaName,
+  prefix,
 }: {
   dirname: string;
-  lambdaName: string;
+  prefix: string;
 }): Promise<string[]> {
-  const fromCode = await getQueuesFromCode({ dirname, lambdaName: lambdaName });
+  const fromCode = await getQueuesFromCode(dirname);
   return await Promise.all(
     [...fromCode].map(async ([name, config]) => {
       const { QueueUrl } = await sqs.createQueue({
-        QueueName: name,
+        QueueName: `${prefix}${name}`,
       });
       if (!QueueUrl) throw new Error(`Could not create queue ${name}`);
       const arn = queueURLToARN(QueueUrl);
       console.info("µ: Created queue %s", arn);
       return arn;
     })
+  );
+}
+
+async function deleteOldQueues(prefix: string, queueArns: string[]) {
+  const { QueueUrls } = await sqs.listQueues({
+    QueueNamePrefix: prefix,
+  });
+  if (!QueueUrls) return;
+
+  const set = new Set(queueArns);
+  const toDelete = QueueUrls.filter(
+    (QueueUrl) => !set.has(queueURLToARN(QueueUrl))
+  );
+
+  console.info("µ: Deleting queues %s", toDelete.map(queueURLToARN));
+  await Promise.all(
+    toDelete.map(async (QueueUrl) => sqs.deleteQueue({ QueueUrl }))
   );
 }

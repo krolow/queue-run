@@ -1,12 +1,11 @@
 import { fullBuild } from "../build";
+import activateLambda from "./activateLambda";
 import { buildDir } from "./constants";
-import publishLambda from "./publishLambda";
-import { getLambdaName } from "./util";
 
-(async () => {
+(async (branch: string) => {
   const projectId = "goose-dump";
-  const lambdaName = getLambdaName(projectId);
+  const alias = `${projectId}-${branch}`;
 
   await fullBuild();
-  await publishLambda({ dirname: buildDir, lambdaName });
-})();
+  await activateLambda({ dirname: buildDir, alias, lambdaName: projectId });
+})("prod");

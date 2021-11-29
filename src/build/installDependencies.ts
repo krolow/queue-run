@@ -1,4 +1,5 @@
 import { spawn } from "child_process";
+import ms from "ms";
 
 export default async function installDependencies(dirname: string) {
   const install = await spawn("yarn", ["install", "--production"], {
@@ -9,6 +10,7 @@ export default async function installDependencies(dirname: string) {
       TMPDIR: process.env.TMPDIR,
     },
     stdio: "inherit",
+    timeout: ms("30s"),
   });
   await new Promise((resolve, reject) => {
     install.on("error", reject);
