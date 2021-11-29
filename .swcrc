@@ -9,6 +9,6 @@
       "decorators": false,
       "dynamicImport": false
     },
-    "target": "es2016"
+    "target": "es2020"
   }
 }

@@ -82,10 +82,10 @@ function compileTypeScript(sourceMaps: Map<string, string>) {
   return (module: NodeJS.Module, filename: string) => {
     const { code, map: sourceMap } = swc.transformFileSync(filename, {
       envName: process.env.NODE_ENV,
-      env: { targets: { node: process.versions.node } },
+      env: { targets: { node: 14 } },
       jsc: { parser: { syntax: "typescript" } },
       sourceMaps: true,
-      module: { type: "commonjs" },
+      module: { type: "commonjs", noInterop: true },
     });
     if (sourceMap) sourceMaps.set(filename, sourceMap);
     vm.compileFunction(
