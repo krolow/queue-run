@@ -14,7 +14,6 @@ export async function addTriggers(lambdaName: string, sourceArns: string[]) {
       ({ EventSourceArn, UUID }) => [EventSourceArn, UUID] as [string, string]
     )
   );
-  console.log(arnToUUID);
 
   console.info("λ: adding triggers …");
   await Promise.all(

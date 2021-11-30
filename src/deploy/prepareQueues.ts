@@ -39,7 +39,6 @@ async function getQueuesFromCode(
   const currentDir = process.cwd();
   try {
     process.chdir(dirname);
-    console.log(process.cwd());
 
     const filenames = glob.sync(
       path.resolve("background", "queue", "[!_.]*.js")

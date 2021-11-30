@@ -7,17 +7,20 @@ import path from "path";
 
 export default async function createZip(dirname: string): Promise<Uint8Array> {
   const zip = new JSZip();
-  const filenames = glob.sync(`${dirname}/**/*`);
+  const filenames = glob.sync("**/*", {
+    cwd: dirname,
+    dot: true,
+    follow: true,
+  });
   for (const filename of filenames) {
+    const filepath = path.resolve(dirname, filename);
     if (
-      lstatSync(filename).isDirectory() ||
-      lstatSync(filename).isSymbolicLink()
+      !(
+        lstatSync(filepath).isDirectory() ||
+        lstatSync(filepath).isSymbolicLink()
+      )
     )
-      continue;
-    const buffer = await readFile(filename);
-    zip.file(path.relative(dirname, filename), buffer, {
-      compression: "DEFLATE",
-    });
+      zip.file(filename, await readFile(filepath));
   }
 
   const buffer = await zip.generateAsync({
@@ -38,6 +41,7 @@ export default async function createZip(dirname: string): Promise<Uint8Array> {
     if (size > 0)
       console.info("   %s   %s", truncated(dirname), filesize(size));
   }
+  console.info("");
   return buffer;
 }
 
