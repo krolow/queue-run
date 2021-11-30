@@ -1,13 +1,9 @@
-import { SQS } from "@aws-sdk/client-sqs";
+import { QueueConfig } from "@assaf/untitled-runtime";
 import glob from "glob";
 import path from "path";
-import { QueueConfig } from "types";
-import { loadFunction } from "../server/functions";
+import { sqs } from "./clients";
+import loadFunction from "./loadFunction";
 import { queueURLToARN } from "./util";
-
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-const sqs = new SQS({ profile: "untitled" });
 
 export async function createQueues({
   dirname,

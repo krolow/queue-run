@@ -1,11 +1,7 @@
-import { Lambda } from "@aws-sdk/client-lambda";
+import { lambda } from "./clients";
 import { handler } from "./constants";
 import createLambdaRole from "./createLambdaRole";
 import createZip from "./createZip";
-
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-const lambda = new Lambda({ profile: "untitled" });
 
 export default async function uploadLambda({
   lambdaName,

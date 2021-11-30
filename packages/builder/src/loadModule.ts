@@ -9,7 +9,6 @@ const globalRequire = require;
 const sourceMaps = new Map<string, string>();
 
 sourceMapSupport.install({
-  handleUncaughtExceptions: false,
   environment: "node",
   retrieveSourceMap: (filename) => {
     const map = sourceMaps.get(filename);

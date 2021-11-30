@@ -1,12 +1,32 @@
-import { fullBuild } from "../build";
+import ow from "ow";
 import { buildDir } from "./constants";
+import fullBuild from "./fullBuild";
 import { addTriggers, removeTriggers } from "./lambdaTriggers";
 import { createQueues, deleteOldQueues } from "./prepareQueues";
 import updateAlias from "./updateAlias";
 import uploadLambda from "./uploadLambda";
 
-(async (branch: string) => {
-  const lambdaName = "goose-dump";
+export default async function deploy({
+  branch = "main",
+  projectId,
+}: {
+  branch?: string;
+  projectId: string;
+}) {
+  ow(
+    projectId,
+    ow.string.nonEmpty
+      .matches(/^([a-z0-9]+-){1,}[a-z0-9]+$/)
+      .message("Project ID must look like `grumpy-sunshine`")
+  );
+  ow(
+    branch,
+    ow.string.nonEmpty
+      .matches(/^[a-z0-9-]+$/i)
+      .message("Branch name can only contain alphanumeric and hypen characters")
+  );
+
+  const lambdaName = projectId;
   const alias = `${lambdaName}-${branch}`;
 
   await fullBuild();
@@ -22,4 +42,4 @@ import uploadLambda from "./uploadLambda";
   console.info("λ: Published %s", aliasArn);
 
   await deleteOldQueues(prefix, queueArns);
-})("prod");
+}

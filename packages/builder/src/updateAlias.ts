@@ -1,8 +1,4 @@
-import { Lambda } from "@aws-sdk/client-lambda";
-
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-const lambda = new Lambda({ profile: "untitled" });
+import { lambda } from "./clients";
 
 export default async function updateAlias({
   alias,

@@ -1,9 +1,6 @@
-import { IAM, Role } from "@aws-sdk/client-iam";
+import type { Role } from "@aws-sdk/client-iam";
+import { iam } from "./clients";
 import { lambdaAssumeRoleName, lambdaAssumeRolePath } from "./constants";
-
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-const iam = new IAM({ profile: "untitled" });
 
 const Version = "2012-10-17";
 
@@ -62,7 +59,9 @@ async function upsertRole(): Promise<Role> {
   const { Roles } = await iam.listRoles({
     PathPrefix: lambdaAssumeRolePath,
   });
-  const existing = Roles?.find((r) => r.RoleName === lambdaAssumeRoleName);
+  const existing = Roles?.find(
+    (role) => role.RoleName === lambdaAssumeRoleName
+  );
   if (existing) return existing;
 
   const { Role: newRole } = await iam.createRole({
