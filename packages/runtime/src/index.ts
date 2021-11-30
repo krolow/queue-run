@@ -79,7 +79,9 @@ async function getModule(message: SQSMessage): Promise<{
   const module = handlers.get(queueName);
   if (module) return module;
 
-  const { config, handler } = await import(`background/queue/${queueName}.js`);
+  const exports = await import(`background/queue/${queueName}.js`);
+  const handler = exports.handler ?? exports.default;
+  const config = exports.config ?? {};
   handlers.set(queueName, { config, handler });
   return { config, handler };
 }
