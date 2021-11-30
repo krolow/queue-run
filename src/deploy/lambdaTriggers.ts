@@ -9,21 +9,31 @@ export async function addTriggers(lambdaName: string, sourceArns: string[]) {
   const { EventSourceMappings } = await lambda.listEventSourceMappings({
     FunctionName: lambdaName,
   });
-  const existing = new Set(
-    EventSourceMappings?.map(({ EventSourceArn }) => EventSourceArn) ?? []
-  );
-  const newArns = sourceArns.filter((arn) => !existing.has(arn));
-  if (newArns.length === 0) return;
-
-  console.info("λ: adding triggers %s", lambdaName, newArns);
-  await Promise.all(
-    newArns.map((arn) =>
-      lambda.createEventSourceMapping({
-        Enabled: true,
-        FunctionName: lambdaName,
-        EventSourceArn: arn,
-      })
+  const arnToUUID = new Map<string, string>(
+    EventSourceMappings?.map(
+      ({ EventSourceArn, UUID }) => [EventSourceArn, UUID] as [string, string]
     )
+  );
+  console.log(arnToUUID);
+
+  console.info("λ: adding triggers …");
+  await Promise.all(
+    sourceArns.map(async (arn) => {
+      const uuid = arnToUUID.get(arn);
+      if (uuid) {
+        await lambda.updateEventSourceMapping({
+          UUID: uuid,
+          FunctionName: lambdaName,
+        });
+      } else {
+        const { UUID } = await lambda.createEventSourceMapping({
+          Enabled: true,
+          FunctionName: lambdaName,
+          EventSourceArn: arn,
+        });
+        if (!UUID) throw new Error(`Could not create event source for ${arn}`);
+      }
+    })
   );
 }
 
@@ -39,11 +49,7 @@ export async function removeTriggers(lambdaName: string, sourceArns: string[]) {
   );
   if (removing.length === 0) return;
 
-  console.info(
-    "λ: removing triggers %s",
-    lambdaName,
-    removing.map(({ EventSourceArn }) => EventSourceArn)
-  );
+  console.info("λ: removing triggers", lambdaName);
   await Promise.all(
     removing.map(({ UUID }) => lambda.deleteEventSourceMapping({ UUID }))
   );
