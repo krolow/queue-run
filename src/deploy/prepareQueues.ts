@@ -16,7 +16,10 @@ export async function createQueues({
   dirname: string;
   prefix: string;
 }): Promise<string[]> {
+  console.info("µ: Loading source code with queue configurations …");
   const fromCode = await getQueuesFromCode(dirname);
+
+  console.info("µ: Creating/updating queues …");
   return await Promise.all(
     [...fromCode].map(async ([name]) => {
       const { QueueUrl } = await sqs.createQueue({
@@ -75,8 +78,9 @@ export async function deleteOldQueues(prefix: string, queueArns: string[]) {
   const toDelete = QueueUrls.filter(
     (QueueUrl) => !set.has(queueURLToARN(QueueUrl))
   );
+  if (toDelete.length === 0) return;
 
-  console.info("µ: Deleting queues %s", toDelete.map(queueURLToARN));
+  console.info("µ: Deleting old queues %s …", toDelete.map(queueURLToARN));
   await Promise.all(
     toDelete.map(async (QueueUrl) => sqs.deleteQueue({ QueueUrl }))
   );
