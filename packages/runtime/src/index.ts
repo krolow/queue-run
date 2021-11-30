@@ -97,8 +97,9 @@ function getPayload(
 }
 
 function getQueueName(message: SQSMessage) {
-  // Looks like "arn:aws:sqs:us-east-2:123456789012:my-queue"
-  return message.eventSourceARN.split(":").pop() as string;
+  // Looks like "arn:aws:sqs:us-east-2:123456789012:project-branch__queue"
+  const qualifiedName = message.eventSourceARN.split(":").pop() as string;
+  return qualifiedName.split("__").slice(1).join("__");
 }
 
 function setupEnv() {
