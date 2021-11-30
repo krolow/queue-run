@@ -52,8 +52,8 @@ export async function handler(event: SQSEvent): Promise<SQSBatchResponse> {
           message.messageId,
           getQueueName(message)
         );
-        const { config, handler } = await getModule(message);
-        const payload = getPayload(message, config);
+        const { handler } = await getModule(message);
+        const payload = getPayload(message);
         await handler(payload);
       } catch (error) {
         failedMessageIds.push(message.messageId);
@@ -86,15 +86,14 @@ async function getModule(message: SQSMessage): Promise<{
   return { config, handler };
 }
 
-function getPayload(
-  message: SQSMessage,
-  config: QueueConfig
-): JSONObject | string {
-  if (config.json === false) return message.body;
+function getPayload(message: SQSMessage): JSONObject | string {
+  const type = message.messageAttributes["type"]?.stringValue;
+  if (type === "text/plain") return message.body;
+  if (type === "application/json") return JSON.parse(message.body);
   try {
     return JSON.parse(message.body);
   } catch {
-    throw new Error("Expected message body to be JSON document");
+    return message.body;
   }
 }
 
