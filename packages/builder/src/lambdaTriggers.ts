@@ -19,14 +19,12 @@ export async function addTriggers(lambdaName: string, sourceArns: string[]) {
         await lambda.updateEventSourceMapping({
           UUID: uuid,
           FunctionName: lambdaName,
-          FunctionResponseTypes: ["ReportBatchItemFailures"],
         });
       } else {
         const { UUID } = await lambda.createEventSourceMapping({
           Enabled: true,
           FunctionName: lambdaName,
           EventSourceArn: arn,
-          FunctionResponseTypes: ["ReportBatchItemFailures"],
         });
         if (!UUID) throw new Error(`Could not create event source for ${arn}`);
       }
