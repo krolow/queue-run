@@ -1,4 +1,4 @@
-import sourceMapSupport from "source-map-support";
+import { install } from "source-map-support";
 import { JSONObject, QueueConfig, QueueHandler } from "../types";
 
 // See https://docs.aws.amazon.com/lambda/latest/dg/with-sqs.html
@@ -106,7 +106,7 @@ function getQueueName(message: SQSMessage) {
 
 function setupEnv() {
   process.env.NODE_ENV = "production";
-  sourceMapSupport.install({ environment: "node" });
+  install({ environment: "node" });
 }
 
 setupEnv();

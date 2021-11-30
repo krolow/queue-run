@@ -1,0 +1,24 @@
+{
+  "name": "@assaf/untitled-client",
+  "version": "0.0.0",
+  "main": "dist/index.js",
+  "module": "dist/untitled-runtime.esm.js",
+  "types": "dist/types/index.d.ts",
+  "scripts": {
+    "build": "dts build",
+    "lint": "dts lint src",
+    "prepare": "yarn build",
+    "watch": "dts watch"
+  },
+  "files": [
+    "dist",
+    "src",
+    "types"
+  ],
+  "dependencies": {
+    "node-fetch": "^2.6.0"
+  },
+  "devDependencies": {
+    "dts-cli": "^0.19.7"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "@assaf/untitled-cli",
+  "version": "0.0.0",
+  "main": "dist/index.js",
+  "module": "dist/untitled-builder.esm.js",
+  "bin": {
+    "deploy": "./bin/deploy.js"
+  },
+  "scripts": {
+    "build": "dts build",
+    "lint": "dts lint src",
+    "prepare": "yarn build",
+    "watch": "dts watch"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "src"
+  ],
+  "dependencies": {},
+  "devDependencies": {
+    "dts-cli": "^0.19.7"
+  }
+}

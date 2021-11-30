@@ -4,9 +4,6 @@
   "description": "👋",
   "main": "src/index.js",
   "types": "types/index.d.ts",
-  "bin": {
-    "untitled": "./dist/cli/index.js"
-  },
   "scripts": {
     "lint": "lerna run lint",
     "watch": "lerna run --parallel watch"
@@ -16,9 +13,6 @@
   "license": "MIT",
   "repository": "github:assaf/untitled.git",
   "private": true,
-  "dependencies": {
-    "@assaf/untitled-runtime": "file:packages/runtime"
-  },
   "devDependencies": {
     "@swc/cli": "^0.1.51",
     "@tsconfig/node14": "^1.0.1",
