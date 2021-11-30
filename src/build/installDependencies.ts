@@ -2,7 +2,13 @@ import { spawn } from "child_process";
 import ms from "ms";
 
 export default async function installDependencies(dirname: string) {
-  const install = await spawn("yarn", ["install", "--production"], {
+  await yarn({ dirname, args: ["install", "--production"] });
+  await yarn({ dirname, args: ["link", "@assaf/untitled-runtime"] });
+  process.stdout.write("\n");
+}
+
+async function yarn({ dirname, args }: { dirname: string; args: string[] }) {
+  const install = await spawn("yarn", args, {
     cwd: dirname,
     env: {
       PATH: process.env.PATH,
@@ -16,5 +22,4 @@ export default async function installDependencies(dirname: string) {
     install.on("error", reject);
     install.on("exit", resolve);
   });
-  process.stdout.write("\n");
 }
