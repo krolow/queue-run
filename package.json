@@ -8,8 +8,8 @@
     "untitled": "./dist/cli/index.js"
   },
   "scripts": {
-    "dev": "swc src -d dist --delete-dir-on-start --watch --sync",
-    "lint": "yarn eslint src --fix ; tsc --noEmit"
+    "lint": "yarn eslint src --fix ; tsc --noEmit",
+    "watch": "swc src -d dist --delete-dir-on-start --watch --sync"
   },
   "author": "Assaf Arkin <assaf@labnotes.org> (https://labnotes.org/)",
   "homepage": "",

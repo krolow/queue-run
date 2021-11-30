@@ -1,9 +1,15 @@
 import { spawn } from "child_process";
+import { copyFile } from "fs/promises";
 import ms from "ms";
+import path from "path";
 
 export default async function installDependencies(dirname: string) {
   await yarn({ dirname, args: ["install", "--production"] });
   await yarn({ dirname, args: ["link", "@assaf/untitled-runtime"] });
+  await copyFile(
+    path.resolve(__dirname, "handler.js"),
+    path.resolve(dirname, "index.js")
+  );
   process.stdout.write("\n");
 }
 

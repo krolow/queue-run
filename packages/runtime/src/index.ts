@@ -42,9 +42,7 @@ const handlers = new Map<
   { config: QueueConfig; handler: QueueHandler }
 >();
 
-export default async function handler(
-  event: SQSEvent
-): Promise<SQSBatchResponse> {
+export async function handler(event: SQSEvent): Promise<SQSBatchResponse> {
   const failedMessageIds: string[] = [];
   await Promise.all(
     event.Records.map(async (message) => {
