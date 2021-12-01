@@ -1,20 +1,22 @@
-import { QueueConfig, QueueHandler } from "../types";
+import { install } from "source-map-support";
 
-export const handlers = new Map<
-  string,
-  { config: QueueConfig; handler: QueueHandler }
->();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const handlers = new Map<string, { config: any; handler: any }>();
 
-export default async function loadModule(queueName: string): Promise<{
-  config: QueueConfig;
-  handler: QueueHandler;
+export default async function loadModule<Handler = unknown, Config = unknown>(
+  name: string
+): Promise<{
+  config: Config;
+  handler: Handler;
 }> {
-  const module = handlers.get(queueName);
+  const module = handlers.get(name);
   if (module) return module;
 
-  const exports = await import(`background/queue/${queueName}.js`);
-  const handler = exports.handler ?? exports.default;
-  const config = exports.config ?? {};
-  handlers.set(queueName, { config, handler });
+  const exports = await import(`background/${name}.js`);
+  const handler = exports.handler ?? (exports.default as Handler);
+  const config = exports.config ?? ({} as Config);
+  handlers.set(name, { config, handler });
   return { config, handler };
 }
+
+install({ environment: "node" });

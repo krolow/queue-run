@@ -1,6 +1,6 @@
 // See https://docs.aws.amazon.com/lambda/latest/dg/with-sqs.html
-export declare type SQSEvent = {
-  Records: Array<SQSMessage>;
+export declare type LambdaEvent = {
+  Records: Array<SQSMessage | SNSMessage>;
 };
 
 export declare type SQSMessage = {
@@ -26,4 +26,12 @@ type SQSFifoMessageAttributes = {
   MessageDeduplicationId: string;
   MessageGroupId: string;
   SequenceNumber: string;
+};
+
+export declare type SQSFifoMessage = SQSMessage & {
+  attributes: SQSMessageAttributes & SQSFifoMessageAttributes;
+};
+
+export declare type SNSMessage = {
+  eventSource: "aws:sns";
 };

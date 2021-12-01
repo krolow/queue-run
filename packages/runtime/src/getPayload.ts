@@ -1,5 +1,5 @@
 import { JSONObject } from "../types";
-import { SQSMessage } from "./SQSEvent";
+import { SQSMessage } from "./LambdaEvent";
 
 export default function getPayload(message: SQSMessage): JSONObject | string {
   const type = message.messageAttributes["type"]?.stringValue;
