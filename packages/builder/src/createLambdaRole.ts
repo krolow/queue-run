@@ -2,8 +2,6 @@ import type { Role } from "@aws-sdk/client-iam";
 import { IAM } from "@aws-sdk/client-iam";
 import { lambdaRolePath } from "./constants";
 
-const iam = new IAM({});
-
 const Version = "2012-10-17";
 
 const assumeRolePolicy = {
@@ -48,15 +46,20 @@ const sqsPolicy = {
   ],
 };
 
-export default async function createLambdaRole(
-  lambdaName: string
-): Promise<Role> {
-  const role = await upsertRole(lambdaName);
-  await updatePolicies(role, lambdaName);
+export default async function createLambdaRole({
+  lambdaName,
+  region,
+}: {
+  lambdaName: string;
+  region: string;
+}): Promise<Role> {
+  const iam = new IAM({ region });
+  const role = await upsertRole(iam, lambdaName);
+  await updatePolicies(iam, role, lambdaName);
   return role;
 }
 
-async function upsertRole(lambdaName: string): Promise<Role> {
+async function upsertRole(iam: IAM, lambdaName: string): Promise<Role> {
   const roleName = `Lambda.${lambdaName}`;
   const { Role: role } = await iam.getRole({ RoleName: roleName });
   if (role) return role;
@@ -72,9 +75,9 @@ async function upsertRole(lambdaName: string): Promise<Role> {
   return newRole;
 }
 
-async function updatePolicies(role: Role, lambdaName: string) {
-  await updatePolicy(role, "Logging", loggingPolicy);
-  await updatePolicy(role, "SQS", {
+async function updatePolicies(iam: IAM, role: Role, lambdaName: string) {
+  await updatePolicy(iam, role, "Logging", loggingPolicy);
+  await updatePolicy(iam, role, "SQS", {
     ...sqsPolicy,
     Statement: [
       {
@@ -85,7 +88,12 @@ async function updatePolicies(role: Role, lambdaName: string) {
   });
 }
 
-async function updatePolicy(role: Role, policyName: string, policy: unknown) {
+async function updatePolicy(
+  iam: IAM,
+  role: Role,
+  policyName: string,
+  policy: unknown
+) {
   await iam.putRolePolicy({
     RoleName: role.RoleName,
     PolicyName: policyName,

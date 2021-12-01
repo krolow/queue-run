@@ -2,15 +2,17 @@ import { QueueConfig } from "@assaf/untitled-runtime";
 import { SQS } from "@aws-sdk/client-sqs";
 import { queueURLToARN, queueURLToName } from "./util";
 
-const sqs = new SQS({});
-
 export async function createQueues({
   configs,
   prefix,
+  region,
 }: {
   configs: Map<string, { config?: QueueConfig }>;
   prefix: string;
+  region: string;
 }): Promise<string[]> {
+  const sqs = new SQS({ region });
+
   return await Promise.all(
     Array.from(configs.entries()).map(async ([name, { config }]) => {
       const fifo = config?.fifo ? ".fifo" : "";
@@ -25,7 +27,17 @@ export async function createQueues({
   );
 }
 
-export async function deleteOldQueues(prefix: string, queueArns: string[]) {
+export async function deleteOldQueues({
+  prefix,
+  queueArns,
+  region,
+}: {
+  prefix: string;
+  queueArns: string[];
+  region: string;
+}) {
+  const sqs = new SQS({ region });
+
   const { QueueUrls } = await sqs.listQueues({
     QueueNamePrefix: prefix,
   });

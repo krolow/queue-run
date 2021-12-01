@@ -3,23 +3,40 @@ import { handler } from "./constants";
 import createLambdaRole from "./createLambdaRole";
 import getEnvVariables from "./getEnvVariables";
 
-const lambda = new Lambda({});
-
 export default async function uploadLambda({
   lambdaName,
+  region,
   zip,
 }: {
   lambdaName: string;
+  region: string;
   zip: Uint8Array;
-}): Promise<string> {
-  const revisionId = await createOrUpdateLambda(lambdaName, zip);
-  return await publishNewVersion({ lambdaName, revisionId });
+}): Promise<{ functionArn: string; version: string }> {
+  const lambda = new Lambda({ region });
+  const { functionArn, revisionId } = await createOrUpdateLambda({
+    lambda,
+    lambdaName,
+    region,
+    zip,
+  });
+  const version = await publishNewVersion({ lambda, lambdaName, revisionId });
+  return { functionArn, version };
 }
 
-async function createOrUpdateLambda(
-  lambdaName: string,
-  zipFile: Uint8Array
-): Promise<string> {
+async function createOrUpdateLambda({
+  lambda,
+  lambdaName,
+  region,
+  zip,
+}: {
+  lambda: Lambda;
+  lambdaName: string;
+  region: string;
+  zip: Uint8Array;
+}): Promise<{
+  functionArn: string;
+  revisionId: string;
+}> {
   try {
     const { Configuration: existing } = await lambda.getFunction({
       FunctionName: lambdaName,
@@ -29,16 +46,17 @@ async function createOrUpdateLambda(
       const newCode = await lambda.updateFunctionCode({
         FunctionName: lambdaName,
         Publish: false,
-        ZipFile: zipFile,
+        ZipFile: zip,
         RevisionId: existing.RevisionId,
       });
       if (!newCode.RevisionId)
         throw new Error("Could not update function with new code");
 
-      const newCodeRevisionId = await waitForNewRevision(
+      const newCodeRevisionId = await waitForNewRevision({
+        lambda,
         lambdaName,
-        newCode.RevisionId
-      );
+        revisionId: newCode.RevisionId,
+      });
 
       const updated = await lambda.updateFunctionConfiguration({
         Environment: { Variables: getEnvVariables() },
@@ -48,22 +66,26 @@ async function createOrUpdateLambda(
       });
       if (!updated.RevisionId)
         throw new Error("Could not update function with new configuration");
-      const finalRevisionId = await waitForNewRevision(
+      const finalRevisionId = await waitForNewRevision({
+        lambda,
         lambdaName,
-        updated.RevisionId
-      );
+        revisionId: updated.RevisionId,
+      });
 
       console.info("λ: Updated function %s", lambdaName);
-      return finalRevisionId;
+      return { functionArn: updated.FunctionArn!, revisionId: finalRevisionId };
     }
   } catch (error) {
     if (!(error instanceof Error && error.name === "ResourceNotFoundException"))
       throw error;
   }
 
-  const role = await createLambdaRole(lambdaName);
+  const role = await createLambdaRole({
+    lambdaName,
+    region: lambda.config.region as string,
+  });
   const newLambda = await lambda.createFunction({
-    Code: { ZipFile: zipFile },
+    Code: { ZipFile: zip },
     Environment: { Variables: getEnvVariables() },
     FunctionName: lambdaName,
     Handler: handler,
@@ -75,18 +97,24 @@ async function createOrUpdateLambda(
   });
   if (!newLambda.RevisionId) throw new Error("Could not create function");
 
-  const finalRevisionId = await waitForNewRevision(
+  const finalRevisionId = await waitForNewRevision({
+    lambda,
     lambdaName,
-    newLambda.RevisionId
-  );
-  console.info("λ: Created new function %s", lambdaName);
-  return finalRevisionId;
+    revisionId: newLambda.RevisionId,
+  });
+  console.info("λ: Created new function %s in %s", lambdaName, region);
+  return { functionArn: newLambda.FunctionArn!, revisionId: finalRevisionId };
 }
 
-async function waitForNewRevision(
-  lambdaName: string,
-  revisionId: string
-): Promise<string> {
+async function waitForNewRevision({
+  lambda,
+  lambdaName,
+  revisionId,
+}: {
+  lambda: Lambda;
+  lambdaName: string;
+  revisionId: string;
+}): Promise<string> {
   const { Configuration } = await lambda.getFunction({
     FunctionName: lambdaName,
   });
@@ -95,16 +123,18 @@ async function waitForNewRevision(
 
   if (Configuration.RevisionId === revisionId) {
     await new Promise((resolve) => setTimeout(resolve, 500));
-    return await waitForNewRevision(lambdaName, revisionId);
+    return await waitForNewRevision({ lambda, lambdaName, revisionId });
   } else {
     return Configuration.RevisionId;
   }
 }
 
 async function publishNewVersion({
+  lambda,
   lambdaName,
   revisionId,
 }: {
+  lambda: Lambda;
   lambdaName: string;
   revisionId: string;
 }): Promise<string> {

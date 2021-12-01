@@ -1,8 +1,16 @@
 import { Lambda } from "@aws-sdk/client-lambda";
 
-const lambda = new Lambda({});
+export async function addTriggers({
+  lambdaName,
+  region,
+  sourceArns,
+}: {
+  lambdaName: string;
+  region: string;
+  sourceArns: string[];
+}) {
+  const lambda = new Lambda({ region });
 
-export async function addTriggers(lambdaName: string, sourceArns: string[]) {
   if (sourceArns.length === 0) return;
   const { EventSourceMappings } = await lambda.listEventSourceMappings({
     FunctionName: lambdaName,
@@ -36,7 +44,17 @@ export async function addTriggers(lambdaName: string, sourceArns: string[]) {
   if (created.some(Boolean)) console.info("λ: Added new triggers");
 }
 
-export async function removeTriggers(lambdaName: string, sourceArns: string[]) {
+export async function removeTriggers({
+  lambdaName,
+  region,
+  sourceArns,
+}: {
+  lambdaName: string;
+  region: string;
+  sourceArns: string[];
+}) {
+  const lambda = new Lambda({ region });
+
   const { EventSourceMappings } = await lambda.listEventSourceMappings({
     FunctionName: lambdaName,
   });

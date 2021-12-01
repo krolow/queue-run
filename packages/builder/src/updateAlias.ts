@@ -1,16 +1,18 @@
 import { Lambda } from "@aws-sdk/client-lambda";
 
-const lambda = new Lambda({});
-
 export default async function updateAlias({
   alias,
   lambdaName,
+  region,
   version,
 }: {
   alias: string;
   lambdaName: string;
+  region: string;
   version: string;
 }): Promise<string> {
+  const lambda = new Lambda({ region });
+
   try {
     const { AliasArn: arn } = await lambda.getAlias({
       FunctionName: lambdaName,
