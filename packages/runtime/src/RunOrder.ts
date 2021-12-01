@@ -33,7 +33,11 @@ export default class RunOrder {
   private async runInParallel() {
     await Promise.all(
       this.messages.map(async (message) => {
-        this.handleOneMessage(message).catch(() => undefined);
+        try {
+          await this.handleOneMessage(message);
+        } catch {
+          // Ignore errors
+        }
       })
     );
   }

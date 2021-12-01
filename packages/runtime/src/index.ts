@@ -14,8 +14,8 @@ export async function handler(event: SQSEvent) {
     runOrder.addMessage(message);
   }
   await Promise.all(
-    Array.from(runOrders.values()).map((runOrder) =>
-      runOrder.handleAllMessages()
+    Array.from(runOrders.values()).map(
+      async (runOrder) => await runOrder.handleAllMessages()
     )
   );
 }
