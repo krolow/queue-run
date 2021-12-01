@@ -3,12 +3,7 @@ import { QueueConfig, QueueHandler } from "../types";
 import getPayload from "./getPayload";
 import { SQSMessage } from "./SQSEvent";
 
-const sqs = new SQS({
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-  },
-});
+const sqs = new SQS({});
 
 export default class RunOrder {
   private config: QueueConfig;
@@ -56,7 +51,6 @@ export default class RunOrder {
     const [, , , region, accountId, queueName] =
       message.eventSourceARN.split(":");
     const queueUrl = `https://sqs.${region}.amazonaws.com/${accountId}/${queueName}`;
-    console.log({ arn: message.eventSourceARN, queueUrl });
     await sqs.deleteMessage({
       QueueUrl: queueUrl,
       ReceiptHandle: message.receiptHandle,
