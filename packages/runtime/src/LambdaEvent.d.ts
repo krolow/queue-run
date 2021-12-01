@@ -1,8 +1,8 @@
-// See https://docs.aws.amazon.com/lambda/latest/dg/with-sqs.html
 export declare type LambdaEvent = {
   Records: Array<SQSMessage | SNSMessage>;
 };
 
+// See https://docs.aws.amazon.com/lambda/latest/dg/with-sqs.html
 export declare type SQSMessage = {
   attributes: SQSMessageAttributes;
   awsRegion: string;
