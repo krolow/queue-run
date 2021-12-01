@@ -2,12 +2,16 @@ import { existsSync } from "fs";
 import { copyFile } from "fs/promises";
 import path from "path";
 import compileSourceFiles from "./compileSourceFiles";
-import { buildDir } from "./constants";
 import createBuildDirectory from "./createBuildDirectory";
 import installDependencies from "./installDependencies";
 
-export default async function fullBuild() {
-  const sourceDir = path.resolve(".");
+export default async function fullBuild({
+  sourceDir,
+  buildDir,
+}: {
+  sourceDir: string;
+  buildDir: string;
+}) {
   await createBuildDirectory(buildDir);
   await copyPackageJSON(sourceDir, buildDir);
   await installDependencies(buildDir);

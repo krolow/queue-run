@@ -9,8 +9,6 @@ export default async function updateAlias({
   lambdaName: string;
   version: string;
 }): Promise<string> {
-  console.info("λ: Updating alias for %s version %s …", lambdaName, version);
-
   try {
     const { AliasArn: arn } = await lambda.getAlias({
       FunctionName: lambdaName,
@@ -36,5 +34,6 @@ export default async function updateAlias({
     Name: alias,
   });
   if (!arn) throw new Error("Could not create alias");
+
   return arn;
 }

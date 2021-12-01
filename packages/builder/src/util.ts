@@ -1,19 +1,15 @@
-export function getEnvPrefix() {
-  return (
-    {
-      development: "dev",
-      production: "prod",
-    }[process.env.NODE_ENV ?? "development"] ?? "prod"
-  );
-}
+import { URL } from "url";
 
-export function getLambdaName(projectId: string): string {
-  const env = getEnvPrefix();
-  return `${projectId}-${env}`;
-}
-
-export function queueURLToARN(queueUrl: string): string {
-  const [, , hostname, accountId, name] = queueUrl.split("/");
-  const region = hostname!.split(".")[1];
+export function queueURLToARN(queueURL: string): string {
+  // Looks like https://sqs.{region}.amazonaws.com/{accountId}/{queueName}
+  const { hostname, pathname } = new URL(queueURL);
+  const region = hostname.match(/^sqs\.(.+?)\.amazonaws\.com/)?.[1];
+  const [accountId, name] = pathname.split("/").slice(1);
   return `arn:aws:sqs:${region}:${accountId}:${name}`;
+}
+
+export function queueURLToName(queueURL: string): string {
+  // Looks like https://sqs.{region}.amazonaws.com/{accountId}/{queueName}
+  const { pathname } = new URL(queueURL);
+  return pathname.split("/")[2];
 }

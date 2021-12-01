@@ -13,7 +13,7 @@ export default async function compileSourceFiles({
   targetDir: string;
 }) {
   const start = Date.now();
-  console.info("λ: Building %s", sourceDir);
+  console.info("λ: Building %s", targetDir);
   await copySourceFiles(sourceDir, targetDir);
   await compileTypeScript(sourceDir, targetDir);
   console.info("✨  Done in %s.", ms(Date.now() - start));

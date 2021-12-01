@@ -27,7 +27,6 @@ async function createOrUpdateLambda(
     });
 
     if (existing) {
-      console.info("λ: Updating %s …", lambdaName);
       const newCode = await lambda.updateFunctionCode({
         FunctionName: lambdaName,
         Publish: false,
@@ -55,7 +54,7 @@ async function createOrUpdateLambda(
         updated.RevisionId
       );
 
-      console.info("λ: Updated %s", lambdaName);
+      console.info("λ: Updated function %s", lambdaName);
       return finalRevisionId;
     }
   } catch (error) {
@@ -64,7 +63,6 @@ async function createOrUpdateLambda(
   }
 
   const role = await createLambdaRole(lambdaName);
-  console.info("λ: Creating new function %s …", lambdaName);
   const newLambda = await lambda.createFunction({
     Code: { ZipFile: zipFile },
     Environment: { Variables: env },
@@ -82,7 +80,7 @@ async function createOrUpdateLambda(
     lambdaName,
     newLambda.RevisionId
   );
-  console.info("λ: Created %s", lambdaName);
+  console.info("λ: Created new function %s", lambdaName);
   return finalRevisionId;
 }
 

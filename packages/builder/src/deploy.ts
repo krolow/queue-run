@@ -4,6 +4,7 @@ import { buildDir } from "./constants";
 import createZip from "./createZip";
 import fullBuild from "./fullBuild";
 import { addTriggers, removeTriggers } from "./lambdaTriggers";
+import loadGroup from "./loadGroup";
 import { createQueues, deleteOldQueues } from "./prepareQueues";
 import updateAlias from "./updateAlias";
 import uploadLambda from "./uploadLambda";
@@ -11,9 +12,11 @@ import uploadLambda from "./uploadLambda";
 export default async function deploy({
   branch = "main",
   projectId,
+  sourceDir = process.cwd(),
 }: {
   branch?: string;
   projectId: string;
+  sourceDir?: string;
 }) {
   ow(
     projectId,
@@ -28,32 +31,23 @@ export default async function deploy({
       .message("Branch name can only contain alphanumeric and hypen characters")
   );
 
-  await fullBuild();
+  const lambdaName = projectId;
+  const alias = `${lambdaName}-${branch}`;
+  const prefix = `${alias}__`;
+
+  await fullBuild({ buildDir, sourceDir: "." });
   console.info("");
+
+  console.info("λ: Loading source code");
+  const queues = await loadGroup({ dirname: buildDir, group: "queue" });
 
   const zip = await createZip(buildDir);
   console.info("");
 
-  await uploadAndConfigure({ lambdaName: projectId, branch, zip });
-  console.info("");
-}
-
-async function uploadAndConfigure({
-  branch,
-  lambdaName,
-  zip,
-}: {
-  branch: string;
-  lambdaName: string;
-  zip: Uint8Array;
-}) {
-  const alias = `${lambdaName}-${branch}`;
-  const prefix = `${alias}__`;
-
   const start = Date.now();
   const version = await uploadLambda({ lambdaName, zip });
 
-  const queueArns = await createQueues({ dirname: buildDir, prefix });
+  const queueArns = await createQueues({ configs: queues, prefix });
   await removeTriggers(lambdaName, queueArns);
 
   const aliasArn = await updateAlias({ alias, lambdaName, version });
@@ -63,4 +57,5 @@ async function uploadAndConfigure({
 
   await deleteOldQueues(prefix, queueArns);
   console.info("✨  Done in %s.", ms(Date.now() - start));
+  console.info("");
 }

@@ -7,7 +7,7 @@ import path from "path";
 
 export default async function createZip(dirname: string): Promise<Uint8Array> {
   const start = Date.now();
-  console.info("λ: Zipping %s … ", dirname);
+  console.info("λ: Zipping %s", dirname);
 
   const zip = new JSZip();
   const filenames = glob.sync("**/*", {

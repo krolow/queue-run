@@ -2,10 +2,8 @@ import chokidar from "chokidar";
 import path from "path";
 import loadModule from "./loadModule";
 
-type FunctionExports = {
-  config: { [key: string]: unknown };
-  handler: (...all: unknown[]) => Promise<void> | void;
-};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type FunctionExports = { config: any; handler: any };
 
 // Load a single function.  In development mode, this also hot-reloads the function.
 export default function loadFunction(
@@ -13,7 +11,7 @@ export default function loadFunction(
   watch?: boolean
 ): FunctionExports {
   const paths = new Set<string>();
-  const loaded = loadAndVerify({ filename, paths });
+  const exports = loadAndVerify({ filename, paths });
 
   if (watch) {
     const watcher = chokidar.watch(Array.from(paths), { ignoreInitial: true });
@@ -25,7 +23,7 @@ export default function loadFunction(
       );
 
       try {
-        Object.assign(loaded, loadAndVerify({ filename, paths }));
+        Object.assign(exports, loadAndVerify({ filename, paths }));
       } catch (error) {
         console.error("Error loading %s", filename, (error as Error).stack);
       }
@@ -45,10 +43,7 @@ function loadAndVerify({
 }): FunctionExports {
   const cache = {};
   try {
-    const start = Date.now();
-    const full = path.resolve(process.cwd(), filename);
-
-    const { exports } = loadModule({ filename: full, cache });
+    const { exports } = loadModule({ filename, cache });
 
     const handler = exports.handler || exports.default;
     if (typeof handler !== "function") {

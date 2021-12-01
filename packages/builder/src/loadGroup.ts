@@ -1,14 +1,18 @@
-import fs from "fs";
+import glob from "glob";
 import path from "path";
 import loadFunction from "./loadFunction";
 
 // Load a group of functions from the same directory.
-export default function loadGroup(
-  group: string,
-  watch?: boolean
-): Map<string, ReturnType<typeof loadFunction>> {
-  const dirname = path.join("background", group);
-  const filenames = listFilenames(dirname);
+export default function loadGroup({
+  dirname,
+  group,
+  watch,
+}: {
+  dirname: string;
+  group: string;
+  watch?: boolean;
+}): Map<string, ReturnType<typeof loadFunction>> {
+  const filenames = listFilenames(path.resolve(dirname, "background", group));
   return filenames.reduce(
     (map, filename) =>
       map.set(
@@ -19,16 +23,18 @@ export default function loadGroup(
   );
 }
 
+function isValidFunctionName(filename: string) {
+  const basename = path.basename(filename, path.extname(filename));
+  return /^[a-zA-Z0-9_-]+$/.test(basename);
+}
+
 function listFilenames(dirname: string): string[] {
-  if (!fs.existsSync(dirname)) return [];
-
-  const filenames = fs.readdirSync(dirname);
-  const onlyScripts = filenames.filter((filename) =>
-    /^[^_.].*\.(js|ts)$/.test(filename)
-  );
-
-  const invalid = onlyScripts.filter(
-    (filename) => !/^[a-zA-Z0-9_-]+.(js|ts)$/.test(path.basename(filename))
+  const filenames = glob.sync("[!_]*.{js,ts}", {
+    cwd: dirname,
+    follow: true,
+  });
+  const invalid = filenames.filter(
+    (filename) => !isValidFunctionName(filename)
   );
   if (invalid.length > 0) {
     const filenames = invalid.map((filename) => `'${filename}''`).join(", ");
@@ -36,5 +42,5 @@ function listFilenames(dirname: string): string[] {
       `Filename can only contain alphanumeric, hyphen, or underscore: ${filenames}`
     );
   }
-  return onlyScripts.map((filename) => path.join(dirname, filename));
+  return filenames.map((filename) => path.resolve(dirname, filename));
 }
