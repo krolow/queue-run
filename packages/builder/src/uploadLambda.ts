@@ -17,6 +17,10 @@ async function createOrUpdateLambda(
   lambdaName: string,
   zipFile: Uint8Array
 ): Promise<string> {
+  const env = {
+    NODE_ENV: "production",
+  };
+
   try {
     const { Configuration: existing } = await lambda.getFunction({
       FunctionName: lambdaName,
@@ -40,6 +44,7 @@ async function createOrUpdateLambda(
 
       console.info("λ: Updating %s configuration …", existing.FunctionArn);
       const updated = await lambda.updateFunctionConfiguration({
+        Environment: { Variables: env },
         FunctionName: lambdaName,
         Handler: handler,
         RevisionId: newCodeRevisionId,
@@ -63,6 +68,7 @@ async function createOrUpdateLambda(
   console.info("λ: Creating new function %s …", lambdaName);
   const newLambda = await lambda.createFunction({
     Code: { ZipFile: zipFile },
+    Environment: { Variables: env },
     FunctionName: lambdaName,
     Handler: handler,
     PackageType: "Zip",
