@@ -3,6 +3,7 @@ import * as fs from "fs";
 import * as path from "path";
 import sourceMapSupport from "source-map-support";
 import vm from "vm";
+import getEnvVariables from "./getEnvVariables";
 
 const globalRequire = require;
 
@@ -118,7 +119,10 @@ function compileSourceFile(
     const { code, map: sourceMap } = swc.transformFileSync(filename, {
       envName: process.env.NODE_ENV,
       env: { targets: { node: 14 } },
-      jsc: { parser: { syntax } },
+      jsc: {
+        parser: { syntax },
+        transform: { optimizer: { globals: { vars: getEnvVariables() } } },
+      },
       sourceMaps: true,
       module: { type: "commonjs", noInterop: true },
     });

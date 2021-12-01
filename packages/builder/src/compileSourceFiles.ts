@@ -4,6 +4,7 @@ import { copyFile, mkdir, writeFile } from "fs/promises";
 import glob from "glob";
 import ms from "ms";
 import path from "path";
+import getEnvVariables from "./getEnvVariables";
 
 export default async function compileSourceFiles({
   sourceDir,
@@ -39,7 +40,10 @@ async function compileTypeScript(sourceDir: string, targetDir: string) {
     const { code, map } = await swc.transformFile(source, {
       envName: process.env.NODE_ENV,
       env: { targets: { node: 14 } },
-      jsc: { parser: { syntax: "typescript" } },
+      jsc: {
+        parser: { syntax: "typescript" },
+        transform: { optimizer: { globals: { vars: getEnvVariables() } } },
+      },
       sourceMaps: true,
       module: { type: "commonjs", noInterop: true },
     });

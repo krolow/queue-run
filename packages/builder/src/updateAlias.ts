@@ -1,4 +1,6 @@
-import { lambda } from "./clients";
+import { Lambda } from "@aws-sdk/client-lambda";
+
+const lambda = new Lambda({});
 
 export default async function updateAlias({
   alias,

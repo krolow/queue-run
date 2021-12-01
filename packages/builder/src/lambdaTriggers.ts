@@ -1,4 +1,6 @@
-import { lambda } from "./clients";
+import { Lambda } from "@aws-sdk/client-lambda";
+
+const lambda = new Lambda({});
 
 export async function addTriggers(lambdaName: string, sourceArns: string[]) {
   if (sourceArns.length === 0) return;

@@ -1,6 +1,9 @@
-import { lambda } from "./clients";
+import { Lambda } from "@aws-sdk/client-lambda";
 import { handler } from "./constants";
 import createLambdaRole from "./createLambdaRole";
+import getEnvVariables from "./getEnvVariables";
+
+const lambda = new Lambda({});
 
 export default async function uploadLambda({
   lambdaName,
@@ -17,10 +20,6 @@ async function createOrUpdateLambda(
   lambdaName: string,
   zipFile: Uint8Array
 ): Promise<string> {
-  const env = {
-    NODE_ENV: "production",
-  };
-
   try {
     const { Configuration: existing } = await lambda.getFunction({
       FunctionName: lambdaName,
@@ -42,7 +41,7 @@ async function createOrUpdateLambda(
       );
 
       const updated = await lambda.updateFunctionConfiguration({
-        Environment: { Variables: env },
+        Environment: { Variables: getEnvVariables() },
         FunctionName: lambdaName,
         Handler: handler,
         RevisionId: newCodeRevisionId,
@@ -65,7 +64,7 @@ async function createOrUpdateLambda(
   const role = await createLambdaRole(lambdaName);
   const newLambda = await lambda.createFunction({
     Code: { ZipFile: zipFile },
-    Environment: { Variables: env },
+    Environment: { Variables: getEnvVariables() },
     FunctionName: lambdaName,
     Handler: handler,
     PackageType: "Zip",

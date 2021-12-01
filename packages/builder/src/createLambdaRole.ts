@@ -1,6 +1,8 @@
 import type { Role } from "@aws-sdk/client-iam";
-import { iam } from "./clients";
+import { IAM } from "@aws-sdk/client-iam";
 import { lambdaRolePath } from "./constants";
+
+const iam = new IAM({});
 
 const Version = "2012-10-17";
 
