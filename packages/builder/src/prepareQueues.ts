@@ -17,9 +17,10 @@ export async function createQueues({
 
   console.info("µ: Creating/updating queues …");
   return await Promise.all(
-    [...fromCode].map(async ([name]) => {
+    Array.from(fromCode.entries()).map(async ([name, config]) => {
+      const fifo = config.fifo ? ".fifo" : "";
       const { QueueUrl } = await sqs.createQueue({
-        QueueName: `${prefix}${name}`,
+        QueueName: `${prefix}${name}${fifo}`,
       });
       if (!QueueUrl) throw new Error(`Could not create queue ${name}`);
       const arn = queueURLToARN(QueueUrl);

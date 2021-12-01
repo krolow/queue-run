@@ -16,7 +16,7 @@ export default function loadFunction(
   const loaded = loadAndVerify({ filename, paths });
 
   if (watch) {
-    const watcher = chokidar.watch([...paths], { ignoreInitial: true });
+    const watcher = chokidar.watch(Array.from(paths), { ignoreInitial: true });
     watcher.on("change", (changed) => {
       console.debug(
         "File %s changed => reloading %s",
@@ -29,7 +29,7 @@ export default function loadFunction(
       } catch (error) {
         console.error("Error loading %s", filename, (error as Error).stack);
       }
-      watcher.add([...paths]);
+      watcher.add(Array.from(paths));
     });
   }
 

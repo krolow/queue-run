@@ -6,7 +6,7 @@ export default async function createQueues(
   prefix: string,
   queues: Map<string, { config: QueueConfig }>
 ) {
-  for (const [name, { config }] of [...queues]) {
+  for (const [name, { config }] of Array.from(queues.entries())) {
     await createQueue(`${prefix}-${name}`, config);
   }
 }
