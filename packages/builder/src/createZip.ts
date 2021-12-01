@@ -1,27 +1,28 @@
 import filesize from "filesize";
-import { lstatSync } from "fs";
-import { readFile } from "fs/promises";
+import { lstat, readFile } from "fs/promises";
 import glob from "glob";
 import JSZip from "jszip";
+import ms from "ms";
 import path from "path";
 
 export default async function createZip(dirname: string): Promise<Uint8Array> {
+  const start = Date.now();
+  console.info("λ: Zipping %s … ", dirname);
+
   const zip = new JSZip();
   const filenames = glob.sync("**/*", {
     cwd: dirname,
     dot: true,
     follow: true,
   });
-  for (const filename of filenames) {
-    const filepath = path.resolve(dirname, filename);
-    if (
-      !(
-        lstatSync(filepath).isDirectory() ||
-        lstatSync(filepath).isSymbolicLink()
-      )
-    )
-      zip.file(filename, await readFile(filepath));
-  }
+  await Promise.all(
+    filenames.map(async (filename) => {
+      const filepath = path.resolve(dirname, filename);
+      const stat = await lstat(filepath);
+      if (!(stat.isDirectory() || stat.isSymbolicLink()))
+        zip.file(filename, await readFile(filepath));
+    })
+  );
 
   const buffer = await zip.generateAsync({
     type: "uint8array",
@@ -31,17 +32,20 @@ export default async function createZip(dirname: string): Promise<Uint8Array> {
   console.info("λ: Zipped %s", filesize(buffer.byteLength));
 
   const folders = new Map<string, number>();
-  for (const file of Object.values(zip.files)) {
-    const dirname = path.dirname(file.name);
-    const folder = summaryFolderName(dirname);
-    const { byteLength } = await file.async("uint8array");
-    folders.set(folder, (folders.get(folder) ?? 0) + byteLength);
-  }
+  await Promise.all(
+    Object.values(zip.files).map(async (entry) => {
+      const dirname = path.dirname(entry.name);
+      const folder = summaryFolderName(dirname);
+      const { byteLength } = await entry.async("uint8array");
+      folders.set(folder, (folders.get(folder) ?? 0) + byteLength);
+    })
+  );
   for (const [dirname, size] of folders) {
     if (size > 0)
       console.info("   %s   %s", truncated(dirname), filesize(size));
   }
-  console.info("");
+
+  console.info("✨  Done in %s.", ms(Date.now() - start));
   return buffer;
 }
 

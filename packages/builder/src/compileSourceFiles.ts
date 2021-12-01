@@ -2,6 +2,7 @@ import * as swc from "@swc/core";
 import { statSync } from "fs";
 import { copyFile, mkdir, writeFile } from "fs/promises";
 import glob from "glob";
+import ms from "ms";
 import path from "path";
 
 export default async function compileSourceFiles({
@@ -11,9 +12,11 @@ export default async function compileSourceFiles({
   sourceDir: string;
   targetDir: string;
 }) {
+  const start = Date.now();
   console.info("λ: Building %s", sourceDir);
   await copySourceFiles(sourceDir, targetDir);
   await compileTypeScript(sourceDir, targetDir);
+  console.info("✨  Done in %s.", ms(Date.now() - start));
 }
 
 async function copySourceFiles(sourceDir: string, targetDir: string) {

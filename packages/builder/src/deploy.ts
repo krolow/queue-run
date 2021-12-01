@@ -1,5 +1,7 @@
+import ms from "ms";
 import ow from "ow";
 import { buildDir } from "./constants";
+import createZip from "./createZip";
 import fullBuild from "./fullBuild";
 import { addTriggers, removeTriggers } from "./lambdaTriggers";
 import { createQueues, deleteOldQueues } from "./prepareQueues";
@@ -26,13 +28,31 @@ export default async function deploy({
       .message("Branch name can only contain alphanumeric and hypen characters")
   );
 
-  const lambdaName = projectId;
-  const alias = `${lambdaName}-${branch}`;
-
   await fullBuild();
-  const version = await uploadLambda({ dirname: buildDir, lambdaName });
+  console.info("");
 
+  const zip = await createZip(buildDir);
+  console.info("");
+
+  await uploadAndConfigure({ lambdaName: projectId, branch, zip });
+  console.info("");
+}
+
+async function uploadAndConfigure({
+  branch,
+  lambdaName,
+  zip,
+}: {
+  branch: string;
+  lambdaName: string;
+  zip: Uint8Array;
+}) {
+  const alias = `${lambdaName}-${branch}`;
   const prefix = `${alias}__`;
+
+  const start = Date.now();
+  const version = await uploadLambda({ lambdaName, zip });
+
   const queueArns = await createQueues({ dirname: buildDir, prefix });
   await removeTriggers(lambdaName, queueArns);
 
@@ -42,4 +62,5 @@ export default async function deploy({
   console.info("λ: Published %s", aliasArn);
 
   await deleteOldQueues(prefix, queueArns);
+  console.info("✨  Done in %s.", ms(Date.now() - start));
 }

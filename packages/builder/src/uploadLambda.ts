@@ -1,16 +1,14 @@
 import { lambda } from "./clients";
 import { handler } from "./constants";
 import createLambdaRole from "./createLambdaRole";
-import createZip from "./createZip";
 
 export default async function uploadLambda({
   lambdaName,
-  dirname,
+  zip,
 }: {
   lambdaName: string;
-  dirname: string;
+  zip: Uint8Array;
 }): Promise<string> {
-  const zip = await createZip(dirname);
   const revisionId = await createOrUpdateLambda(lambdaName, zip);
   return await publishNewVersion({ lambdaName, revisionId });
 }

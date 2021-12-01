@@ -4,7 +4,6 @@ import ms from "ms";
 export default async function installDependencies(dirname: string) {
   await yarn({ dirname, args: ["install", "--production"] });
   await yarn({ dirname, args: ["link", "@assaf/untitled-runtime"] });
-  process.stdout.write("\n");
 }
 
 async function yarn({ dirname, args }: { dirname: string; args: string[] }) {

@@ -11,6 +11,8 @@ export default async function fullBuild() {
   await createBuildDirectory(buildDir);
   await copyPackageJSON(sourceDir, buildDir);
   await installDependencies(buildDir);
+  console.info();
+
   await compileSourceFiles({ sourceDir, targetDir: buildDir });
 }
 
