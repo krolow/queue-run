@@ -61,7 +61,7 @@ async function createOrUpdateLambda(
       throw error;
   }
 
-  const role = await createLambdaRole();
+  const role = await createLambdaRole(lambdaName);
   console.info("λ: Creating new function %s …", lambdaName);
   const newLambda = await lambda.createFunction({
     Code: { ZipFile: zipFile },
