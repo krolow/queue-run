@@ -3,7 +3,7 @@ import glob from "glob";
 import path from "path";
 import { sqs } from "./clients";
 import loadFunction from "./loadFunction";
-import { queueURLToARN } from "./util";
+import { queueURLToARN, queueURLToName } from "./util";
 
 export async function createQueues({
   dirname,
@@ -24,7 +24,7 @@ export async function createQueues({
       });
       if (!QueueUrl) throw new Error(`Could not create queue ${name}`);
       const arn = queueURLToARN(QueueUrl);
-      console.info("µ: Created queue %s", arn);
+      console.info("µ: Created queue %s", name);
       return arn;
     })
   );
@@ -76,7 +76,10 @@ export async function deleteOldQueues(prefix: string, queueArns: string[]) {
   );
   if (toDelete.length === 0) return;
 
-  console.info("µ: Deleting old queues %s …", toDelete.map(queueURLToARN));
+  console.info(
+    "µ: Deleting old queues %s …",
+    toDelete.map(queueURLToName).join(", ")
+  );
   await Promise.all(
     toDelete.map(async (QueueUrl) => sqs.deleteQueue({ QueueUrl }))
   );

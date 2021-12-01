@@ -66,7 +66,7 @@ async function upsertRole(lambdaName: string): Promise<Role> {
   });
   if (!newRole) throw new Error("Failed to create role");
 
-  console.info("λ: Created role %s", newRole.Arn);
+  console.info("λ: Created role %s", roleName);
   return newRole;
 }
 
@@ -89,5 +89,5 @@ async function updatePolicy(role: Role, policyName: string, policy: unknown) {
     PolicyName: policyName,
     PolicyDocument: JSON.stringify(policy),
   });
-  console.info("λ: Updated policy %s %s", role.Arn, policyName);
+  console.info("λ: Updated policy %s", policyName);
 }

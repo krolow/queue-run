@@ -60,7 +60,6 @@ function loadAndVerify({
       throw new Error(`Expected ${filename} to export an object (config)`);
     }
 
-    console.debug("Loaded %s in %sms", filename, Date.now() - start);
     return { config, handler };
   } finally {
     paths.clear();

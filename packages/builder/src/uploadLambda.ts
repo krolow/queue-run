@@ -27,7 +27,7 @@ async function createOrUpdateLambda(
     });
 
     if (existing) {
-      console.info("λ: Updating %s code …", existing.FunctionArn);
+      console.info("λ: Updating %s …", lambdaName);
       const newCode = await lambda.updateFunctionCode({
         FunctionName: lambdaName,
         Publish: false,
@@ -42,7 +42,6 @@ async function createOrUpdateLambda(
         newCode.RevisionId
       );
 
-      console.info("λ: Updating %s configuration …", existing.FunctionArn);
       const updated = await lambda.updateFunctionConfiguration({
         Environment: { Variables: env },
         FunctionName: lambdaName,
@@ -56,7 +55,7 @@ async function createOrUpdateLambda(
         updated.RevisionId
       );
 
-      console.info("λ: Updated %s", updated.FunctionArn);
+      console.info("λ: Updated %s", lambdaName);
       return finalRevisionId;
     }
   } catch (error) {
@@ -83,7 +82,7 @@ async function createOrUpdateLambda(
     lambdaName,
     newLambda.RevisionId
   );
-  console.info("λ: Created %s", newLambda.FunctionArn);
+  console.info("λ: Created %s", lambdaName);
   return finalRevisionId;
 }
 

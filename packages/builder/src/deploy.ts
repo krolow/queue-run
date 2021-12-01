@@ -59,7 +59,7 @@ async function uploadAndConfigure({
   const aliasArn = await updateAlias({ alias, lambdaName, version });
 
   await addTriggers(aliasArn, queueArns);
-  console.info("λ: Published %s", aliasArn);
+  console.info("λ: Published version %s", version);
 
   await deleteOldQueues(prefix, queueArns);
   console.info("✨  Done in %s.", ms(Date.now() - start));
