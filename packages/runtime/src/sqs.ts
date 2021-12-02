@@ -4,7 +4,7 @@ import { JSONObject, QueueConfig, QueueHandler } from "../types";
 import { LambdaEvent, SQSFifoMessage, SQSMessage } from "./LambdaEvent";
 import loadModule from "./loadModule";
 
-// Credentials from the environment
+// Lambda providers credentials as env variables.
 const sqs = new SQS({});
 
 // Handle whatever SQS messages are included in the Lambda event,
@@ -91,7 +91,16 @@ async function handleOneMessage(message: SQSMessage): Promise<boolean> {
 
   try {
     console.info("Handling message %s on queue %s", messageId, queueName);
-    await handler(getPayload(message, config));
+    const { attributes } = message;
+    await handler(getPayload(message, config), {
+      messageID: message.messageId,
+      groupID: attributes.MessageGroupId,
+      receivedCount: +attributes.ApproximateReceiveCount,
+      sentAt: new Date(+attributes.SentTimestamp),
+      sequenceNumber: attributes.SequenceNumber
+        ? +attributes.SequenceNumber
+        : undefined,
+    });
 
     console.info("Deleting message %s on queue %s", messageId, queueName);
     await deleteMessage(message);
