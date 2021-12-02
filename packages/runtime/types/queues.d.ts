@@ -1,4 +1,4 @@
-import { JSONObject } from "./payload";
+import type { JSONObject } from "./payload";
 
 export declare type QueueHandler = (
   payload: JSONObject | string,
@@ -13,6 +13,8 @@ export declare type QueueHandler = (
     sentAt: Date;
     // Sequence number (FIFO queue only)
     sequenceNumber?: number;
+    // Notified when reached timeout, message will be rejected
+    signal: AbortSignal;
   }
 ) => Promise<void> | void;
 

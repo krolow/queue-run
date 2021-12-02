@@ -1,5 +1,6 @@
 import { SQS } from "@aws-sdk/client-sqs";
 import ms from "ms";
+import { AbortController } from "node-abort-controller";
 import { JSONObject, QueueConfig, QueueHandler } from "../types";
 import { LambdaEvent, SQSFifoMessage, SQSMessage } from "./LambdaEvent";
 import loadModule from "./loadModule";
@@ -54,6 +55,9 @@ async function handleFifoMessages(messages: SQSMessage[]) {
 
 async function handleFifoGroup(messages: SQSFifoMessage[]) {
   // Extend visibilty until we're done processing all remaining messages.
+  // If we need 60 seconds to process first message, and default visibilty is 30,
+  // then second message will be returned to the queue, and processed by another
+  // Lambda invocation.
   let visibility: Promise<void> | undefined;
   const interval = setInterval(() => {
     visibility = changeVisibilityBatch(messages, 60);
@@ -68,7 +72,8 @@ async function handleFifoGroup(messages: SQSFifoMessage[]) {
   }
   clearInterval(interval);
   if (visibility) await visibility;
-  // Return remaining messages to queue
+
+  // If there are any remaining messages, return them to the queue.
   if (messages.length > 0) await changeVisibilityBatch(messages, 0);
 }
 
@@ -80,21 +85,41 @@ async function handleOneMessage(message: SQSMessage): Promise<boolean> {
     queueName
   );
 
+  const timeout = getTimeout(config);
   // Extend visibilty until we're done processing the message.
-  await changeVisibility(message, Math.min(config.timeout ?? 30, 10));
+  await changeVisibility(message, timeout);
+
+  // Create an abort controller to allow the handler to cancel incomplete work.
+  const controller = new AbortController();
+  const abortTimeout = setTimeout(() => controller.abort(), timeout * 1000);
 
   try {
     console.info("Handling message %s on queue %s", messageId, queueName);
     const { attributes } = message;
-    await handler(getPayload(message, config), {
-      messageID: message.messageId,
-      groupID: attributes.MessageGroupId,
-      receivedCount: +attributes.ApproximateReceiveCount,
-      sentAt: new Date(+attributes.SentTimestamp),
-      sequenceNumber: attributes.SequenceNumber
-        ? +attributes.SequenceNumber
-        : undefined,
-    });
+
+    await Promise.race([
+      handler(getPayload(message, config), {
+        messageID: message.messageId,
+        groupID: attributes.MessageGroupId,
+        receivedCount: +attributes.ApproximateReceiveCount,
+        sentAt: new Date(+attributes.SentTimestamp),
+        sequenceNumber: attributes.SequenceNumber
+          ? +attributes.SequenceNumber
+          : undefined,
+        signal: controller.signal,
+      }),
+
+      new Promise((resolve) => {
+        controller.signal.addEventListener("abort", resolve);
+      }),
+    ]);
+    clearTimeout(abortTimeout);
+
+    if (controller.signal.aborted) {
+      throw new Error(
+        `Timeout: message took longer than ${timeout} to process`
+      );
+    }
 
     console.info("Deleting message %s on queue %s", messageId, queueName);
     await deleteMessage(message);
@@ -183,4 +208,8 @@ function getPayload(
   } catch {
     return message.body;
   }
+}
+
+function getTimeout(config: QueueConfig) {
+  return Math.min(config.timeout ?? 30, 10);
 }
