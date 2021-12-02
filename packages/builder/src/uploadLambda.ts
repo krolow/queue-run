@@ -1,19 +1,21 @@
 import { Lambda } from "@aws-sdk/client-lambda";
 import { handler } from "./constants";
 import createLambdaRole from "./createLambdaRole";
-import getEnvVariables from "./getEnvVariables";
 
 export default async function uploadLambda({
+  envVars,
   lambdaName,
   region,
   zip,
 }: {
+  envVars: Record<string, string>;
   lambdaName: string;
   region: string;
   zip: Uint8Array;
 }): Promise<{ functionArn: string; version: string }> {
   const lambda = new Lambda({ region });
   const { functionArn, revisionId } = await createOrUpdateLambda({
+    envVars,
     lambda,
     lambdaName,
     region,
@@ -24,11 +26,13 @@ export default async function uploadLambda({
 }
 
 async function createOrUpdateLambda({
+  envVars,
   lambda,
   lambdaName,
   region,
   zip,
 }: {
+  envVars: Record<string, string>;
   lambda: Lambda;
   lambdaName: string;
   region: string;
@@ -59,7 +63,7 @@ async function createOrUpdateLambda({
       });
 
       const updated = await lambda.updateFunctionConfiguration({
-        Environment: { Variables: getEnvVariables() },
+        Environment: { Variables: envVars },
         FunctionName: lambdaName,
         Handler: handler,
         RevisionId: newCodeRevisionId,
@@ -86,7 +90,7 @@ async function createOrUpdateLambda({
   });
   const newLambda = await lambda.createFunction({
     Code: { ZipFile: zip },
-    Environment: { Variables: getEnvVariables() },
+    Environment: { Variables: envVars },
     FunctionName: lambdaName,
     Handler: handler,
     PackageType: "Zip",

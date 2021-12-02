@@ -4,6 +4,7 @@ import { buildDir } from "./constants";
 import createZip from "./createZip";
 import fullBuild from "./fullBuild";
 import { addTriggers, removeTriggers } from "./lambdaTriggers";
+import loadEnvVars from "./loadEnvVars";
 import loadGroup from "./loadGroup";
 import { createQueues, deleteOldQueues } from "./prepareQueues";
 import updateAlias from "./updateAlias";
@@ -39,14 +40,23 @@ export default async function deploy({
   const alias = `${lambdaName}-${branch}`;
   const prefix = `${alias}__`;
 
+  const envVars = await loadEnvVars(sourceDir);
+  envVars.NODE_ENV = "production";
+
   // Creating everything we need to zip
-  const buildId = await fullBuild({ buildDir, sourceDir });
+  const buildId = await fullBuild({ buildDir, envVars, sourceDir });
+  envVars.BUILD_ID = buildId;
 
   // Sanity check on the source code, and we also need this info to configure
   // queues, etc.  Note that full build also compiles TS, but doesn't load the
   // module, so some code issues will only show at this point.
   console.info("λ: Loading source code");
-  const queues = await loadGroup({ dirname: buildDir, group: "queue" });
+  const queues = await loadGroup({
+    dirname: buildDir,
+    envVars,
+    group: "queue",
+    watch: false,
+  });
 
   const zip = await createZip(buildDir);
   console.info("");
@@ -56,6 +66,7 @@ export default async function deploy({
   // This doesn't make any difference yet: event sources are tied to an alias,
   // and the alias points to an earlier version (or no version on first deploy).
   const { functionArn, version } = await uploadLambda({
+    envVars,
     lambdaName,
     zip,
     region,

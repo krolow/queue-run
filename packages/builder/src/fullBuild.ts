@@ -9,11 +9,13 @@ import createBuildDirectory from "./createBuildDirectory";
 import installDependencies from "./installDependencies";
 
 export default async function fullBuild({
-  sourceDir,
   buildDir,
+  envVars,
+  sourceDir,
 }: {
-  sourceDir: string;
   buildDir: string;
+  envVars: Record<string, string>;
+  sourceDir: string;
 }) {
   await createBuildDirectory(buildDir);
   await copyPackageJSON(sourceDir, buildDir);
@@ -21,7 +23,7 @@ export default async function fullBuild({
   console.info();
 
   const start = Date.now();
-  await compileSourceFiles({ sourceDir, targetDir: buildDir });
+  await compileSourceFiles({ sourceDir, targetDir: buildDir, envVars });
   const buildId = await generateBuildId(buildDir);
   console.info("λ: Build %s", buildId);
   console.info("✨  Done in %s.", ms(Date.now() - start));

@@ -2,12 +2,13 @@ import * as swc from "@swc/core";
 import glob from "fast-glob";
 import { copyFile, mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
-import getEnvVariables from "./getEnvVariables";
 
 export default async function compileSourceFiles({
+  envVars,
   sourceDir,
   targetDir,
 }: {
+  envVars: Record<string, string>;
   sourceDir: string;
   targetDir: string;
 }) {
@@ -32,19 +33,28 @@ export default async function compileSourceFiles({
       await mkdir(dest, { recursive: true });
     } else {
       await mkdir(path.dirname(dest), { recursive: true });
-      if (filename.endsWith(".ts")) await compileTypeScript(filename, dest);
+      if (filename.endsWith(".ts"))
+        await compileTypeScript({ filename, dest, envVars });
       else await copyFile(filename, dest);
     }
   }
 }
 
-async function compileTypeScript(filename: string, dest: string) {
+async function compileTypeScript({
+  dest,
+  envVars,
+  filename,
+}: {
+  dest: string;
+  envVars: Record<string, string>;
+  filename: string;
+}) {
   const { code, map } = await swc.transformFile(filename, {
     envName: process.env.NODE_ENV,
     env: { targets: { node: 14 } },
     jsc: {
       parser: { syntax: "typescript" },
-      transform: { optimizer: { globals: { vars: getEnvVariables() } } },
+      transform: { optimizer: { globals: { vars: envVars } } },
     },
     sourceMaps: true,
     module: { type: "commonjs", noInterop: true },

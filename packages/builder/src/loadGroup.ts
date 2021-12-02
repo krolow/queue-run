@@ -5,19 +5,21 @@ import loadFunction from "./loadFunction";
 // Load a group of functions from the same directory.
 export default function loadGroup({
   dirname,
+  envVars,
   group,
   watch,
 }: {
   dirname: string;
+  envVars: Record<string, string>;
   group: string;
-  watch?: boolean;
+  watch: boolean;
 }): Map<string, ReturnType<typeof loadFunction>> {
   const filenames = listFilenames(path.resolve(dirname, "background", group));
   return filenames.reduce(
     (map, filename) =>
       map.set(
         path.basename(filename, path.extname(filename)),
-        loadFunction(filename, watch)
+        loadFunction({ envVars, filename, watch })
       ),
     new Map()
   );

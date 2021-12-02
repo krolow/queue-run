@@ -3,7 +3,6 @@ import * as fs from "fs";
 import * as path from "path";
 import sourceMapSupport from "source-map-support";
 import vm from "vm";
-import getEnvVariables from "./getEnvVariables";
 
 const globalRequire = require;
 
@@ -20,10 +19,12 @@ sourceMapSupport.install({
 // Half-assed implementatio of Node's require module loading that support hot reload.
 export default function loadModule({
   cache,
+  envVars,
   filename,
   parent,
 }: {
   cache: NodeJS.Dict<NodeJS.Module>;
+  envVars: Record<string, string>;
   filename: string;
   parent?: NodeJS.Module;
 }): NodeJS.Module {
@@ -33,6 +34,7 @@ export default function loadModule({
         cache[id] ??
         loadModule({
           cache,
+          envVars,
           filename: require.resolve(id),
           parent: module,
         });
@@ -58,8 +60,8 @@ export default function loadModule({
         fs.readFileSync(require.resolve(filename), "utf8")
       );
     },
-    ".js": compileSourceFile(sourceMaps, "ecmascript"),
-    ".ts": compileSourceFile(sourceMaps, "typescript"),
+    ".js": compileSourceFile({ envVars, sourceMaps, syntax: "ecmascript" }),
+    ".ts": compileSourceFile({ envVars, sourceMaps, syntax: "typescript" }),
   };
 
   const resolve: NodeJS.RequireResolve = (id: string) => {
@@ -111,17 +113,22 @@ function nodeModulePaths(filename: string): string[] | null {
   return parent ? [...parent, ...paths] : paths;
 }
 
-function compileSourceFile(
-  sourceMaps: Map<string, string>,
-  syntax: "typescript" | "ecmascript"
-) {
+function compileSourceFile({
+  envVars,
+  sourceMaps,
+  syntax,
+}: {
+  envVars: Record<string, string>;
+  sourceMaps: Map<string, string>;
+  syntax: "typescript" | "ecmascript";
+}) {
   return (module: NodeJS.Module, filename: string) => {
     const { code, map: sourceMap } = swc.transformFileSync(filename, {
       envName: process.env.NODE_ENV,
       env: { targets: { node: 14 } },
       jsc: {
         parser: { syntax },
-        transform: { optimizer: { globals: { vars: getEnvVariables() } } },
+        transform: { optimizer: { globals: { vars: envVars } } },
       },
       sourceMaps: true,
       module: { type: "commonjs", noInterop: true },
