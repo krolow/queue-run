@@ -26,17 +26,7 @@ function isSQSMessage(record: LambdaEvent["Records"][0]): record is SQSMessage {
 // Messages from regular queues can be processed in parallel
 async function handleUnorderedMessages(messages: SQSMessage[]) {
   await Promise.all(
-    messages
-      .filter((message) => !isFifo(message))
-      .map(async (message) => {
-        // Extend visibilty until we're done processing the message.
-        const interval = setInterval(
-          () => changeVisibility(message, 60),
-          ms("30s")
-        );
-        await handleOneMessage(message);
-        clearInterval(interval);
-      })
+    messages.filter((message) => !isFifo(message)).map(handleOneMessage)
   );
 }
 
@@ -64,10 +54,10 @@ async function handleFifoMessages(messages: SQSMessage[]) {
 
 async function handleFifoGroup(messages: SQSFifoMessage[]) {
   // Extend visibilty until we're done processing all remaining messages.
-  const interval = setInterval(
-    () => changeVisibilityBatch(messages, 60),
-    ms("30s")
-  );
+  let visibility: Promise<void> | undefined;
+  const interval = setInterval(() => {
+    visibility = changeVisibilityBatch(messages, 60);
+  }, ms("20s"));
 
   let message;
   while ((message = messages.shift())) {
@@ -77,6 +67,7 @@ async function handleFifoGroup(messages: SQSFifoMessage[]) {
     if (!successful) break;
   }
   clearInterval(interval);
+  if (visibility) await visibility;
   // Return remaining messages to queue
   if (messages.length > 0) await changeVisibilityBatch(messages, 0);
 }
@@ -88,6 +79,9 @@ async function handleOneMessage(message: SQSMessage): Promise<boolean> {
     "queue",
     queueName
   );
+
+  // Extend visibilty until we're done processing the message.
+  await changeVisibility(message, Math.min(config.timeout ?? 30, 10));
 
   try {
     console.info("Handling message %s on queue %s", messageId, queueName);

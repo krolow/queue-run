@@ -23,4 +23,7 @@ export declare type QueueConfig = {
   // If this is true, then we'll pass the message as raw string to the handler.
   // Otherwise, we'll attempt to parse it. (default: false)
   payloadAsString: boolean;
+
+  // Timeout for processing message in seconds. Defaults to 30.
+  timeout: number;
 };
