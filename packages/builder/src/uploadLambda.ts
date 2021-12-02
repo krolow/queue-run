@@ -94,6 +94,7 @@ async function createOrUpdateLambda({
     Role: role.Arn,
     Runtime: "nodejs14.x",
     TracingConfig: { Mode: "Active" },
+    Timeout: 300,
   });
   if (!newLambda.RevisionId) throw new Error("Could not create function");
 
