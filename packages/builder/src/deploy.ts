@@ -40,8 +40,7 @@ export default async function deploy({
   const prefix = `${alias}__`;
 
   // Creating everything we need to zip
-  await fullBuild({ buildDir, sourceDir });
-  console.info("");
+  const buildId = await fullBuild({ buildDir, sourceDir });
 
   // Sanity check on the source code, and we also need this info to configure
   // queues, etc.  Note that full build also compiles TS, but doesn't load the

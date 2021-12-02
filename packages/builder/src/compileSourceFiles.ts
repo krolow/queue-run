@@ -1,7 +1,6 @@
 import * as swc from "@swc/core";
 import glob from "fast-glob";
 import { copyFile, mkdir, readFile, writeFile } from "fs/promises";
-import ms from "ms";
 import path from "path";
 import getEnvVariables from "./getEnvVariables";
 
@@ -12,7 +11,6 @@ export default async function compileSourceFiles({
   sourceDir: string;
   targetDir: string;
 }) {
-  const start = Date.now();
   console.info("λ: Building %s", targetDir);
 
   const ignore = (
@@ -38,8 +36,6 @@ export default async function compileSourceFiles({
       else await copyFile(filename, dest);
     }
   }
-
-  console.info("✨  Done in %s.", ms(Date.now() - start));
 }
 
 async function compileTypeScript(filename: string, dest: string) {
