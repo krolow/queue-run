@@ -1,6 +1,6 @@
+import glob from "fast-glob";
 import filesize from "filesize";
 import { lstat, readFile } from "fs/promises";
-import glob from "glob";
 import JSZip from "jszip";
 import ms from "ms";
 import path from "path";
@@ -13,7 +13,8 @@ export default async function createZip(dirname: string): Promise<Uint8Array> {
   const filenames = glob.sync("**/*", {
     cwd: dirname,
     dot: true,
-    follow: true,
+    followSymbolicLinks: true,
+    onlyFiles: true,
   });
   await Promise.all(
     filenames.map(async (filename) => {

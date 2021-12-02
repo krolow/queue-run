@@ -1,4 +1,4 @@
-import glob from "glob";
+import glob from "fast-glob";
 import path from "path";
 import loadFunction from "./loadFunction";
 
@@ -31,7 +31,8 @@ function isValidFunctionName(filename: string) {
 function listFilenames(dirname: string): string[] {
   const filenames = glob.sync("[!_]*.{js,ts}", {
     cwd: dirname,
-    follow: true,
+    followSymbolicLinks: true,
+    onlyFiles: true,
   });
   const invalid = filenames.filter(
     (filename) => !isValidFunctionName(filename)

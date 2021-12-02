@@ -1,7 +1,6 @@
 import * as swc from "@swc/core";
-import { statSync } from "fs";
-import { copyFile, mkdir, writeFile } from "fs/promises";
-import glob from "glob";
+import glob from "fast-glob";
+import { copyFile, mkdir, readFile, writeFile } from "fs/promises";
 import ms from "ms";
 import path from "path";
 import getEnvVariables from "./getEnvVariables";
@@ -15,40 +14,45 @@ export default async function compileSourceFiles({
 }) {
   const start = Date.now();
   console.info("λ: Building %s", targetDir);
-  await copySourceFiles(sourceDir, targetDir);
-  await compileTypeScript(sourceDir, targetDir);
+
+  const ignore = (
+    await readFile(path.join(sourceDir, ".gitignore"), "utf-8").catch(() => "")
+  )
+    .split("\n")
+    .filter((line) => line.trim().length > 0 && !line.startsWith("#"));
+
+  const filenames = glob.sync("**/*", {
+    cwd: sourceDir,
+    followSymbolicLinks: true,
+    ignore: [...ignore, "**/node_modules/**"],
+    markDirectories: true,
+    unique: true,
+  });
+  for (const filename of filenames) {
+    const dest = path.join(targetDir, path.relative(sourceDir, filename));
+    if (filename.endsWith("/")) {
+      await mkdir(dest, { recursive: true });
+    } else {
+      await mkdir(path.dirname(dest), { recursive: true });
+      if (filename.endsWith(".ts")) await compileTypeScript(filename, dest);
+      else await copyFile(filename, dest);
+    }
+  }
+
   console.info("✨  Done in %s.", ms(Date.now() - start));
 }
 
-async function copySourceFiles(sourceDir: string, targetDir: string) {
-  const sources = glob
-    .sync(path.join(sourceDir, "{background,lib}", "**", "*"))
-    .filter((source) => !source.endsWith(".ts"))
-    .filter((source) => !statSync(source).isDirectory());
-  for (const source of sources) {
-    const dest = path.join(targetDir, path.relative(sourceDir, source));
-    await mkdir(path.dirname(dest), { recursive: true });
-    await copyFile(source, dest);
-  }
-}
-
-async function compileTypeScript(sourceDir: string, targetDir: string) {
-  const sources = glob.sync(
-    path.join(sourceDir, "{background,lib}", "**", "*.ts")
-  );
-  for (const source of sources) {
-    const { code, map } = await swc.transformFile(source, {
-      envName: process.env.NODE_ENV,
-      env: { targets: { node: 14 } },
-      jsc: {
-        parser: { syntax: "typescript" },
-        transform: { optimizer: { globals: { vars: getEnvVariables() } } },
-      },
-      sourceMaps: true,
-      module: { type: "commonjs", noInterop: true },
-    });
-    const dest = path.join(targetDir, path.relative(sourceDir, source));
-    await writeFile(dest.replace(/\.ts$/, ".js"), code, "utf-8");
-    if (map) await writeFile(dest.replace(/\.ts$/, ".js.map"), map, "utf-8");
-  }
+async function compileTypeScript(filename: string, dest: string) {
+  const { code, map } = await swc.transformFile(filename, {
+    envName: process.env.NODE_ENV,
+    env: { targets: { node: 14 } },
+    jsc: {
+      parser: { syntax: "typescript" },
+      transform: { optimizer: { globals: { vars: getEnvVariables() } } },
+    },
+    sourceMaps: true,
+    module: { type: "commonjs", noInterop: true },
+  });
+  await writeFile(dest.replace(/\.ts$/, ".js"), code, "utf-8");
+  if (map) await writeFile(dest.replace(/\.ts$/, ".js.map"), map, "utf-8");
 }
