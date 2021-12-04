@@ -1,4 +1,5 @@
 import * as swc from "@swc/core";
+import { JscTarget } from "@swc/core";
 import * as fs from "fs";
 import * as path from "path";
 import sourceMapSupport from "source-map-support";
@@ -21,11 +22,13 @@ export default function loadModule({
   cache,
   envVars,
   filename,
+  jscTarget,
   parent,
 }: {
   cache: NodeJS.Dict<NodeJS.Module>;
   envVars: Record<string, string>;
   filename: string;
+  jscTarget: JscTarget;
   parent?: NodeJS.Module;
 }): NodeJS.Module {
   const require: NodeJS.Require = (id: string) => {
@@ -36,6 +39,7 @@ export default function loadModule({
           cache,
           envVars,
           filename: require.resolve(id),
+          jscTarget,
           parent: module,
         });
       if (!module.children.find(({ id }) => id === child.id))
@@ -60,8 +64,18 @@ export default function loadModule({
         fs.readFileSync(require.resolve(filename), "utf8")
       );
     },
-    ".js": compileSourceFile({ envVars, sourceMaps, syntax: "ecmascript" }),
-    ".ts": compileSourceFile({ envVars, sourceMaps, syntax: "typescript" }),
+    ".js": compileSourceFile({
+      envVars,
+      jscTarget,
+      sourceMaps,
+      syntax: "ecmascript",
+    }),
+    ".ts": compileSourceFile({
+      envVars,
+      jscTarget,
+      sourceMaps,
+      syntax: "typescript",
+    }),
   };
 
   const resolve: NodeJS.RequireResolve = (id: string) => {
@@ -115,19 +129,21 @@ function nodeModulePaths(filename: string): string[] | null {
 
 function compileSourceFile({
   envVars,
+  jscTarget,
   sourceMaps,
   syntax,
 }: {
   envVars: Record<string, string>;
+  jscTarget: JscTarget;
   sourceMaps: Map<string, string>;
   syntax: "typescript" | "ecmascript";
 }) {
   return (module: NodeJS.Module, filename: string) => {
     const { code, map: sourceMap } = swc.transformFileSync(filename, {
       envName: process.env.NODE_ENV,
-      env: { targets: { node: 14 } },
       jsc: {
         parser: { syntax },
+        target: jscTarget,
         transform: { optimizer: { globals: { vars: envVars } } },
       },
       sourceMaps: true,

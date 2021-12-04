@@ -1,7 +1,9 @@
 import * as swc from "@swc/core";
+import { JscTarget } from "@swc/core";
 import glob from "fast-glob";
 import { copyFile, mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
+import getRuntimeVersion from "../upload/util/getRuntime";
 
 export default async function compileSourceFiles({
   envVars,
@@ -13,6 +15,8 @@ export default async function compileSourceFiles({
   targetDir: string;
 }) {
   console.info("λ: Building %s", targetDir);
+
+  const { jscTarget } = await getRuntimeVersion(sourceDir);
 
   const ignore = (
     await readFile(path.join(sourceDir, ".gitignore"), "utf-8").catch(() => "")
@@ -33,27 +37,32 @@ export default async function compileSourceFiles({
       await mkdir(dest, { recursive: true });
     } else {
       await mkdir(path.dirname(dest), { recursive: true });
-      if (filename.endsWith(".ts"))
-        await compileTypeScript({ filename, dest, envVars });
+      if (/\.(js|ts)$/.test(filename))
+        await compileSourceFile({ filename, dest, envVars, jscTarget });
       else await copyFile(filename, dest);
     }
   }
 }
 
-async function compileTypeScript({
+// We compile TypeScript to JavaScript, but also compile latest ECMAScript to
+// whatever version is supported by the runtime.
+async function compileSourceFile({
   dest,
   envVars,
   filename,
+  jscTarget,
 }: {
   dest: string;
   envVars: Record<string, string>;
   filename: string;
+  jscTarget: JscTarget;
 }) {
+  const syntax = filename.endsWith(".ts") ? "typescript" : "ecmascript";
   const { code, map } = await swc.transformFile(filename, {
     envName: process.env.NODE_ENV,
-    env: { targets: { node: 14 } },
     jsc: {
-      parser: { syntax: "typescript" },
+      parser: { syntax },
+      target: jscTarget,
       transform: { optimizer: { globals: { vars: envVars } } },
     },
     sourceMaps: true,

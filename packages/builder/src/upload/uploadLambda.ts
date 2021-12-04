@@ -1,6 +1,8 @@
 import { Lambda } from "@aws-sdk/client-lambda";
 import { handler } from "../constants";
+import { buildDir } from "./../constants";
 import createLambdaRole from "./createLambdaRole";
+import getRuntimeVersion from "./util/getRuntime";
 
 export default async function uploadLambda({
   envVars,
@@ -41,43 +43,50 @@ async function createOrUpdateLambda({
   functionArn: string;
   revisionId: string;
 }> {
+  const { lambdaRuntime } = await getRuntimeVersion(buildDir);
+
   try {
     const { Configuration: existing } = await lambda.getFunction({
       FunctionName: lambdaName,
     });
 
     if (existing) {
+      // Change configuration first, here we determine runtime, and only then
+      // load code and publish.
+      const newConfig = await lambda.updateFunctionConfiguration({
+        Environment: { Variables: envVars },
+        FunctionName: lambdaName,
+        Handler: handler,
+        RevisionId: existing.RevisionId,
+        Runtime: lambdaRuntime,
+      });
+      if (!newConfig.RevisionId)
+        throw new Error("Could not update function with new configuration");
+      const newConfigRevisionId = await waitForNewRevision({
+        lambda,
+        lambdaName,
+        revisionId: newConfig.RevisionId,
+      });
+
       const newCode = await lambda.updateFunctionCode({
         FunctionName: lambdaName,
         Publish: false,
         ZipFile: zip,
-        RevisionId: existing.RevisionId,
+        RevisionId: newConfigRevisionId,
       });
       if (!newCode.RevisionId)
         throw new Error("Could not update function with new code");
-
       const newCodeRevisionId = await waitForNewRevision({
         lambda,
         lambdaName,
         revisionId: newCode.RevisionId,
       });
 
-      const updated = await lambda.updateFunctionConfiguration({
-        Environment: { Variables: envVars },
-        FunctionName: lambdaName,
-        Handler: handler,
-        RevisionId: newCodeRevisionId,
-      });
-      if (!updated.RevisionId)
-        throw new Error("Could not update function with new configuration");
-      const finalRevisionId = await waitForNewRevision({
-        lambda,
-        lambdaName,
-        revisionId: updated.RevisionId,
-      });
-
       console.info("λ: Updated function %s", lambdaName);
-      return { functionArn: updated.FunctionArn!, revisionId: finalRevisionId };
+      return {
+        functionArn: newConfig.FunctionArn!,
+        revisionId: newCodeRevisionId,
+      };
     }
   } catch (error) {
     if (!(error instanceof Error && error.name === "ResourceNotFoundException"))
@@ -96,7 +105,7 @@ async function createOrUpdateLambda({
     PackageType: "Zip",
     Publish: false,
     Role: role.Arn,
-    Runtime: "nodejs14.x",
+    Runtime: lambdaRuntime,
     TracingConfig: { Mode: "Active" },
     Timeout: 300,
   });

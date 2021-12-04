@@ -1,3 +1,4 @@
+import { JscTarget } from "@swc/core";
 import chokidar from "chokidar";
 import path from "path";
 import loadModule from "./loadModule";
@@ -9,14 +10,16 @@ type FunctionExports = { config: any; handler: any };
 export default function loadFunction({
   envVars,
   filename,
+  jscTarget,
   watch,
 }: {
   envVars: Record<string, string>;
   filename: string;
+  jscTarget: JscTarget;
   watch: boolean;
 }): FunctionExports {
   const paths = new Set<string>();
-  const exports = loadAndVerify({ envVars, filename, paths });
+  const exports = loadAndVerify({ envVars, filename, jscTarget, paths });
 
   if (watch) {
     const watcher = chokidar.watch(Array.from(paths), { ignoreInitial: true });
@@ -28,7 +31,10 @@ export default function loadFunction({
       );
 
       try {
-        Object.assign(exports, loadAndVerify({ envVars, filename, paths }));
+        Object.assign(
+          exports,
+          loadAndVerify({ envVars, filename, jscTarget, paths })
+        );
       } catch (error) {
         console.error("Error loading %s", filename, (error as Error).stack);
       }
@@ -43,14 +49,16 @@ function loadAndVerify({
   envVars,
   filename,
   paths,
+  jscTarget,
 }: {
   envVars: Record<string, string>;
   filename: string;
   paths: Set<string>;
+  jscTarget: JscTarget;
 }): FunctionExports {
   const cache = {};
   try {
-    const { exports } = loadModule({ envVars, filename, cache });
+    const { exports } = loadModule({ envVars, filename, cache, jscTarget });
 
     const handler = exports.handler || exports.default;
     if (typeof handler !== "function") {

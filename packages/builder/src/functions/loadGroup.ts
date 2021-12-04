@@ -1,9 +1,10 @@
 import glob from "fast-glob";
 import path from "path";
+import getRuntimeVersion from "../upload/util/getRuntime";
 import loadFunction from "./loadFunction";
 
 // Load a group of functions from the same directory.
-export default function loadGroup({
+export default async function loadGroup({
   dirname,
   envVars,
   group,
@@ -13,13 +14,15 @@ export default function loadGroup({
   envVars: Record<string, string>;
   group: string;
   watch: boolean;
-}): Map<string, ReturnType<typeof loadFunction>> {
+}): Promise<Map<string, ReturnType<typeof loadFunction>>> {
   const filenames = listFilenames(path.resolve(dirname, "background", group));
+  const { jscTarget } = await getRuntimeVersion(dirname);
+
   return filenames.reduce(
     (map, filename) =>
       map.set(
         path.basename(filename, path.extname(filename)),
-        loadFunction({ envVars, filename, watch })
+        loadFunction({ envVars, filename, jscTarget, watch })
       ),
     new Map()
   );
