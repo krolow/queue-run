@@ -1,7 +1,7 @@
 {
   "name": "queue-run",
   "version": "1.0.0",
-  "description": "👋",
+  "description": "👋 Background functions for JAMstack apps (queues, pub/sub, cron, etc)",
   "main": "src/index.js",
   "types": "types/index.d.ts",
   "scripts": {
