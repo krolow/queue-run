@@ -14,9 +14,10 @@ export default async function compileSourceFiles({
   sourceDir: string;
   targetDir: string;
 }) {
-  console.info("λ: Building %s", targetDir);
+  console.info("λ: Building %s …", targetDir);
 
-  const { jscTarget } = await getRuntimeVersion(sourceDir);
+  const { jscTarget, nodeVersion } = await getRuntimeVersion(sourceDir);
+  console.info("λ: Compiling source code for Node %s", nodeVersion);
 
   const ignore = (
     await readFile(path.join(sourceDir, ".gitignore"), "utf-8").catch(() => "")
@@ -31,17 +32,24 @@ export default async function compileSourceFiles({
     markDirectories: true,
     unique: true,
   });
+  let compiled = 0;
+  let copied = 0;
   for (const filename of filenames) {
     const dest = path.join(targetDir, path.relative(sourceDir, filename));
     if (filename.endsWith("/")) {
       await mkdir(dest, { recursive: true });
     } else {
       await mkdir(path.dirname(dest), { recursive: true });
-      if (/\.(js|ts)$/.test(filename))
+      if (/\.(js|ts)$/.test(filename)) {
         await compileSourceFile({ filename, dest, envVars, jscTarget });
-      else await copyFile(filename, dest);
+        compiled++;
+      } else {
+        await copyFile(filename, dest);
+        copied++;
+      }
     }
   }
+  console.info("λ: Compiled %d files and copied %d files", compiled, copied);
 }
 
 // We compile TypeScript to JavaScript, but also compile latest ECMAScript to
