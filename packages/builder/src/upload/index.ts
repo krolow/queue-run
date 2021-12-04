@@ -46,6 +46,12 @@ export default async function upload({
     group: "queue",
     watch: false,
   });
+  console.info(
+    "λ: Found %d %s",
+    queues.size,
+    queues.size === 1 ? "queue" : "queues"
+  );
+  console.info("");
 
   const zip = await createZip(buildDir);
   console.info("");
