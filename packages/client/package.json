@@ -1,8 +1,8 @@
 {
-  "name": "@assaf/untitled-client",
+  "name": "@queue.run/client",
   "version": "0.0.0",
   "main": "dist/index.js",
-  "module": "dist/untitled-runtime.esm.js",
+  "module": "dist/client.esm.js",
   "types": "dist/types/index.d.ts",
   "scripts": {
     "build": "dts build",

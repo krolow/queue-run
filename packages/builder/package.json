@@ -1,8 +1,8 @@
 {
-  "name": "@assaf/untitled-builder",
+  "name": "@queue.run/builder",
   "version": "0.0.0",
   "main": "dist/index.js",
-  "module": "dist/untitled-builder.esm.js",
+  "module": "dist/builder.esm.js",
   "types": "types/index.d.ts",
   "bin": {
     "build": "node dist/index.js build"

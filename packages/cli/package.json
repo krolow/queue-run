@@ -1,8 +1,8 @@
 {
-  "name": "@assaf/untitled-cli",
+  "name": "@queue.run/cli",
   "version": "0.0.0",
   "main": "dist/index.js",
-  "module": "dist/untitled-builder.esm.js",
+  "module": "dist/cli.esm.js",
   "bin": {
     "deploy": "./bin/deploy.js"
   },

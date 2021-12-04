@@ -1,8 +1,8 @@
 {
-  "name": "@assaf/untitled-runtime",
+  "name": "@queue.run/runtime",
   "version": "0.0.0",
   "main": "dist/index.js",
-  "module": "dist/untitled-runtime.esm.js",
+  "module": "dist/runtime.esm.js",
   "types": "types/index.d.ts",
   "scripts": {
     "build": "dts build",

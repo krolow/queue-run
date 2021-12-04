@@ -12,7 +12,7 @@ export default async function installDependencies({
 }) {
   await copyPackageJSON(sourceDir, buildDir);
   await yarn({ dirname: buildDir, args: ["install", "--production"] });
-  await yarn({ dirname: buildDir, args: ["link", "@assaf/untitled-runtime"] });
+  await yarn({ dirname: buildDir, args: ["link", "@queue.run/runtime"] });
   console.info();
 }
 
