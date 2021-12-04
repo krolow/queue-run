@@ -1,5 +1,5 @@
 {
-  "name": "queue.run",
+  "name": "queue-run",
   "version": "1.0.0",
   "description": "👋",
   "main": "src/index.js",
@@ -11,7 +11,7 @@
   "author": "Assaf Arkin <assaf@labnotes.org> (https://labnotes.org/)",
   "homepage": "",
   "license": "MIT",
-  "repository": "github:assaf/queue.run.git",
+  "repository": "github:assaf/queue-run.git",
   "private": true,
   "devDependencies": {
     "@swc/cli": "^0.1.51",

@@ -1,8 +1,8 @@
 {
-  "name": "@queue.run/runtime",
+  "name": "@queue-run/runtime",
   "version": "0.0.0",
   "main": "dist/index.js",
-  "module": "dist/runtime.esm.js",
+  "module": "dist/index.esm.js",
   "types": "types/index.d.ts",
   "scripts": {
     "build": "dts build",

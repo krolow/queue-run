@@ -1,10 +1,10 @@
 {
-  "name": "@queue.run/cli",
+  "name": "@queue-run/cli",
   "version": "0.0.0",
   "main": "dist/index.js",
-  "module": "dist/cli.esm.js",
+  "module": "dist/index.esm.js",
   "bin": {
-    "deploy": "./bin/deploy.js"
+    "queue-run": "dist/index.js"
   },
   "scripts": {
     "build": "dts build",
@@ -13,11 +13,12 @@
     "watch": "dts watch"
   },
   "files": [
-    "bin",
     "dist",
     "src"
   ],
-  "dependencies": {},
+  "dependencies": {
+    "commander": "^8.3.0"
+  },
   "devDependencies": {
     "dts-cli": "^0.19.7"
   }

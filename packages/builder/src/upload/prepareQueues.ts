@@ -1,5 +1,5 @@
 import { SQS } from "@aws-sdk/client-sqs";
-import { QueueConfig } from "@queue.run/runtime";
+import { QueueConfig } from "@queue-run/runtime";
 import { queueURLToARN, queueURLToName } from "../util";
 
 export async function createQueues({
