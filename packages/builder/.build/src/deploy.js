@@ -1,0 +1,99 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+exports.default = deploy;
+var _ms = require("ms");
+var _ow = require("ow");
+var _constants = require("./constants");
+var _createZip = require("./createZip");
+var _fullBuild = require("./fullBuild");
+var _lambdaTriggers = require("./lambdaTriggers");
+var _loadEnvVars = require("./loadEnvVars");
+var _loadGroup = require("./loadGroup");
+var _prepareQueues = require("./prepareQueues");
+var _updateAlias = require("./updateAlias");
+var _uploadLambda = require("./uploadLambda");
+const defaultRegion = "us-east-1";
+async function deploy({ branch ="main" , projectId , region =process.env.AWS_REGION ?? defaultRegion , sourceDir =process.cwd()  }) {
+    (0, _ow).default(projectId, _ow.default.string.nonEmpty.matches(/^([a-z0-9]+-){1,}[a-z0-9]+$/).message("Project ID must look like `grumpy-sunshine`"));
+    (0, _ow).default(branch, _ow.default.string.nonEmpty.matches(/^[a-z0-9-]+$/i).message("Branch name can only contain alphanumeric and hypen characters"));
+    const lambdaName = projectId;
+    const alias = `${lambdaName}-${branch}`;
+    const prefix = `${alias}__`;
+    const envVars = await (0, _loadEnvVars).default(sourceDir);
+    envVars.NODE_ENV = "production";
+    // Creating everything we need to zip
+    await (0, _fullBuild).default({
+        buildDir: _constants.buildDir,
+        envVars,
+        install: true,
+        sourceDir
+    });
+    // Sanity check on the source code, and we also need this info to configure
+    // queues, etc.  Note that full build also compiles TS, but doesn't load the
+    // module, so some code issues will only show at this point.
+    console.info("λ: Loading source code");
+    const queues = await (0, _loadGroup).default({
+        dirname: _constants.buildDir,
+        envVars,
+        group: "queue",
+        watch: false
+    });
+    const zip = await (0, _createZip).default(_constants.buildDir);
+    console.info("");
+    const start = Date.now();
+    // Upload new Lambda function and publish a new version.
+    // This doesn't make any difference yet: event sources are tied to an alias,
+    // and the alias points to an earlier version (or no version on first deploy).
+    const { functionArn , version  } = await (0, _uploadLambda).default({
+        envVars,
+        lambdaName,
+        zip,
+        region
+    });
+    const aliasArn = `${functionArn}:${alias}`;
+    // Create queues that new version expects, and remove triggers for event
+    // sources that new version does not understand.
+    const queueArns = await (0, _prepareQueues).createQueues({
+        configs: queues,
+        prefix,
+        region
+    });
+    await (0, _lambdaTriggers).removeTriggers({
+        lambdaName: aliasArn,
+        sourceArns: queueArns,
+        region
+    });
+    // Update alias to point to new version.
+    //
+    // The alias includes the branch name, so if you parallel deploy in two
+    // branches, you would have two aliases pointing to two different published
+    // versions:
+    //
+    //    {projectId}-{branch} => {projectId}:{version}
+    await (0, _updateAlias).default({
+        alias,
+        lambdaName,
+        region,
+        version
+    });
+    // Add triggers for queues that new version can handle.  We do that for the
+    // alias, so we only need to add new triggers, existing triggers carry over:
+    //
+    //   trigger {projectId}-{branch}__{queueName} => {projectId}-{branch}
+    await (0, _lambdaTriggers).addTriggers({
+        lambdaName: aliasArn,
+        sourceArns: queueArns,
+        region
+    });
+    console.info("λ: Published version %s", version);
+    // Delete any queues that are no longer needed.
+    await (0, _prepareQueues).deleteOldQueues({
+        prefix,
+        queueArns,
+        region
+    });
+    console.info("✨  Done in %s.", (0, _ms).default(Date.now() - start));
+    console.info("");
+}

@@ -1,5 +1,5 @@
 import { Lambda } from "@aws-sdk/client-lambda";
-import { handler } from "./constants";
+import { handler } from "../constants";
 import createLambdaRole from "./createLambdaRole";
 
 export default async function uploadLambda({

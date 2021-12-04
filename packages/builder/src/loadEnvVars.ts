@@ -6,5 +6,9 @@ export default async function loadEnvVars(dirname: string) {
   const dotEnv = await readFile(path.resolve(dirname, ".env"), "utf8").catch(
     () => ""
   );
-  return dotenv.parse(dotEnv);
+  const envVars = dotenv.parse(dotEnv);
+  return {
+    ...envVars,
+    NODE_ENV: envVars.NODE_ENV ?? process.env.NODE_ENV ?? "development",
+  };
 }

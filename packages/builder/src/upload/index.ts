@@ -1,27 +1,23 @@
 import ms from "ms";
 import ow from "ow";
-import { buildDir } from "./constants";
+import { buildDir } from "../constants";
+import loadGroup from "../functions/loadGroup";
 import createZip from "./createZip";
-import fullBuild from "./fullBuild";
 import { addTriggers, removeTriggers } from "./lambdaTriggers";
-import loadEnvVars from "./loadEnvVars";
-import loadGroup from "./loadGroup";
 import { createQueues, deleteOldQueues } from "./prepareQueues";
 import updateAlias from "./updateAlias";
 import uploadLambda from "./uploadLambda";
 
-const defaultRegion = "us-east-1";
-
-export default async function deploy({
-  branch = "main",
+export default async function upload({
+  branch,
+  envVars,
   projectId,
-  region = process.env.AWS_REGION ?? defaultRegion,
-  sourceDir = process.cwd(),
+  region,
 }: {
-  branch?: string;
+  branch: string;
+  envVars: Record<string, string>;
   projectId: string;
-  region?: string;
-  sourceDir?: string;
+  region: string;
 }) {
   ow(
     projectId,
@@ -31,7 +27,7 @@ export default async function deploy({
   );
   ow(
     branch,
-    ow.string.nonEmpty
+    ow.string
       .matches(/^[a-z0-9-]+$/i)
       .message("Branch name can only contain alphanumeric and hypen characters")
   );
@@ -39,13 +35,6 @@ export default async function deploy({
   const lambdaName = projectId;
   const alias = `${lambdaName}-${branch}`;
   const prefix = `${alias}__`;
-
-  const envVars = await loadEnvVars(sourceDir);
-  envVars.NODE_ENV = "production";
-
-  // Creating everything we need to zip
-  const buildId = await fullBuild({ buildDir, envVars, sourceDir });
-  envVars.BUILD_ID = buildId;
 
   // Sanity check on the source code, and we also need this info to configure
   // queues, etc.  Note that full build also compiles TS, but doesn't load the
