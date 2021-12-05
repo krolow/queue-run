@@ -14,13 +14,13 @@ export async function createQueues({
   const sqs = new SQS({ region });
 
   return await Promise.all(
-    Array.from(configs.entries()).map(async ([name]) => {
+    Array.from(configs.entries()).map(async ([name, { config }]) => {
       const { QueueUrl } = await sqs.createQueue({
         QueueName: `${prefix}${name}`,
       });
       if (!QueueUrl) throw new Error(`Could not create queue ${name}`);
       const arn = arnFromQueueURL(QueueUrl);
-      console.info("µ: With queue %s", name);
+      console.info("µ: With queue %s %o", name, config);
       return arn;
     })
   );
@@ -37,23 +37,18 @@ export async function deleteOldQueues({
 }) {
   const sqs = new SQS({ region });
 
-  const { QueueUrls } = await sqs.listQueues({
+  const { QueueUrls: queueURLs } = await sqs.listQueues({
     QueueNamePrefix: prefix,
   });
-  if (!QueueUrls) return;
+  if (!queueURLs) return;
 
   const set = new Set(queueArns);
-  const toDelete = QueueUrls.filter(
-    (QueueUrl) => !set.has(arnFromQueueURL(QueueUrl))
-  );
-  if (toDelete.length === 0) return;
-
-  console.info(
-    "µ: Deleting old queues %s …",
-    toDelete.map(nameFromQueueURL).join(", ")
-  );
+  const toDelete = queueURLs.filter((url) => !set.has(arnFromQueueURL(url)));
   await Promise.all(
-    toDelete.map(async (QueueUrl) => sqs.deleteQueue({ QueueUrl }))
+    toDelete.map(async (url) => {
+      console.info("µ: Deleting old queue %s", nameFromQueueURL(url));
+      await sqs.deleteQueue({ QueueUrl: url });
+    })
   );
 }
 
