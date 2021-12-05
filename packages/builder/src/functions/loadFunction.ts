@@ -56,6 +56,11 @@ function loadAndVerify({
   paths: Set<string>;
   jscTarget: JscTarget;
 }): FunctionExports {
+  if (!isValidFunctionName(filename))
+    throw new Error(
+      `Filename can only contain alphanumeric, hyphen, or underscore ('${filename}')`
+    );
+
   const cache = {};
   try {
     const { exports } = loadModule({ envVars, filename, cache, jscTarget });
@@ -75,4 +80,9 @@ function loadAndVerify({
     paths.clear();
     Object.keys(cache).forEach((path) => paths.add(path));
   }
+}
+
+function isValidFunctionName(filename: string) {
+  const basename = path.basename(filename, path.extname(filename));
+  return /^[a-zA-Z0-9_-]+(\.fifo)?$/.test(basename);
 }

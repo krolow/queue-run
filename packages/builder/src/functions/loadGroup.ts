@@ -3,7 +3,7 @@ import path from "path";
 import getRuntimeVersion from "../upload/util/getRuntime";
 import loadFunction from "./loadFunction";
 
-// Load a group of functions from the same directory.
+// Load a group of functions from the same directory (eg all queue handlers)
 export default async function loadGroup({
   dirname,
   envVars,
@@ -15,7 +15,11 @@ export default async function loadGroup({
   group: string;
   watch: boolean;
 }): Promise<Map<string, ReturnType<typeof loadFunction>>> {
-  const filenames = listFilenames(path.resolve(dirname, "background", group));
+  const filenames = glob.sync("[!_]*.{js,ts}", {
+    cwd: path.resolve(dirname, "background", group),
+    followSymbolicLinks: true,
+    onlyFiles: true,
+  });
   const { jscTarget } = await getRuntimeVersion(dirname);
 
   return filenames.reduce(
@@ -26,27 +30,4 @@ export default async function loadGroup({
       ),
     new Map()
   );
-}
-
-function isValidFunctionName(filename: string) {
-  const basename = path.basename(filename, path.extname(filename));
-  return /^[a-zA-Z0-9_-]+$/.test(basename);
-}
-
-function listFilenames(dirname: string): string[] {
-  const filenames = glob.sync("[!_]*.{js,ts}", {
-    cwd: dirname,
-    followSymbolicLinks: true,
-    onlyFiles: true,
-  });
-  const invalid = filenames.filter(
-    (filename) => !isValidFunctionName(filename)
-  );
-  if (invalid.length > 0) {
-    const filenames = invalid.map((filename) => `'${filename}''`).join(", ");
-    throw new Error(
-      `Filename can only contain alphanumeric, hyphen, or underscore: ${filenames}`
-    );
-  }
-  return filenames.map((filename) => path.resolve(dirname, filename));
 }
