@@ -143,7 +143,7 @@ function Layout({ children }: { children: React.ReactNode }) {
                 <Link to="/">Home</Link>
               </li>
               <li>
-                <a href="https://github.com/queue-run">GitHub</a>
+                <a href="https://github.com/assaf/queue-run">GitHub</a>
               </li>
             </ul>
           </nav>

@@ -37,7 +37,24 @@ export const loader: LoaderFunction = async ({ params }) => {
   );
   const project = projects?.[0];
   if (!project) throw new Response("Not found", { status: 404 });
-  return json(project);
+
+  const deploys = (
+    await dynamoDB.executeStatement({
+      Statement: `SELECT * FROM deploys WHERE project_id = ?`,
+      Parameters: [{ S: projectId }],
+    })
+  ).Items?.map(
+    (Item) =>
+      ({
+        branch: Item.branch.S,
+        createdAt: new Date(+Item.created_at.N!),
+        id: Item.id.S,
+        status: Item.status.S,
+        updatedAt: new Date(+Item.updated_at.N!),
+      } as Deploy)
+  );
+
+  return json({ ...project, deploys });
 };
 
 export default function Index() {
@@ -45,8 +62,27 @@ export default function Index() {
 
   return (
     <main className="space-y-4 my-4">
-      <h1 className="font-bold text-lg">{project.id}</h1>
-      <ul className="max-w-xs"></ul>
+      <h1 className="space-x-2 text-3xl">
+        <span className="font-bold">{project.id}</span>
+        <span className="font-light">deployments</span>
+      </h1>
+      <table className="w-full border-collapse border-gray-200 border rounded-md">
+        <tbody>
+          {project.deploys.map((deploy) => (
+            <tr key={deploy.id}>
+              <td className="w-1/2 p-2 truncate">
+                <a href={`/projects/${project.id}/deploys/${deploy.id}`}>
+                  {project.id}-{deploy.branch}
+                </a>
+              </td>
+              <td className="w-1/4 p-2 truncate">{deploy.status}</td>
+              <td className="w-1/4 p-2 truncate">
+                {deploy.updatedAt.toLocaleString()}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </main>
   );
 }
