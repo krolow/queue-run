@@ -22,7 +22,7 @@ program
 
 program
   .command("upload")
-  .description("Upload functions to server")
+  .description("Upload Lambda functions")
   .argument("<project>", "Project ID")
   .option(
     "-b --branch <branch>",
@@ -38,8 +38,6 @@ program
     const sourceDir = process.cwd();
     const envVars = await loadEnvVars(sourceDir);
     envVars.NODE_ENV = "production";
-
-    await build({ envVars, install: true, sourceDir });
     await upload({ branch, envVars, projectId: project, region });
   });
 

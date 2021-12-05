@@ -19,6 +19,7 @@ export default async function loadGroup({
     cwd: path.resolve(dirname, "background", group),
     followSymbolicLinks: true,
     onlyFiles: true,
+    absolute: true,
   });
   const { jscTarget } = await getRuntimeVersion(dirname);
 
