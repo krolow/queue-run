@@ -2,7 +2,7 @@
   "private": true,
   "name": "@queue-run/server",
   "scripts": {
-    "build": "remix build",
+    "build": "tailwindcss -o app/styles/tailwind.css && remix build",
     "dev": "concurrently npm:dev:*",
     "dev:remix": "doppler run remix dev",
     "dev:tailwind": "tailwindcss -o app/styles/tailwind.css --watch",
