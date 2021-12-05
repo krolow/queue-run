@@ -1,8 +1,8 @@
 import { Lambda } from "@aws-sdk/client-lambda";
 import { handler } from "../constants";
+import getRuntimeVersion from "../util/getRuntime";
 import { buildDir } from "./../constants";
 import createLambdaRole from "./createLambdaRole";
-import getRuntimeVersion from "./util/getRuntime";
 
 export default async function uploadLambda({
   envVars,

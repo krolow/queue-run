@@ -3,7 +3,7 @@ import { JscTarget } from "@swc/core";
 import glob from "fast-glob";
 import { copyFile, mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
-import getRuntimeVersion from "../upload/util/getRuntime";
+import getRuntimeVersion from "../util/getRuntime";
 
 export default async function compileSourceFiles({
   envVars,

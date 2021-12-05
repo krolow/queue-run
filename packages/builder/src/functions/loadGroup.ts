@@ -1,6 +1,6 @@
 import glob from "fast-glob";
 import path from "path";
-import getRuntimeVersion from "../upload/util/getRuntime";
+import getRuntimeVersion from "../util/getRuntime";
 import loadFunction from "./loadFunction";
 
 // Load a group of functions from the same directory (eg all queue handlers)

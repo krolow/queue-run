@@ -2,8 +2,8 @@ import { Command } from "commander";
 import { readFileSync } from "fs";
 import path from "path";
 import build from "./build";
-import loadEnvVars from "./loadEnvVars";
 import upload from "./upload";
+import loadEnvVars from "./util/loadEnvVars";
 
 const program = new Command();
 program.version(
