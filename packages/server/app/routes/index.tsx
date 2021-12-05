@@ -1,101 +1,61 @@
-import type { LoaderFunction, MetaFunction } from "remix";
+import { DynamoDB } from "@aws-sdk/client-dynamodb";
+import type { LoaderFunction } from "remix";
 import { json, Link, useLoaderData } from "remix";
 
-type IndexData = {
-  resources: Array<{ name: string; url: string }>;
-  demos: Array<{ name: string; to: string }>;
+type Project = {
+  id: string;
+  createdAt: Date;
+  updatedAt: Date;
 };
 
 // Loaders provide data to components and are only ever called on the server, so
 // you can connect to a database or run any server side code you want right next
 // to the component that renders it.
 // https://remix.run/api/conventions#loader
-export const loader: LoaderFunction = () => {
-  const data: IndexData = {
-    resources: [
-      {
-        name: "Remix Docs",
-        url: "https://remix.run/docs",
-      },
-      {
-        name: "React Router Docs",
-        url: "https://reactrouter.com/docs",
-      },
-      {
-        name: "Remix Discord",
-        url: "https://discord.gg/VBePs6d",
-      },
-    ],
-    demos: [
-      {
-        to: "demos/actions",
-        name: "Actions",
-      },
-      {
-        to: "demos/about",
-        name: "Nested Routes, CSS loading/unloading",
-      },
-      {
-        to: "demos/params",
-        name: "URL Params and Error Boundaries",
-      },
-    ],
-  };
+export const loader: LoaderFunction = async () => {
+  const [accessKeyId, secretAccessKey] = process.env.AWS_MAIN!.split(":");
+  const dynamoDb = new DynamoDB({
+    credentials: { accessKeyId, secretAccessKey },
+    region: process.env.AWS_REGION,
+  });
 
-  // https://remix.run/api/remix#json
-  return json(data);
-};
+  const projects = (
+    await dynamoDb.scan({
+      TableName: "projects",
+      IndexName: "by_account",
+      FilterExpression: "#account_id = :account_id",
+      ExpressionAttributeValues: { ":account_id": { S: "122210178198" } },
+      ExpressionAttributeNames: { "#account_id": "account_id" },
+    })
+  ).Items?.map(
+    (Item) =>
+      ({
+        id: Item.id.S,
+        createdAt: new Date(+Item.created_at.N!),
+        updatedAt: new Date(+Item.updated_at.N!),
+      } as Project)
+  );
 
-// https://remix.run/api/conventions#meta
-export const meta: MetaFunction = () => {
-  return {
-    title: "queue.run",
-    description:
-      "👋 Background functions for JAMstack apps (queues, pub/sub, cron, etc)",
-  };
+  return json(projects);
 };
 
 // https://remix.run/guides/routing#index-routes
 export default function Index() {
-  const data = useLoaderData<IndexData>();
+  const projects = useLoaderData<Project[]>();
 
   return (
     <div className="remix__page">
       <main>
-        <h2>Welcome to Remix!</h2>
-        <p>We're stoked that you're here. 🥳</p>
-        <p>
-          Feel free to take a look around the code to see how Remix does things,
-          it might be a bit different than what you’re used to. When you're
-          ready to dive deeper, we've got plenty of resources to get you
-          up-and-running quickly.
-        </p>
-        <p>
-          Check out all the demos in this starter, and then just delete the{" "}
-          <code>app/routes/demos</code> and <code>app/styles/demos</code>{" "}
-          folders when you're ready to turn this into your next project.
-        </p>
-      </main>
-      <aside>
-        <h2>Demos In This App</h2>
         <ul>
-          {data.demos.map((demo) => (
-            <li key={demo.to} className="remix__page__resource">
-              <Link to={demo.to} prefetch="intent">
-                {demo.name}
+          {projects.map((project) => (
+            <li key={project.id} className="remix__page__resource">
+              <Link to={project.id} prefetch="intent">
+                {project.id}
               </Link>
             </li>
           ))}
         </ul>
-        <h2>Resources</h2>
-        <ul>
-          {data.resources.map((resource) => (
-            <li key={resource.url} className="remix__page__resource">
-              <a href={resource.url}>{resource.name}</a>
-            </li>
-          ))}
-        </ul>
-      </aside>
+      </main>
     </div>
   );
 }

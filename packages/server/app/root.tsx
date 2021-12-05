@@ -1,4 +1,4 @@
-import type { LinksFunction } from "remix";
+import type { LinksFunction, MetaFunction } from "remix";
 import {
   Link,
   Links,
@@ -35,6 +35,15 @@ export default function App() {
     </Document>
   );
 }
+
+// https://remix.run/api/conventions#meta
+export const meta: MetaFunction = () => {
+  return {
+    title: "queue.run",
+    description:
+      "👋 Background functions for JAMstack apps (queues, pub/sub, cron, etc)",
+  };
+};
 
 // https://remix.run/docs/en/v1/api/conventions#errorboundary
 export function ErrorBoundary({ error }: { error: Error }) {
