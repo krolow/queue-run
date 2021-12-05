@@ -1,6 +1,6 @@
-import { DynamoDB } from "@aws-sdk/client-dynamodb";
 import type { LoaderFunction } from "remix";
 import { json, Link, useLoaderData } from "remix";
+import dynamoDB from "~/../lib/dynamodb";
 
 type Project = {
   id: string;
@@ -13,19 +13,10 @@ type Project = {
 // to the component that renders it.
 // https://remix.run/api/conventions#loader
 export const loader: LoaderFunction = async () => {
-  const [accessKeyId, secretAccessKey] = process.env.AWS_MAIN!.split(":");
-  const dynamoDb = new DynamoDB({
-    credentials: { accessKeyId, secretAccessKey },
-    region: process.env.AWS_REGION,
-  });
-
   const projects = (
-    await dynamoDb.scan({
-      TableName: "projects",
-      IndexName: "by_account",
-      FilterExpression: "#account_id = :account_id",
-      ExpressionAttributeValues: { ":account_id": { S: "122210178198" } },
-      ExpressionAttributeNames: { "#account_id": "account_id" },
+    await dynamoDB.executeStatement({
+      Statement: `SELECT * FROM projects WHERE account_id = ?`,
+      Parameters: [{ S: "122210178198" }],
     })
   ).Items?.map(
     (Item) =>
@@ -44,18 +35,20 @@ export default function Index() {
   const projects = useLoaderData<Project[]>();
 
   return (
-    <div className="remix__page">
-      <main>
-        <ul>
-          {projects.map((project) => (
-            <li key={project.id} className="remix__page__resource">
-              <Link to={project.id} prefetch="intent">
-                {project.id}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </main>
-    </div>
+    <main className="space-y-4 my-4">
+      <h1 className="font-bold text-lg">Your Projects</h1>
+      <ul className="max-w-xs">
+        {projects.map((project) => (
+          <li
+            key={project.id}
+            className="border border-gray-300 rounded-md p-4 truncate"
+          >
+            <Link to={`/projects/${project.id}`} prefetch="intent">
+              {project.id}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </main>
   );
 }

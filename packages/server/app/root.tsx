@@ -11,6 +11,7 @@ import {
 } from "remix";
 import darkStylesUrl from "~/styles/dark.css";
 import globalStylesUrl from "~/styles/global.css";
+import tailwindStyles from "~/styles/tailwind.css";
 
 // https://remix.run/api/app#links
 export const links: LinksFunction = () => {
@@ -21,6 +22,7 @@ export const links: LinksFunction = () => {
       href: darkStylesUrl,
       media: "(prefers-color-scheme: dark)",
     },
+    { rel: "stylesheet", href: tailwindStyles },
   ];
 };
 
