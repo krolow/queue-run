@@ -15,9 +15,8 @@ export async function createQueues({
 
   return await Promise.all(
     Array.from(configs.entries()).map(async ([name, { config }]) => {
-      const fifo = config?.fifo ? ".fifo" : "";
       const { QueueUrl } = await sqs.createQueue({
-        QueueName: `${prefix}${name}${fifo}`,
+        QueueName: `${prefix}${name}`,
       });
       if (!QueueUrl) throw new Error(`Could not create queue ${name}`);
       const arn = queueURLToARN(QueueUrl);
