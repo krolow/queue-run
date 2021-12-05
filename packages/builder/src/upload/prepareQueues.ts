@@ -14,13 +14,13 @@ export async function createQueues({
   const sqs = new SQS({ region });
 
   return await Promise.all(
-    Array.from(configs.entries()).map(async ([name, { config }]) => {
+    Array.from(configs.entries()).map(async ([name]) => {
       const { QueueUrl } = await sqs.createQueue({
         QueueName: `${prefix}${name}`,
       });
       if (!QueueUrl) throw new Error(`Could not create queue ${name}`);
       const arn = queueURLToARN(QueueUrl);
-      console.info("µ: Created queue %s", name);
+      console.info("µ: With queue %s", name);
       return arn;
     })
   );
