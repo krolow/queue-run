@@ -31,7 +31,7 @@ program
   .option(
     "--region <region>",
     "AWS region",
-    process.env.NODE_ENV ?? "us-east-1"
+    process.env.AWS_REGION ?? "us-east-1"
   )
   .action(async (project, { branch, region }) => {
     const sourceDir = process.cwd();
