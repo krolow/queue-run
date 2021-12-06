@@ -2,6 +2,7 @@ import { Command } from "commander";
 import { readFileSync } from "fs";
 import path from "path";
 import build from "./build";
+import installDependencies from "./build/installDependencies";
 import upload from "./upload";
 import loadEnvVars from "./util/loadEnvVars";
 
@@ -37,6 +38,8 @@ program
     const sourceDir = process.cwd();
     const envVars = await loadEnvVars(sourceDir);
     envVars.NODE_ENV = "production";
+    await build({ install: false, sourceDir });
+    await installDependencies({ sourceDir });
     await upload({ branch, envVars, projectId: project, region });
   });
 
