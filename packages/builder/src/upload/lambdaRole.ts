@@ -23,6 +23,8 @@ function getSQSPolicy(lambdaName: string) {
       {
         Effect: "Allow",
         Action: [
+          "sqs:ChangeMessageVisibility",
+          "sqs:ChangeMessageVisibilityBatch",
           "sqs:DeleteMessage",
           "sqs:GetQueueAttributes",
           "sqs:ReceiveMessage",
