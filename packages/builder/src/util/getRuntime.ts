@@ -1,3 +1,4 @@
+import { Runtime } from "@aws-sdk/client-lambda";
 import { JscTarget } from "@swc/core";
 import { readFile } from "fs/promises";
 import path from "path";
@@ -11,8 +12,7 @@ export default async function getRuntime(dirname: string): Promise<{
   // Primary Node version (12, 14, 16, etc)
   nodeVersion: "12" | "14";
   // Lambda runtime version, eg nodejs14.x
-  // 2021-12-06: keyof typeof Runtime has "nodejs14x", but Lambda expects "nodejs14.x"  ¯\_(ツ)_/¯
-  lambdaRuntime: string;
+  lambdaRuntime: Runtime;
   // Tell SWC which Node version to compile for
   jscTarget: JscTarget;
 }> {
@@ -33,11 +33,11 @@ export default async function getRuntime(dirname: string): Promise<{
 
 const runtimes: Array<{
   nodeVersion: "12" | "14";
-  lambdaRuntime: string;
+  lambdaRuntime: Runtime;
   jscTarget: JscTarget;
 }> = [
-  { nodeVersion: "14", jscTarget: "es2020", lambdaRuntime: "nodejs14.x" },
-  { nodeVersion: "12", jscTarget: "es3", lambdaRuntime: "nodejs12.x" },
+  { nodeVersion: "14", jscTarget: "es2020", lambdaRuntime: Runtime.nodejs14x },
+  { nodeVersion: "12", jscTarget: "es3", lambdaRuntime: Runtime.nodejs12x },
 ];
 
 const defaultRuntime = runtimes[0];
