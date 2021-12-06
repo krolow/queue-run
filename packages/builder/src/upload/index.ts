@@ -81,7 +81,12 @@ export default async function upload({
   //
   //   trigger {projectId}-{branch}__{queueName} => {projectId}-{branch}
   await addTriggers({ lambdaName: aliasArn, sourceArns: queueArns, region });
-  console.info("λ: Published version %s", version);
+  console.info(
+    "λ: Using %s version %s with branch %s",
+    lambdaName,
+    version,
+    branch
+  );
 
   // Delete any queues that are no longer needed.
   await deleteOldQueues({ prefix, queueArns, region });
