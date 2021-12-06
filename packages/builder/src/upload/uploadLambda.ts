@@ -2,7 +2,7 @@ import { Lambda } from "@aws-sdk/client-lambda";
 import { handler } from "../constants";
 import getRuntimeVersion from "../util/getRuntime";
 import { buildDir } from "./../constants";
-import createLambdaRole from "./createLambdaRole";
+import createLambdaRole from "./lambdaRole";
 
 export default async function uploadLambda({
   envVars,
@@ -100,7 +100,7 @@ async function createOrUpdateLambda({
       throw error;
   }
 
-  const role = await createLambdaRole({
+  const roleArn = await createLambdaRole({
     lambdaName,
     region: lambda.config.region as string,
   });
@@ -111,7 +111,7 @@ async function createOrUpdateLambda({
     Handler: handler,
     PackageType: "Zip",
     Publish: false,
-    Role: role.Arn,
+    Role: roleArn,
     Runtime: lambdaRuntime,
     TracingConfig: { Mode: "Active" },
     Timeout: lambdaTimeout,

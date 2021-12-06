@@ -1,5 +1,6 @@
 import type { Role } from "@aws-sdk/client-iam";
 import { IAM } from "@aws-sdk/client-iam";
+import invariant from "tiny-invariant";
 import { lambdaRolePath } from "../constants";
 
 const Version = "2012-10-17";
@@ -15,36 +16,42 @@ const assumeRolePolicy = {
   ],
 };
 
-const loggingPolicy = {
-  Version,
-  Statement: [
-    {
-      Effect: "Allow",
-      Action: "logs:CreateLogGroup",
-      Resource: "arn:aws:logs:us-east-1:122210178198:*",
-    },
-    {
-      Effect: "Allow",
-      Action: ["logs:CreateLogStream", "logs:PutLogEvents"],
-      Resource: ["arn:aws:logs:us-east-1:122210178198:log-group:/aws/lambda/*"],
-    },
-  ],
-};
+function getSQSPolicy(lambdaName: string) {
+  return {
+    Version,
+    Statement: [
+      {
+        Effect: "Allow",
+        Action: [
+          "sqs:DeleteMessage",
+          "sqs:GetQueueAttributes",
+          "sqs:ReceiveMessage",
+        ],
+        Resource: `arn:aws:sqs:${lambdaName}__`,
+      },
+    ],
+  };
+}
 
-const sqsPolicy = {
-  Version,
-  Statement: [
-    {
-      Effect: "Allow",
-      Action: [
-        "sqs:DeleteMessage",
-        "sqs:GetQueueAttributes",
-        "sqs:ReceiveMessage",
-      ],
-      Resource: "arn:aws:sqs:*",
-    },
-  ],
-};
+function getCloudWatchLogPolicy(lambdaName: string) {
+  return {
+    Version,
+    Statement: [
+      {
+        Effect: "Allow",
+        Action: "logs:CreateLogGroup",
+        Resource: `arn:aws:logs:us-east-1:122210178198:aws/lambda/${lambdaName}`,
+      },
+      {
+        Effect: "Allow",
+        Action: ["logs:CreateLogStream", "logs:PutLogEvents"],
+        Resource: [
+          `arn:aws:logs:us-east-1:122210178198:log-group:/aws/lambda/${lambdaName}/*`,
+        ],
+      },
+    ],
+  };
+}
 
 export default async function createLambdaRole({
   lambdaName,
@@ -52,11 +59,14 @@ export default async function createLambdaRole({
 }: {
   lambdaName: string;
   region: string;
-}): Promise<Role> {
+}): Promise<string> {
   const iam = new IAM({ region });
+
   const role = await upsertRole(iam, lambdaName);
+  invariant(role.Arn, "Role has no ARN");
+
   await updatePolicies(iam, role, lambdaName);
-  return role;
+  return role.Arn;
 }
 
 async function upsertRole(iam: IAM, lambdaName: string): Promise<Role> {
@@ -69,23 +79,17 @@ async function upsertRole(iam: IAM, lambdaName: string): Promise<Role> {
     RoleName: roleName,
     AssumeRolePolicyDocument: JSON.stringify(assumeRolePolicy),
   });
-  if (!newRole) throw new Error("Failed to create role");
+  invariant(newRole, "Failed to create role");
 
   console.info("λ: Created role %s", roleName);
   return newRole;
 }
 
 async function updatePolicies(iam: IAM, role: Role, lambdaName: string) {
-  await updatePolicy(iam, role, "Logging", loggingPolicy);
-  await updatePolicy(iam, role, "SQS", {
-    ...sqsPolicy,
-    Statement: [
-      {
-        ...sqsPolicy.Statement[0],
-        Resource: `arn:aws:sqs:${lambdaName}__`,
-      },
-    ],
-  });
+  await Promise.all([
+    updatePolicy(iam, role, "CloudWatch", getCloudWatchLogPolicy(lambdaName)),
+    updatePolicy(iam, role, "SQS", getSQSPolicy(lambdaName)),
+  ]);
 }
 
 async function updatePolicy(
