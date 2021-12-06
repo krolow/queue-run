@@ -6,25 +6,38 @@ export async function createQueues({
   configs,
   prefix,
   region,
+  lambdaTimeout,
 }: {
   configs: Map<string, { config?: QueueConfig }>;
   prefix: string;
   region: string;
+  lambdaTimeout: number;
 }): Promise<string[]> {
   const sqs = new SQS({ region });
 
   return await Promise.all(
     Array.from(configs.entries()).map(async ([name, { config }]) => {
-      const { QueueUrl } = await sqs.createQueue({
+      // createQueue is idempotent so we can safely call it on each deploy.
+      // However, createQueue fails if the queue already exists, but with
+      // different attributes, so we split createQueue and setQueueAttributes
+      // into two separate calls.
+      const { QueueUrl: queueURL } = await sqs.createQueue({
         QueueName: `${prefix}${name}`,
       });
-      if (!QueueUrl) throw new Error(`Could not create queue ${name}`);
+      if (!queueURL) throw new Error(`Could not create queue ${name}`);
+
+      await sqs.setQueueAttributes({
+        QueueUrl: queueURL,
+        Attributes: {
+          VisibilityTimeout: lambdaTimeout.toFixed(0),
+        },
+      });
 
       if (config && Object.keys(config).length > 0)
         console.info("µ: Using queue %s %o", name, config);
       else console.info("µ: Using queue %s", name);
 
-      return arnFromQueueURL(QueueUrl);
+      return arnFromQueueURL(queueURL);
     })
   );
 }

@@ -1,3 +1,4 @@
+import { QueueConfig } from "@queue-run/runtime";
 import ms from "ms";
 import ow from "ow";
 import { buildDir } from "../constants";
@@ -47,6 +48,8 @@ export default async function upload({
     group: "queue",
     watch: false,
   });
+  const lambdaTimeout = getLambdaTimeout(queues);
+
   const zip = await createZip(buildDir);
   console.info("");
 
@@ -57,6 +60,7 @@ export default async function upload({
   const { functionArn, version } = await uploadLambda({
     envVars,
     lambdaName,
+    lambdaTimeout,
     zip,
     region,
   });
@@ -64,7 +68,12 @@ export default async function upload({
 
   // Create queues that new version expects, and remove triggers for event
   // sources that new version does not understand.
-  const queueArns = await createQueues({ configs: queues, prefix, region });
+  const queueArns = await createQueues({
+    configs: queues,
+    prefix,
+    region,
+    lambdaTimeout,
+  });
   await removeTriggers({ lambdaName: aliasArn, sourceArns: queueArns, region });
 
   // Update alias to point to new version.
@@ -92,4 +101,28 @@ export default async function upload({
   await deleteOldQueues({ prefix, queueArns, region });
   console.info("✨  Done in %s.", ms(Date.now() - start));
   console.info("");
+}
+
+function getLambdaTimeout(queues: Map<string, { config: QueueConfig }>) {
+  const lambdaTimeout = Math.max(
+    ...Array.from(queues.values()).map(({ config }) => config.timeout ?? 10)
+  );
+  const maxTimeout = 300; // 5 minutes
+  ow(
+    lambdaTimeout,
+    ow.number
+      .greaterThan(0)
+      .message("One or more functions has a negative or zeo timeout")
+  );
+  ow(
+    lambdaTimeout,
+    ow.number
+      .lessThanOrEqual(maxTimeout)
+      .message(
+        `One or more functions has a timeout more than the maximum of ${
+          maxTimeout / 60
+        } minutes`
+      )
+  );
+  return lambdaTimeout;
 }

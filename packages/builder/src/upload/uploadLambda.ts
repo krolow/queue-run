@@ -7,11 +7,13 @@ import createLambdaRole from "./createLambdaRole";
 export default async function uploadLambda({
   envVars,
   lambdaName,
+  lambdaTimeout,
   region,
   zip,
 }: {
   envVars: Record<string, string>;
   lambdaName: string;
+  lambdaTimeout: number;
   region: string;
   zip: Uint8Array;
 }): Promise<{ functionArn: string; version: string }> {
@@ -21,6 +23,7 @@ export default async function uploadLambda({
     envVars,
     lambda,
     lambdaName,
+    lambdaTimeout,
     region,
     zip,
   });
@@ -32,12 +35,14 @@ async function createOrUpdateLambda({
   envVars,
   lambda,
   lambdaName,
+  lambdaTimeout,
   region,
   zip,
 }: {
   envVars: Record<string, string>;
   lambda: Lambda;
   lambdaName: string;
+  lambdaTimeout: number;
   region: string;
   zip: Uint8Array;
 }): Promise<{
@@ -60,6 +65,7 @@ async function createOrUpdateLambda({
         Handler: handler,
         RevisionId: existing.RevisionId,
         Runtime: lambdaRuntime,
+        Timeout: lambdaTimeout,
       });
       if (!newConfig.RevisionId)
         throw new Error("Could not update function with new configuration");
@@ -108,7 +114,7 @@ async function createOrUpdateLambda({
     Role: role.Arn,
     Runtime: lambdaRuntime,
     TracingConfig: { Mode: "Active" },
-    Timeout: 300,
+    Timeout: lambdaTimeout,
   });
   if (!newLambda.RevisionId) throw new Error("Could not create function");
 
