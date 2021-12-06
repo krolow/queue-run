@@ -55,7 +55,7 @@ function getCloudWatchLogPolicy(lambdaName: string) {
   };
 }
 
-export default async function createLambdaRole({
+export default async function getLambdaRole({
   lambdaName,
   region,
 }: {
@@ -73,8 +73,14 @@ export default async function createLambdaRole({
 
 async function upsertRole(iam: IAM, lambdaName: string): Promise<Role> {
   const roleName = `Lambda.${lambdaName}`;
-  const { Role: role } = await iam.getRole({ RoleName: roleName });
-  if (role) return role;
+  console.log('Looking for role "%s"', roleName);
+  try {
+    const { Role: role } = await iam.getRole({ RoleName: roleName });
+    if (role) return role;
+  } catch (error) {
+    if (!(error instanceof Error && error.name === "ResourceNotFoundException"))
+      throw error;
+  }
 
   const { Role: newRole } = await iam.createRole({
     Path: lambdaRolePath,

@@ -1,8 +1,9 @@
-import { Lambda } from "@aws-sdk/client-lambda";
+import { FunctionConfiguration, Lambda } from "@aws-sdk/client-lambda";
+import invariant from "tiny-invariant";
 import { handler } from "../constants";
 import getRuntimeVersion from "../util/getRuntime";
 import { buildDir } from "./../constants";
-import createLambdaRole from "./lambdaRole";
+import getLambdaRole from "./lambdaRole";
 
 export default async function uploadLambda({
   envVars,
@@ -19,112 +20,81 @@ export default async function uploadLambda({
 }): Promise<{ functionArn: string; version: string }> {
   const lambda = new Lambda({ region });
 
-  const { functionArn, revisionId } = await createOrUpdateLambda({
-    envVars,
-    lambda,
-    lambdaName,
-    lambdaTimeout,
-    region,
-    zip,
+  const configuration = {
+    Environment: { Variables: aliasAWSEnvVars(envVars) },
+    FunctionName: lambdaName,
+    Handler: handler,
+    Role: await getLambdaRole({ lambdaName, region }),
+    Runtime: (await getRuntimeVersion(buildDir)).lambdaRuntime,
+    Timeout: lambdaTimeout,
+    TracingConfig: { Mode: "Active" },
+  };
+
+  const existing = await getFunction({ lambda, lambdaName });
+  if (existing) {
+    // Change configuration first, here we determine runtime, and only then
+    // load code and publish.
+    const updatedConfig = await lambda.updateFunctionConfiguration({
+      ...configuration,
+      RevisionId: existing.RevisionId,
+    });
+    invariant(updatedConfig.RevisionId);
+
+    const newConfigRevisionId = await waitForNewRevision({
+      lambda,
+      lambdaName,
+      revisionId: updatedConfig.RevisionId,
+    });
+
+    const updatedCode = await lambda.updateFunctionCode({
+      FunctionName: lambdaName,
+      Publish: true,
+      ZipFile: zip,
+      RevisionId: newConfigRevisionId,
+    });
+    invariant(
+      updatedCode.Version && updatedCode.FunctionArn,
+      "Could not update function with new code"
+    );
+
+    console.info("λ: Updated function %s", lambdaName);
+    return {
+      functionArn: updatedCode.FunctionArn,
+      version: updatedCode.Version,
+    };
+  }
+
+  const newLambda = await lambda.createFunction({
+    ...configuration,
+    Code: { ZipFile: zip },
+    PackageType: "Zip",
+    Publish: true,
   });
-  const version = await publishNewVersion({ lambda, lambdaName, revisionId });
-  return { functionArn, version };
+  invariant(
+    newLambda.Version && newLambda.FunctionArn,
+    "Could not update function with new code"
+  );
+  console.info("λ: Created new function %s in %s", lambdaName, region);
+  return { functionArn: newLambda.FunctionArn, version: newLambda.Version };
 }
 
-async function createOrUpdateLambda({
-  envVars,
+async function getFunction({
   lambda,
   lambdaName,
-  lambdaTimeout,
-  region,
-  zip,
 }: {
-  envVars: Record<string, string>;
   lambda: Lambda;
   lambdaName: string;
-  lambdaTimeout: number;
-  region: string;
-  zip: Uint8Array;
-}): Promise<{
-  functionArn: string;
-  revisionId: string;
-}> {
-  const { lambdaRuntime } = await getRuntimeVersion(buildDir);
-
+}): Promise<FunctionConfiguration | null> {
   try {
     const { Configuration: existing } = await lambda.getFunction({
       FunctionName: lambdaName,
     });
-
-    if (existing) {
-      // Change configuration first, here we determine runtime, and only then
-      // load code and publish.
-      const newConfig = await lambda.updateFunctionConfiguration({
-        Environment: { Variables: aliasAWSEnvVars(envVars) },
-        FunctionName: lambdaName,
-        Handler: handler,
-        RevisionId: existing.RevisionId,
-        Runtime: lambdaRuntime,
-        Timeout: lambdaTimeout,
-      });
-      if (!newConfig.RevisionId)
-        throw new Error("Could not update function with new configuration");
-      const newConfigRevisionId = await waitForNewRevision({
-        lambda,
-        lambdaName,
-        revisionId: newConfig.RevisionId,
-      });
-
-      const newCode = await lambda.updateFunctionCode({
-        FunctionName: lambdaName,
-        Publish: false,
-        ZipFile: zip,
-        RevisionId: newConfigRevisionId,
-      });
-      if (!newCode.RevisionId)
-        throw new Error("Could not update function with new code");
-      const newCodeRevisionId = await waitForNewRevision({
-        lambda,
-        lambdaName,
-        revisionId: newCode.RevisionId,
-      });
-
-      console.info("λ: Updated function %s", lambdaName);
-      return {
-        functionArn: newConfig.FunctionArn!,
-        revisionId: newCodeRevisionId,
-      };
-    }
+    return existing ?? null;
   } catch (error) {
-    if (!(error instanceof Error && error.name === "ResourceNotFoundException"))
-      throw error;
+    if (error instanceof Error && error.name === "ResourceNotFoundException")
+      return null;
+    else throw error;
   }
-
-  const roleArn = await createLambdaRole({
-    lambdaName,
-    region: lambda.config.region as string,
-  });
-  const newLambda = await lambda.createFunction({
-    Code: { ZipFile: zip },
-    Environment: { Variables: aliasAWSEnvVars(envVars) },
-    FunctionName: lambdaName,
-    Handler: handler,
-    PackageType: "Zip",
-    Publish: false,
-    Role: roleArn,
-    Runtime: lambdaRuntime,
-    TracingConfig: { Mode: "Active" },
-    Timeout: lambdaTimeout,
-  });
-  if (!newLambda.RevisionId) throw new Error("Could not create function");
-
-  const finalRevisionId = await waitForNewRevision({
-    lambda,
-    lambdaName,
-    revisionId: newLambda.RevisionId,
-  });
-  console.info("λ: Created new function %s in %s", lambdaName, region);
-  return { functionArn: newLambda.FunctionArn!, revisionId: finalRevisionId };
 }
 
 async function waitForNewRevision({
@@ -148,23 +118,6 @@ async function waitForNewRevision({
   } else {
     return Configuration.RevisionId;
   }
-}
-
-async function publishNewVersion({
-  lambda,
-  lambdaName,
-  revisionId,
-}: {
-  lambda: Lambda;
-  lambdaName: string;
-  revisionId: string;
-}): Promise<string> {
-  const { Version: version } = await lambda.publishVersion({
-    FunctionName: lambdaName,
-    RevisionId: revisionId,
-  });
-  if (!version) throw new Error("Could not publish function");
-  return version;
 }
 
 function aliasAWSEnvVars(
