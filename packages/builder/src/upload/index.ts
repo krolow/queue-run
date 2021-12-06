@@ -1,6 +1,7 @@
 import { QueueConfig } from "@queue-run/runtime";
 import ms from "ms";
 import ow from "ow";
+import invariant from "tiny-invariant";
 import { buildDir } from "../constants";
 import loadGroup from "../functions/loadGroup";
 import createZip from "./createZip";
@@ -57,24 +58,27 @@ export default async function upload({
   // Upload new Lambda function and publish a new version.
   // This doesn't make any difference yet: event sources are tied to an alias,
   // and the alias points to an earlier version (or no version on first deploy).
-  const { functionArn, version } = await uploadLambda({
+  const versionARN = await uploadLambda({
     envVars,
     lambdaName,
     lambdaTimeout,
     zip,
     region,
   });
-  const aliasArn = `${functionArn}:${alias}`;
+  // goose-bump:50 => goose-bump:goose-bump-main
+  const version = versionARN.match(/(\d)+$/)?.[1];
+  invariant(version);
+  const aliasARN = versionARN.replace(/(\d+)$/, alias);
 
   // Create queues that new version expects, and remove triggers for event
   // sources that new version does not understand.
-  const queueArns = await createQueues({
+  const queueARNs = await createQueues({
     configs: queues,
     prefix,
     region,
     lambdaTimeout,
   });
-  await removeTriggers({ lambdaName: aliasArn, sourceArns: queueArns, region });
+  await removeTriggers({ lambdaARN: aliasARN, sourceARNs: queueARNs, region });
 
   // Update alias to point to new version.
   //
@@ -83,13 +87,13 @@ export default async function upload({
   // versions:
   //
   //    {projectId}-{branch} => {projectId}:{version}
-  await updateAlias({ alias, lambdaName, region, version });
+  await updateAlias({ aliasARN, region, versionARN });
 
   // Add triggers for queues that new version can handle.  We do that for the
   // alias, so we only need to add new triggers, existing triggers carry over:
   //
   //   trigger {projectId}-{branch}__{queueName} => {projectId}-{branch}
-  await addTriggers({ lambdaName: aliasArn, sourceArns: queueArns, region });
+  await addTriggers({ lambdaARN: aliasARN, sourceARNs: queueARNs, region });
   console.info(
     "λ: Using %s version %s with branch %s",
     lambdaName,
@@ -98,7 +102,7 @@ export default async function upload({
   );
 
   // Delete any queues that are no longer needed.
-  await deleteOldQueues({ prefix, queueArns, region });
+  await deleteOldQueues({ prefix, queueARNs, region });
   console.info("✨  Done in %s.", ms(Date.now() - start));
   console.info("");
 }

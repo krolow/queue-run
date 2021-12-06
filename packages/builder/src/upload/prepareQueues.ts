@@ -44,11 +44,11 @@ export async function createQueues({
 
 export async function deleteOldQueues({
   prefix,
-  queueArns,
+  queueARNs,
   region,
 }: {
   prefix: string;
-  queueArns: string[];
+  queueARNs: string[];
   region: string;
 }) {
   const sqs = new SQS({ region });
@@ -58,7 +58,7 @@ export async function deleteOldQueues({
   });
   if (!queueURLs) return;
 
-  const set = new Set(queueArns);
+  const set = new Set(queueARNs);
   const toDelete = queueURLs.filter((url) => !set.has(arnFromQueueURL(url)));
   await Promise.all(
     toDelete.map(async (url) => {

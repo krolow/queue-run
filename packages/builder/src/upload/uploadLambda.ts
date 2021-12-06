@@ -5,6 +5,8 @@ import getRuntimeVersion from "../util/getRuntime";
 import { buildDir } from "./../constants";
 import getLambdaRole from "./lambdaRole";
 
+// Creates or updates Lambda function with latest configuration and code.
+// Publishes the new version and returns the published version ARN.
 export default async function uploadLambda({
   envVars,
   lambdaName,
@@ -17,7 +19,7 @@ export default async function uploadLambda({
   lambdaTimeout: number;
   region: string;
   zip: Uint8Array;
-}): Promise<{ functionArn: string; version: string }> {
+}): Promise<string> {
   const lambda = new Lambda({ region });
 
   const configuration = {
@@ -40,7 +42,7 @@ export default async function uploadLambda({
     });
     invariant(updatedConfig.RevisionId);
 
-    const newConfigRevisionId = await waitForNewRevision({
+    const updatedConfigRevisionId = await waitForNewRevision({
       lambda,
       lambdaName,
       revisionId: updatedConfig.RevisionId,
@@ -50,18 +52,15 @@ export default async function uploadLambda({
       FunctionName: lambdaName,
       Publish: true,
       ZipFile: zip,
-      RevisionId: newConfigRevisionId,
+      RevisionId: updatedConfigRevisionId,
     });
     invariant(
-      updatedCode.Version && updatedCode.FunctionArn,
+      updatedCode.FunctionArn && updatedCode.RevisionId,
       "Could not update function with new code"
     );
 
     console.info("λ: Updated function %s", lambdaName);
-    return {
-      functionArn: updatedCode.FunctionArn,
-      version: updatedCode.Version,
-    };
+    return updatedCode.FunctionArn;
   }
 
   const newLambda = await lambda.createFunction({
@@ -70,12 +69,9 @@ export default async function uploadLambda({
     PackageType: "Zip",
     Publish: true,
   });
-  invariant(
-    newLambda.Version && newLambda.FunctionArn,
-    "Could not update function with new code"
-  );
+  invariant(newLambda.FunctionArn, "Could not update function with new code");
   console.info("λ: Created new function %s in %s", lambdaName, region);
-  return { functionArn: newLambda.FunctionArn, version: newLambda.Version };
+  return newLambda.FunctionArn;
 }
 
 async function getFunction({

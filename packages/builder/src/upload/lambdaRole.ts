@@ -16,45 +16,40 @@ const assumeRolePolicy = {
   ],
 };
 
-function getSQSPolicy(lambdaName: string) {
-  return {
-    Version,
-    Statement: [
-      {
-        Effect: "Allow",
-        Action: [
-          "sqs:ChangeMessageVisibility",
-          "sqs:ChangeMessageVisibilityBatch",
-          "sqs:DeleteMessage",
-          "sqs:GetQueueAttributes",
-          "sqs:ReceiveMessage",
-        ],
-        Resource: `arn:aws:sqs:${lambdaName}__`,
-      },
-    ],
-  };
-}
+const SQSPolicy = {
+  Version,
+  Statement: [
+    {
+      Effect: "Allow",
+      Action: [
+        "sqs:ChangeMessageVisibility",
+        "sqs:ChangeMessageVisibilityBatch",
+        "sqs:DeleteMessage",
+        "sqs:GetQueueAttributes",
+        "sqs:ReceiveMessage",
+      ],
+      Resource: `arn:aws:sqs:*`,
+    },
+  ],
+};
 
-function getCloudWatchLogPolicy(lambdaName: string) {
-  return {
-    Version,
-    Statement: [
-      {
-        Effect: "Allow",
-        Action: "logs:CreateLogGroup",
-        Resource: `arn:aws:logs:us-east-1:122210178198:aws/lambda/${lambdaName}`,
-      },
-      {
-        Effect: "Allow",
-        Action: ["logs:CreateLogStream", "logs:PutLogEvents"],
-        Resource: [
-          `arn:aws:logs:us-east-1:122210178198:log-group:/aws/lambda/${lambdaName}/*`,
-        ],
-      },
-    ],
-  };
-}
+const CloudWatchLogPolicy = {
+  Version,
+  Statement: [
+    {
+      Effect: "Allow",
+      Action: "logs:CreateLogGroup",
+      Resource: `arn:aws:logs:us-east-1:122210178198:/aws/lambda/*`,
+    },
+    {
+      Effect: "Allow",
+      Action: ["logs:CreateLogStream", "logs:PutLogEvents"],
+      Resource: [`arn:aws:logs:us-east-1:122210178198:log-group:/aws/lambda/*`],
+    },
+  ],
+};
 
+// Returns ARN for a role that only applies to the named function.
 export default async function getLambdaRole({
   lambdaName,
   region,
@@ -67,19 +62,17 @@ export default async function getLambdaRole({
   const role = await upsertRole(iam, lambdaName);
   invariant(role.Arn, "Role has no ARN");
 
-  await updatePolicies(iam, role, lambdaName);
+  await updatePolicies(iam, role);
   return role.Arn;
 }
 
 async function upsertRole(iam: IAM, lambdaName: string): Promise<Role> {
-  const roleName = `Lambda.${lambdaName}`;
-  console.log('Looking for role "%s"', roleName);
+  const roleName = `Project.${lambdaName}`;
   try {
     const { Role: role } = await iam.getRole({ RoleName: roleName });
     if (role) return role;
   } catch (error) {
-    if (!(error instanceof Error && error.name === "ResourceNotFoundException"))
-      throw error;
+    if (!(error instanceof Error && error.name === "NoSuchEntity")) throw error;
   }
 
   const { Role: newRole } = await iam.createRole({
@@ -93,10 +86,10 @@ async function upsertRole(iam: IAM, lambdaName: string): Promise<Role> {
   return newRole;
 }
 
-async function updatePolicies(iam: IAM, role: Role, lambdaName: string) {
+async function updatePolicies(iam: IAM, role: Role) {
   await Promise.all([
-    updatePolicy(iam, role, "CloudWatch", getCloudWatchLogPolicy(lambdaName)),
-    updatePolicy(iam, role, "SQS", getSQSPolicy(lambdaName)),
+    updatePolicy(iam, role, "CloudWatch", CloudWatchLogPolicy),
+    updatePolicy(iam, role, "SQS", SQSPolicy),
   ]);
 }
 
