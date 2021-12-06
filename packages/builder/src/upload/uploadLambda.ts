@@ -170,13 +170,11 @@ async function publishNewVersion({
 function aliasAWSEnvVars(
   envVars: Record<string, string>
 ): Record<string, string> {
+  const aliasPrefix = "ALIASED_FOR_CLIENT__";
   const aliased: Record<string, string> = {};
   for (const [key, value] of Object.entries(envVars)) {
-    if (key.startsWith("AWS_")) {
-      aliased[`__${key}`] = value;
-    } else {
-      aliased[key] = value;
-    }
+    if (key.startsWith("AWS_")) aliased[`${aliasPrefix}${key}`] = value;
+    else aliased[key] = value;
   }
   return aliased;
 }
