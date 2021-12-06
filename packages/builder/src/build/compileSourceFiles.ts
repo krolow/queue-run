@@ -73,12 +73,10 @@ async function compileSourceFile({
   const syntax = filename.endsWith(".ts") ? "typescript" : "ecmascript";
   const { code, map } = await swc.transformFile(filename, {
     envName: process.env.NODE_ENV,
-    jsc: {
-      parser: { syntax },
-      target: jscTarget,
-    },
-    sourceMaps: true,
+    jsc: { parser: { syntax }, target: jscTarget },
     module: { type: "commonjs", noInterop: true },
+    sourceMaps: true,
+    swcrc: false,
   });
   await writeFile(dest.replace(/\.ts$/, ".js"), code, "utf-8");
   if (map) await writeFile(dest.replace(/\.ts$/, ".js.map"), map, "utf-8");

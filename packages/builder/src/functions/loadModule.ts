@@ -20,11 +20,13 @@ sourceMapSupport.install({
 // Half-assed implementatio of Node's require module loading that support hot reload.
 export default function loadModule({
   cache,
+  envVars,
   filename,
   jscTarget,
   parent,
 }: {
   cache: NodeJS.Dict<NodeJS.Module>;
+  envVars: Record<string, string>;
   filename: string;
   jscTarget: JscTarget;
   parent?: NodeJS.Module;
@@ -35,6 +37,7 @@ export default function loadModule({
         cache[id] ??
         loadModule({
           cache,
+          envVars,
           filename: require.resolve(id),
           jscTarget,
           parent: module,
@@ -62,11 +65,13 @@ export default function loadModule({
       );
     },
     ".js": compileSourceFile({
+      envVars,
       jscTarget,
       sourceMaps,
       syntax: "ecmascript",
     }),
     ".ts": compileSourceFile({
+      envVars,
       jscTarget,
       sourceMaps,
       syntax: "typescript",
@@ -123,10 +128,12 @@ function nodeModulePaths(filename: string): string[] | null {
 }
 
 function compileSourceFile({
+  envVars,
   jscTarget,
   sourceMaps,
   syntax,
 }: {
+  envVars: Record<string, string>;
   jscTarget: JscTarget;
   sourceMaps: Map<string, string>;
   syntax: "typescript" | "ecmascript";
@@ -134,19 +141,27 @@ function compileSourceFile({
   return (module: NodeJS.Module, filename: string) => {
     const { code, map: sourceMap } = swc.transformFileSync(filename, {
       envName: process.env.NODE_ENV,
-      jsc: {
-        parser: { syntax },
-        target: jscTarget,
-      },
-      sourceMaps: true,
+      jsc: { parser: { syntax }, target: jscTarget },
       module: { type: "commonjs", noInterop: true },
+      sourceMaps: true,
+      swcrc: false,
     });
     if (sourceMap) sourceMaps.set(filename, sourceMap);
+
     vm.compileFunction(
       code,
-      ["exports", "require", "module", "__filename", "__dirname"],
-      { filename }
-    )(module.exports, module.require, module, filename, path.dirname(filename));
+      ["exports", "require", "module", "__filename", "__dirname", "process"],
+      {
+        filename,
+      }
+    )(
+      module.exports,
+      module.require,
+      module,
+      filename,
+      path.dirname(filename),
+      { ...process, env: envVars }
+    );
     module.loaded = true;
   };
 }

@@ -40,8 +40,10 @@ export default async function upload({
   // queues, etc.  Note that full build also compiles TS, but doesn't load the
   // module, so some code issues will only show at this point.
   console.info("λ: Loading source code");
+
   const queues = await loadGroup({
     dirname: buildDir,
+    envVars,
     group: "queue",
     watch: false,
   });

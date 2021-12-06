@@ -54,7 +54,7 @@ async function createOrUpdateLambda({
       // Change configuration first, here we determine runtime, and only then
       // load code and publish.
       const newConfig = await lambda.updateFunctionConfiguration({
-        Environment: { Variables: envVars },
+        Environment: { Variables: aliasAWSEnvVars(envVars) },
         FunctionName: lambdaName,
         Handler: handler,
         RevisionId: existing.RevisionId,
@@ -99,7 +99,7 @@ async function createOrUpdateLambda({
   });
   const newLambda = await lambda.createFunction({
     Code: { ZipFile: zip },
-    Environment: { Variables: envVars },
+    Environment: { Variables: aliasAWSEnvVars(envVars) },
     FunctionName: lambdaName,
     Handler: handler,
     PackageType: "Zip",
@@ -158,4 +158,18 @@ async function publishNewVersion({
   });
   if (!version) throw new Error("Could not publish function");
   return version;
+}
+
+function aliasAWSEnvVars(
+  envVars: Record<string, string>
+): Record<string, string> {
+  const aliased: Record<string, string> = {};
+  for (const [key, value] of Object.entries(envVars)) {
+    if (key.startsWith("AWS_")) {
+      aliased[`__${key}`] = value;
+    } else {
+      aliased[key] = value;
+    }
+  }
+  return aliased;
 }

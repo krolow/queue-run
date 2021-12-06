@@ -8,16 +8,18 @@ type FunctionExports = { config: any; handler: any };
 
 // Load a single function.  In development mode, this also hot-reloads the function.
 export default function loadFunction({
+  envVars,
   filename,
   jscTarget,
   watch,
 }: {
+  envVars: Record<string, string>;
   filename: string;
   jscTarget: JscTarget;
   watch: boolean;
 }): FunctionExports {
   const paths = new Set<string>();
-  const exports = loadAndVerify({ filename, jscTarget, paths });
+  const exports = loadAndVerify({ envVars, filename, jscTarget, paths });
 
   if (watch) {
     const watcher = chokidar.watch(Array.from(paths), { ignoreInitial: true });
@@ -29,7 +31,10 @@ export default function loadFunction({
       );
 
       try {
-        Object.assign(exports, loadAndVerify({ filename, jscTarget, paths }));
+        Object.assign(
+          exports,
+          loadAndVerify({ envVars, filename, jscTarget, paths })
+        );
       } catch (error) {
         console.error("Error loading %s", filename, (error as Error).stack);
       }
@@ -41,10 +46,12 @@ export default function loadFunction({
 }
 
 function loadAndVerify({
+  envVars,
   filename,
   paths,
   jscTarget,
 }: {
+  envVars: Record<string, string>;
   filename: string;
   paths: Set<string>;
   jscTarget: JscTarget;
@@ -56,7 +63,7 @@ function loadAndVerify({
 
   const cache = {};
   try {
-    const { exports } = loadModule({ filename, cache, jscTarget });
+    const { exports } = loadModule({ envVars, filename, cache, jscTarget });
 
     const handler = exports.handler || exports.default;
     if (typeof handler !== "function") {
