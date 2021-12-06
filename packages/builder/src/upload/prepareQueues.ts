@@ -19,9 +19,12 @@ export async function createQueues({
         QueueName: `${prefix}${name}`,
       });
       if (!QueueUrl) throw new Error(`Could not create queue ${name}`);
-      const arn = arnFromQueueURL(QueueUrl);
-      console.info("µ: With queue %s %o", name, config);
-      return arn;
+
+      if (config && Object.keys(config).length > 0)
+        console.info("µ: Using queue %s %o", name, config);
+      else console.info("µ: Using queue %s", name);
+
+      return arnFromQueueURL(QueueUrl);
     })
   );
 }
