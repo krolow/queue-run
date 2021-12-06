@@ -6,12 +6,10 @@ import loadFunction from "./loadFunction";
 // Load a group of functions from the same directory (eg all queue handlers)
 export default async function loadGroup({
   dirname,
-  envVars,
   group,
   watch,
 }: {
   dirname: string;
-  envVars: Record<string, string>;
   group: string;
   watch: boolean;
 }): Promise<Map<string, ReturnType<typeof loadFunction>>> {
@@ -27,7 +25,7 @@ export default async function loadGroup({
     (map, filename) =>
       map.set(
         path.basename(filename, path.extname(filename)),
-        loadFunction({ envVars, filename, jscTarget, watch })
+        loadFunction({ filename, jscTarget, watch })
       ),
     new Map()
   );

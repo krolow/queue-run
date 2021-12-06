@@ -42,7 +42,6 @@ export default async function upload({
   console.info("λ: Loading source code");
   const queues = await loadGroup({
     dirname: buildDir,
-    envVars,
     group: "queue",
     watch: false,
   });

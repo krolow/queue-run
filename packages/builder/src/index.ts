@@ -16,8 +16,7 @@ program
   .description("Build the project")
   .action(async () => {
     const sourceDir = process.cwd();
-    const envVars = await loadEnvVars(sourceDir);
-    await build({ envVars, install: false, sourceDir });
+    await build({ install: false, sourceDir });
   });
 
 program

@@ -6,17 +6,15 @@ import compileSourceFiles from "./compileSourceFiles";
 import installDependencies from "./installDependencies";
 
 export default async function fullBuild({
-  envVars,
   install,
   sourceDir,
 }: {
-  envVars: Record<string, string>;
   install: boolean;
   sourceDir: string;
 }) {
   await createBuildDirectory(buildDir);
   const start = Date.now();
-  await compileSourceFiles({ sourceDir, targetDir: buildDir, envVars });
+  await compileSourceFiles({ sourceDir, targetDir: buildDir });
   console.info("✨  Done in %s.", ms(Date.now() - start));
 
   if (install) await installDependencies({ sourceDir });

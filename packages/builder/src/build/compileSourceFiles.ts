@@ -6,11 +6,9 @@ import path from "path";
 import getRuntimeVersion from "../util/getRuntime";
 
 export default async function compileSourceFiles({
-  envVars,
   sourceDir,
   targetDir,
 }: {
-  envVars: Record<string, string>;
   sourceDir: string;
   targetDir: string;
 }) {
@@ -41,7 +39,7 @@ export default async function compileSourceFiles({
     } else {
       await mkdir(path.dirname(dest), { recursive: true });
       if (/\.(js|ts)$/.test(filename)) {
-        await compileSourceFile({ filename, dest, envVars, jscTarget });
+        await compileSourceFile({ filename, dest, jscTarget });
         compiled++;
       } else {
         await copyFile(filename, dest);
@@ -65,12 +63,10 @@ export default async function compileSourceFiles({
 // whatever version is supported by the runtime.
 async function compileSourceFile({
   dest,
-  envVars,
   filename,
   jscTarget,
 }: {
   dest: string;
-  envVars: Record<string, string>;
   filename: string;
   jscTarget: JscTarget;
 }) {
@@ -80,7 +76,6 @@ async function compileSourceFile({
     jsc: {
       parser: { syntax },
       target: jscTarget,
-      transform: { optimizer: { globals: { vars: envVars } } },
     },
     sourceMaps: true,
     module: { type: "commonjs", noInterop: true },
