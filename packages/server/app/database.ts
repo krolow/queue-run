@@ -1,9 +1,20 @@
 import { DynamoDB, ExecuteStatementOutput } from "@aws-sdk/client-dynamodb";
+import dotenv from "dotenv";
+import invariant from "tiny-invariant";
 
-const [accessKeyId, secretAccessKey] = process.env.AWS_MAIN!.split(":");
+invariant(process.env.CREDENTIALS, "CREDENTIALS env var is required");
+const credentials = dotenv.parse<{
+  aws_access_key_id: string;
+  aws_secret_access_key: string;
+  aws_region: string;
+}>(process.env.CREDENTIALS);
+
 const dynamoDB = new DynamoDB({
-  credentials: { accessKeyId, secretAccessKey },
-  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: credentials.aws_access_key_id,
+    secretAccessKey: credentials.aws_secret_access_key,
+  },
+  region: credentials.aws_region,
 });
 export default dynamoDB;
 
@@ -24,8 +35,7 @@ export declare type Deploy = {
 
 export async function getProjects(): Promise<Project[]> {
   const { Items: items } = await dynamoDB.executeStatement({
-    Statement: `SELECT *
-      FROM projects WHERE account_id = ?`,
+    Statement: "SELECT * FROM projects WHERE account_id = ?",
     Parameters: [{ S: "122210178198" }],
   });
   if (!items) throw new Response("No projects found", { status: 403 });
@@ -34,8 +44,7 @@ export async function getProjects(): Promise<Project[]> {
 
 export async function getProject({ id }: { id: string }) {
   const { Items: items } = await dynamoDB.executeStatement({
-    Statement: `SELECT *
-      FROM projects WHERE account_id = ? AND id = ?`,
+    Statement: "SELECT * FROM projects WHERE account_id = ? AND id = ?",
     Parameters: [{ S: "122210178198" }, { S: id }],
   });
   const item = items?.[0];
@@ -49,7 +58,7 @@ function toProject(
   return {
     id: item.id.S!,
     createdAt: new Date(+item.created_at.N!),
-    defaultBranch: item.default_branch.S ?? "main",
+    defaultBranch: item.default_branch?.S ?? "main",
     updatedAt: new Date(+item.updated_at.N!),
   };
 }
@@ -60,7 +69,7 @@ export async function getDeploys({
   projectId: string;
 }): Promise<Deploy[]> {
   const { Items: items } = await dynamoDB.executeStatement({
-    Statement: `SELECT * FROM deploys WHERE project_id = ?`,
+    Statement: "SELECT * FROM deploys WHERE project_id = ?",
     Parameters: [{ S: projectId }],
   });
   if (!items) throw new Response("No deploys found", { status: 403 });
