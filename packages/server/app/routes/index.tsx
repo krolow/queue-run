@@ -1,36 +1,18 @@
-import type { LoaderFunction } from "remix";
+import type { LoaderFunction, MetaFunction } from "remix";
 import { json, Link, useLoaderData } from "remix";
-import dynamoDB from "~/../lib/dynamodb";
+import { getProjects, Project } from "../database";
 
-type Project = {
-  id: string;
-  createdAt: Date;
-  updatedAt: Date;
-};
-
-// Loaders provide data to components and are only ever called on the server, so
-// you can connect to a database or run any server side code you want right next
-// to the component that renders it.
-// https://remix.run/api/conventions#loader
 export const loader: LoaderFunction = async () => {
-  const projects = (
-    await dynamoDB.executeStatement({
-      Statement: `SELECT * FROM projects WHERE account_id = ?`,
-      Parameters: [{ S: "122210178198" }],
-    })
-  ).Items?.map(
-    (Item) =>
-      ({
-        id: Item.id.S,
-        createdAt: new Date(+Item.created_at.N!),
-        updatedAt: new Date(+Item.updated_at.N!),
-      } as Project)
-  );
-
+  const projects = await getProjects();
   return json(projects);
 };
 
-// https://remix.run/guides/routing#index-routes
+export const meta: MetaFunction = () => {
+  return {
+    title: "Your projects",
+  };
+};
+
 export default function Index() {
   const projects = useLoaderData<Project[]>();
 

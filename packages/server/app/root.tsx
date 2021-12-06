@@ -9,21 +9,11 @@ import {
   ScrollRestoration,
   useCatch,
 } from "remix";
-import darkStylesUrl from "~/styles/dark.css";
-import globalStylesUrl from "~/styles/global.css";
-import tailwindStyles from "~/styles/tailwind.css";
+import tailwindStyles from "./styles/tailwind.full.css";
 
 // https://remix.run/api/app#links
 export const links: LinksFunction = () => {
-  return [
-    { rel: "stylesheet", href: globalStylesUrl },
-    {
-      rel: "stylesheet",
-      href: darkStylesUrl,
-      media: "(prefers-color-scheme: dark)",
-    },
-    { rel: "stylesheet", href: tailwindStyles },
-  ];
+  return [{ rel: "stylesheet", href: tailwindStyles }];
 };
 
 // https://remix.run/api/conventions#default-export
@@ -73,7 +63,7 @@ export function CatchBoundary() {
 
   let message;
   switch (caught.status) {
-    case 401:
+    case 403:
       message = (
         <p>
           Oops! Looks like you tried to visit a page that you do not have access
@@ -131,34 +121,17 @@ function Document({
 
 function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="remix-app">
-      <header className="remix-app__header">
-        <div className="container remix-app__header-content">
-          <Link to="/" title="Remix" className="remix-app__header-home-link">
-            <h1>Queue.run</h1>
-          </Link>
-          <nav aria-label="Main navigation" className="remix-app__header-nav">
-            <ul>
-              <li>
-                <Link to="/">Home</Link>
-              </li>
-              <li>
-                <a href="https://github.com/assaf/queue-run">GitHub</a>
-              </li>
-            </ul>
-          </nav>
-        </div>
+    <div className="container p-10 font-body max-w-4xl mx-auto">
+      <header className="flex flex-row flex-nowrap justify-between">
+        <Link to="/" className="font-bold text-2xl">
+          <h1>Queue.run</h1>
+        </Link>
+        <nav aria-label="Main navigation" className="flex flex-row gap-2">
+          <a href="https://github.com/assaf/queue-run">GitHub</a>
+        </nav>
       </header>
-      <div className="remix-app__main">
-        <div className="container remix-app__main-content">{children}</div>
-      </div>
-      <footer className="remix-app__footer">
-        <div className="container remix-app__footer-content">
-          <p>
-            ❤️ <a href="https://labnotes.org">Assaf Arkin</a>
-          </p>
-        </div>
-      </footer>
+      <div className="my-10">{children}</div>
+      <footer className="my-10"></footer>
     </div>
   );
 }

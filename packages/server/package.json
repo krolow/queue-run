@@ -2,10 +2,12 @@
   "private": true,
   "name": "@queue-run/server",
   "scripts": {
-    "build": "tailwindcss -o app/styles/tailwind.css && remix build",
-    "dev": "concurrently npm:dev:*",
+    "build:remix": "remix build",
+    "build:tailwind": "tailwindcss -i app/styles/tailwind.css -o app/styles/tailwind.full.css",
+    "build": "build:tailwind && build:remeix",
     "dev:remix": "doppler run remix dev",
-    "dev:tailwind": "tailwindcss -o app/styles/tailwind.css --watch",
+    "dev:tailwind": "tailwindcss -i app/styles/tailwind.css -o app/styles/tailwind.full.css --watch",
+    "dev": "concurrently npm:dev:*",
     "postinstall": "remix setup node"
   },
   "dependencies": {
@@ -15,7 +17,8 @@
     "@remix-run/vercel": "^1.0.6",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
-    "remix": "^1.0.6"
+    "remix": "^1.0.6",
+    "tiny-invariant": "^1.2.0"
   },
   "devDependencies": {
     "@remix-run/dev": "^1.0.6",
