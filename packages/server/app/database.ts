@@ -11,6 +11,7 @@ export declare type Project = {
   id: string;
   createdAt: Date;
   updatedAt: Date;
+  defaultBranch: string;
 };
 
 export declare type Deploy = {
@@ -48,6 +49,7 @@ function toProject(
   return {
     id: item.id.S!,
     createdAt: new Date(+item.created_at.N!),
+    defaultBranch: item.default_branch.S ?? "main",
     updatedAt: new Date(+item.updated_at.N!),
   };
 }

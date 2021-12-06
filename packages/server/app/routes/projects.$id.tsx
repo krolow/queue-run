@@ -32,7 +32,11 @@ export default function Index() {
             <tr key={deploy.id}>
               <td className="w-1/2 p-2 truncate">
                 <a href={`/projects/${project.id}/deploys/${deploy.id}`}>
-                  {project.id}-{deploy.branch}
+                  {project.id}
+                  {deploy.branch === project.defaultBranch
+                    ? null
+                    : `.${deploy.branch}`}
+                  .queue.run
                 </a>
               </td>
               <td className="w-1/4 p-2 truncate">{deploy.status}</td>

@@ -4,7 +4,7 @@
   "scripts": {
     "build:remix": "remix build",
     "build:tailwind": "tailwindcss -i app/styles/tailwind.css -o app/styles/tailwind.full.css",
-    "build": "build:tailwind && build:remeix",
+    "build": "yarn build:tailwind && yarn build:remix",
     "dev:remix": "doppler run remix dev",
     "dev:tailwind": "tailwindcss -i app/styles/tailwind.css -o app/styles/tailwind.full.css --watch",
     "dev": "concurrently npm:dev:*",
