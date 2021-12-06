@@ -16,6 +16,7 @@ export default async function uploadLambda({
   zip: Uint8Array;
 }): Promise<{ functionArn: string; version: string }> {
   const lambda = new Lambda({ region });
+
   const { functionArn, revisionId } = await createOrUpdateLambda({
     envVars,
     lambda,
