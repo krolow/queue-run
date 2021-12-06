@@ -1,9 +1,7 @@
 {
-  "name": "@queue-run/runtime",
+  "name": "@queue-run/client-api",
   "version": "0.0.0",
   "main": "dist/index.js",
-  "module": "dist/index.esm.js",
-  "types": "types/index.d.ts",
   "scripts": {
     "build": "dts build",
     "lint": "dts lint src",
@@ -11,16 +9,11 @@
     "watch": "dts watch"
   },
   "files": [
-    "dist",
-    "src",
-    "types"
+    "dist"
   ],
-  "dependencies": {
-    "@aws-sdk/client-sqs": "^3.43.0",
-    "node-abort-controller": "^3.0.1",
-    "source-map-support": "^0.5.21"
-  },
+  "dependencies": {},
   "devDependencies": {
+    "@tsconfig/node12": "^1.0.9",
     "dts-cli": "^0.19.7"
   },
   "engines": {
