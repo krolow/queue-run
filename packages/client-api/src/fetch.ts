@@ -1,4 +1,5 @@
 import invariant from "tiny-invariant";
+import { URL } from "url";
 
 export class Request {
   body: Buffer | null;
@@ -7,14 +8,14 @@ export class Request {
   url: string;
 
   constructor(
-    url: string,
+    url: string | URL,
     init?: {
       body?: Buffer | null;
       method?: string;
       headers?: Headers | { [key: string]: string };
     }
   ) {
-    this.url = url;
+    this.url = String(url);
     this.body = init?.body ?? null;
     this.headers = new Headers(init?.headers);
     this.method = init?.method ?? "GET";
@@ -31,7 +32,7 @@ export class Request {
 }
 
 export class Response {
-  body: string | null;
+  body: string | Buffer | null;
   headers: Headers;
   status: number;
   statusText: string;
@@ -86,13 +87,13 @@ export class Headers {
   }
 
   append(name: string, value: string): void {
-    const header = this.headers.get(name.toLocaleLowerCase()) ?? [];
+    const header = this.headers.get(name.toLowerCase()) ?? [];
     header.push(String(value));
-    this.headers.set(name.toLocaleLowerCase(), header);
+    this.headers.set(name.toLowerCase(), header);
   }
 
   delete(name: string): void {
-    this.headers.delete(name.toLocaleLowerCase());
+    this.headers.delete(name.toLowerCase());
   }
 
   entries(): IterableIterator<[string, string[]]> {
@@ -104,12 +105,12 @@ export class Headers {
   }
 
   get(name: string): string | undefined {
-    const header = this.headers.get(name.toLocaleLowerCase());
+    const header = this.headers.get(name.toLowerCase());
     return header ? header.join(", ") : undefined;
   }
 
   has(name: string): boolean {
-    return this.headers.has(name.toLocaleLowerCase());
+    return this.headers.has(name.toLowerCase());
   }
 
   keys(): IterableIterator<string> {
@@ -117,7 +118,7 @@ export class Headers {
   }
 
   set(name: string, value: string): void {
-    this.headers.set(name.toLocaleLowerCase(), [String(value)]);
+    this.headers.set(name.toLowerCase(), [String(value)]);
   }
 
   values(): IterableIterator<string[]> {
@@ -140,96 +141,83 @@ export function redirect(url: string, status = 303): Response {
 }
 
 export async function asFetch(
-  event: CloudFrontEvent,
+  event: APIGatewayEvent,
   cb: (request: Request) => Response | Promise<Response> | undefined | null
-): Promise<CloudFrontResponse> {
+): Promise<APIGatewayResponse> {
   try {
-    const request = event.Records?.[0].cf?.request;
-    if (!request) throw new Response("", { status: 422 });
     const response =
-      (await cb(toFetchRequest(request))) ??
-      new Response(null, { status: 204 });
-    if (response instanceof Response) return toCloudFrontResponse(response);
+      (await cb(toFetchRequest(event))) ?? new Response(null, { status: 204 });
+    if (response instanceof Response) return toAPIGatewayResponse(response);
     else throw new TypeError("The callback must return a Response.");
   } catch (error) {
-    if (error instanceof Response) return toCloudFrontResponse(error);
+    if (error instanceof Response) return toAPIGatewayResponse(error);
     else {
       const message = error instanceof Error ? error.message : String(error);
-      return toCloudFrontResponse(new Response(message, { status: 500 }));
+      return toAPIGatewayResponse(new Response(message, { status: 500 }));
     }
   }
 }
 
-function toFetchRequest(request: CloudFrontRequest): Request {
-  if (request.body?.inputTruncated)
-    throw new Response("Request body too large, limit 40KB", { status: 413 });
-  const buffer = request.body
-    ? Buffer.from(request.body.data, request.body.encoding)
+function toFetchRequest(event: APIGatewayEvent): Request {
+  const body = event.body
+    ? Buffer.from(event.body, event.isBase64Encoded ? "base64" : "utf8")
     : null;
 
-  const headers = new Headers();
-  Object.entries(request.headers).forEach(([, values]) => {
-    values.forEach(({ key, value }) => headers.append(key, value));
-  });
+  const headers = new Headers(event.headers);
+  const url = new URL(`https://${event.requestContext.domainName}`);
+  url.pathname = event.rawPath;
+  url.search = event.rawQueryString;
 
-  return new Request(request.uri, {
+  return new Request(url, {
     headers,
-    body: buffer,
-    method: request.method,
+    body,
+    method: event.requestContext.http.method,
   });
 }
 
-function toCloudFrontResponse(response: Response): CloudFrontResponse {
-  const headers: CloudFrontHeaders = {};
+function toAPIGatewayResponse(response: Response): APIGatewayResponse {
+  const headers: Record<string, string> = {};
   response.headers.forEach((value, key) => {
-    headers[key.toLocaleLowerCase()] = [{ key, value }];
+    headers[key.toLowerCase()] = value;
   });
 
   return {
-    status: String(response.status),
-    statusDescription: response.statusText ?? "",
+    body:
+      response.body instanceof Buffer
+        ? response.body.toString("base64")
+        : response.body ?? "",
+    isBase64Encoded: response.body instanceof Buffer,
     headers,
-    body: response.body ?? "",
+    statusCode: response.status,
   };
 }
 
-type CloudFrontResponse = {
+type APIGatewayResponse = {
   body: string;
-  headers: CloudFrontHeaders;
-  status: string;
-  statusDescription: string;
+  headers: Record<string, string>;
+  isBase64Encoded: boolean;
+  statusCode: number;
 };
 
-type CloudFrontRequest = {
-  body?: {
-    action: "read-only";
-    data: string;
-    encoding: "base64";
-    inputTruncated: false;
-  };
-  clientIp: string;
-  headers: CloudFrontHeaders;
-  method: "GET" | "POST" | "PUT" | "OPTIONS" | string;
-  querystring?: "";
-  uri: string /* eg "/" */;
-};
-
-type CloudFrontHeaders = Record<
-  string /* eg x-forwarded-for */,
-  Array<{
-    key: string /* eg X-Forwarded-For */;
-    value: string;
-  }>
->;
-
-export type CloudFrontEvent = {
-  Records?: Array<{
-    cf?: {
-      config: {
-        eventType: "viewer-request" | string;
-        requestId: string;
-      };
-      request: CloudFrontRequest;
+export type APIGatewayEvent = {
+  version: "2.0";
+  rawPath: string;
+  rawQueryString: string;
+  cookies?: string[];
+  headers: Record<string, string>;
+  requestContext: {
+    accountId: string;
+    domainName: string;
+    domainPrefix: string;
+    requestId: string;
+    http: {
+      method: string;
+      path: string;
+      protocol: "HTTP/1.1";
+      sourceIp: string;
+      userAgent: string;
     };
-  }>;
+  };
+  body?: string;
+  isBase64Encoded?: boolean;
 };

@@ -12,10 +12,11 @@
     "dist"
   ],
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.44.0",
+    "@aws-sdk/client-sqs": "^3.43.0",
     "tiny-invariant": "^1.2.0"
   },
   "devDependencies": {
-    "@tsconfig/node12": "^1.0.9",
     "dts-cli": "^0.19.7"
   },
   "engines": {

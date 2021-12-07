@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-readonly profile="labnotes"
+readonly profile="queue.run"
 readonly account_id="122210178198"
-readonly lambda_name="EdgeClientAPI"
-readonly role_name="EdgeClientAPI"
-readonly distribution_id="E2VIAG7BJCQTZS"
+readonly lambda_name="QueueRunClientAPI"
+readonly role_name="QueueRunClientAPIRole"
 readonly region="us-east-1"
 
 function build() {
@@ -21,19 +20,19 @@ function build() {
   yarn install --prod
   cd -
 
-  echo
-}
-
-function upload() {
   echo -e "\033[34m  Generating archive …  \033[0m"
   cd .build
   zip -r lambda.zip *
   cd -
 
+  echo -e "\033[32m  Built  \033[0m\n"
+}
+
+function upload() {
   echo -e "\033[34m  Making configuration changes …  \033[0m"
   aws lambda update-function-configuration --function-name "$lambda_name" \
-    --handler "index.handler" --runtime "nodejs12.x" \
-    --role "arn:aws:iam::$account_id:role/service-role/$role_name" \
+    --handler "index.handler" --runtime "nodejs14.x" \
+    --role "arn:aws:iam::$account_id:role/$role_name" \
     --profile $profile --region $region \
     | jq -r '.FunctionArn'
 
@@ -49,45 +48,19 @@ function upload() {
   echo -e "\033[34m  Wait for changes to take effect …  \033[0m"
   sleep 5
 
+  echo -e "\033[34m  Add API Gateway invoke permission …  \033[0m"
+  aws lambda add-permission \
+    --statement-id c45c27e2-1b63-5515-8ce7-4bb1d23e9ec4 \
+    --action lambda:InvokeFunction \
+    --function-name "arn:aws:lambda:us-east-1:$account_id:function:$lambda_name" \
+    --principal apigateway.amazonaws.com \
+    --source-arn "arn:aws:execute-api:us-east-1:$account_id:k8mfahtd2d/*/\$default"
+
   echo -e "\033[32m  Published new version of $lambdaName  \033[0m\n"
 }
 
-function update() {
-  # https://stackoverflow.com/questions/62655805/how-to-update-lambdaedge-arn-in-cloudfront-distribution-using-cli
-
-  echo -e "\033[34m  Finding latest version …  \033[0m"
-  readonly lambda_arn=$(
-    aws lambda list-versions-by-function \
-      --function-name "$lambda_name" \
-      --query "max_by(Versions, &to_number(to_number(Version) || '0'))" \
-      --profile $profile --region $region \
-    | jq -r '.FunctionArn'
-  )
-  echo -e "\033[34m  Latest version $lambda_arn  \033[0m"
-
-  echo -e "\033[34m  Modifying CF distribution …  \033[0m"
-  readonly original=$(mktemp)
-  readonly modified=$(mktemp)
-
-  aws cloudfront get-distribution-config --id "$distribution_id" \
-    --profile $profile --region $region \
-    > "$original"
-
-  readonly etag=$(jq -r '.ETag' < "$original")
-
-  cat "$original" \
-    | jq '(.DistributionConfig.DefaultCacheBehavior | .LambdaFunctionAssociations.Items[] | select(.EventType=="viewer-request") | .LambdaFunctionARN ) |= "'"$lambda_arn"'"' \
-    | jq '.DistributionConfig' \
-    > "$modified"
-
-  aws cloudfront update-distribution --id "$distribution_id" \
-    --distribution-config "file://$modified" --if-match "$etag" \
-    --profile $profile --region $region  > /dev/null
-
-  echo -e "\033[32m  Modified CF distribution  \033[0m\n"
-}
 
 build
 upload
-update
+
 echo -e "\033[32m  Done.  Have a nice day!  \033[0m\n"
