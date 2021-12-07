@@ -37,12 +37,21 @@ export declare type Deploy = {
 
 export declare type ClientToken = {
   createdAt: Date;
-  token: string;
+  id: string;
   lastAccessAt: Date | null;
   name: string;
   projectId: string;
-  // This is only available when creating a new token, and not stores in database
-  clientToken?: string;
+};
+
+declare type ClientTokenSchema = ClientTokenSchemaKey & {
+  created_at: { N: string };
+  last_access_at?: { N: string };
+  name: { S: string };
+  project_id: { S: string };
+};
+
+declare type ClientTokenSchemaKey = {
+  id: { S: string };
 };
 
 export async function getProjects(): Promise<Project[]> {
@@ -100,26 +109,27 @@ function toDeploy(
   };
 }
 
-export async function getClientTokens({
+export async function listClientTokens({
   projectId,
 }: {
   projectId: string;
 }): Promise<ClientToken[]> {
   const { Items: items } = await dynamoDB.executeStatement({
-    Statement: "SELECT * FROM client_tokens WHERE project_id = ?",
+    Statement: "SELECT item FROM client_tokens WHERE project_id = ?",
     Parameters: [{ S: projectId }],
   });
-  return (
-    items?.map((item) => ({
-      createdAt: new Date(+item.created_at.N!),
-      lastAccessAt: item.last_access_at?.N
-        ? new Date(+item.last_access_at.N!)
+  if (!items) return [];
+  return items
+    .map((item) => item as ClientTokenSchema)
+    .map((item) => ({
+      createdAt: new Date(+item.created_at.N),
+      id: item.id.S,
+      lastAccessAt: item.last_access_at
+        ? new Date(+item.last_access_at.N)
         : null,
-      name: item.name.S!,
-      projectId: item.sproject_id.S!,
-      token: item.token.S!,
-    })) ?? []
-  );
+      name: item.name.S,
+      projectId: item.project_id.S,
+    }));
 }
 
 export async function createClientToken({
@@ -128,32 +138,54 @@ export async function createClientToken({
 }: {
   name: string;
   projectId: string;
-}): Promise<ClientToken> {
-  const clientToken = crypto.pseudoRandomBytes(64).toString("base64");
-  const token = crypto.createHash("sha256").update(clientToken).digest("hex");
+}): Promise<ClientToken & { bearerToken: string }> {
+  const bearerToken = crypto.pseudoRandomBytes(32).toString("base64");
+  const tokenId = crypto.createHash("sha256").update(bearerToken).digest("hex");
   const createdAt = new Date();
 
   try {
     await dynamoDB.putItem({
       TableName: "client_tokens",
       Item: {
-        token: { S: token },
+        id: { S: tokenId },
         created_at: { N: createdAt.getTime().toString() },
         name: { S: name },
         project_id: { S: projectId },
-      },
+      } as ClientTokenSchema,
     });
   } catch (e) {
     console.error(e);
     throw new Response("Failed to create token", { status: 500 });
   }
 
-  return { clientToken, createdAt, lastAccessAt: null, name, projectId, token };
+  return {
+    bearerToken,
+    createdAt,
+    id: tokenId,
+    lastAccessAt: null,
+    name,
+    projectId,
+  };
+}
+
+export async function renameClientToken({
+  tokenId,
+  name,
+}: {
+  tokenId: string;
+  name: string;
+}) {
+  await dynamoDB.updateItem({
+    TableName: "client_tokens",
+    Key: { id: { S: tokenId } } as ClientTokenSchemaKey,
+    UpdateExpression: "SET name = :name",
+    ExpressionAttributeValues: { ":name": { S: name } },
+  });
 }
 
 export async function deleteClientToken({ tokenId }: { tokenId: string }) {
   await dynamoDB.deleteItem({
     TableName: "client_tokens",
-    Key: { token: { S: tokenId } },
+    Key: { id: { S: tokenId } } as ClientTokenSchemaKey,
   });
 }

@@ -1,36 +1,17 @@
 import { DynamoDB } from "@aws-sdk/client-dynamodb";
 import { createHash } from "crypto";
 import { Request, Response } from "node-fetch";
-import invariant from "tiny-invariant";
 
 const dynamoDB = new DynamoDB({});
-
-type Project = {
-  projectId: string;
-  defaultBranch: string;
-};
 
 export default async function authenticate(request: Request): Promise<{
   projectId: string;
   branch: string;
 }> {
-  const token = await getAccessToken(request);
-
-  const { Items: items } = await dynamoDB.executeStatement({
-    Statement:
-      "UPDATE client_tokens SET last_accessed_at = ? WHERE token = ? RETURNING ALL NEW *",
-    Parameters: [{ N: Date.now().toString() }, { S: token }],
-  });
-  const clientToken = items?.[0];
-  if (!clientToken) throw new Response("Invalid bearer token", { status: 403 });
-
-  invariant(clientToken.project_id.S, "Client token missing project_id");
-  const { defaultBranch, projectId } = await getProject(
-    clientToken.project_id.S
-  );
-
-  const subdomain = request.headers.get("host")?.split(".")[0];
-  if (!subdomain) throw new Response("Missing subdomain", { status: 400 });
+  const tokenId = await getAccessTokenId(request);
+  const projectId = await getProjectIdFromToken(tokenId);
+  const { defaultBranch } = await getProject(projectId);
+  const subdomain = getSubdomain(request);
 
   if (subdomain === projectId) return { projectId, branch: defaultBranch };
   if (subdomain.startsWith(`${projectId}-`)) {
@@ -40,16 +21,32 @@ export default async function authenticate(request: Request): Promise<{
   throw new Response("Project not found", { status: 404 });
 }
 
-async function getAccessToken(request: Request): Promise<string> {
+async function getAccessTokenId(request: Request): Promise<string> {
   const authorization = request.headers.get("authorization");
   if (!authorization)
     throw new Response("Missing Authorization header", { status: 401 });
-  const token = authorization.match(/^Bearer (.+)$/)?.[1];
-  if (!token)
+  const bearerToken = authorization.match(/^Bearer (.+)$/)?.[1];
+  if (!bearerToken)
     throw new Response("Missing authorization Bearer token", {
       status: 401,
     });
-  return createHash("sha256").update(token).digest("hex");
+  return createHash("sha256").update(bearerToken).digest("hex");
+}
+
+async function getProjectIdFromToken(tokenId: string): Promise<string> {
+  const { Attributes: attributes } = await dynamoDB.updateItem({
+    TableName: "client_tokens",
+    Key: { id: { S: tokenId } },
+    UpdateExpression: "SET last_accessed_at = :timestamp",
+    ExpressionAttributeValues: {
+      ":timestamp": { N: String(Date.now()) },
+    },
+    ConditionExpression:
+      "last_accessed_at < :timestamp OR NOT(attribute_exists(last_accessed_at))",
+  });
+  const projectId = attributes?.project_id.S;
+  if (!projectId) throw new Response("Invalid bearer token", { status: 403 });
+  return projectId;
 }
 
 async function getProject(projectId: string): Promise<{
@@ -66,4 +63,10 @@ async function getProject(projectId: string): Promise<{
     projectId,
     defaultBranch: project.default_branch.S ?? "main",
   };
+}
+
+function getSubdomain(request: Request): string {
+  const subdomain = request.headers.get("host")?.split(".")[0];
+  if (!subdomain) throw new Response("Missing subdomain", { status: 400 });
+  return subdomain;
 }

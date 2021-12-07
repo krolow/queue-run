@@ -12,15 +12,15 @@ import invariant from "tiny-invariant";
 import {
   ClientToken,
   createClientToken,
-  getClientTokens,
   getProject,
+  listClientTokens,
   Project,
 } from "../../database";
 
 export const loader: LoaderFunction = async ({ params }) => {
   invariant(params.id, "Project id is required");
   const project = await getProject({ id: params.id });
-  const clientTokens = await getClientTokens({ projectId: project.id });
+  const clientTokens = await listClientTokens({ projectId: project.id });
   return { project, clientTokens };
 };
 
