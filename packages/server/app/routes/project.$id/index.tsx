@@ -1,13 +1,13 @@
 import type { LoaderFunction, MetaFunction } from "remix";
-import { json, useLoaderData } from "remix";
+import { useLoaderData } from "remix";
 import invariant from "tiny-invariant";
-import { Deploy, getDeploys, getProject, Project } from "../database";
+import { Deploy, getDeploys, getProject, Project } from "../../database";
 
 export const loader: LoaderFunction = async ({ params }) => {
   invariant(params.id, "Project id is required");
   const project = await getProject({ id: params.id });
   const deploys = await getDeploys({ projectId: params.id });
-  return json({ project, deploys });
+  return { project, deploys };
 };
 
 export const meta: MetaFunction = ({ params }) => {
