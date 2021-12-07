@@ -25,7 +25,7 @@ export class Request {
     return this.body.toString("utf8");
   }
 
-  json(): any {
+  json(): unknown {
     return JSON.parse(this.text());
   }
 }
@@ -75,7 +75,7 @@ export class Headers {
 
   constructor(object?: { [key: string]: string } | Headers) {
     if (object instanceof Headers) {
-      object.forEach(([name, value]) => {
+      object.forEach((value, name) => {
         this.set(name, value);
       });
     } else if (object) {
@@ -86,13 +86,13 @@ export class Headers {
   }
 
   append(name: string, value: string): void {
-    const header = this.headers.get(name) ?? [];
+    const header = this.headers.get(name.toLocaleLowerCase()) ?? [];
     header.push(String(value));
-    this.headers.set(name, header);
+    this.headers.set(name.toLocaleLowerCase(), header);
   }
 
   delete(name: string): void {
-    this.headers.delete(name);
+    this.headers.delete(name.toLocaleLowerCase());
   }
 
   entries(): IterableIterator<[string, string[]]> {
@@ -104,12 +104,12 @@ export class Headers {
   }
 
   get(name: string): string | undefined {
-    const header = this.headers.get(name);
+    const header = this.headers.get(name.toLocaleLowerCase());
     return header ? header.join(", ") : undefined;
   }
 
   has(name: string): boolean {
-    return this.headers.has(name);
+    return this.headers.has(name.toLocaleLowerCase());
   }
 
   keys(): IterableIterator<string> {
@@ -117,7 +117,7 @@ export class Headers {
   }
 
   set(name: string, value: string): void {
-    this.headers.set(name, [String(value)]);
+    this.headers.set(name.toLocaleLowerCase(), [String(value)]);
   }
 
   values(): IterableIterator<string[]> {
@@ -143,11 +143,8 @@ export async function asFetch(
   event: CloudFrontEvent,
   cb: (request: Request) => Response | Promise<Response> | undefined | null
 ): Promise<CloudFrontResponse> {
-  console.log({ event });
-
   try {
     const request = event.Records?.[0].cf?.request;
-    console.log({ request });
     if (!request) throw new Response("", { status: 422 });
     const response =
       (await cb(toFetchRequest(request))) ??
@@ -184,7 +181,7 @@ function toFetchRequest(request: CloudFrontRequest): Request {
 
 function toCloudFrontResponse(response: Response): CloudFrontResponse {
   const headers: CloudFrontHeaders = {};
-  response.headers.forEach(([key, value]) => {
+  response.headers.forEach((value, key) => {
     headers[key.toLocaleLowerCase()] = [{ key, value }];
   });
 
@@ -213,7 +210,7 @@ type CloudFrontRequest = {
   clientIp: string;
   headers: CloudFrontHeaders;
   method: "GET" | "POST" | "PUT" | "OPTIONS" | string;
-  querystring: "";
+  querystring?: "";
   uri: string /* eg "/" */;
 };
 
@@ -228,7 +225,10 @@ type CloudFrontHeaders = Record<
 export type CloudFrontEvent = {
   Records?: Array<{
     cf?: {
-      config: { eventType: "viewer-request" | string; requestId: string };
+      config: {
+        eventType: "viewer-request" | string;
+        requestId: string;
+      };
       request: CloudFrontRequest;
     };
   }>;
