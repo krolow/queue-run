@@ -1,5 +1,7 @@
+import invariant from "tiny-invariant";
+
 export class Request {
-  body: Buffer;
+  body: Buffer | null;
   headers: Headers;
   method: string;
   url: string;
@@ -7,18 +9,19 @@ export class Request {
   constructor(
     url: string,
     init?: {
-      body: Buffer;
+      body?: Buffer | null;
       method?: string;
       headers?: Headers | { [key: string]: string };
     }
   ) {
     this.url = url;
-    this.body = init?.body ?? Buffer.alloc(0);
+    this.body = init?.body ?? null;
     this.headers = new Headers(init?.headers);
     this.method = init?.method ?? "GET";
   }
 
   text(): string {
+    invariant(this.body, "This request has no body");
     return this.body.toString("utf8");
   }
 
@@ -140,8 +143,11 @@ export async function asFetch(
   event: CloudFrontEvent,
   cb: (request: Request) => Response | Promise<Response> | undefined | null
 ): Promise<CloudFrontResponse> {
+  console.log({ event });
+
   try {
     const request = event.Records?.[0].cf?.request;
+    console.log({ request });
     if (!request) throw new Response("", { status: 422 });
     const response =
       (await cb(toFetchRequest(request))) ??
@@ -158,9 +164,11 @@ export async function asFetch(
 }
 
 function toFetchRequest(request: CloudFrontRequest): Request {
-  if (request.body.inputTruncated)
+  if (request.body?.inputTruncated)
     throw new Response("Request body too large, limit 40KB", { status: 413 });
-  const buffer = Buffer.from(request.body.data, request.body.encoding);
+  const buffer = request.body
+    ? Buffer.from(request.body.data, request.body.encoding)
+    : null;
 
   const headers = new Headers();
   Object.entries(request.headers).forEach(([, values]) => {
@@ -196,7 +204,7 @@ type CloudFrontResponse = {
 };
 
 type CloudFrontRequest = {
-  body: {
+  body?: {
     action: "read-only";
     data: string;
     encoding: "base64";
