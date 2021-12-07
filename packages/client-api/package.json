@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "main": "dist/index.js",
   "scripts": {
-    "build": "dts build",
+    "build": "dts build --target node --format cjs",
     "lint": "dts lint src",
     "prepare": "yarn build",
     "watch": "dts watch"

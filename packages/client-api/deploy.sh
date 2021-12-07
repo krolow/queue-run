@@ -13,7 +13,7 @@ function build() {
   rm -rf .build
   mkdir .build
   yarn build
-  cp dist/index.js .build/index.js
+  cp dist/client-api.cjs.production.min.js .build/index.js
 
   echo -e "\033[34m  Installing production dependencies …  \033[0m"
   cp package.json .build/package.json
