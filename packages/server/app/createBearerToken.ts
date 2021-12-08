@@ -9,7 +9,7 @@ export default function createBearerToken(): {
   bearerToken: string;
   // Server uses this to verify token, and primary key in the database.
   // SHA256 of bearer token, first 32 characters.
-  tokenID: string;
+  tokenId: string;
 } {
   const bearerToken = crypto
     .pseudoRandomBytes(32)

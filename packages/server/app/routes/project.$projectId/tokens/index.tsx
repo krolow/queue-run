@@ -51,7 +51,7 @@ export const loader: LoaderFunction = async ({ params }) => {
 
 export const meta: MetaFunction = ({ params }) => {
   return {
-    title: `${params.id} deployments`,
+    title: `${params.projectId} | access tokens`,
   };
 };
 
