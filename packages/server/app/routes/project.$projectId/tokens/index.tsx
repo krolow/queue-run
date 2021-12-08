@@ -83,10 +83,6 @@ export default function Index() {
 
   return (
     <main className="space-y-4 my-4">
-      <h1 className="space-x-2 text-3xl">
-        <span className="font-bold">{projectId}</span>
-        <span className="font-light">access tokens</span>
-      </h1>
       {clientTokens.length === 0 ? (
         <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No tokens">
           <CreateNewTokenButton primary />

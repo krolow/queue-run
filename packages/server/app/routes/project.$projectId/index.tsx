@@ -1,31 +1,30 @@
-import type { LoaderFunction, MetaFunction } from "remix";
-import { useLoaderData } from "remix";
+import { LoaderFunction, MetaFunction, useLoaderData, useMatches } from "remix";
 import invariant from "tiny-invariant";
 import { Deploy, getDeploys, getProject, Project } from "../../database";
 
 export const loader: LoaderFunction = async ({ params }) => {
-  invariant(params.id, "Project id is required");
-  const project = await getProject({ id: params.id });
-  const deploys = await getDeploys({ projectId: params.id });
+  const { projectId } = params;
+  invariant(projectId);
+  const project = await getProject({ id: projectId });
+  const deploys = await getDeploys({ projectId });
   return { project, deploys };
 };
 
 export const meta: MetaFunction = ({ params }) => {
   return {
-    title: `${params.id} deployments`,
+    title: params.projectId,
   };
 };
 
 export default function Index() {
+  const { projectId } = useMatches()[1].params;
+  invariant(projectId);
+
   const { project, deploys } =
     useLoaderData<{ deploys: Deploy[]; project: Project }>();
 
   return (
     <main className="space-y-4 my-4">
-      <h1 className="space-x-2 text-3xl">
-        <span className="font-bold">{project.id}</span>
-        <span className="font-light">deployments</span>
-      </h1>
       <table className="w-full border-collapse border-gray-200 border rounded-md">
         <tbody>
           {deploys.map((deploy) => (
