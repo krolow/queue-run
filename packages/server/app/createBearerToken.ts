@@ -1,3 +1,5 @@
+// Remix seems to balk if we require crypto from a route in order to use it the action,
+// so we need this to be its own module, outside of routes.
 import crypto from "crypto";
 
 const tokenIDLength = 32;
