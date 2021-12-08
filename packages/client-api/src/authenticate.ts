@@ -30,7 +30,9 @@ async function getAccessTokenId(request: Request): Promise<string> {
     throw new Response("Missing authorization Bearer token", {
       status: 401,
     });
-  return createHash("sha256").update(bearerToken).digest("hex").slice(0, 32);
+  return (
+    "tkn_" + createHash("sha256").update(bearerToken).digest("hex").slice(0, 32)
+  );
 }
 
 async function getProjectIdFromToken(tokenId: string): Promise<string> {

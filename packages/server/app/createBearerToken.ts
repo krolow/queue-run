@@ -17,10 +17,12 @@ export default function createBearerToken(): {
     .pseudoRandomBytes(32)
     .toString("base64")
     .slice(0, 40);
-  const tokenId = crypto
-    .createHash("sha256")
-    .update(bearerToken)
-    .digest("hex")
-    .slice(0, tokenIDLength);
+  const tokenId =
+    "tkn_" +
+    crypto
+      .createHash("sha256")
+      .update(bearerToken)
+      .digest("hex")
+      .slice(0, tokenIDLength);
   return { bearerToken, tokenId };
 }
