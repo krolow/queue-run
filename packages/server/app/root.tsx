@@ -1,3 +1,4 @@
+import fontawesomeStyles from "@fortawesome/fontawesome-svg-core/styles.css";
 import type { LinksFunction, MetaFunction } from "remix";
 import {
   Link,
@@ -13,7 +14,10 @@ import tailwindStyles from "./styles/tailwind.full.css";
 
 // https://remix.run/api/app#links
 export const links: LinksFunction = () => {
-  return [{ rel: "stylesheet", href: tailwindStyles }];
+  return [
+    { rel: "stylesheet", href: tailwindStyles },
+    { rel: "stylesheet", href: fontawesomeStyles },
+  ];
 };
 
 // https://remix.run/api/conventions#default-export

@@ -1,4 +1,6 @@
-import React from "react";
+import { faCheck, faTimes, faTrash } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import React, { useEffect } from "react";
 import {
   ActionFunction,
   Form,
@@ -32,7 +34,7 @@ export const loader: LoaderFunction = async ({ params }) => {
   if (!items) return [];
   return items.map((item) => ({
     id: item.id.S,
-    name: item.name?.S ?? item.id.S,
+    name: item.name?.S ?? new Date(+item.created_at.N!).toISOString(),
     lastAccessedAt:
       item.last_accessed_at?.N && new Date(+item.last_accessed_at.N),
   }));
@@ -71,7 +73,6 @@ export default function Index() {
   const clientTokens = useLoaderData<ClientToken[]>();
   const transition = useTransition();
   const actionData = useActionData<{ bearerToken: string }>();
-  const fetcher = useFetcher();
 
   return (
     <main className="space-y-4 my-4">
@@ -79,34 +80,21 @@ export default function Index() {
         <span className="font-bold">{projectId}</span>
         <span className="font-light">access tokens</span>
       </h1>
-      <ul>
-        {clientTokens.map(({ id, name, lastAccessedAt }) => (
-          <li key={id} className="flex justify-between">
-            <EditableTokenName {...{ id, name, projectId }} />
-            <span>
-              {lastAccessedAt
-                ? `Last use ${lastAccessedAt.toLocaleString()}`
-                : null}
-            </span>
-            <span>
-              <button
-                onClick={() =>
-                  fetcher.submit(null, {
-                    method: "delete",
-                    action: `/project/${projectId}/tokens/${id}`,
-                    replace: false,
-                  })
-                }
-              >
-                Delete
-              </button>
-            </span>
-          </li>
-        ))}
-      </ul>
+      <table className="border-collapse w-full">
+        <tbody>
+          {clientTokens.map(({ id, name, lastAccessedAt }) => (
+            <tr key={id}>
+              <ClientToken {...{ id, name, lastAccessedAt, projectId }} />
+            </tr>
+          ))}
+        </tbody>
+      </table>
       <Form method="post">
-        <input type="text" name="name" />
-        <button type="submit" disabled={!!transition.submission}>
+        <button
+          type="submit"
+          disabled={!!transition.submission}
+          className="p-2 bg-blue-300 rounded-sm"
+        >
           {transition.submission
             ? "Creating access token …"
             : "Create New Access Token"}
@@ -127,6 +115,44 @@ export default function Index() {
   );
 }
 
+function ClientToken({
+  id,
+  lastAccessedAt,
+  name,
+  projectId,
+}: {
+  id: string;
+  lastAccessedAt?: Date;
+  name: string;
+  projectId: string;
+}) {
+  const fetcher = useFetcher();
+
+  return (
+    <tr className="flex justify-between flex-nowrap">
+      <td className="w-full py-1">
+        <EditableTokenName {...{ id, name, projectId }} />
+      </td>
+      <td className="truncate p-1">
+        {lastAccessedAt ? `Last use ${lastAccessedAt.toLocaleString()}` : null}
+      </td>
+      <td className="py-1">
+        <button
+          className="p-1 w-10 bg-blue-300 rounded-sm"
+          onClick={() =>
+            fetcher.submit(null, {
+              method: "delete",
+              action: `/project/${projectId}/tokens/${id}`,
+            })
+          }
+        >
+          <FontAwesomeIcon icon={faTrash} spin={!!fetcher.submission} />
+        </button>
+      </td>
+    </tr>
+  );
+}
+
 function EditableTokenName({
   id,
   name,
@@ -138,23 +164,58 @@ function EditableTokenName({
 }) {
   const [isEditing, setIsEditing] = React.useState(false);
   const fetcher = useFetcher();
+  useEffect(
+    function () {
+      if (!fetcher.submission) setIsEditing(false);
+    },
+    [fetcher.submission]
+  );
 
   return (
     <fetcher.Form
       method="put"
       action={`/project/${projectId}/tokens/${id}`}
-      onSubmit={() => setIsEditing(false)}
+      className="h-10 leading-10 align-middle"
     >
       {isEditing ? (
-        <>
-          <input defaultValue={name} type="text" name="name" />
-          <button type="submit">Save</button>
-          <button type="reset" onClick={() => setIsEditing(false)}>
-            Cancel
+        <span className="flex flex-nowrap gap-2">
+          <input
+            defaultValue={name}
+            type="text"
+            name="name"
+            className="w-full"
+          />
+          <button
+            type="submit"
+            className="p-1 w-10 bg-blue-300 rounded-sm"
+            title="Change name"
+          >
+            <FontAwesomeIcon
+              icon={faCheck}
+              size="lg"
+              spin={!!fetcher.submission}
+            />
           </button>
-        </>
+          <button
+            type="reset"
+            className="p-1 w-10 bg-blue-300 rounded-sm"
+            onClick={() => setIsEditing(false)}
+            title="Cancel"
+          >
+            <FontAwesomeIcon icon={faTimes} size="lg" />
+          </button>
+        </span>
       ) : (
-        <span onClick={() => setIsEditing(true)}>{name}</span>
+        <span
+          className="inline-block w-full cursor-pointer"
+          title="Click to change name"
+          onClick={() => {
+            setIsEditing(true);
+            return false;
+          }}
+        >
+          {name}
+        </span>
       )}
     </fetcher.Form>
   );
