@@ -48,15 +48,18 @@ function upload() {
   echo -e "\033[34m  Wait for changes to take effect …  \033[0m"
   sleep 5
 
+  echo -e "\033[32m  Published new version of $lambdaName  \033[0m\n"
+}
+
+function add_to_api_gateway() {
   echo -e "\033[34m  Add API Gateway invoke permission …  \033[0m"
   aws lambda add-permission \
     --statement-id c45c27e2-1b63-5515-8ce7-4bb1d23e9ec4 \
     --action lambda:InvokeFunction \
     --function-name "arn:aws:lambda:us-east-1:$account_id:function:$lambda_name" \
     --principal apigateway.amazonaws.com \
-    --source-arn "arn:aws:execute-api:us-east-1:$account_id:k8mfahtd2d/*/\$default"
-
-  echo -e "\033[32m  Published new version of $lambdaName  \033[0m\n"
+    --source-arn "arn:aws:execute-api:us-east-1:$account_id:k8mfahtd2d/*/\$default" \
+    --profile $profile --region $region
 }
 
 

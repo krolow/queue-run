@@ -7,8 +7,14 @@ import pushMessage from "./pushMessage";
 
 export const handler = asFetchRequest(async (request) => {
   switch (request.method) {
-    case "GET":
-      return Response.redirect(getDashboardURL(request), 303);
+    case "GET": {
+      const url = getDashboardURL(request);
+      return new Response(`See ${url}`, {
+        status: 302,
+        headers: { Location: url },
+      });
+    }
+
     case "POST": {
       const { projectId, branch } = await authenticate(request);
       const { pathname } = new URL(request.url);
@@ -17,8 +23,10 @@ export const handler = asFetchRequest(async (request) => {
         return await pushMessage({ projectId, branch, request });
       else return new Response("No such action", { status: 404 });
     }
+
     case "HEAD":
       return 204;
+
     default:
       throw 405;
   }
