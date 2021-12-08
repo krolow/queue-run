@@ -1,5 +1,6 @@
 import { DeleteOutlined } from "@ant-design/icons";
 import { Alert, Button, Empty, List, Popconfirm, Spin, Typography } from "antd";
+import { formatDistanceToNowStrict, parseISO } from "date-fns";
 import React from "react";
 import {
   ActionFunction,
@@ -119,7 +120,12 @@ function ClientTokens({
       renderItem={({ id, name, lastAccessedAt }) => (
         <List.Item
           actions={[
-            lastAccessedAt ? <span>Last used {lastAccessedAt}</span> : null,
+            lastAccessedAt ? (
+              <span>
+                Last used {formatDistanceToNowStrict(parseISO(lastAccessedAt))}{" "}
+                ago
+              </span>
+            ) : null,
             <DeleteTokenButton {...{ tokenId: id, name, projectId }} />,
           ]}
         >
