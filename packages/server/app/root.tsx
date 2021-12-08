@@ -1,4 +1,5 @@
 import fontawesome from "@fortawesome/fontawesome-svg-core/styles.css";
+import { PageHeader } from "antd";
 import antd from "antd/dist/antd.css";
 import type { LinksFunction, MetaFunction } from "remix";
 import {
@@ -19,6 +20,11 @@ export const links: LinksFunction = () => {
     { rel: "stylesheet", href: tailwind },
     { rel: "stylesheet", href: fontawesome },
     { rel: "stylesheet", href: antd },
+    {
+      href: "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Ctext%20y%3D%22.9em%22%20font-size%3D%2290%22%3E%F0%9F%90%87%3C%2Ftext%3E%3C%2Fsvg%3E",
+      rel: "shortcut icon",
+      type: "image/svg+xml",
+    },
   ];
 };
 
@@ -127,17 +133,14 @@ function Document({
 
 function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="container p-10 font-body max-w-4xl mx-auto">
-      <header className="flex flex-row flex-nowrap justify-between">
-        <Link to="/" className="font-bold text-2xl">
-          <h1>Queue.run</h1>
-        </Link>
-        <nav aria-label="Main navigation" className="flex flex-row gap-2">
-          <a href="https://github.com/assaf/queue-run">GitHub</a>
-        </nav>
-      </header>
-      <div className="my-10">{children}</div>
-      <footer className="my-10"></footer>
+    <div className="container font-body max-w-4xl mx-auto px-4 space-y-10">
+      <PageHeader
+        title={<Link to="/">🐇 Queue.run</Link>}
+        subTitle="Background functions for JAMstack apps"
+        extra={[<a href="https://github.com/assaf/queue-run">GitHub</a>]}
+      />
+      {children}
+      <footer></footer>
     </div>
   );
 }

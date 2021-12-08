@@ -1,6 +1,10 @@
 import { Menu } from "antd";
-import { Link, Outlet, useMatches } from "remix";
+import { Link, MetaFunction, Outlet, useMatches } from "remix";
 import invariant from "tiny-invariant";
+
+export const meta: MetaFunction = ({ params }) => {
+  return { title: params.projectId! };
+};
 
 export default function ProjectPageLayout() {
   const match = useMatches().slice(-1)[0];
@@ -13,18 +17,21 @@ export default function ProjectPageLayout() {
   ];
 
   return (
-    <main className="space-y-4 my-4">
-      <h1 className="space-x-2 text-3xl font-bold">
-        {projectId}
-        <Menu mode="horizontal" selectedKeys={[match.pathname]}>
-          {pages.map(({ label, path }) => (
-            <Menu.Item key={path}>
-              <Link to={path}>{label}</Link>
-            </Menu.Item>
-          ))}
-        </Menu>
+    <main>
+      <h1 className="text-2xl space-x-2">
+        <span className="font-regular">Project</span>
+        <span className="font-bold">{projectId}</span>
       </h1>
-      <Outlet />
+      <Menu mode="horizontal" selectedKeys={[match.pathname]}>
+        {pages.map(({ label, path }) => (
+          <Menu.Item key={path}>
+            <Link to={path}>{label}</Link>
+          </Menu.Item>
+        ))}
+      </Menu>
+      <div className="my-10">
+        <Outlet />
+      </div>
     </main>
   );
 }

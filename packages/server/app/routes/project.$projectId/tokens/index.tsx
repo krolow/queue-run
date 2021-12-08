@@ -85,12 +85,14 @@ export default function Index() {
     <main className="space-y-4 my-4">
       {clientTokens.length === 0 ? (
         <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No tokens">
-          <CreateNewTokenButton primary />
+          <CreateNewTokenButton />
         </Empty>
       ) : (
         <>
+          <div className="flex flex-row-reverse">
+            <CreateNewTokenButton />
+          </div>
           <ClientTokens clientTokens={clientTokens} projectId={projectId} />
-          <CreateNewTokenButton />
         </>
       )}
       <BearerTokenInstructions />
@@ -210,14 +212,14 @@ function DeleteTokenButton({
   );
 }
 
-function CreateNewTokenButton({ primary }: { primary?: boolean }) {
+function CreateNewTokenButton() {
   const transition = useTransition();
   return (
     <Form method="post">
       <Button
         htmlType="submit"
         loading={!!transition.submission}
-        type={primary ? "primary" : "default"}
+        type={"primary"}
       >
         {transition.submission
           ? "Creating access token …"

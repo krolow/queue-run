@@ -1,4 +1,5 @@
-import type { LoaderFunction, MetaFunction } from "remix";
+import { List } from "antd";
+import type { LoaderFunction } from "remix";
 import { Link, useLoaderData } from "remix";
 import { getProjects, Project } from "../database";
 
@@ -6,28 +7,24 @@ export const loader: LoaderFunction = async () => {
   return await getProjects();
 };
 
-export const meta: MetaFunction = () => {
-  return { title: "Your projects" };
-};
-
 export default function Index() {
   const projects = useLoaderData<Project[]>();
 
   return (
-    <main className="space-y-4 my-4">
-      <h1 className="font-bold text-lg">Your Projects</h1>
-      <ul className="max-w-xs">
+    <main className="space-y-4">
+      <List header={<h2 className="text-xl">Your Projects</h2>}>
         {projects.map((project) => (
-          <li
-            key={project.id}
-            className="border border-gray-300 rounded-md p-4 truncate"
-          >
-            <Link to={`/project/${project.id}`} prefetch="intent">
+          <List.Item key={project.id}>
+            <Link
+              to={`/project/${project.id}`}
+              prefetch="intent"
+              className="text-xl"
+            >
               {project.id}
             </Link>
-          </li>
+          </List.Item>
         ))}
-      </ul>
+      </List>
     </main>
   );
 }
