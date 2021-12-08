@@ -25,27 +25,36 @@ async function getAccessTokenId(request: Request): Promise<string> {
   const authorization = request.headers.get("authorization");
   if (!authorization)
     throw new Response("Missing Authorization header", { status: 401 });
-  const bearerToken = authorization.match(/^Bearer (.+)$/)?.[1];
+  const bearerToken = authorization.match(/^Bearer (.+)$/i)?.[1].trim();
   if (!bearerToken)
     throw new Response("Missing authorization Bearer token", {
       status: 401,
     });
-  return createHash("sha256").update(bearerToken).digest("hex");
+  return createHash("sha256").update(bearerToken).digest("hex").slice(0, 32);
 }
 
 async function getProjectIdFromToken(tokenId: string): Promise<string> {
-  const { Attributes: attributes } = await dynamoDB.updateItem({
-    TableName: "client_tokens",
-    Key: { id: { S: tokenId } },
-    UpdateExpression: "SET last_accessed_at = :timestamp",
-    ExpressionAttributeValues: {
-      ":timestamp": { N: String(Date.now()) },
-    },
-    ConditionExpression:
-      "last_accessed_at < :timestamp OR NOT(attribute_exists(last_accessed_at))",
+  const { Items: items } = await dynamoDB.executeStatement({
+    Statement:
+      "SELECT project_id, last_accessed_at FROM client_tokens WHERE id = ?",
+    Parameters: [{ S: tokenId }],
   });
-  const projectId = attributes?.project_id.S;
-  if (!projectId) throw new Response("Invalid bearer token", { status: 403 });
+  const projectId = items?.[0]?.project_id?.S;
+  if (!projectId)
+    throw new Response("Invalid or expired bearer token", { status: 403 });
+
+  dynamoDB
+    .executeStatement({
+      Statement:
+        "UPDATE client_tokens SET last_accessed_at = ? WHERE id = ? AND (NOT attribute_exists(last_accessed_at) OR last_accessed_at < ?)",
+      Parameters: [
+        { N: String(Date.now()) },
+        { S: tokenId },
+        { N: String(Date.now() - 1000) },
+      ],
+    })
+    .catch(console.error);
+
   return projectId;
 }
 
@@ -57,11 +66,12 @@ async function getProject(projectId: string): Promise<{
     Statement: "SELECT * FROM projects WHERE id = ?",
     Parameters: [{ S: projectId }],
   });
+
   const project = items?.[0];
   if (!project) throw new Response("Project not found", { status: 404 });
   return {
     projectId,
-    defaultBranch: project.default_branch.S ?? "main",
+    defaultBranch: project.default_branch?.S ?? "main",
   };
 }
 

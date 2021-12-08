@@ -15,9 +15,12 @@ export default async function pushMessage({
 }): Promise<Response> {
   const queueURL = await getQueueURL({ branch, projectId, request });
   const contentType = request.headers.get("Content-Type");
+  const body = await request.text();
+  if (!body) throw new Response("Missing message body", { status: 400 });
+
   const { MessageId: messageId } = await sqs.sendMessage({
     QueueUrl: queueURL,
-    MessageBody: await request.text(),
+    MessageBody: body,
     MessageAttributes: {
       ...(contentType && {
         "Content-Type": { DataType: "String", StringValue: contentType },
@@ -41,12 +44,21 @@ async function getQueueURL({
 }): Promise<string> {
   const { pathname } = new URL(request.url);
   const [name, ...rest] = pathname.split("/").slice(2);
-  if (!name) throw new Response("Queue not found", { status: 404 });
+  if (!name) throw new Response("Queue not found (no name)", { status: 404 });
   if (rest.length > 0)
     throw new Response("Resource not found", { status: 404 });
 
   const queueName = `${projectId}-${branch}__${name}`;
-  const { QueueUrl } = await sqs.getQueueUrl({ QueueName: queueName });
-  if (!QueueUrl) throw new Response("Queue not found", { status: 404 });
-  return QueueUrl;
+  try {
+    const { QueueUrl } = await sqs.getQueueUrl({ QueueName: queueName });
+    if (!QueueUrl) throw new Response("Queue not found", { status: 404 });
+    return QueueUrl;
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.name === "AWS.SimpleQueueService.NonExistentQueue"
+    )
+      throw new Response("Queue not found", { status: 404 });
+    else throw error;
+  }
 }

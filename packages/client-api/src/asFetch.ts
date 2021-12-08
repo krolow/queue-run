@@ -26,14 +26,11 @@ type APIGatewayHandler = (
 export function asFetchRequest(
   handler: FetchRequestHandler
 ): APIGatewayHandler {
-  return async function (event: APIGatewayEvent, context: unknown) {
-    console.log({ context });
+  return async function (event: APIGatewayEvent) {
     try {
       const response = await handler(toFetchRequest(event));
-      console.log({ response });
       return await toAPIGatewayResponse(toResponse(response));
     } catch (error) {
-      console.log(error);
       if (error instanceof Response) return await toAPIGatewayResponse(error);
       else {
         console.error("Callback error", error);

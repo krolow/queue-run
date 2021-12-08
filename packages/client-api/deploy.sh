@@ -22,7 +22,7 @@ function build() {
 
   echo -e "\033[34m  Generating archive …  \033[0m"
   cd .build
-  zip -r lambda.zip *
+  zip -q -r lambda.zip *
   cd -
 
   echo -e "\033[32m  Built  \033[0m\n"
