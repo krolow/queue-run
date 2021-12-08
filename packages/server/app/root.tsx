@@ -1,4 +1,5 @@
-import fontawesomeStyles from "@fortawesome/fontawesome-svg-core/styles.css";
+import fontawesome from "@fortawesome/fontawesome-svg-core/styles.css";
+import antd from "antd/dist/antd.css";
 import type { LinksFunction, MetaFunction } from "remix";
 import {
   Link,
@@ -10,13 +11,14 @@ import {
   ScrollRestoration,
   useCatch,
 } from "remix";
-import tailwindStyles from "./styles/tailwind.full.css";
+import tailwind from "./styles/tailwind.full.css";
 
 // https://remix.run/api/app#links
 export const links: LinksFunction = () => {
   return [
-    { rel: "stylesheet", href: tailwindStyles },
-    { rel: "stylesheet", href: fontawesomeStyles },
+    { rel: "stylesheet", href: tailwind },
+    { rel: "stylesheet", href: fontawesome },
+    { rel: "stylesheet", href: antd },
   ];
 };
 

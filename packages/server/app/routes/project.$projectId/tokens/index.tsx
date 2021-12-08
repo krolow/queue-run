@@ -1,6 +1,6 @@
-import { faCheck, faTimes, faTrash } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import React, { useEffect } from "react";
+import { DeleteOutlined } from "@ant-design/icons";
+import { Alert, Button, Empty, List, Popconfirm, Spin, Typography } from "antd";
+import React from "react";
 import {
   ActionFunction,
   Form,
@@ -9,6 +9,7 @@ import {
   MetaFunction,
   useActionData,
   useFetcher,
+  useFetchers,
   useLoaderData,
   useMatches,
   useTransition,
@@ -18,9 +19,10 @@ import createBearerToken from "../../../createBearerToken";
 import dynamoDB from "../../../database";
 
 type ClientToken = {
+  createdAt: string;
   id: string;
   name: string;
-  lastAccessedAt?: Date;
+  lastAccessedAt?: string;
 };
 
 export const loader: LoaderFunction = async ({ params }) => {
@@ -32,12 +34,18 @@ export const loader: LoaderFunction = async ({ params }) => {
     Parameters: [{ S: projectId }],
   });
   if (!items) return [];
-  return items.map((item) => ({
-    id: item.id.S,
-    name: item.name?.S ?? new Date(+item.created_at.N!).toISOString(),
-    lastAccessedAt:
-      item.last_accessed_at?.N && new Date(+item.last_accessed_at.N),
-  }));
+
+  return items.map(
+    (item) =>
+      ({
+        createdAt: new Date(+item.created_at.N!).toISOString(),
+        id: item.id.S,
+        name: item.name?.S ?? new Date(+item.created_at.N!).toISOString(),
+        lastAccessedAt:
+          item.last_accessed_at?.N &&
+          new Date(+item.last_accessed_at.N).toISOString(),
+      } as ClientToken)
+  );
 };
 
 export const meta: MetaFunction = ({ params }) => {
@@ -63,7 +71,7 @@ export const action: ActionFunction = async ({ params, request }) => {
       { N: Date.now().toString() },
     ],
   });
-  return { bearerToken };
+  return { tokenId, bearerToken };
 };
 
 export default function Index() {
@@ -71,8 +79,6 @@ export default function Index() {
   invariant(projectId);
 
   const clientTokens = useLoaderData<ClientToken[]>();
-  const transition = useTransition();
-  const actionData = useActionData<{ bearerToken: string }>();
 
   return (
     <main className="space-y-4 my-4">
@@ -80,143 +86,168 @@ export default function Index() {
         <span className="font-bold">{projectId}</span>
         <span className="font-light">access tokens</span>
       </h1>
-      <table className="border-collapse w-full">
-        <tbody>
-          {clientTokens.map(({ id, name, lastAccessedAt }) => (
-            <tr key={id}>
-              <ClientToken {...{ id, name, lastAccessedAt, projectId }} />
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <Form method="post">
-        <button
-          type="submit"
-          disabled={!!transition.submission}
-          className="p-2 bg-blue-300 rounded-sm"
-        >
-          {transition.submission
-            ? "Creating access token …"
-            : "Create New Access Token"}
-        </button>
-      </Form>
-      {actionData && (
-        <section className="border border-gray-100 rounded-md p-4">
-          <p>
-            This is your new access token. Write it down and keep it safe. You
-            will not have access to this token after you reload the page.
-          </p>
-          <pre className="my-4 bg-border-100">
-            <code>{actionData.bearerToken}</code>
-          </pre>
-        </section>
+      {clientTokens.length === 0 ? (
+        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No tokens">
+          <CreateNewTokenButton primary />
+        </Empty>
+      ) : (
+        <>
+          <ClientTokens clientTokens={clientTokens} projectId={projectId} />
+          <CreateNewTokenButton />
+        </>
       )}
+      <BearerTokenInstructions />
     </main>
   );
 }
 
-function ClientToken({
-  id,
-  lastAccessedAt,
-  name,
+function ClientTokens({
+  clientTokens,
   projectId,
 }: {
-  id: string;
-  lastAccessedAt?: Date;
-  name: string;
+  clientTokens: ClientToken[];
   projectId: string;
 }) {
-  const fetcher = useFetcher();
+  const fetchers = useFetchers();
+  const isLoading = fetchers.some((fetcher) => fetcher.state !== "idle");
 
   return (
-    <tr className="flex justify-between flex-nowrap">
-      <td className="w-full py-1">
-        <EditableTokenName {...{ id, name, projectId }} />
-      </td>
-      <td className="truncate p-1">
-        {lastAccessedAt ? `Last use ${lastAccessedAt.toLocaleString()}` : null}
-      </td>
-      <td className="py-1">
-        <button
-          className="p-1 w-10 bg-blue-300 rounded-sm"
-          onClick={() =>
-            fetcher.submit(null, {
-              method: "delete",
-              action: `/project/${projectId}/tokens/${id}`,
-            })
-          }
+    <List
+      dataSource={clientTokens.sort((a, b) =>
+        b.createdAt.localeCompare(a.createdAt)
+      )}
+      renderItem={({ id, name, lastAccessedAt }) => (
+        <List.Item
+          actions={[
+            lastAccessedAt ? <span>Last used {lastAccessedAt}</span> : null,
+            <DeleteTokenButton {...{ tokenId: id, name, projectId }} />,
+          ]}
         >
-          <FontAwesomeIcon icon={faTrash} spin={!!fetcher.submission} />
-        </button>
-      </td>
-    </tr>
+          <EditableTokenName
+            {...{ tokenId: id, projectId, name, lastAccessedAt }}
+          />
+        </List.Item>
+      )}
+      loading={isLoading}
+    />
   );
 }
 
 function EditableTokenName({
-  id,
   name,
   projectId,
+  tokenId,
 }: {
-  id: string;
   name: string;
   projectId: string;
+  tokenId: string;
 }) {
-  const [isEditing, setIsEditing] = React.useState(false);
   const fetcher = useFetcher();
-  useEffect(
-    function () {
-      if (!fetcher.submission) setIsEditing(false);
-    },
-    [fetcher.submission]
-  );
+  const isRenaming = fetcher.submission?.method === "PUT";
 
   return (
-    <fetcher.Form
-      method="put"
-      action={`/project/${projectId}/tokens/${id}`}
-      className="h-10 leading-10 align-middle"
+    <Typography.Text
+      editable={
+        isRenaming
+          ? undefined
+          : {
+              onChange: (name) => {
+                fetcher.submit(
+                  { name },
+                  {
+                    method: "put",
+                    action: `/project/${projectId}/tokens/${tokenId}`,
+                  }
+                );
+              },
+              tooltip: "Give this token a name",
+            }
+      }
     >
-      {isEditing ? (
-        <span className="flex flex-nowrap gap-2">
-          <input
-            defaultValue={name}
-            type="text"
-            name="name"
-            className="w-full"
-          />
-          <button
-            type="submit"
-            className="p-1 w-10 bg-blue-300 rounded-sm"
-            title="Change name"
-          >
-            <FontAwesomeIcon
-              icon={faCheck}
-              size="lg"
-              spin={!!fetcher.submission}
-            />
-          </button>
-          <button
-            type="reset"
-            className="p-1 w-10 bg-blue-300 rounded-sm"
-            onClick={() => setIsEditing(false)}
-            title="Cancel"
-          >
-            <FontAwesomeIcon icon={faTimes} size="lg" />
-          </button>
-        </span>
+      {isRenaming ? (
+        <>
+          <Spin size="small" /> Saving …
+        </>
       ) : (
-        <span
-          className="inline-block w-full cursor-pointer"
-          title="Click to change name"
-          onClick={() => {
-            setIsEditing(true);
-            return false;
-          }}
-        >
-          {name}
-        </span>
+        name
       )}
-    </fetcher.Form>
+    </Typography.Text>
+  );
+}
+
+function DeleteTokenButton({
+  name,
+  projectId,
+  tokenId,
+}: {
+  name: string;
+  projectId: string;
+  tokenId: string;
+}) {
+  const fetcher = useFetcher();
+  const isDeleting = fetcher.submission?.method === "DELETE";
+  return (
+    <Popconfirm
+      title={`Delete the token ${name}?`}
+      onConfirm={() =>
+        fetcher.submit(null, {
+          method: "delete",
+          action: `/project/${projectId}/tokens/${tokenId}`,
+        })
+      }
+      okText="Delete"
+      cancelText="Keep"
+    >
+      <Button
+        type="link"
+        danger
+        icon={<DeleteOutlined />}
+        loading={isDeleting}
+      />
+    </Popconfirm>
+  );
+}
+
+function CreateNewTokenButton({ primary }: { primary?: boolean }) {
+  const transition = useTransition();
+  return (
+    <Form method="post">
+      <Button
+        htmlType="submit"
+        loading={!!transition.submission}
+        type={primary ? "primary" : "default"}
+      >
+        {transition.submission
+          ? "Creating access token …"
+          : "Create New Access Token"}
+      </Button>
+    </Form>
+  );
+}
+
+function BearerTokenInstructions() {
+  const clientTokens = useLoaderData<ClientToken[]>();
+  const actionData = useActionData<{ bearerToken: string; tokenId: string }>();
+  const show =
+    actionData && clientTokens.some(({ id }) => id === actionData.tokenId);
+
+  if (!show) return null;
+  return (
+    <Alert
+      message="New access token created"
+      description={
+        <Typography.Paragraph>
+          <p>
+            This is your new access token. Save it now. You will not have access
+            to this token after you reload the page.
+          </p>
+          <pre>
+            <Typography.Text copyable>{actionData.bearerToken}</Typography.Text>
+          </pre>
+        </Typography.Paragraph>
+      }
+      type="info"
+      showIcon
+    />
   );
 }
