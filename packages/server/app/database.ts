@@ -115,7 +115,7 @@ export async function listClientTokens({
   projectId: string;
 }): Promise<ClientToken[]> {
   const { Items: items } = await dynamoDB.executeStatement({
-    Statement: "SELECT item FROM client_tokens WHERE project_id = ?",
+    Statement: "SELECT * FROM client_tokens WHERE project_id = ?",
     Parameters: [{ S: projectId }],
   });
   if (!items) return [];
@@ -140,7 +140,11 @@ export async function createClientToken({
   projectId: string;
 }): Promise<ClientToken & { bearerToken: string }> {
   const bearerToken = crypto.pseudoRandomBytes(32).toString("base64");
-  const tokenId = crypto.createHash("sha256").update(bearerToken).digest("hex");
+  const tokenId = crypto
+    .createHash("sha256")
+    .update(bearerToken)
+    .digest("hex")
+    .slice(0, 32);
   const createdAt = new Date();
 
   try {
@@ -175,17 +179,15 @@ export async function renameClientToken({
   tokenId: string;
   name: string;
 }) {
-  await dynamoDB.updateItem({
-    TableName: "client_tokens",
-    Key: { id: { S: tokenId } } as ClientTokenSchemaKey,
-    UpdateExpression: "SET name = :name",
-    ExpressionAttributeValues: { ":name": { S: name } },
+  await dynamoDB.executeStatement({
+    Statement: "UPDATE client_tokens SET name = ? WHERE id = ?",
+    Parameters: [{ S: name }, { S: tokenId }],
   });
 }
 
 export async function deleteClientToken({ tokenId }: { tokenId: string }) {
   await dynamoDB.deleteItem({
     TableName: "client_tokens",
-    Key: { id: { S: tokenId } } as ClientTokenSchemaKey,
+    Key: { id: { S: tokenId } },
   });
 }

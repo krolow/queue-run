@@ -1,12 +1,26 @@
 import { ActionFunction, LoaderFunction, redirect } from "remix";
 import invariant from "tiny-invariant";
-import { deleteClientToken } from "~/database";
+import { deleteClientToken, renameClientToken } from "~/database";
 
 export const action: ActionFunction = async ({ params, request }) => {
-  if (request.method !== "DELETE") throw new Response(null, { status: 405 });
-  const { tokenId } = params;
+  const tokenId = params.id;
   invariant(tokenId, "Token id is required");
-  await deleteClientToken({ tokenId });
+  switch (request.method) {
+    case "DELETE": {
+      await deleteClientToken({ tokenId });
+      return {};
+    }
+
+    case "PUT": {
+      const name = (await request.formData()).get("name");
+      console.log("rename", tokenId, name);
+      await renameClientToken({ tokenId, name });
+      return {};
+    }
+
+    default:
+      throw new Response(null, { status: 405 });
+  }
 };
 
 export const loader: LoaderFunction = async () => redirect("/");
