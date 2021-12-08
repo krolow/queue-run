@@ -1,38 +1,63 @@
-import { SQS } from "@aws-sdk/client-sqs";
+import axios, { AxiosInstance } from "axios";
 
-export class Client {
-  private sqs: SQS;
+type Payload = string | Buffer | ArrayBuffer | object;
 
-  constructor() {
-    this.sqs = new SQS({
-      region: "us-east-1",
-      credentials: {
-        accessKeyId: "123456789012",
-        secretAccessKey: "123456789012",
-      },
-    });
+class Client {
+  readonly axios: AxiosInstance;
+
+  constructor({ url, token }: { url: string; token: string }) {
+    this.axios = axios.create({ baseURL: url });
+    this.axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
   }
 
-  async queue(name: string): Promise<(payload: unknown) => Promise<undefined>>;
-  async queue(name: string, payload: unknown): Promise<undefined>;
-  async queue(name: string, payload?: unknown) {
-    if (payload === undefined)
-      return (payload: unknown) => this.queue(name, payload);
+  public async queue(
+    name: string,
+    payload: Payload,
+    options?: {
+      // Group ID required when sending to a FIFO queue
+      groupId?: string;
+      // Dedupe ID is optional, used to prevent processing same message multiple times (FIFO queues only)
+      dedupeId?: string;
+    }
+  ): Promise<{ messageId: string }> {
+    const isFifo = name.endsWith(".fifo");
+    if (isFifo && !options?.groupId)
+      throw new TypeError("options.groupId is required for FIFO queue");
+    const fifoHeaders = isFifo
+      ? {
+          "X-Message-Group-Id": options?.groupId,
+          "X-Message-Deduplication-Id": options?.dedupeId,
+        }
+      : undefined;
 
-    if (typeof payload === "object")
-      await this.sqs.sendMessage({
-        QueueUrl: `https://sqs.us-east-1.amazonaws.com/123456789012/${name}`,
-        MessageBody: JSON.stringify(payload),
-        MessageAttributes: {
-          type: {
-            DataType: "String",
-            StringValue: "json",
-          },
+    const { data, status } = await this.axios.post<{ messageId: string }>(
+      `/queue/${name}`,
+      {
+        method: "POST",
+        data: payload,
+        headers: {
+          "Content-Type": getContentType(payload),
+          ...fifoHeaders,
         },
-      });
-    return undefined;
+      }
+    );
+    if (status !== 200) throw new Error(`Unexpected response status ${status}`);
+
+    const { messageId } = data;
+    return { messageId };
   }
 }
 
-export const client = new Client();
+function getContentType(payload: Payload): string {
+  if (typeof payload === "string" || payload instanceof String)
+    return "text/plain";
+  if (payload instanceof Buffer || payload instanceof ArrayBuffer)
+    return "text/plain";
+  return "application/json";
+}
+
+export function client(options: { url: string; token: string }) {
+  return new Client(options);
+}
+
 export default client;
