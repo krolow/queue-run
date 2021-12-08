@@ -1,13 +1,16 @@
 import crypto from "crypto";
 
-// Bearer token: client app sends this to the server in HTTP Authorization
-// header, 40 characters long
-//
-// Token ID: SHA256 of the bearer token, 32 characters long
-
 const tokenIDLength = 32;
 
-export default function createBearerToken() {
+export default function createBearerToken(): {
+  // Client app uses this, sends to server in HTTP Authorization header.
+  //
+  // Users will be dealing with this, so keep to 40 characters, base64.
+  bearerToken: string;
+  // Server uses this to verify token, and primary key in the database.
+  // SHA256 of bearer token, first 32 characters.
+  tokenID: string;
+} {
   const bearerToken = crypto
     .pseudoRandomBytes(32)
     .toString("base64")
