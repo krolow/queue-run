@@ -16,8 +16,8 @@ import {
   useTransition,
 } from "remix";
 import invariant from "tiny-invariant";
+import { dynamoDB } from "../../../aws";
 import createBearerToken from "../../../createBearerToken";
-import dynamoDB from "../../../database";
 
 type ClientToken = {
   createdAt: string;

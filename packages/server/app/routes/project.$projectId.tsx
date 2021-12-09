@@ -13,6 +13,7 @@ export default function ProjectPageLayout() {
 
   const pages = [
     { label: "Overview", path: `/project/${projectId}/` },
+    { label: "Main branch", path: `/project/${projectId}/branch/main` },
     { label: "Access Tokens", path: `/project/${projectId}/tokens` },
   ];
 

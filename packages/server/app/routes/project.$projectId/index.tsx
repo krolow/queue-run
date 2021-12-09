@@ -2,7 +2,8 @@ import { List, Tag } from "antd";
 import { formatDistanceToNowStrict, parseISO } from "date-fns";
 import { Link, LoaderFunction, useLoaderData, useMatches } from "remix";
 import invariant from "tiny-invariant";
-import dynamoDB from "../../database";
+import { dynamoDB } from "../../aws";
+import { Queues } from "./branch/$branchId/queues";
 
 type Project = {
   id: string;
@@ -61,30 +62,37 @@ export default function Index() {
 
   return (
     <main className="space-y-4">
-      <List header={<h2 className="text-lg">Recent Deployments</h2>}>
-        {deploys.map((deploy) => (
+      {project.defaultBranch && (
+        <Queues
+          projectId={projectId}
+          branchId={project.defaultBranch ?? "main"}
+        />
+      )}
+      <List
+        header={<h2 className="text-lg">Recent Deployments</h2>}
+        dataSource={deploys}
+        renderItem={({ branch, createdAt, id, status }) => (
           <List.Item
-            key={deploy.id}
             extra={[
-              <Tag color="red">{deploy.status}</Tag>,
-              <span>
-                {formatDistanceToNowStrict(parseISO(deploy.createdAt))} ago
+              <Tag key="tag" color="red">
+                {status}
+              </Tag>,
+              <span key="time">
+                {formatDistanceToNowStrict(parseISO(createdAt))} ago
               </span>,
             ]}
           >
             <Link
-              to={`/projects/${project.id}/deploys/${deploy.id}`}
+              to={`/projects/${project.id}/deploys/${id}`}
               className="text-lg"
             >
               {project.id}
-              {deploy.branch === project.defaultBranch
-                ? null
-                : `-${deploy.branch}`}
+              {branch === project.defaultBranch ? null : `-${branch}`}
               .queue.run
             </Link>
           </List.Item>
-        ))}
-      </List>
+        )}
+      />
     </main>
   );
 }

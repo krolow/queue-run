@@ -1,6 +1,6 @@
 import { ActionFunction, LoaderFunction, redirect } from "remix";
 import invariant from "tiny-invariant";
-import dynamoDB from "~/database";
+import { dynamoDB } from "~/aws";
 
 export const action: ActionFunction = async ({ params, request }) => {
   const { projectId, tokenId } = params;

@@ -1,7 +1,7 @@
 import { List } from "antd";
 import type { LoaderFunction } from "remix";
 import { Link, useLoaderData } from "remix";
-import dynamoDB from "../database";
+import { dynamoDB } from "../aws";
 
 type Project = {
   id: string;
@@ -21,19 +21,17 @@ export default function Index() {
 
   return (
     <main className="space-y-4">
-      <List header={<h2 className="text-xl">Your Projects</h2>}>
-        {projects.map((project) => (
-          <List.Item key={project.id}>
-            <Link
-              to={`/project/${project.id}`}
-              prefetch="intent"
-              className="text-xl"
-            >
-              {project.id}
+      <List
+        header={<h2 className="text-xl">Your Projects</h2>}
+        dataSource={projects}
+        renderItem={({ id }) => (
+          <List.Item>
+            <Link to={`/project/${id}`} prefetch="intent" className="text-xl">
+              {id}
             </Link>
           </List.Item>
-        ))}
-      </List>
+        )}
+      />
     </main>
   );
 }

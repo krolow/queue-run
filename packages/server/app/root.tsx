@@ -137,7 +137,7 @@ function Layout({ children }: { children: React.ReactNode }) {
       <PageHeader
         title={<Link to="/">🐇 Queue.run</Link>}
         subTitle="Background functions for JAMstack apps"
-        extra={[<a href="https://github.com/assaf/queue-run">GitHub</a>]}
+        extra={<a href="https://github.com/assaf/queue-run">GitHub</a>}
       />
       {children}
       <footer></footer>
