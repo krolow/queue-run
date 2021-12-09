@@ -31,7 +31,8 @@ export const loader: LoaderFunction = async ({ params }) => {
   invariant(projectId);
 
   const { Items: items } = await dynamoDB.executeStatement({
-    Statement: "SELECT * FROM client_tokens WHERE project_id = ?",
+    Statement:
+      'SELECT * FROM "client_tokens"."project_id-created_at-index" WHERE project_id = ? ORDER BY created_at DESC',
     Parameters: [{ S: projectId }],
   });
   if (!items) return [];
@@ -112,9 +113,7 @@ function ClientTokens({
 
   return (
     <List
-      dataSource={clientTokens.sort((a, b) =>
-        b.createdAt.localeCompare(a.createdAt)
-      )}
+      dataSource={clientTokens}
       renderItem={({ id, name, lastAccessedAt }) => (
         <List.Item
           actions={[
