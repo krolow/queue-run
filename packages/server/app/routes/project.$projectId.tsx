@@ -19,9 +19,8 @@ export default function ProjectPageLayout() {
 
   return (
     <main>
-      <h1 className="text-2xl space-x-2">
-        <span className="font-regular">Project</span>
-        <span className="font-bold">{projectId}</span>
+      <h1 className="text-xl">
+        Project <b>{projectId}</b>
       </h1>
       <Menu mode="horizontal" selectedKeys={[match.pathname]}>
         {pages.map(({ label, path }) => (

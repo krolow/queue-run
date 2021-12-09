@@ -84,7 +84,7 @@ export default function Index() {
           >
             <Link
               to={`/projects/${project.id}/deploys/${id}`}
-              className="text-lg"
+              className="text-base"
             >
               {project.id}
               {branch === project.defaultBranch ? null : `-${branch}`}

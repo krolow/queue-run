@@ -150,7 +150,7 @@ function EditableTokenName({
 
   return (
     <Typography.Text
-      className="text-lg"
+      className="text-base"
       editable={
         isRenaming
           ? undefined

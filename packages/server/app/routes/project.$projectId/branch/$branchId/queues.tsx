@@ -86,13 +86,13 @@ export function Queues({
     <List
       dataSource={queues}
       header={
-        <h2 className="text-xl font-normal">
-          Queues on <b>{branchId}</b> branch
+        <h2 className="text-lg">
+          Queues on branch <b>{branchId}</b>
         </h2>
       }
       loading={isLoading}
       renderItem={({ url, name }) => (
-        <List.Item className="text-lg">{name}</List.Item>
+        <List.Item className="text-base">{name}</List.Item>
       )}
     />
   );

@@ -22,11 +22,11 @@ export default function Index() {
   return (
     <main className="space-y-4">
       <List
-        header={<h2 className="text-xl">Your Projects</h2>}
+        header={<h2 className="text-lg">Your Projects</h2>}
         dataSource={projects}
         renderItem={({ id }) => (
           <List.Item>
-            <Link to={`/project/${id}`} prefetch="intent" className="text-xl">
+            <Link to={`/project/${id}`} prefetch="intent" className="text-base">
               {id}
             </Link>
           </List.Item>
