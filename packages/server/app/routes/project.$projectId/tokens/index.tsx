@@ -150,6 +150,7 @@ function EditableTokenName({
 
   return (
     <Typography.Text
+      className="text-lg"
       editable={
         isRenaming
           ? undefined
@@ -234,23 +235,47 @@ function BearerTokenInstructions() {
   const show =
     actionData && clientTokens.some(({ id }) => id === actionData.tokenId);
 
-  if (!show) return null;
+  if (show) {
+    return (
+      <Alert
+        message="New access token created"
+        description={
+          <Typography.Paragraph>
+            <p>
+              This is your new access token. Save it now. You will not have
+              access to this token after you reload the page.
+            </p>
+            <pre>
+              <Typography.Text copyable>
+                {actionData.bearerToken}
+              </Typography.Text>
+            </pre>
+          </Typography.Paragraph>
+        }
+        type="success"
+        showIcon
+      />
+    );
+  } else return <Instructions />;
+}
+
+function Instructions() {
   return (
     <Alert
-      message="New access token created"
       description={
         <Typography.Paragraph>
           <p>
-            This is your new access token. Save it now. You will not have access
-            to this token after you reload the page.
+            Client applications need to use either client access tokens or user
+            tokens (see here). Use this page to manage client access tokens.
           </p>
-          <pre>
-            <Typography.Text copyable>{actionData.bearerToken}</Typography.Text>
-          </pre>
+          <p>
+            If you have more than one client application, consider creating a
+            client token for each application. Give the token a name so you can
+            tell which client is using it.
+          </p>
         </Typography.Paragraph>
       }
       type="info"
-      showIcon
-    />
+    ></Alert>
   );
 }
