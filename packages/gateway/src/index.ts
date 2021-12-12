@@ -18,44 +18,53 @@ export async function handler(
 ): Promise<APIGatewayResponse> {
   try {
     const project = await getProject(event);
-    if (!project) return status("Project not found", 404);
 
     if (event.requestContext.http.method === "GET" && event.rawPath === "/")
       return redirectToDashboard(project);
-
-    return await invokeBackend(event, project);
+    else return await invokeBackend(event, project);
   } catch (error) {
-    if (error instanceof Error && error.name === "AccessDeniedException")
-      return status("No endpoint", 404);
-
-    console.error("Gateway error", error);
-    return status("Internal server error", 500);
+    if (error instanceof StatusCodeError) {
+      return {
+        body: error.message,
+        headers: {},
+        isBase64Encoded: false,
+        statusCode: error.statusCode,
+      };
+    } else {
+      console.error("Gateway error", error);
+      return {
+        body: "Bad gateway",
+        headers: {},
+        isBase64Encoded: false,
+        statusCode: 502,
+      };
+    }
   }
 }
 
-function status(message: string, statusCode: number): APIGatewayResponse {
-  return {
-    body: message,
-    headers: {},
-    isBase64Encoded: false,
-    statusCode,
-  };
+class StatusCodeError extends Error {
+  constructor(public message: string, public statusCode: number) {
+    super(`Status code ${statusCode}`);
+  }
 }
 
 export default async function getProject(request: APIGatewayEvent): Promise<{
   id: string;
   branch: string;
-} | null> {
+}> {
   const subdomain = request.headers.host?.split(".")[0];
+  if (!subdomain) throw new StatusCodeError("Not found", 404);
+
   const [_0, project, _1, branch] =
-    subdomain?.match(/^([a-z]+-[a-z]+)((?:-)(.*))?$/) ?? [];
+    subdomain.match(/^([a-z]+-[a-z]+)((?:-)(.*))?$/) ?? [];
+  if (!project) throw new StatusCodeError("Not found", 404);
 
   const { Items: items } = await dynamoDB.executeStatement({
     Statement: "SELECT id, default_branch FROM projects WHERE id = ?",
     Parameters: [{ S: project }],
   });
   const fromDB = items?.[0];
-  if (!fromDB) return null;
+  if (!fromDB) throw new StatusCodeError("Not found", 404);
 
   return {
     id: project,
@@ -89,10 +98,14 @@ async function invokeBackend(
       { abortSignal: controller.signal }
     );
     if (statusCode === 200 && payload) return fromResponsePayload(payload);
-    if (controller.signal.aborted) return status("Gateway timeout", 504);
-    return FunctionError
-      ? status(FunctionError, 500)
-      : status("Bad gateway", 502);
+    if (controller.signal.aborted)
+      throw new StatusCodeError("Gateway timeout", 504);
+    if (FunctionError) throw new StatusCodeError(FunctionError, 500);
+    throw new StatusCodeError("Internal server error", 500);
+  } catch (error) {
+    if (error instanceof Error && error.name === "ResourceNotFoundException")
+      throw new StatusCodeError("Not found", 404);
+    else throw error;
   } finally {
     clearTimeout(timeout);
   }
@@ -119,15 +132,19 @@ function toRequestPayload(event: APIGatewayEvent): Uint8Array {
 }
 
 function fromResponsePayload(payload: Uint8Array): APIGatewayResponse {
-  const response = JSON.parse(
-    Buffer.from(payload).toString("utf8")
-  ) as BackendLambdaResponse;
-  return {
-    body: response.body,
-    headers: response.headers,
-    isBase64Encoded: true,
-    statusCode: response.statusCode ?? 200,
-  };
+  try {
+    const response = JSON.parse(
+      Buffer.from(payload).toString("utf8")
+    ) as BackendLambdaResponse;
+    return {
+      body: response.body,
+      headers: response.headers,
+      isBase64Encoded: true,
+      statusCode: response.statusCode ?? 200,
+    };
+  } catch (error) {
+    throw new StatusCodeError("Bad gateway", 502);
+  }
 }
 
 function redirectToDashboard(project: {
