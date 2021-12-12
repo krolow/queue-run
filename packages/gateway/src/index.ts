@@ -25,6 +25,9 @@ export async function handler(
 
     return await invokeBackend(event, project);
   } catch (error) {
+    if (error instanceof Error && error.name === "AccessDeniedException")
+      return status("No endpoint", 404);
+
     console.error("Gateway error", error);
     return status("Internal server error", 500);
   }
@@ -64,7 +67,7 @@ async function invokeBackend(
   event: APIGatewayEvent,
   project: { id: string; branch: string }
 ): Promise<APIGatewayResponse> {
-  const lambdaName = `backend.${project.id}.${project.branch}`;
+  const lambdaName = `backend-${project.id}-${project.branch}`;
   console.info("Inovking backend lambda %s", lambdaName);
 
   const controller = new AbortController();
