@@ -1,5 +1,5 @@
 {
-  "name": "@queue-run/client-api",
+  "name": "@queue-run/gateway",
   "version": "0.0.0",
   "main": "dist/index.js",
   "scripts": {
