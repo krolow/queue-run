@@ -96,10 +96,10 @@
     tslib "^2.3.0"
     uuid "^8.3.2"
 
-"@aws-sdk/client-sqs@^3.43.0":
+"@aws-sdk/client-lambda@^3.43.0":
   version "3.43.0"
-  resolved "https://registry.yarnpkg.com/@aws-sdk/client-sqs/-/client-sqs-3.43.0.tgz#d50d3c79a462ec291b75a36c4cf75e0208508cc7"
-  integrity sha512-FRLxT0p/nfU26AOwBfKSKGFbXz6oU0pIjl8tvCjfudgKmzLz4zL+coTL5UsGmxDfEyyb99LtLimN6UGe5KFVZA==
+  resolved "https://registry.yarnpkg.com/@aws-sdk/client-lambda/-/client-lambda-3.43.0.tgz#36aae015cdc7fdd2a34757bb4812ecdc5b011c73"
+  integrity sha512-6FuZfBJ40KlolUkjaz2WTtfQgvT5HigoV5O/VLqM3qFUpUsyQ+zjmm0y0QmfndAlK+8sI53yiKhBp/PMkAQgWw==
   dependencies:
     "@aws-crypto/sha256-browser" "2.0.0"
     "@aws-crypto/sha256-js" "2.0.0"
@@ -109,12 +109,10 @@
     "@aws-sdk/fetch-http-handler" "3.40.0"
     "@aws-sdk/hash-node" "3.40.0"
     "@aws-sdk/invalid-dependency" "3.40.0"
-    "@aws-sdk/md5-js" "3.40.0"
     "@aws-sdk/middleware-content-length" "3.40.0"
     "@aws-sdk/middleware-host-header" "3.40.0"
     "@aws-sdk/middleware-logger" "3.40.0"
     "@aws-sdk/middleware-retry" "3.40.0"
-    "@aws-sdk/middleware-sdk-sqs" "3.40.0"
     "@aws-sdk/middleware-serde" "3.40.0"
     "@aws-sdk/middleware-signing" "3.40.0"
     "@aws-sdk/middleware-stack" "3.40.0"
@@ -133,8 +131,7 @@
     "@aws-sdk/util-user-agent-node" "3.40.0"
     "@aws-sdk/util-utf8-browser" "3.37.0"
     "@aws-sdk/util-utf8-node" "3.37.0"
-    entities "2.2.0"
-    fast-xml-parser "3.19.0"
+    "@aws-sdk/util-waiter" "3.40.0"
     tslib "^2.3.0"
 
 "@aws-sdk/client-sso@3.41.0":
@@ -347,16 +344,6 @@
   dependencies:
     tslib "^2.3.0"
 
-"@aws-sdk/md5-js@3.40.0":
-  version "3.40.0"
-  resolved "https://registry.yarnpkg.com/@aws-sdk/md5-js/-/md5-js-3.40.0.tgz#027ff231c795a6069ae854ccf7c8b57dbfd441fe"
-  integrity sha512-P1tzEljMD/MkjSc00TkVBYvfaVv/7S+04YEwE7tpu/jtxWxMHnk3CMKqq/F2iMhY83DRoqoYy+YqnaF4Bzr1uA==
-  dependencies:
-    "@aws-sdk/types" "3.40.0"
-    "@aws-sdk/util-utf8-browser" "3.37.0"
-    "@aws-sdk/util-utf8-node" "3.37.0"
-    tslib "^2.3.0"
-
 "@aws-sdk/middleware-content-length@3.40.0":
   version "3.40.0"
   resolved "https://registry.yarnpkg.com/@aws-sdk/middleware-content-length/-/middleware-content-length-3.40.0.tgz#affe235fc0eb43c7b8e21189f85a238fdd0b4c3f"
@@ -404,15 +391,6 @@
     "@aws-sdk/types" "3.40.0"
     tslib "^2.3.0"
     uuid "^8.3.2"
-
-"@aws-sdk/middleware-sdk-sqs@3.40.0":
-  version "3.40.0"
-  resolved "https://registry.yarnpkg.com/@aws-sdk/middleware-sdk-sqs/-/middleware-sdk-sqs-3.40.0.tgz#848d9f4c7964c78bba2cefc36df98164b020e500"
-  integrity sha512-egbrXObg7dhjjXEIjwIiNaHAwz1hRFBCOjHVZquLAmnViTvjnEsmpUcE3wlC9TnvBXAs5B6KKloKsd4RfYxRlA==
-  dependencies:
-    "@aws-sdk/types" "3.40.0"
-    "@aws-sdk/util-hex-encoding" "3.37.0"
-    tslib "^2.3.0"
 
 "@aws-sdk/middleware-sdk-sts@3.40.0":
   version "3.40.0"
@@ -2026,14 +2004,6 @@
   version "3.0.5"
   resolved "https://registry.yarnpkg.com/@types/minimatch/-/minimatch-3.0.5.tgz#1001cc5e6a3704b83c236027e77f2f58ea010f40"
   integrity sha512-Klz949h02Gz2uZCMGwDUSDS1YBlTdDDgbWHi+81l29tQALUtvz4rAYi5uoVhE5Lagoq6DeqAUlbrHvW/mXDgdQ==
-
-"@types/node-fetch@^2.5.12":
-  version "2.5.12"
-  resolved "https://registry.yarnpkg.com/@types/node-fetch/-/node-fetch-2.5.12.tgz#8a6f779b1d4e60b7a57fb6fd48d84fb545b9cc66"
-  integrity sha512-MKgC4dlq4kKNa/mYrwpKfzQMB5X3ee5U6fSprkKpToBqBmX4nFZL9cW5jl6sWn+xpRJ7ypWh2yyqqr8UUCstSw==
-  dependencies:
-    "@types/node" "*"
-    form-data "^3.0.0"
 
 "@types/node@*":
   version "16.11.11"
@@ -4834,12 +4804,10 @@ no-case@^3.0.4:
     lower-case "^2.0.2"
     tslib "^2.0.3"
 
-node-fetch@2.6.6:
-  version "2.6.6"
-  resolved "https://registry.yarnpkg.com/node-fetch/-/node-fetch-2.6.6.tgz#1751a7c01834e8e1697758732e9efb6eeadfaf89"
-  integrity sha512-Z8/6vRlTUChSdIgMa51jxQ4lrw/Jy5SOW10ObaA47/RElsAN2c5Pn8bTgFGWn/ibwzXTE8qwr1Yzx28vsecXEA==
-  dependencies:
-    whatwg-url "^5.0.0"
+node-abort-controller@^3.0.1:
+  version "3.0.1"
+  resolved "https://registry.yarnpkg.com/node-abort-controller/-/node-abort-controller-3.0.1.tgz#f91fa50b1dee3f909afabb7e261b1e1d6b0cb74e"
+  integrity sha512-/ujIVxthRs+7q6hsdjHMaj8hRG9NuWmwrz+JdRwZ14jdFoKSkm+vDsCbF9PLpnSqjaWQJuTmVtcWHNLr+vrOFw==
 
 node-int64@^0.4.0:
   version "0.4.0"
@@ -5839,11 +5807,6 @@ tiny-glob@^0.2.9:
     globalyzer "0.1.0"
     globrex "^0.1.2"
 
-tiny-invariant@^1.2.0:
-  version "1.2.0"
-  resolved "https://registry.yarnpkg.com/tiny-invariant/-/tiny-invariant-1.2.0.tgz#a1141f86b672a9148c72e978a19a73b9b94a15a9"
-  integrity sha512-1Uhn/aqw5C6RI4KejVeTg6mIS7IqxnLJ8Mv2tV5rTc0qWobay7pDUz6Wi392Cnc8ak1H0F2cjoRzb2/AW4+Fvg==
-
 tmpl@1.0.5:
   version "1.0.5"
   resolved "https://registry.yarnpkg.com/tmpl/-/tmpl-1.0.5.tgz#8683e0b902bb9c20c4f726e3c0b69f36518c07cc"
@@ -5876,11 +5839,6 @@ tr46@^2.1.0:
   integrity sha512-15Ih7phfcdP5YxqiB+iDtLoaTz4Nd35+IiAv0kQ5FNKHzXgdWqPoTIqEDDJmXceQt4JZk6lVPT8lnDlPpGDppw==
   dependencies:
     punycode "^2.1.1"
-
-tr46@~0.0.3:
-  version "0.0.3"
-  resolved "https://registry.yarnpkg.com/tr46/-/tr46-0.0.3.tgz#8184fd347dac9cdc185992f3a6622e14b9d9ab6a"
-  integrity sha1-gYT9NH2snNwYWZLzpmIuFLnZq2o=
 
 ts-jest@^27.0.7:
   version "27.0.7"
@@ -6099,11 +6057,6 @@ wcwidth@^1.0.1:
   dependencies:
     defaults "^1.0.3"
 
-webidl-conversions@^3.0.0:
-  version "3.0.1"
-  resolved "https://registry.yarnpkg.com/webidl-conversions/-/webidl-conversions-3.0.1.tgz#24534275e2a7bc6be7bc86611cc16ae0a5654871"
-  integrity sha1-JFNCdeKnvGvnvIZhHMFq4KVlSHE=
-
 webidl-conversions@^5.0.0:
   version "5.0.0"
   resolved "https://registry.yarnpkg.com/webidl-conversions/-/webidl-conversions-5.0.0.tgz#ae59c8a00b121543a2acc65c0434f57b0fc11aff"
@@ -6125,14 +6078,6 @@ whatwg-mimetype@^2.3.0:
   version "2.3.0"
   resolved "https://registry.yarnpkg.com/whatwg-mimetype/-/whatwg-mimetype-2.3.0.tgz#3d4b1e0312d2079879f826aff18dbeeca5960fbf"
   integrity sha512-M4yMwr6mAnQz76TbJm914+gPpB/nCwvZbJU28cUD6dR004SAxDLOOSUaB1JDRqLtaOV/vi0IC5lEAGFgrjGv/g==
-
-whatwg-url@^5.0.0:
-  version "5.0.0"
-  resolved "https://registry.yarnpkg.com/whatwg-url/-/whatwg-url-5.0.0.tgz#966454e8765462e37644d3626f6742ce8b70965d"
-  integrity sha1-lmRU6HZUYuN2RNNib2dCzotwll0=
-  dependencies:
-    tr46 "~0.0.3"
-    webidl-conversions "^3.0.0"
 
 whatwg-url@^8.0.0, whatwg-url@^8.5.0:
   version "8.7.0"

@@ -13,10 +13,8 @@
   ],
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.44.0",
-    "@aws-sdk/client-sqs": "^3.43.0",
-    "@types/node-fetch": "^2.5.12",
-    "node-fetch": "2.6.6",
-    "tiny-invariant": "^1.2.0"
+    "@aws-sdk/client-lambda": "^3.43.0",
+    "node-abort-controller": "^3.0.1"
   },
   "devDependencies": {
     "dts-cli": "^0.19.7"
