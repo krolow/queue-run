@@ -3,17 +3,19 @@
 Client applications send requests to the Gateway, which forwards them to the appropriate backend Lambda.
 
 ```
-Client -> Gateway -> Backend Lambda -> Your code
+Client (your code) ->
+  Gateway -> Backend Lambda ->
+    HTTP route/queue (your code)
 ```
 
-Each branch has its own unique host name and Lambda function. AWS limits how many domains/routes/Lambdas we can manage on one account. So we can't deploy the backend Lambda as an API Gateway endpoint.
+Each branch has a unique sub-domain and Lambda referenced by alias. AWS limits how many domains/routes/Lambdas we can manage on a single account. We can't deploy an API Gateway for each branch.
 
-Instead, we use this single Gateway Lambda that handles requests for all subdomains under `queue.run`, as well as custom project domains.
+Instead, we have one API Gateway and Lambda (this one) that handle all requests for `*.queue.run` (and in the future, custom domains).
 
-Since subdomains don't have to include the default branch name, it will lookup the project record in DynamoDB for each invocation.
+Right now, the Gateway deploys to us-east-1. That means additional roundtrip latency when the client and backend run in a different region.
 
-The current implementation runs on us-east-1. This adds roundtrip latency if the client and backend run in the same region, which is not us-east-1.
+Future implementation should run as Lambda@Edge. That moves the Gateway closer to the client, removing that latency. It also introduces a layer of caching.
 
-Future implementation should run on Lambda@Edge, so the request is handled on the edge server closest to the client, and doesn't add undue latency.
+For default branches, the sub-domain does not include the branch name. For custom domains, the URL does not contain the project ID. So the Gateway needs to perform one lookup against the database.
 
-However, Lambda@Edge has strict size restriction, and so we can't bundle the AWS SDK we need for accessing DynamoDB and Lambda invocation. We'll need a workaround.
+In the future, we may want to track access: for billing and for evicting stale branches/projects.
