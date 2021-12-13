@@ -16,7 +16,7 @@ export default async function loadGroup({
   watch: boolean;
 }): Promise<Map<string, ReturnType<typeof loadFunction>>> {
   const filenames = glob.sync("[!_]*.{js,ts}", {
-    cwd: path.resolve(dirname, "background", group),
+    cwd: path.resolve(dirname, "backend", group),
     followSymbolicLinks: true,
     onlyFiles: true,
     absolute: true,

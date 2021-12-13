@@ -49,7 +49,7 @@ export default async function compileSourceFiles({
   }
 
   console.info("λ: Compiled %d files and copied %d files", compiled, copied);
-  const entryPoints = glob.sync("background/*/[!_]*.{ts,js}", {
+  const entryPoints = glob.sync("backend/*/[!_]*.{ts,js}", {
     cwd: sourceDir,
   });
   if (entryPoints.length === 0) throw new Error("No entry points found");

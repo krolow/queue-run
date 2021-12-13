@@ -118,12 +118,13 @@ function getLambdaTimeout(queues: Map<string, { config: QueueConfig }>) {
   const lambdaTimeout = Math.max(
     ...Array.from(queues.values()).map(({ config }) => config.timeout ?? 10)
   );
+  console.log(queues);
   const maxTimeout = 300; // 5 minutes
   ow(
     lambdaTimeout,
     ow.number
       .greaterThan(0)
-      .message("One or more functions has a negative or zeo timeout")
+      .message("One or more functions has a negative or zero timeout")
   );
   ow(
     lambdaTimeout,

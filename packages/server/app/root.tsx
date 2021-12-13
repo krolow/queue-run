@@ -45,7 +45,7 @@ export const meta: MetaFunction = () => {
   return {
     title: "queue.run",
     description:
-      "👋 Background functions for JAMstack apps (queues, pub/sub, cron, etc)",
+      "👋 APIs and back-end functions for JAMstack apps (queues, pub/sub, cron, etc)",
   };
 };
 
