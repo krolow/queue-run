@@ -45,6 +45,8 @@ export async function handler(
 class StatusCodeError extends Error {
   constructor(public message: string, public statusCode: number) {
     super(`Status code ${statusCode}`);
+    this.message = message;
+    this.statusCode = statusCode;
   }
 }
 
@@ -55,7 +57,7 @@ export default async function getProject(request: APIGatewayEvent): Promise<{
   const subdomain = request.headers.host?.split(".")[0];
   if (!subdomain) throw new StatusCodeError("Not found", 404);
 
-  const [_0, project, _1, branch] =
+  const [, project, , branch] =
     subdomain.match(/^([a-z]+-[a-z]+)((?:-)(.*))?$/) ?? [];
   if (!project) throw new StatusCodeError("Not found", 404);
 
