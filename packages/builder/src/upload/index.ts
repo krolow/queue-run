@@ -12,7 +12,7 @@ import uploadLambda from "./uploadLambda";
 
 export default async function upload({
   branch,
-  envVars,
+  envVars: sourceEnvVars,
   projectId,
   region,
 }: {
@@ -33,6 +33,13 @@ export default async function upload({
       .matches(/^[a-z0-9-]+$/i)
       .message("Branch name can only contain alphanumeric and hypen characters")
   );
+
+  const envVars = {
+    ...sourceEnvVars,
+    NODE_ENV: "production",
+    QUEUE_RUN_PROJECT: projectId,
+    QUEUE_RUN_BRANCH: branch,
+  };
 
   const lambdaName = `backend-${projectId}`;
   const alias = `${lambdaName}-${branch}`;
