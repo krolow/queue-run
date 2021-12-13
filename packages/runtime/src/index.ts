@@ -1,4 +1,6 @@
 import type { CredentialProvider } from "@aws-sdk/types";
+import { Request, Response } from "node-fetch";
+import { asFetchRequest } from "./asFetch";
 import type { LambdaEvent as LambdaEvent } from "./LambdaEvent";
 import handleSQSMessages from "./sqs";
 
@@ -34,5 +36,13 @@ function swapEnvVars(): {
 }
 
 export async function handler(event: LambdaEvent) {
-  await Promise.all([handleSQSMessages({ clientConfig, event })]);
+  if ("Records" in event) {
+    await Promise.all([handleSQSMessages({ clientConfig, event })]);
+  } else if ("url" in event) {
+    return await asFetchRequest(http)(event);
+  }
+}
+
+async function http(request: Request): Promise<Response> {
+  return new Response("OK", { status: 200 });
 }

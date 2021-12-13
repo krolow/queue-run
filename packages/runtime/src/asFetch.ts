@@ -1,5 +1,6 @@
 import { Headers, Request, Response } from "node-fetch";
-import { URL } from "url";
+import { BackendLambdaRequest } from "./../../gateway/src/types";
+import { BackendLambdaResponse } from "./LambdaEvent";
 
 export declare type FetchRequestHandler = (
   request: Request
@@ -18,100 +19,68 @@ export function json(value: unknown): Response {
   });
 }
 
-type APIGatewayHandler = (
-  event: APIGatewayEvent,
-  context: unknown
-) => Promise<APIGatewayResponse>;
-
-export function asFetchRequest(
-  handler: FetchRequestHandler
-): APIGatewayHandler {
-  return async function (event: APIGatewayEvent) {
+export function asFetchRequest(handler: FetchRequestHandler) {
+  return async function (
+    event: BackendLambdaRequest
+  ): Promise<BackendLambdaResponse> {
     try {
       const response = await handler(toFetchRequest(event));
-      return await toAPIGatewayResponse(toResponse(response));
-    } catch (error) {
-      if (error instanceof Response) return await toAPIGatewayResponse(error);
-      else {
-        console.error("Callback error", error);
-        return toAPIGatewayResponse(
-          new Response("Internal server error", { status: 500 })
+
+      if (response instanceof Response) return fromFetchResponse(response);
+      if (typeof response === "string" || response instanceof String) {
+        return fromFetchResponse(
+          new Response(String(response), {
+            headers: { "Content-Type": "text/plain" },
+          })
         );
+      }
+      if (response instanceof Buffer) {
+        return fromFetchResponse(
+          new Response(response, { headers: { "Content-Type": "text/plain" } })
+        );
+      }
+      if (response === null || response === undefined) {
+        console.error(
+          "HTTP request returned null or undefined. If this was intentional, use this instead: return new Response(null, { status: 204 })"
+        );
+        return fromFetchResponse(new Response(undefined, { status: 204 }));
+      }
+      return fromFetchResponse(
+        new Response(JSON.stringify(response), {
+          headers: { "Content-Type": "application/json" },
+        })
+      );
+    } catch (error) {
+      if (error instanceof Response) {
+        return fromFetchResponse(
+          new Response(error.body, { ...error, status: error.status ?? 500 })
+        );
+      } else {
+        console.error("Callback error", error);
+        const message = error instanceof Error ? error.message : String(error);
+        return fromFetchResponse(new Response(message, { status: 500 }));
       }
     }
   };
 }
 
-function toResponse(response: Response | string | object | number): Response {
-  if (response instanceof Response) return response;
-  if (response === null || response === undefined)
-    throw new TypeError("The callback must return a Response.");
-  if (typeof response === "string" || response instanceof String)
-    return new Response(String(response));
-  if (typeof response === "number" || response instanceof Number)
-    return new Response(undefined, { status: +response });
-  return new Response(JSON.stringify(response));
-}
-
-function toFetchRequest(event: APIGatewayEvent): Request {
-  const url = new URL(`https://${event.requestContext.domainName}`);
-  url.pathname = event.rawPath;
-  url.search = event.rawQueryString;
-
-  const body = event.body
-    ? Buffer.from(event.body, event.isBase64Encoded ? "base64" : "utf8")
-    : undefined;
-
+function toFetchRequest(event: BackendLambdaRequest): Request {
+  const body = event.body ? Buffer.from(event.body, "base64") : undefined;
   const headers = new Headers(event.headers);
-
-  const method = event.requestContext.http.method;
-
-  return new Request(url, { body, headers, method });
-}
-
-async function toAPIGatewayResponse(
-  response: Response
-): Promise<APIGatewayResponse> {
-  const body = (await response.buffer()).toString("base64");
-
-  const headers: Record<string, string> = {};
-  response.headers.forEach((value, key) => {
-    headers[key.toLowerCase()] = value;
+  const method = event.method;
+  return new Request(event.url, {
+    body,
+    headers,
+    method,
   });
-
-  // Response.error has status code 0, this makes sense on client (network error),
-  // on the server we always want to respond with 500.
-  const statusCode = response.status === 0 ? 500 : response.status ?? 200;
-
-  return { body, isBase64Encoded: true, headers, statusCode };
 }
 
-type APIGatewayResponse = {
-  body: string;
-  headers: Record<string, string>;
-  isBase64Encoded: boolean;
-  statusCode: number;
-};
-
-export type APIGatewayEvent = {
-  version: "2.0";
-  rawPath: string;
-  rawQueryString: string;
-  cookies?: string[];
-  headers: Record<string, string>;
-  requestContext: {
-    accountId: string;
-    domainName: string;
-    domainPrefix: string;
-    requestId: string;
-    http: {
-      method: string;
-      path: string;
-      protocol: "HTTP/1.1";
-      sourceIp: string;
-      userAgent: string;
-    };
+async function fromFetchResponse(
+  response: Response
+): Promise<BackendLambdaResponse> {
+  return {
+    body: (await response.buffer()).toString("base64"),
+    headers: Object.fromEntries(response.headers),
+    statusCode: response.status ?? 200,
   };
-  body?: string;
-  isBase64Encoded?: boolean;
-};
+}

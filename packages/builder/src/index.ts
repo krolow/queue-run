@@ -1,10 +1,18 @@
 import { Command } from "commander";
+import dotenv from "dotenv";
 import { readFileSync } from "fs";
 import path from "path";
 import build from "./build";
 import installDependencies from "./build/installDependencies";
 import upload from "./upload";
 import loadEnvVars from "./util/loadEnvVars";
+
+if (!process.env.CREDENTIALS)
+  throw new Error("CREDENTIALS environment variable is not set");
+const credentials = dotenv.parse(process.env.CREDENTIALS);
+process.env.AWS_ACCESS_KEY_ID = credentials.aws_access_key_id;
+process.env.AWS_SECRET_ACCESS_KEY = credentials.aws_secret_access_key;
+process.env.AWS_REGION = credentials.aws_region;
 
 const program = new Command();
 program.version(

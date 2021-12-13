@@ -76,8 +76,9 @@ async function invokeBackend(
   event: APIGatewayEvent,
   project: { id: string; branch: string }
 ): Promise<APIGatewayResponse> {
-  const lambdaName = `backend-${project.id}-${project.branch}`;
-  console.info("Inovking backend lambda %s", lambdaName);
+  const lambdaName = `backend-${project.id}`;
+  const aliasName = `${lambdaName}:${lambdaName}-${project.branch}`;
+  console.info("Inovking backend lambda %s", aliasName);
 
   const controller = new AbortController();
   const timeout = setTimeout(function () {
@@ -91,17 +92,18 @@ async function invokeBackend(
       FunctionError,
     } = await lambda.invoke(
       {
-        FunctionName: lambdaName,
+        FunctionName: aliasName,
         InvocationType: "RequestResponse",
         Payload: toRequestPayload(event),
       },
       { abortSignal: controller.signal }
     );
+
     if (statusCode === 200 && payload) return fromResponsePayload(payload);
-    if (controller.signal.aborted)
+    else if (controller.signal.aborted)
       throw new StatusCodeError("Gateway timeout", 504);
-    if (FunctionError) throw new StatusCodeError(FunctionError, 500);
-    throw new StatusCodeError("Internal server error", 500);
+    else if (FunctionError) throw new StatusCodeError(FunctionError, 500);
+    else throw new StatusCodeError("Internal server error", 500);
   } catch (error) {
     if (error instanceof Error && error.name === "ResourceNotFoundException")
       throw new StatusCodeError("Not found", 404);
@@ -138,11 +140,12 @@ function fromResponsePayload(payload: Uint8Array): APIGatewayResponse {
     ) as BackendLambdaResponse;
     return {
       body: response.body,
-      headers: response.headers,
+      headers: response.headers ?? {},
       isBase64Encoded: true,
       statusCode: response.statusCode ?? 200,
     };
   } catch (error) {
+    console.info("Failed to parse response", error);
     throw new StatusCodeError("Bad gateway", 502);
   }
 }

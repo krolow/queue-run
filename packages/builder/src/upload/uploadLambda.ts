@@ -3,7 +3,7 @@ import invariant from "tiny-invariant";
 import { handler } from "../constants";
 import getRuntimeVersion from "../util/getRuntime";
 import { buildDir } from "./../constants";
-import getLambdaRole from "./lambdaRole";
+import getLambdaRole, { deleteLambdaRole } from "./lambdaRole";
 
 // Creates or updates Lambda function with latest configuration and code.
 // Publishes the new version and returns the published version ARN.
@@ -42,7 +42,7 @@ export default async function uploadLambda({
     });
     invariant(updatedConfig.RevisionId);
 
-    const updatedConfigRevisionId = await waitForNewRevision({
+    const { RevisionId: updatedConfigRevisionId } = await waitForNewRevision({
       lambda,
       lambdaName,
       revisionId: updatedConfig.RevisionId,
@@ -54,10 +54,8 @@ export default async function uploadLambda({
       ZipFile: zip,
       RevisionId: updatedConfigRevisionId,
     });
-    invariant(
-      updatedCode.FunctionArn && updatedCode.RevisionId,
-      "Could not update function with new code"
-    );
+    // FunctionArn includes version number
+    invariant(updatedCode.FunctionArn && updatedCode.RevisionId);
 
     console.info("λ: Updated function %s", lambdaName);
     return updatedCode.FunctionArn;
@@ -69,9 +67,11 @@ export default async function uploadLambda({
     PackageType: "Zip",
     Publish: true,
   });
-  invariant(newLambda.FunctionArn, "Could not update function with new code");
+  // FunctionArn does not include version number
+  const arn = `${newLambda.FunctionArn}:${newLambda.Version}`;
   console.info("λ: Created new function %s in %s", lambdaName, region);
-  return newLambda.FunctionArn;
+
+  return arn;
 }
 
 async function getFunction({
@@ -101,7 +101,7 @@ async function waitForNewRevision({
   lambda: Lambda;
   lambdaName: string;
   revisionId: string;
-}): Promise<string> {
+}): Promise<FunctionConfiguration> {
   const { Configuration } = await lambda.getFunction({
     FunctionName: lambdaName,
   });
@@ -112,7 +112,7 @@ async function waitForNewRevision({
     await new Promise((resolve) => setTimeout(resolve, 500));
     return await waitForNewRevision({ lambda, lambdaName, revisionId });
   } else {
-    return Configuration.RevisionId;
+    return Configuration;
   }
 }
 
@@ -126,4 +126,19 @@ function aliasAWSEnvVars(
     else aliased[key] = value;
   }
   return aliased;
+}
+
+export async function deleteLambda({
+  lambdaName,
+  region,
+}: {
+  lambdaName: string;
+  branch?: string;
+  region: string;
+}) {
+  const lambda = new Lambda({ region });
+  await lambda.deleteFunction({
+    FunctionName: lambdaName,
+  });
+  await deleteLambdaRole({ lambdaName, region });
 }

@@ -34,7 +34,7 @@ export default async function upload({
       .message("Branch name can only contain alphanumeric and hypen characters")
   );
 
-  const lambdaName = projectId;
+  const lambdaName = `backend-${projectId}`;
   const alias = `${lambdaName}-${branch}`;
   const prefix = `${alias}__`;
 

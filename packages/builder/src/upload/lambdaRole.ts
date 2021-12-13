@@ -1,7 +1,8 @@
 import type { Role } from "@aws-sdk/client-iam";
 import { IAM } from "@aws-sdk/client-iam";
 import invariant from "tiny-invariant";
-import { lambdaRolePath } from "../constants";
+
+const lambdaRolePath = "/services/queuerun";
 
 const Version = "2012-10-17";
 
@@ -67,7 +68,7 @@ export default async function getLambdaRole({
 }
 
 async function upsertRole(iam: IAM, lambdaName: string): Promise<Role> {
-  const roleName = `Project.${lambdaName}`;
+  const roleName = lambdaName;
   try {
     const { Role: role } = await iam.getRole({ RoleName: roleName });
     if (role) return role;
@@ -105,4 +106,17 @@ async function updatePolicy(
     PolicyDocument: JSON.stringify(policy),
   });
   console.info("λ: Updated policy %s", policyName);
+}
+
+export async function deleteLambdaRole({
+  lambdaName,
+  region,
+}: {
+  lambdaName: string;
+  region: string;
+}) {
+  const iam = new IAM({ region });
+  await iam.deleteRole({
+    RoleName: lambdaName,
+  });
 }
