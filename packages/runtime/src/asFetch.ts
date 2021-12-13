@@ -1,6 +1,8 @@
 import { Headers, Request, Response } from "node-fetch";
-import { BackendLambdaRequest } from "./../../gateway/src/types";
-import { BackendLambdaResponse } from "./LambdaEvent";
+import {
+  BackendLambdaRequest,
+  BackendLambdaResponse,
+} from "./../../gateway/src/types";
 
 export declare type FetchRequestHandler = (
   request: Request
@@ -10,14 +12,6 @@ export declare type FetchRequestHandler = (
   | string
   | object
   | number;
-
-export function json(value: unknown): Response {
-  return new Response(JSON.stringify(value), {
-    status: 200,
-    statusText: "OK",
-    headers: { "Content-Type": "application/json" },
-  });
-}
 
 export function asFetchRequest(handler: FetchRequestHandler) {
   return async function (

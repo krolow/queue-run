@@ -1,4 +1,4 @@
-// AWS API Gateway
+// AWS API Gateway Event
 export type APIGatewayEvent = {
   version: "2.0";
   rawPath: string;
@@ -29,7 +29,7 @@ export type APIGatewayResponse = {
   statusCode: number;
 };
 
-// Our backend Lambda
+// Request/response to backend Lambda
 export type BackendLambdaRequest = {
   body?: string;
   headers: Record<string, string>;

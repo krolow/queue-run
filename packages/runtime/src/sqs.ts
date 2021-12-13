@@ -3,19 +3,18 @@ import type { CredentialProvider } from "@aws-sdk/types";
 import ms from "ms";
 import { AbortController } from "node-abort-controller";
 import { JSONObject, QueueConfig, QueueHandler } from "../types";
-import { LambdaEvent, SQSFifoMessage, SQSMessage } from "./LambdaEvent";
+import { SQSFifoMessage, SQSMessage } from "../types/lambda";
 import loadModule from "./loadModule";
 
 // Handle whatever SQS messages are included in the Lambda event,
 // ignores other records
 export default async function handleSQSMessages({
   clientConfig,
-  event,
+  messages,
 }: {
   clientConfig: { credentials: CredentialProvider; region: string };
-  event: LambdaEvent;
+  messages: SQSMessage[];
 }) {
-  const messages = event.Records.filter(isSQSMessage);
   if (messages.length === 0) return;
 
   const sqs = new SQS(clientConfig);
@@ -23,10 +22,6 @@ export default async function handleSQSMessages({
     handleUnorderedMessages({ messages, sqs }),
     handleFifoMessages({ messages, sqs }),
   ]);
-}
-
-function isSQSMessage(record: LambdaEvent["Records"][0]): record is SQSMessage {
-  return record.eventSource === "aws:sqs";
 }
 
 // Messages from regular queues can be processed in parallel
@@ -116,11 +111,12 @@ async function handleOneMessage({
 }): Promise<boolean> {
   const { messageId } = message;
   const queueName = getQueueName(message);
-  const { config, handler } = await loadModule<QueueHandler, QueueConfig>(
-    "queue",
-    queueName
+  const module = await loadModule<QueueHandler, QueueConfig>(
+    `queue/${queueName}`
   );
+  if (!module) throw new Error(`No handler for queue ${queueName}`);
 
+  const { config, handler } = module;
   const timeout = getTimeout(config);
   // Extend visibilty until we're done processing the message.
   await changeVisibility({ message, sqs, timeout });

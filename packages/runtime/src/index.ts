@@ -1,12 +1,15 @@
 import type { CredentialProvider } from "@aws-sdk/types";
 import { Request, Response } from "node-fetch";
+import type { LambdaEvent } from "../types/lambda";
 import { asFetchRequest } from "./asFetch";
-import type { LambdaEvent as LambdaEvent } from "./LambdaEvent";
 import handleSQSMessages from "./sqs";
 
-const clientConfig = swapEnvVars();
+const projectId = process.env.QUEUE_RUN_PROJECT_ID!;
+const branch = process.env.QUEUE_RUN_BRANCH!;
 
-function swapEnvVars(): {
+const clientConfig = swapAWSEnvVars();
+
+function swapAWSEnvVars(): {
   credentials: CredentialProvider;
   region: string;
 } {
@@ -37,7 +40,12 @@ function swapEnvVars(): {
 
 export async function handler(event: LambdaEvent) {
   if ("Records" in event) {
-    await Promise.all([handleSQSMessages({ clientConfig, event })]);
+    await handleSQSMessages({
+      clientConfig,
+      messages: event.Records.filter(
+        (record) => record.eventSource === "aws:sqs"
+      ),
+    });
   } else if ("url" in event) {
     return await asFetchRequest(http)(event);
   }
