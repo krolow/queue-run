@@ -1,23 +1,23 @@
 import { SQS } from "@aws-sdk/client-sqs";
-import type { CredentialProvider } from "@aws-sdk/types";
 import ms from "ms";
 import { AbortController } from "node-abort-controller";
 import { JSONObject, QueueConfig, QueueHandler } from "../types";
 import { SQSFifoMessage, SQSMessage } from "../types/lambda";
 import loadModule from "./loadModule";
 
+const minTimeout = 1;
+const maxTimeout = 30;
+const defaultTimeout = 10;
+
 // Handle whatever SQS messages are included in the Lambda event,
 // ignores other records
 export default async function handleSQSMessages({
-  clientConfig,
+  sqs,
   messages,
 }: {
-  clientConfig: { credentials: CredentialProvider; region: string };
+  sqs: SQS;
   messages: SQSMessage[];
 }) {
-  if (messages.length === 0) return;
-
-  const sqs = new SQS(clientConfig);
   await Promise.all([
     handleUnorderedMessages({ messages, sqs }),
     handleFifoMessages({ messages, sqs }),
@@ -111,9 +111,10 @@ async function handleOneMessage({
 }): Promise<boolean> {
   const { messageId } = message;
   const queueName = getQueueName(message);
-  const module = await loadModule<QueueHandler, QueueConfig>(
-    `queue/${queueName}`
-  );
+  const module = await loadModule<{
+    config: QueueConfig;
+    handler: QueueHandler;
+  }>(`queue/${queueName}`);
   if (!module) throw new Error(`No handler for queue ${queueName}`);
 
   const { config, handler } = module;
@@ -258,5 +259,8 @@ function getPayload(
 
 // Timeout in seconds.
 function getTimeout(config: QueueConfig): number {
-  return Math.min(config.timeout ?? 30, 10);
+  return Math.min(
+    Math.max(config.timeout ?? defaultTimeout, minTimeout),
+    maxTimeout
+  );
 }

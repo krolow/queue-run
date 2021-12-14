@@ -37,7 +37,7 @@ async function combineSharedMiddleware(
     sharedPath === "/"
       ? undefined
       : await combineSharedMiddleware(path.dirname(sharedPath));
-  const module = await loadFromModule(path.join(sharedPath, "_middleware.js"));
+  const module = await loadFromModule(path.join(sharedPath, "_middleware"));
   return {
     ...parent,
     ...module,

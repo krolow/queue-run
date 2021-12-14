@@ -1,27 +1,62 @@
+import { existsSync } from "node:fs";
+import path from "node:path";
 import { install } from "source-map-support";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const handlers = new Map<string, { config: any; handler: any } | null>();
+type Export = { [name: string]: any };
+type Module = Export | Error | null;
 
-export default async function loadModule<Handler = unknown, Config = unknown>(
-  path: string
-): Promise<{
-  config: Config;
-  handler: Handler;
-  [key: string]: any;
-} | null> {
-  if (handlers.has(path)) return handlers.get(path) ?? null;
+const cache = new Map<string, Module>();
 
-  try {
-    const exports = await import(`background/${path}.js`);
-    const handler = exports.handler ?? exports.default;
-    const config = exports.config ?? {};
-    handlers.set(path, { config, handler });
-    return { config, handler };
-  } catch (error) {
-    console.error(error);
-    handlers.set(path, null);
+// We load backend functions on-demand when we need them for a route, queue, etc.
+// We also use this mechanism to load middleware and other modules.
+//
+// The module is imported dynamically in the current context, and cached.
+//
+// If the module exists, this function returns the exports.
+//
+// If the module doesn't exist, this function returns null.
+//
+// If it fails while importing the module, it throws an error.
+export default async function loadModule<T = Export>(
+  // The module name as route (not filename), eg "/api/project/$id",
+  // "/queue/update_score", "/api/project/_middleware""
+  name: string
+): Promise<T | null> {
+  if (cache.has(name)) {
+    const cached = cache.get(name);
+    if (cached instanceof Error) throw cached;
+    return (cached as T) ?? null;
+  }
+
+  // Avoid path traversal. This turns "foobar", "/foobar", and "../../foobar" into "/foobar".
+  const partialPath = path.join("/", name);
+  const filename = path.format({
+    dir: "backend",
+    name: partialPath.slice(1),
+    ext: ".js",
+  });
+
+  if (!existsSync(filename)) {
+    cache.set(name, null);
     return null;
+  }
+  try {
+    const exported = await import(filename);
+    cache.set(name, exported);
+    return exported;
+  } catch (error) {
+    // @ts-ignore
+    if (error instanceof Error && error.code === "ERR_MODULE_NOT_FOUND") {
+      cache.set(name, null);
+      return null;
+    } else {
+      console.error("Error loading %s", filename, error);
+      cache.set(
+        name,
+        error instanceof Error ? Error : new Error(String(error))
+      );
+      throw error;
+    }
   }
 }
 
