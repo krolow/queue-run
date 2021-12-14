@@ -156,7 +156,7 @@ async function handleOneMessage({
       throw new Error(
         `Timeout: message took longer than ${timeout} to process`
       );
-    }
+    } else controller.abort();
 
     console.info("Deleting message %s on queue %s", messageId, queueName);
     await sqs.deleteMessage({
