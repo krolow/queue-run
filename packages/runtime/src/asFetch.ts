@@ -49,7 +49,7 @@ export async function asFetchRequest(
 }
 
 function toFetchRequest(event: BackendLambdaRequest): Request {
-  const body = event.body ? Buffer.from(event.body, "base64") : undefined;
+  const body = event.body ? Buffer.from(event.body, "base64") : "";
   const headers = new Headers(event.headers);
   const method = event.method;
   return new Request(event.url, {

@@ -49,8 +49,10 @@ export default async function loadModule<T = Export>(
     cache.set(name, exported);
     return exported;
   } catch (error) {
-    // @ts-ignore
-    if (error instanceof Error && error.code === "ERR_MODULE_NOT_FOUND") {
+    if (
+      error instanceof Error &&
+      (error as Error & { code: string }).code === "ERR_MODULE_NOT_FOUND"
+    ) {
       cache.set(name, null);
       return null;
     } else {

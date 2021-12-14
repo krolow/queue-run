@@ -18,4 +18,4 @@ Future implementation should run as Lambda@Edge. That moves the Gateway closer t
 
 For default branches, the sub-domain does not include the branch name. For custom domains, the URL does not contain the project ID. So the Gateway needs to perform one lookup against the database.
 
-In the future, we may want to track access: for billing and for evicting stale branches/projects.
+For logging, set `NODE_DEBUG=queue-run:gateway`.

@@ -6,6 +6,7 @@ export AWS_REGION="us-east-1"
 readonly account_id="122210178198"
 readonly archive="gateway.zip"
 readonly domain_name="queue.run"
+readonly env_vars="NODE_DEBUG=queue-run:*"
 readonly lambda_memory_size=128
 readonly lambda_name="queuerun-gateway"
 readonly lambda_runtime=nodejs14.x
@@ -62,6 +63,7 @@ function upload_lambda() {
       --role "arn:aws:iam::$account_id:role/$role_name" \
       --handler "index.handler" --runtime $lambda_runtime \
       --memory-size $lambda_memory_size --timeout $lambda_timeout \
+      --environment "Variables={$env_vars}" \
       --publish \
       --profile $profile \
       | jq -r '.FunctionArn'
@@ -73,6 +75,7 @@ function upload_lambda() {
       --role "arn:aws:iam::$account_id:role/$role_name" \
       --handler "index.handler" --runtime $lambda_runtime \
       --memory-size $lambda_memory_size --timeout $lambda_timeout \
+      --environment "Variables={$env_vars}" \
       --profile $profile \
       | jq -r '.FunctionArn'
 
