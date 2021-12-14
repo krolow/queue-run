@@ -44,7 +44,7 @@ program
   )
   .action(async (project, { branch, region }) => {
     const sourceDir = process.cwd();
-    const envVars = await loadEnvVars(sourceDir);
+    const envVars = await loadEnvVars();
     await build({ install: false, sourceDir });
     await installDependencies({ sourceDir });
     await upload({ branch, envVars, projectId: project, region });
