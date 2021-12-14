@@ -6,7 +6,7 @@ export AWS_REGION="us-east-1"
 readonly account_id="122210178198"
 readonly archive="gateway.zip"
 readonly domain_name="queue.run"
-readonly env_vars="NODE_DEBUG=queue-run:*"
+readonly env_vars=""
 readonly lambda_memory_size=128
 readonly lambda_name="queuerun-gateway"
 readonly lambda_runtime=nodejs14.x

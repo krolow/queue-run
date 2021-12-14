@@ -5,24 +5,24 @@
       "Sid": "FindProject",
       "Effect": "Allow",
       "Action": ["dynamodb:PartiQLSelect", "dynamodb:GetItem"],
-      "Resource": "arn:aws:dynamodb:us-east-1:122210178198:table/projects"
+      "Resource": "arn:aws:dynamodb:*:122210178198:table/projects"
     },
     {
       "Sid": "InvokeBackend",
       "Effect": "Allow",
       "Action": "lambda:InvokeFunction",
-      "Resource": "arn:aws:lambda:us-east-1:122210178198:function:backend-*"
+      "Resource": "arn:aws:lambda:*:122210178198:function:backend-*"
     },
     {
       "Effect": "Allow",
       "Action": "logs:CreateLogGroup",
-      "Resource": "arn:aws:logs:us-east-1:122210178198:*"
+      "Resource": "arn:aws:logs:*:122210178198:*"
     },
     {
       "Effect": "Allow",
       "Action": ["logs:CreateLogStream", "logs:PutLogEvents"],
       "Resource": [
-        "arn:aws:logs:us-east-1:122210178198:log-group:/aws/lambda/queuerun-gateway:*"
+        "arn:aws:logs:*:122210178198:log-group:/aws/lambda/queuerun-gateway:*"
       ]
     }
   ]
