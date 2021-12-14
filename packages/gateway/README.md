@@ -12,10 +12,8 @@ Each branch has a unique sub-domain and Lambda referenced by alias. AWS limits h
 
 Instead, we have one API Gateway and Lambda (this one) that handle all requests for `*.queue.run` (and in the future, custom domains).
 
-Right now, the Gateway deploys to us-east-1. That means additional roundtrip latency when the client and backend run in a different region.
+The Gateway runs on CloudFront (aka Lambda@Edge), close to the client, so it doesn't introduce unwanted latency.
 
-Future implementation should run as Lambda@Edge. That moves the Gateway closer to the client, removing that latency. It also introduces a layer of caching.
+(Earlier version ran as API Gateway, and this configuration is still supported)
 
 For default branches, the sub-domain does not include the branch name. For custom domains, the URL does not contain the project ID. So the Gateway needs to perform one lookup against the database.
-
-For logging, set `NODE_DEBUG=queue-run:gateway`.
