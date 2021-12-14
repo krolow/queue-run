@@ -1,6 +1,7 @@
 import { SQS } from "@aws-sdk/client-sqs";
 import ms from "ms";
 import { AbortController } from "node-abort-controller";
+import invariant from "tiny-invariant";
 import { JSONObject, QueueConfig, QueueHandler } from "../types";
 import { SQSFifoMessage, SQSMessage } from "../types/lambda";
 import loadModule from "./loadModule";
@@ -112,13 +113,16 @@ async function handleOneMessage({
   const { messageId } = message;
   const queueName = getQueueName(message);
   const module = await loadModule<{
-    config: QueueConfig;
-    handler: QueueHandler;
+    config?: QueueConfig;
+    default?: QueueHandler;
+    handler?: QueueHandler;
   }>(`queue/${queueName}`);
   if (!module) throw new Error(`No handler for queue ${queueName}`);
 
-  const { config, handler } = module;
-  const timeout = getTimeout(config);
+  const handler = module.handler ?? module.default;
+  invariant(handler, `No handler for queue ${queueName}`);
+
+  const timeout = getTimeout(module.config);
   // Extend visibilty until we're done processing the message.
   await changeVisibility({ message, sqs, timeout });
 
@@ -131,7 +135,7 @@ async function handleOneMessage({
     const { attributes } = message;
 
     await Promise.race([
-      handler(getPayload(message, config), {
+      handler(getPayload(message), {
         messageID: message.messageId,
         groupID: attributes.MessageGroupId,
         receivedCount: +attributes.ApproximateReceiveCount,
@@ -233,23 +237,12 @@ function getQueueName(message: SQSMessage) {
   return queueName;
 }
 
-// Gets the payload from the message.
-//
-// If you want the payload as a string, export queue configuration object with
-// `payloadAsString: true`.  Or send a message with the attribute `type:
-// "text/plain"`.
-//
-// Otherwise, we assume the payload is a JSON string, but if we can't parse it,
-// we pass the payload as raw string.
-function getPayload(
-  message: SQSMessage,
-  config: QueueConfig
-): JSONObject | string {
-  if (config.payloadAsString) return message.body;
-
+// Gets the payload from the message.  We rely on the content type, otherwise
+// guess by trying to parse as JSON.
+function getPayload(message: SQSMessage): JSONObject | string {
   const type = message.messageAttributes["type"]?.stringValue;
-  if (type === "text/plain") return message.body;
   if (type === "application/json") return JSON.parse(message.body);
+  if (type) return message.body;
   try {
     return JSON.parse(message.body);
   } catch {
@@ -258,9 +251,9 @@ function getPayload(
 }
 
 // Timeout in seconds.
-function getTimeout(config: QueueConfig): number {
+function getTimeout(config?: QueueConfig): number {
   return Math.min(
-    Math.max(config.timeout ?? defaultTimeout, minTimeout),
+    Math.max(config?.timeout ?? defaultTimeout, minTimeout),
     maxTimeout
   );
 }
