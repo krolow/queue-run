@@ -45,7 +45,6 @@ export default function swapAWSEnvVars(): {
 
   const branch = process.env.QUEUE_RUN_BRANCH!;
   const projectId = process.env.QUEUE_RUN_PROJECT!;
-  console.info("Swapped AWS environment variables %s %s", projectId, branch);
 
   return { branch, credentials: async () => credentials, projectId, region };
 }

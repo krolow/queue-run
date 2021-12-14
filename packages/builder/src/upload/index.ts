@@ -42,8 +42,8 @@ export default async function upload({
   };
 
   const lambdaName = `backend-${projectId}`;
-  const alias = `${lambdaName}-${branch}`;
-  const prefix = `${alias}__`;
+  const lambdaAalias = `${lambdaName}-${branch}`;
+  const queuePrefix = `${projectId}-${branch}__`;
 
   // Sanity check on the source code, and we also need this info to configure
   // queues, etc.  Note that full build also compiles TS, but doesn't load the
@@ -75,13 +75,13 @@ export default async function upload({
   // goose-bump:50 => goose-bump:goose-bump-main
   const version = versionARN.match(/(\d)+$/)?.[1];
   invariant(version);
-  const aliasARN = versionARN.replace(/(\d+)$/, alias);
+  const aliasARN = versionARN.replace(/(\d+)$/, lambdaAalias);
 
   // Create queues that new version expects, and remove triggers for event
   // sources that new version does not understand.
   const queueARNs = await createQueues({
     configs: queues,
-    prefix,
+    prefix: queuePrefix,
     region,
     lambdaTimeout,
   });
@@ -109,7 +109,7 @@ export default async function upload({
   );
 
   // Delete any queues that are no longer needed.
-  await deleteOldQueues({ prefix, queueARNs, region });
+  await deleteOldQueues({ prefix: queuePrefix, queueARNs, region });
   console.info("✨  Done in %s.", ms(Date.now() - start));
   console.info("");
 }

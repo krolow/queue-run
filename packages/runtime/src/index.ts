@@ -18,10 +18,8 @@ export async function handler(event: LambdaEvent) {
     );
     if (messages.length > 0) await handleSQSMessages({ messages, sqs });
   } else if ("url" in event) {
-    console.info("Request URL", event.url);
     return await asFetchRequest(event, async (request) => {
       const { pathname } = new URL(request.url);
-      console.info("Request pathname", pathname);
       if (pathname.startsWith("/queue/"))
         return await pushMessage({ branch, projectId, request, sqs });
       else if (pathname.startsWith("/api/"))

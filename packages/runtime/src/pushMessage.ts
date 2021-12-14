@@ -19,10 +19,14 @@ export default async function pushMessage({
   if (request.method !== "POST")
     throw new Response("Method Not Allowed", { status: 405 });
 
-  const queueURL = await getQueueURL({ branch, projectId, request, sqs });
   const { queueName, groupId, dedupeId } = getQueueProperties(request);
+
+  const queueURL = await getQueueURL({ branch, projectId, request, sqs });
   const module = await loadModule(`queue/${queueName}`);
-  if (!module) throw new Response("Not Found", { status: 404 });
+  if (!module) {
+    console.error("No module for queue", queueName);
+    throw new Response("Not Found", { status: 404 });
+  }
 
   const { authenticate } = await loadMiddleware(request);
   const user = authenticate && (await authenticate({ queueName, request }));
@@ -85,9 +89,7 @@ async function getQueueURL({
   sqs: SQS;
 }): Promise<string> {
   const { pathname } = new URL(request.url);
-  const [name, ...rest] = pathname.split("/").slice(2);
-  if (!name || rest.length > 0)
-    throw new Response("Not Found", { status: 404 });
+  const name = pathname.split("/")[2];
 
   const queueName = `${projectId}-${branch}__${name}`;
   try {
@@ -98,8 +100,9 @@ async function getQueueURL({
     if (
       error instanceof Error &&
       error.name === "AWS.SimpleQueueService.NonExistentQueue"
-    )
+    ) {
+      console.error("No access to queue", queueName);
       throw new Response("Queue not found", { status: 404 });
-    else throw error;
+    } else throw error;
   }
 }
