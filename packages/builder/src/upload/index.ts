@@ -118,8 +118,7 @@ function getLambdaTimeout(queues: Map<string, { config: QueueConfig }>) {
   const lambdaTimeout = Math.max(
     ...Array.from(queues.values()).map(({ config }) => config.timeout ?? 10)
   );
-  console.log(queues);
-  const maxTimeout = 300; // 5 minutes
+  const maxTimeout = 30;
   ow(
     lambdaTimeout,
     ow.number
