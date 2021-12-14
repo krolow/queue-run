@@ -1,7 +1,6 @@
 import { spawn } from "child_process";
-import { existsSync } from "fs";
-import { copyFile } from "fs/promises";
 import ms from "ms";
+import { copyFile } from "node:fs/promises";
 import path from "path";
 import { buildDir } from "../constants";
 
@@ -19,7 +18,6 @@ export default async function installDependencies({
 async function copyPackageJSON(sourceDir: string, targetDir: string) {
   const source = path.resolve(sourceDir, "package.json");
   const dest = path.resolve(targetDir, "package.json");
-  if (!existsSync(source)) throw new Error("Missing package.json");
   await copyFile(source, dest);
 }
 

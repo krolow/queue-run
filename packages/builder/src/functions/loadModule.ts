@@ -1,9 +1,11 @@
 import * as swc from "@swc/core";
 import { JscTarget } from "@swc/core";
-import * as fs from "fs";
-import * as path from "path";
+import { R_OK } from "node:constants";
+import * as fs from "node:fs";
+import { lstat } from "node:fs/promises";
+import * as path from "node:path";
+import vm from "node:vm";
 import sourceMapSupport from "source-map-support";
-import vm from "vm";
 
 const globalRequire = require;
 
@@ -82,7 +84,7 @@ export default function loadModule({
     const fullPath = path.resolve(path.dirname(module.filename), id);
     const found = [".ts", "/index.ts", ".js", "/index.js", ".json", ""]
       .map((ext) => `${fullPath}${ext}`)
-      .find((path) => fs.existsSync(path));
+      .find((path) => lstat(path).catch(() => false));
     return found ?? globalRequire.resolve(id);
   };
   resolve.paths = (id) => nodeModulePaths(id);
@@ -112,7 +114,7 @@ function requireFromNodeModules(filename: string, paths: string[] | null) {
   if (!paths) return null;
   const found = paths
     .map((dir) => path.resolve(dir, filename))
-    .find((path) => fs.existsSync(path));
+    .find((path) => lstat(path).catch(() => false));
   return found ? require(found) : null;
 }
 
@@ -120,8 +122,12 @@ function nodeModulePaths(filename: string): string[] | null {
   if (filename.startsWith(".")) return null;
   const dirname = path.dirname(filename);
   const paths = [];
-  if (fs.existsSync(path.resolve(dirname, "package.json")))
+  try {
+    fs.accessSync(path.resolve(dirname, "package.json"), R_OK);
     paths.push(path.resolve(dirname, "node_modules"));
+  } catch {
+    // No package.json
+  }
   if (dirname === "/" || dirname === process.cwd()) return paths;
   const parent = nodeModulePaths(path.dirname(dirname));
   return parent ? [...parent, ...paths] : paths;

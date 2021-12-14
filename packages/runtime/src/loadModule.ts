@@ -1,4 +1,5 @@
-import { existsSync } from "node:fs";
+import { R_OK } from "node:constants";
+import { access } from "node:fs/promises";
 import path from "node:path";
 import { install } from "source-map-support";
 
@@ -36,10 +37,13 @@ export default async function loadModule<T = Export>(
     ext: ".js",
   });
 
-  if (!existsSync(filename)) {
+  try {
+    await access(filename, R_OK);
+  } catch {
     cache.set(name, null);
     return null;
   }
+
   try {
     const exported = await import(filename);
     cache.set(name, exported);
