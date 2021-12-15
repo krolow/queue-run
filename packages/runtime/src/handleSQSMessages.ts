@@ -1,8 +1,8 @@
 import { SQS } from "@aws-sdk/client-sqs";
 import { AbortController } from "node-abort-controller";
 import invariant from "tiny-invariant";
-import { JSONObject, QueueConfig, QueueHandler } from "../types";
-import { SQSFifoMessage, SQSMessage } from "../types/lambda";
+import type { JSONObject, QueueConfig, QueueHandler } from "../types";
+import type { SQSFifoMessage, SQSMessage } from "./index";
 import loadModule from "./loadModule";
 
 const minTimeout = 1;
