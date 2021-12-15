@@ -1,5 +1,4 @@
 import { SQS } from "@aws-sdk/client-sqs";
-import ms from "ms";
 import { AbortController } from "node-abort-controller";
 import invariant from "tiny-invariant";
 import { JSONObject, QueueConfig, QueueHandler } from "../types";
@@ -10,22 +9,28 @@ const minTimeout = 1;
 const maxTimeout = 30;
 const defaultTimeout = 10;
 
-// Handle whatever SQS messages are included in the Lambda event,
-// ignores other records
 export default async function handleSQSMessages({
   sqs,
   messages,
 }: {
   sqs: SQS;
   messages: SQSMessage[];
-}) {
-  await Promise.all([
-    handleUnorderedMessages({ messages, sqs }),
-    handleFifoMessages({ messages, sqs }),
-  ]);
+}): Promise<{
+  // https://docs.aws.amazon.com/lambda/latest/dg/with-ddb.html#services-ddb-batchfailurereporting
+  batchItemFailures: Array<{ itemIdentifier: string }>;
+}> {
+  return isFifoQueue(messages[0])
+    ? await handleFifoMessages({ messages, sqs })
+    : await handleUnorderedMessages({ messages, sqs });
 }
 
-// Messages from regular queues can be processed in parallel
+// We follow the convention that FIFO queues end with .fifo.
+function isFifoQueue(message: SQSMessage): message is SQSFifoMessage {
+  return getQueueName(message).endsWith(".fifo");
+}
+
+// Standard queue: we can process the batch of messages in an order.
+// Returns IDs of messages that failed to process.
 async function handleUnorderedMessages({
   messages,
   sqs,
@@ -33,21 +38,21 @@ async function handleUnorderedMessages({
   messages: SQSMessage[];
   sqs: SQS;
 }) {
-  await Promise.all(
-    messages
-      .filter((message) => !isFifo(message))
-      .map(async (message) => await handleOneMessage({ message, sqs }))
+  const failedMessageIds = await Promise.all(
+    messages.map(async (message) =>
+      (await handleOneMessage({ message, sqs })) ? null : message.messageId
+    )
   );
+  return {
+    batchItemFailures: failedMessageIds
+      .filter(Boolean)
+      .map((id) => ({ itemIdentifier: id! })),
+  };
 }
 
-function isFifo(message: SQSMessage): message is SQSFifoMessage {
-  return !!message.attributes.MessageGroupId;
-}
-
-// FIFO queues are handled differently.  We can process messages from multiple
-// groups in parallel, but within each group, we need to process them in order.
-// If we fail for one message in the group, we cannot process the remaining
-// messages.
+// FIFO queue: we get a batch of message from the same group.
+// Process messages in order, fail on the first message that fails, and
+// return that and all subsequent message IDs.
 async function handleFifoMessages({
   messages,
   sqs,
@@ -55,52 +60,18 @@ async function handleFifoMessages({
   messages: SQSMessage[];
   sqs: SQS;
 }) {
-  const groups = new Map<string, SQSFifoMessage[]>();
-  for (const message of messages) {
-    if (isFifo(message)) {
-      const groupId = message.attributes.MessageGroupId;
-      const group = groups.get(groupId);
-      if (group) group.push(message);
-      else groups.set(groupId, [message]);
-    }
-  }
-
-  await Promise.all(
-    Array.from(groups.values()).map(
-      async (messages) => await handleFifoGroup({ messages, sqs })
-    )
-  );
-}
-
-async function handleFifoGroup({
-  messages,
-  sqs,
-}: {
-  messages: SQSFifoMessage[];
-  sqs: SQS;
-}) {
-  // Extend visibilty until we're done processing all remaining messages.
-  // If we need 60 seconds to process first message, and default visibilty is 30,
-  // then second message will be returned to the queue, and processed by another
-  // Lambda invocation.
-  let visibility: Promise<void> | undefined;
-  const interval = setInterval(() => {
-    visibility = changeVisibilityBatch({ messages, sqs, timeout: 60 });
-  }, ms("20s"));
-
   let message;
   while ((message = messages.shift())) {
-    // Handle messages in order, if we fail on one message, we cannot process
-    // the remaining messages.
     const successful = await handleOneMessage({ message, sqs });
-    if (!successful) break;
+    if (!successful) {
+      return {
+        batchItemFailures: [message]
+          .concat(messages)
+          .map((message) => ({ itemIdentifier: message.messageId })),
+      };
+    }
   }
-  clearInterval(interval);
-  if (visibility) await visibility;
-
-  // If there are any remaining messages, return them to the queue.
-  if (messages.length > 0)
-    await changeVisibilityBatch({ messages, sqs, timeout: 0 });
+  return { batchItemFailures: [] };
 }
 
 async function handleOneMessage({
@@ -122,11 +93,8 @@ async function handleOneMessage({
   const handler = module.handler ?? module.default;
   invariant(handler, `No handler for queue ${queueName}`);
 
-  const timeout = getTimeout(module.config);
-  // Extend visibilty until we're done processing the message.
-  await changeVisibility({ message, sqs, timeout });
-
   // Create an abort controller to allow the handler to cancel incomplete work.
+  const timeout = getTimeout(module.config);
   const controller = new AbortController();
   const abortTimeout = setTimeout(() => controller.abort(), timeout * 1000);
 
@@ -150,7 +118,6 @@ async function handleOneMessage({
         controller.signal.addEventListener("abort", resolve);
       }),
     ]);
-    clearTimeout(abortTimeout);
 
     if (controller.signal.aborted) {
       throw new Error(
@@ -171,51 +138,10 @@ async function handleOneMessage({
       queueName,
       error
     );
-    // Return message to queue
-    await changeVisibility({ message, sqs, timeout: 0 });
     return false;
+  } finally {
+    clearTimeout(abortTimeout);
   }
-}
-
-async function changeVisibility({
-  message,
-  sqs,
-  timeout,
-}: {
-  message: SQSMessage;
-  sqs: SQS;
-  timeout: number; // in seconds
-}) {
-  await sqs
-    .changeMessageVisibility({
-      QueueUrl: getQueueURL(message),
-      ReceiptHandle: message.receiptHandle,
-      VisibilityTimeout: timeout,
-    })
-    .catch(console.error);
-}
-
-async function changeVisibilityBatch({
-  messages,
-  sqs,
-  timeout,
-}: {
-  messages: SQSMessage[];
-  sqs: SQS;
-  timeout: number; // in seconds
-}) {
-  if (messages.length === 0) return;
-  await sqs
-    .changeMessageVisibilityBatch({
-      // All from the same FIFO group, so obviously from the same queue
-      QueueUrl: getQueueURL(messages[0]),
-      Entries: messages.map(({ messageId, receiptHandle }) => ({
-        Id: messageId,
-        ReceiptHandle: receiptHandle,
-        VisibilityTimeout: timeout,
-      })),
-    })
-    .catch(console.error);
 }
 
 // Gets the full queue URL from the ARN.  API needs the URL, not ARN.
