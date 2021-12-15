@@ -135,5 +135,6 @@ function getLambdaTimeout(queues: Map<string, { config: QueueConfig }>) {
         } minutes`
       )
   );
-  return lambdaTimeout;
+  // Actual timeout should give all queues time to complete
+  return lambdaTimeout * 6;
 }
