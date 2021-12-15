@@ -21,8 +21,19 @@ export async function createQueues({
       // However, createQueue fails if the queue already exists, but with
       // different attributes, so we split createQueue and setQueueAttributes
       // into two separate calls.
+      const isFifo = name.endsWith(".fifo");
       const { QueueUrl: queueURL } = await sqs.createQueue({
         QueueName: `${prefix}${name}`,
+        Attributes: {
+          ...(isFifo
+            ? {
+                ContentBasedDeduplication: "true",
+                DeduplicationScope: "messageGroupId",
+                FifoQueue: "true",
+                FifoThroughputLimit: "perMessageGroupId",
+              }
+            : undefined),
+        },
       });
       if (!queueURL) throw new Error(`Could not create queue ${name}`);
 
