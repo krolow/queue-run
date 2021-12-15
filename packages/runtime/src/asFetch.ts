@@ -6,6 +6,7 @@ import type {
 
 export async function asFetchRequest(
   event: BackendLambdaRequest,
+  // eslint-disable-next-line no-unused-vars
   handler: (request: Request) => Promise<Response | string | object>
 ): Promise<BackendLambdaResponse> {
   try {

@@ -19,6 +19,6 @@
     "axios": "^0.24.0"
   },
   "devDependencies": {
-    "dts-cli": "^0.19.7"
+    "dts-cli": "^0.20.0"
   }
 }

@@ -24,7 +24,7 @@
   },
   "devDependencies": {
     "@types/node-fetch": "^2.5.12",
-    "dts-cli": "^0.19.7"
+    "dts-cli": "^0.20.0"
   },
   "engines": {
     "node": "12.x"

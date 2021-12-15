@@ -19,7 +19,7 @@
     "tiny-invariant": "^1.2.0"
   },
   "devDependencies": {
-    "dts-cli": "^0.19.7"
+    "dts-cli": "^0.20.0"
   },
   "engines": {
     "node": "14.x"
