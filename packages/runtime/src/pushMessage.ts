@@ -1,17 +1,22 @@
-import { SQS } from "@aws-sdk/client-sqs";
+import { SendMessageCommandInput, SQS } from "@aws-sdk/client-sqs";
+import crypto from "crypto";
 import { Request, Response } from "node-fetch";
 import invariant from "tiny-invariant";
 import { URL } from "url";
+import { SQSMessage } from ".";
+import handleSQSMessages from "./handleSQSMessages";
 import loadMiddleware from "./loadMiddleware";
 import loadModule from "./loadModule";
 
 export default async function pushMessage({
   branch,
+  getRemainingTimeInMillis,
   projectId,
   request,
   sqs,
 }: {
   branch: string;
+  getRemainingTimeInMillis: () => number;
   projectId: string;
   request: Request;
   sqs: SQS;
@@ -35,7 +40,7 @@ export default async function pushMessage({
   const body = await request.text();
   if (!body) throw new Response("Missing message body", { status: 400 });
 
-  const { MessageId: messageId } = await sqs.sendMessage({
+  const message: SendMessageCommandInput = {
     QueueUrl: queueURL,
     MessageBody: body,
     MessageAttributes: {
@@ -46,8 +51,64 @@ export default async function pushMessage({
     },
     MessageGroupId: groupId,
     MessageDeduplicationId: dedupeId,
-  });
+  };
+
+  const messageId =
+    (await sqs.config.region()) === "localhost"
+      ? await sendMessageInDev({ getRemainingTimeInMillis, message, sqs })
+      : (await sqs.sendMessage(message)).MessageId;
   return new Response(JSON.stringify({ messageId }));
+}
+
+async function sendMessageInDev({
+  getRemainingTimeInMillis,
+  message,
+  sqs,
+}: {
+  getRemainingTimeInMillis: () => number;
+  message: SendMessageCommandInput;
+  sqs: SQS;
+}) {
+  invariant(message.MessageBody);
+  invariant(message.QueueUrl);
+  invariant(message.MessageAttributes);
+  const queueName = message.QueueUrl.split("/").pop();
+  const messageId = crypto.randomBytes(8).toString("hex");
+  const timestamp = Date.now().toString();
+  const messages: SQSMessage[] = [
+    {
+      messageId,
+      body: message.MessageBody,
+      attributes: {
+        MessageGroupId: message.MessageGroupId,
+        MessageDeduplicationId: message.MessageDeduplicationId,
+        ApproximateFirstReceiveTimestamp: timestamp,
+        ApproximateReceiveCount: "1",
+        SentTimestamp: timestamp,
+        SequenceNumber: "1",
+        SenderId: "sender",
+      },
+      messageAttributes: Object.fromEntries(
+        Object.entries(message.MessageAttributes).map(([key, value]) => [
+          key,
+          { stringValue: value.StringValue! },
+        ])
+      ),
+      receiptHandle: crypto.randomBytes(8).toString("hex"),
+      eventSourceARN: `arn:aws:sqs:localhost:12345:${queueName}`,
+      awsRegion: "localhost",
+      eventSource: "aws:sqs",
+      md5OfBody: crypto
+        .createHash("md5")
+        .update(message.MessageBody)
+        .digest("hex"),
+    },
+  ];
+
+  setTimeout(() =>
+    handleSQSMessages({ getRemainingTimeInMillis, sqs, messages })
+  );
+  return { messageId };
 }
 
 // Get queue properties from the request.
@@ -92,6 +153,9 @@ async function getQueueURL({
   const name = pathname.split("/")[2];
 
   const queueName = `${projectId}-${branch}__${name}`;
+  if ((await sqs.config.region()) === "localhost")
+    return `http://localhost/queue/${queueName}`;
+
   try {
     const { QueueUrl } = await sqs.getQueueUrl({ QueueName: queueName });
     invariant(QueueUrl);

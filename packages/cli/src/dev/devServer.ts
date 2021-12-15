@@ -1,4 +1,5 @@
 import { handler } from "@queue-run/runtime";
+import crypto from "crypto";
 import { createServer } from "http";
 import { URL } from "url";
 
@@ -13,7 +14,26 @@ export default async function devServer({ port }: { port: number }) {
     for await (const chunk of req) data.push(chunk);
     const body = Buffer.concat(data).toString();
 
-    const response = await handler({ method, url: url.href, headers, body });
+    const lambdaEvent = {
+      method,
+      url: url.href,
+      headers,
+      body,
+    };
+    const functionName = headers.host!.split(":")[0];
+    const timeout = Date.now() + 10 * 1000;
+    const lambdaContext = {
+      awsRequestId: crypto.randomBytes(8).toString("hex"),
+      callbackWaitsForEmptyEventLoop: false,
+      functionName,
+      functionVersion: "0",
+      getRemainingTimeInMillis: () => timeout - Date.now(),
+      invokedFunctionArn: `arn:aws:lambda:localhost:12345:function:${functionName}:${functionName}-dev`,
+      logGroupName: functionName,
+      memoryLimitInMB: "1024",
+    };
+
+    const response = await handler(lambdaEvent, lambdaContext);
     if (response) {
       console.info("%s %s => %s", method, req.url, response.statusCode);
       res.writeHead(response.statusCode, response.headers);

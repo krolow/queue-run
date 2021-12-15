@@ -2,7 +2,7 @@ import { SQS } from "@aws-sdk/client-sqs";
 import { AbortController } from "node-abort-controller";
 import invariant from "tiny-invariant";
 import type { JSONObject, QueueConfig, QueueHandler } from "../types";
-import type { SQSFifoMessage, SQSMessage } from "./index";
+import type { SQSMessage } from "./index";
 import loadModule from "./loadModule";
 
 const minTimeout = 1;
@@ -10,9 +10,11 @@ const maxTimeout = 30;
 const defaultTimeout = 10;
 
 export default async function handleSQSMessages({
+  getRemainingTimeInMillis,
   sqs,
   messages,
 }: {
+  getRemainingTimeInMillis: () => number;
   sqs: SQS;
   messages: SQSMessage[];
 }): Promise<{
@@ -20,27 +22,31 @@ export default async function handleSQSMessages({
   batchItemFailures: Array<{ itemIdentifier: string }>;
 }> {
   return isFifoQueue(messages[0])
-    ? await handleFifoMessages({ messages, sqs })
-    : await handleUnorderedMessages({ messages, sqs });
+    ? await handleFifoMessages({ getRemainingTimeInMillis, messages, sqs })
+    : await handleStandardMessages({ getRemainingTimeInMillis, messages, sqs });
 }
 
 // We follow the convention that FIFO queues end with .fifo.
-function isFifoQueue(message: SQSMessage): message is SQSFifoMessage {
+function isFifoQueue(message: SQSMessage): boolean {
   return getQueueName(message).endsWith(".fifo");
 }
 
 // Standard queue: we can process the batch of messages in an order.
 // Returns IDs of messages that failed to process.
-async function handleUnorderedMessages({
+async function handleStandardMessages({
+  getRemainingTimeInMillis,
   messages,
   sqs,
 }: {
+  getRemainingTimeInMillis: () => number;
   messages: SQSMessage[];
   sqs: SQS;
 }) {
   const failedMessageIds = await Promise.all(
     messages.map(async (message) =>
-      (await handleOneMessage({ message, sqs })) ? null : message.messageId
+      (await handleOneMessage({ getRemainingTimeInMillis, message, sqs }))
+        ? null
+        : message.messageId
     )
   );
   return {
@@ -54,15 +60,21 @@ async function handleUnorderedMessages({
 // Process messages in order, fail on the first message that fails, and
 // return that and all subsequent message IDs.
 async function handleFifoMessages({
+  getRemainingTimeInMillis,
   messages,
   sqs,
 }: {
+  getRemainingTimeInMillis: () => number;
   messages: SQSMessage[];
   sqs: SQS;
 }) {
   let message;
   while ((message = messages.shift())) {
-    const successful = await handleOneMessage({ message, sqs });
+    const successful = await handleOneMessage({
+      getRemainingTimeInMillis,
+      message,
+      sqs,
+    });
     if (!successful) {
       return {
         batchItemFailures: [message]
@@ -75,9 +87,11 @@ async function handleFifoMessages({
 }
 
 async function handleOneMessage({
+  getRemainingTimeInMillis,
   message,
   sqs,
 }: {
+  getRemainingTimeInMillis: () => number;
   message: SQSMessage;
   sqs: SQS;
 }): Promise<boolean> {
@@ -93,8 +107,14 @@ async function handleOneMessage({
   const handler = module.handler ?? module.default;
   invariant(handler, `No handler for queue ${queueName}`);
 
+  // When handling FIFO messges, possible we'll run out of time.
+  const timeout = Math.min(
+    getTimeout(module.config),
+    getRemainingTimeInMillis()
+  );
+  if (timeout <= 0) return false;
+
   // Create an abort controller to allow the handler to cancel incomplete work.
-  const timeout = getTimeout(module.config);
   const controller = new AbortController();
   const abortTimeout = setTimeout(() => controller.abort(), timeout * 1000);
 
@@ -126,10 +146,12 @@ async function handleOneMessage({
     } else controller.abort();
 
     console.info("Deleting message %s on queue %s", messageId, queueName);
-    await sqs.deleteMessage({
-      QueueUrl: getQueueURL(message),
-      ReceiptHandle: message.receiptHandle,
-    });
+    if ((await sqs.config.region()) !== "localhost") {
+      await sqs.deleteMessage({
+        QueueUrl: getQueueURL(message),
+        ReceiptHandle: message.receiptHandle,
+      });
+    }
     return true;
   } catch (error) {
     console.error(

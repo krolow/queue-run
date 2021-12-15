@@ -11,6 +11,7 @@ import type {
   LambdaEdgeRequest,
   LambdaEdgeResponse,
 } from "./types";
+export type { BackendLambdaRequest, BackendLambdaResponse } from "./types";
 
 const debug = false;
 const requestTimeout = ms("10s");

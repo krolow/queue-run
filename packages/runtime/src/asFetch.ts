@@ -1,8 +1,8 @@
-import { Headers, Request, Response } from "node-fetch";
 import type {
   BackendLambdaRequest,
   BackendLambdaResponse,
-} from "./../../gateway/src/types";
+} from "@queue-run/gateway";
+import { Headers, Request, Response } from "node-fetch";
 
 export async function asFetchRequest(
   event: BackendLambdaRequest,

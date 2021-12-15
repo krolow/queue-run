@@ -1,43 +1,86 @@
 import { SQS } from "@aws-sdk/client-sqs";
+import type { BackendLambdaRequest } from "@queue-run/gateway";
 import { Response } from "node-fetch";
 import { URL } from "url";
-import { BackendLambdaRequest } from "../../gateway/src/types";
 import { asFetchRequest } from "./asFetch";
 import swapAWSEnvVars from "./environment";
 import handleSQSMessages from "./handleSQSMessages";
 import pushMessage from "./pushMessage";
 
-const { branch, projectId, ...clientConfig } = swapAWSEnvVars();
+const clientConfig =
+  process.env.NODE_ENV === "production" ? swapAWSEnvVars() : {};
 
-const sqs = new SQS(clientConfig);
+export async function handler(event: LambdaEvent, context: LambdaContext) {
+  const { branch, projectId, region } = parseARN(context.invokedFunctionArn);
+  const { getRemainingTimeInMillis } = context;
 
-export async function handler(event: LambdaEvent) {
   if ("Records" in event) {
     const messages = event.Records.filter(
       (record) => record.eventSource === "aws:sqs"
     );
-    if (messages.length > 0) await handleSQSMessages({ messages, sqs });
+    if (messages.length > 0) {
+      const sqs = new SQS({ ...clientConfig, region });
+      await handleSQSMessages({ getRemainingTimeInMillis, messages, sqs });
+    }
   } else if ("url" in event) {
     return await asFetchRequest(event, async (request) => {
       const { pathname } = new URL(request.url);
-      if (pathname.startsWith("/queue/"))
-        return await pushMessage({ branch, projectId, request, sqs });
-      else if (pathname.startsWith("/api/"))
+      if (pathname.startsWith("/queue/")) {
+        const sqs = new SQS({ ...clientConfig, region });
+        return await pushMessage({
+          branch,
+          getRemainingTimeInMillis,
+          projectId,
+          request,
+          sqs,
+        });
+      } else if (pathname.startsWith("/api/"))
         return new Response("OK", { status: 200 });
       else return new Response("Not Found", { status: 404 });
     });
   }
 }
 
-export declare type LambdaEvent =
-  | {
-      Records: Array<SQSMessage>;
-    }
+function parseARN(functionArn: string): {
+  region: string;
+  accountId: string;
+  projectId: string;
+  branch: string;
+} {
+  const [region, accountId, _, projectId, alias] = functionArn
+    .split(":")
+    .slice(3);
+  const branch = alias.replace(projectId, "").slice(1);
+  return { region, accountId, projectId, branch };
+}
+
+declare type LambdaEvent =
+  | { Records: Array<SQSMessage> }
   | BackendLambdaRequest;
+
+declare type LambdaContext = {
+  functionName: string;
+  functionVersion: string;
+  // The Amazon Resource Name (ARN) that's used to invoke the function. Indicates if the invoker specified a version number or alias.
+  invokedFunctionArn: string;
+  memoryLimitInMB: string;
+  awsRequestId: string;
+  logGroupName: string;
+  getRemainingTimeInMillis: () => number;
+  callbackWaitsForEmptyEventLoop: boolean;
+};
 
 // See https://docs.aws.amazon.com/lambda/latest/dg/with-sqs.html
 export declare type SQSMessage = {
-  attributes: SQSMessageAttributes;
+  attributes: {
+    ApproximateFirstReceiveTimestamp: string;
+    ApproximateReceiveCount: string;
+    MessageDeduplicationId?: string;
+    MessageGroupId?: string;
+    SenderId: string;
+    SentTimestamp: string;
+    SequenceNumber?: string;
+  };
   awsRegion: string;
   body: string;
   eventSource: "aws:sqs";
@@ -46,21 +89,4 @@ export declare type SQSMessage = {
   messageAttributes: { [key: string]: { stringValue: string } };
   messageId: string;
   receiptHandle: string;
-};
-
-type SQSMessageAttributes = {
-  ApproximateFirstReceiveTimestamp: string;
-  ApproximateReceiveCount: string;
-  SenderId: string;
-  SentTimestamp: string;
-} & Partial<SQSFifoMessageAttributes>;
-
-type SQSFifoMessageAttributes = {
-  MessageDeduplicationId: string;
-  MessageGroupId: string;
-  SequenceNumber: string;
-};
-
-export declare type SQSFifoMessage = SQSMessage & {
-  attributes: SQSMessageAttributes & SQSFifoMessageAttributes;
 };
