@@ -1,9 +1,16 @@
-import { handler } from "@queue-run/runtime";
+import { handler, loadModuleSymbol } from "@queue-run/runtime";
 import crypto from "crypto";
 import { createServer } from "http";
 import { URL } from "url";
+import loadModule from "./loadModule";
+
+declare var global: {
+  [loadModuleSymbol]: (filename: string) => Promise<any>;
+};
 
 export default async function devServer({ port }: { port: number }) {
+  global[loadModuleSymbol] = async (filename) => loadModule(filename);
+
   const server = createServer(async function (req, res) {
     const method = req.method?.toLocaleUpperCase() ?? "GET";
     const headers = Object.fromEntries(

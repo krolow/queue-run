@@ -10,6 +10,8 @@ import pushMessage from "./pushMessage";
 const clientConfig =
   process.env.NODE_ENV === "production" ? swapAWSEnvVars() : {};
 
+export const loadModuleSymbol = Symbol("loadModuleGlobal");
+
 export async function handler(event: LambdaEvent, context: LambdaContext) {
   const { branch, projectId, region } = parseARN(context.invokedFunctionArn);
   const { getRemainingTimeInMillis } = context;
