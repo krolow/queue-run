@@ -1,7 +1,7 @@
 import { SQS } from "@aws-sdk/client-sqs";
 import { Request, Response } from "node-fetch";
-import { URL } from "node:url";
 import invariant from "tiny-invariant";
+import { URL } from "url";
 import loadMiddleware from "./loadMiddleware";
 import loadModule from "./loadModule";
 

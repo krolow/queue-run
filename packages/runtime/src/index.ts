@@ -1,6 +1,6 @@
 import { SQS } from "@aws-sdk/client-sqs";
 import { Response } from "node-fetch";
-import { URL } from "node:url";
+import { URL } from "url";
 import { BackendLambdaRequest } from "../../gateway/src/types";
 import { asFetchRequest } from "./asFetch";
 import swapAWSEnvVars from "./environment";

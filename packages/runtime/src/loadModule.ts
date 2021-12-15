@@ -1,6 +1,6 @@
-import { R_OK } from "node:constants";
-import { access } from "node:fs/promises";
-import path from "node:path";
+import { R_OK } from "constants";
+import { access } from "fs/promises";
+import path from "path";
 import { install } from "source-map-support";
 
 type Export = { [name: string]: any };

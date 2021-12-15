@@ -1,6 +1,6 @@
 import { Request, Response } from "node-fetch";
-import { URL } from "node:url";
 import path from "path";
+import { URL } from "url";
 import type { AuthenticateMethod } from "../../sdk/types/runtime";
 import loadModule from "./loadModule";
 
