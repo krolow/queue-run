@@ -24,13 +24,13 @@ export default async function compileSourceFiles({
     .filter((line) => line.trim().length > 0 && !line.startsWith("#"));
 
   const filenames = glob.sync("**/*", {
+    absolute: true,
     cwd: sourceDir,
     followSymbolicLinks: true,
     ignore: [...ignore, "**/node_modules/**"],
     markDirectories: true,
     unique: true,
   });
-  console.log(filenames);
   let compiled = 0;
   let copied = 0;
   for (const filename of filenames) {
