@@ -1,13 +1,9 @@
 import { Command } from "commander";
 import dotenv from "dotenv";
-import { readFileSync } from "fs";
-import path from "path";
+import ms from "ms";
 import build from "./build";
-import installDependencies from "./build/installDependencies";
 import upload from "./upload";
 import loadEnvVars from "./util/loadEnvVars";
-
-export { default as moduleLoader } from "./moduleLoader";
 
 if (!process.env.CREDENTIALS)
   throw new Error("CREDENTIALS environment variable is not set");
@@ -17,18 +13,6 @@ process.env.AWS_SECRET_ACCESS_KEY = credentials.aws_secret_access_key;
 process.env.AWS_REGION = credentials.aws_region;
 
 const program = new Command();
-program.version(
-  JSON.parse(readFileSync(path.join(__dirname, "..", "package.json"), "utf-8"))
-    .version
-);
-
-program
-  .command("build")
-  .description("Build the project")
-  .action(async () => {
-    const sourceDir = process.cwd();
-    await build({ install: false, sourceDir });
-  });
 
 program
   .command("upload")
@@ -47,9 +31,18 @@ program
   .action(async (project, { branch, region }) => {
     const sourceDir = process.cwd();
     const envVars = await loadEnvVars();
-    await build({ install: false, sourceDir });
-    await installDependencies({ sourceDir });
+    await build({ install: true, sourceDir });
     await upload({ branch, envVars, projectId: project, region });
   });
 
-program.parse(process.argv);
+program
+  .parseAsync(process.argv)
+  .then(() => {
+    if (process.stdout.isTTY)
+      console.info("🌟 Done in %s", ms(process.uptime() * 1000));
+    return undefined;
+  })
+  .catch((error) => {
+    console.error(String(error));
+    process.exit(1);
+  });

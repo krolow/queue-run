@@ -1,1 +1,1 @@
-export { default as moduleLoader } from "../src/moduleLoader";
+export * from "../src";

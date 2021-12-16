@@ -1,0 +1,1 @@
+{"version":3,"sources":["bin/deploy.js"],"sourcesContent":["const { deploy } = require(\"../dist/index\");\n\ndeploy();\n"],"names":["deploy","require"],"mappings":";AAAA,KAAK,CAAC,CAAC,CAACA,MAAM,EAAC,CAAC,GAAGC,OAAO,CAAC,CAAe;AAE1CD,MAAM"}

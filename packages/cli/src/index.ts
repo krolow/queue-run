@@ -1,45 +1,19 @@
-import { Command, Option } from "commander";
+import { buildProject } from "@queue-run/builder";
+import { Command } from "commander";
 import ms from "ms";
-import devServer from "./dev/devServer";
-import pushMessage from "./dev/pushMessage";
-const pkg = require("../package.json");
+import devServer from "./dev";
 
-const program = new Command();
+const program = new Command().version(require("../package.json").version);
 
-program.version(pkg.version);
+program.addCommand(devServer);
 
-const port = new Option("-p, --port <port>", "Port to run the server on")
-  .env("PORT")
-  .default(8001)
-  .makeOptionMandatory();
-
-const dev = program.command("dev");
-
-dev
-  .command("start", { isDefault: true })
-  .description("Start the development server (default command)")
-  .addOption(port)
-  .action(devServer);
-
-dev
-  .command("queue")
-  .description("Push message to the named queue (dev server)")
-  .argument("<queueName>", "The queue name")
-  .argument(
-    "<message>",
-    'The message; use @name to read from a file, or "-" to read from stdin'
-  )
-  .addOption(port)
-  .option("-g --group <group>", "Group ID (FIFO queues only)")
-  .action(pushMessage);
-
-dev
-  .command("schedule", { hidden: true })
-  .description("Run a scheduled job (dev server)")
-  .argument("<jobName>", "The scheduled job name")
-  .addOption(port)
-  .action(async (jobName, options) => {
-    console.log("run job", jobName, options);
+program
+  .command("build")
+  .description("Build the backend")
+  .option("-o, --output <dir>", "Output directory", ".build")
+  .action(async () => {
+    const sourceDir = process.cwd();
+    await buildProject({ install: false, sourceDir });
   });
 
 program.showSuggestionAfterError();
