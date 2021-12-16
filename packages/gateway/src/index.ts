@@ -2,8 +2,8 @@ import { AbortController, AbortSignal } from "@aws-sdk/abort-controller";
 import { DynamoDB } from "@aws-sdk/client-dynamodb";
 import { InvokeCommandOutput, Lambda } from "@aws-sdk/client-lambda";
 import ms from "ms";
-import { URL } from "node:url";
 import invariant from "tiny-invariant";
+import { URL } from "url";
 import type {
   APIGatewayEvent,
   APIGatewayResponse,

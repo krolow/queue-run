@@ -5,6 +5,8 @@ export declare type QueueHandler = (
   metadata: {
     // Group ID (FIFO queue only)
     groupID?: string;
+    // The queue name
+    queueName: string;
     // Unique message ID
     messageID: string;
     // Number of times message was received

@@ -118,21 +118,13 @@ async function handleOneMessage({
   const controller = new AbortController();
   const abortTimeout = setTimeout(() => controller.abort(), timeout * 1000);
 
+  const metadata = { ...getMetadata(message), signal: controller.signal };
   try {
     console.info("Handling message %s on queue %s", messageId, queueName);
-    const { attributes } = message;
+    const payload = getPayload(message);
 
     await Promise.race([
-      handler(getPayload(message), {
-        messageID: message.messageId,
-        groupID: attributes.MessageGroupId,
-        receivedCount: +attributes.ApproximateReceiveCount,
-        sentAt: new Date(+attributes.SentTimestamp),
-        sequenceNumber: attributes.SequenceNumber
-          ? +attributes.SequenceNumber
-          : undefined,
-        signal: controller.signal,
-      }),
+      handler(payload, metadata),
 
       new Promise((resolve) => {
         controller.signal.addEventListener("abort", resolve);
@@ -145,7 +137,7 @@ async function handleOneMessage({
       );
     } else controller.abort();
 
-    console.info("Deleting message %s on queue %s", messageId, queueName);
+    console.info("Deleting message %s from queue %s", messageId, queueName);
     if ((await sqs.config.region()) !== "localhost") {
       await sqs.deleteMessage({
         QueueUrl: getQueueURL(message),
@@ -160,6 +152,22 @@ async function handleOneMessage({
       queueName,
       error
     );
+
+    if (module.onError) {
+      try {
+        await module.onError(
+          error instanceof Error ? error : new Error(String(error)),
+          metadata
+        );
+      } catch (error) {
+        console.error(
+          "Error in onError handler for queue %s",
+          queueName,
+          error
+        );
+      }
+    }
+
     return false;
   } finally {
     clearTimeout(abortTimeout);
@@ -196,6 +204,22 @@ function getPayload(message: SQSMessage): JSONObject | string {
   } catch {
     return message.body;
   }
+}
+
+function getMetadata(
+  message: SQSMessage
+): Omit<Parameters<QueueHandler>[1], "signal"> {
+  const { attributes } = message;
+  return {
+    messageID: message.messageId,
+    groupID: attributes.MessageGroupId,
+    queueName: getQueueName(message),
+    receivedCount: +attributes.ApproximateReceiveCount,
+    sentAt: new Date(+attributes.SentTimestamp),
+    sequenceNumber: attributes.SequenceNumber
+      ? +attributes.SequenceNumber
+      : undefined,
+  };
 }
 
 // Timeout in seconds.

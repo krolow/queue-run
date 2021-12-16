@@ -1,48 +1,49 @@
 import path from "path";
 import { install } from "source-map-support";
-import { loadModuleSymbol } from "./index";
-
-type Export = { [name: string]: any };
-type Module = Export | Error | null;
-
-declare var global: {
-  [loadModuleSymbol]: (filename: string) => Promise<any>;
-};
+import type { Middleware } from "../types";
 
 // We load backend functions on-demand when we need them for a route, queue, etc.
 // We also use this mechanism to load middleware and other modules.
 //
-// The module is imported dynamically in the current context, and cached.
-//
-// If the module exists, this function returns the exports.
-//
 // If the module doesn't exist, this function returns null.
-//
-// If it fails while importing the module, it throws an error.
-export default async function loadModule<T = Export>(
+export default async function loadModule<Exports = {}>(
   // The module name as route (not filename), eg "/api/project/$id",
-  // "/queue/update_score", "/api/project/_middleware""
+  // "/queue/update_score", "/api/_middleware""
   name: string
-): Promise<T | null> {
+): Promise<(Exports & Middleware) | null> {
   // Avoid path traversal. This turns "foobar", "/foobar", and "../../foobar" into "/foobar".
-  const partialPath = path.join("/", name);
-  const filename = path.format({
-    dir: "backend",
-    name: partialPath.slice(1),
-    ext: ".js",
-  });
+  const fromProjectRoot = path.join("/", name);
+  const filename = path.join(path.resolve("backend"), fromProjectRoot);
+  const middleware = await loadMiddleware(fromProjectRoot);
   try {
-    return await global[loadModuleSymbol](filename);
+    const exports = await require(filename);
+    return { ...middleware, ...exports };
   } catch (error) {
-    if (
-      error instanceof Error &&
-      (error as Error & { code: string }).code === "ERR_MODULE_NOT_FOUND"
-    ) {
+    const code =
+      error instanceof Error && (error as Error & { code: string }).code;
+    if (code === "MODULE_NOT_FOUND") {
       return null;
     } else {
       console.error("Error loading %s", filename, error);
       throw error;
     }
+  }
+}
+
+// Given a path, returns the combined middleware for that folder and all parent
+// folders.
+async function loadMiddleware(name: string): Promise<Middleware> {
+  if (name === "/") return {};
+  const parent = await loadMiddleware(path.dirname(name));
+  const filename = path.join(path.resolve("backend"), name, "_middleware");
+  try {
+    const exports = await require(filename);
+    return { ...parent, ...exports };
+  } catch (error) {
+    const code =
+      error instanceof Error && (error as Error & { code: string }).code;
+    if (code === "MODULE_NOT_FOUND") return parent;
+    throw error;
   }
 }
 

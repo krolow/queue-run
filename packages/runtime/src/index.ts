@@ -5,12 +5,11 @@ import { URL } from "url";
 import { asFetchRequest } from "./asFetch";
 import swapAWSEnvVars from "./environment";
 import handleSQSMessages from "./handleSQSMessages";
+import "./polyfill";
 import pushMessage from "./pushMessage";
 
 const clientConfig =
   process.env.NODE_ENV === "production" ? swapAWSEnvVars() : {};
-
-export const loadModuleSymbol = Symbol("loadModuleGlobal");
 
 export async function handler(event: LambdaEvent, context: LambdaContext) {
   const { branch, projectId, region } = parseARN(context.invokedFunctionArn);
@@ -49,9 +48,8 @@ function parseARN(functionArn: string): {
   projectId: string;
   branch: string;
 } {
-  const [region, accountId, _, projectId, alias] = functionArn
-    .split(":")
-    .slice(3);
+  const [region, accountId, projectId, alias] =
+    /arn:aws:lambda:(.*):(.*):function:(.*):(.*)/.exec(functionArn)!.slice(1);
   const branch = alias.replace(projectId, "").slice(1);
   return { region, accountId, projectId, branch };
 }

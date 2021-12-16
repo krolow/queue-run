@@ -23,6 +23,7 @@
     "tiny-invariant": "^1.2.0"
   },
   "devDependencies": {
+    "@queue-run/gateway": "../gateway",
     "@types/node-fetch": "^2.5.12",
     "dts-cli": "^0.20.0"
   },

@@ -5,7 +5,6 @@ import invariant from "tiny-invariant";
 import { URL } from "url";
 import { SQSMessage } from ".";
 import handleSQSMessages from "./handleSQSMessages";
-import loadMiddleware from "./loadMiddleware";
 import loadModule from "./loadModule";
 
 export default async function pushMessage({
@@ -27,14 +26,26 @@ export default async function pushMessage({
   const { queueName, groupId, dedupeId } = getQueueProperties(request);
 
   const queueURL = await getQueueURL({ branch, projectId, request, sqs });
+
   const module = await loadModule(`queue/${queueName}`);
   if (!module) {
     console.error("No module for queue", queueName);
     throw new Response("Not Found", { status: 404 });
   }
 
-  const { authenticate } = await loadMiddleware(request);
-  const user = authenticate && (await authenticate({ queueName, request }));
+  let user;
+  if (module.authenticate) {
+    user = await module.authenticate(request);
+    if (!(user && user.id)) {
+      console.error(
+        "Authenticate method returns invalid user: %d",
+        user ? "no id" : user
+      );
+      throw new Response("Forbidden", { status: 403 });
+    }
+  }
+
+  if (module.onRequest) await module.onRequest(request);
 
   const contentType = request.headers.get("Content-Type");
   const body = await request.text();
