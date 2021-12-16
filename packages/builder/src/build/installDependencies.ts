@@ -1,6 +1,6 @@
 import { spawn } from "child_process";
+import { copyFile } from "fs/promises";
 import ms from "ms";
-import { copyFile } from "node:fs/promises";
 import path from "path";
 import { buildDir } from "../constants";
 

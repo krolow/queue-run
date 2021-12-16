@@ -1,5 +1,5 @@
 import { SQS } from "@aws-sdk/client-sqs";
-import { QueueConfig } from "@queue-run/runtime";
+import type { QueueConfig } from "@queue-run/runtime";
 import { URL } from "url";
 
 export async function createQueues({
@@ -8,7 +8,7 @@ export async function createQueues({
   region,
   lambdaTimeout,
 }: {
-  configs: Map<string, { config?: QueueConfig }>;
+  configs: Map<string, QueueConfig>;
   prefix: string;
   region: string;
   lambdaTimeout: number;
@@ -16,7 +16,7 @@ export async function createQueues({
   const sqs = new SQS({ region });
 
   return await Promise.all(
-    Array.from(configs.entries()).map(async ([name, { config }]) => {
+    Array.from(configs.entries()).map(async ([name, config]) => {
       // createQueue is idempotent so we can safely call it on each deploy.
       // However, createQueue fails if the queue already exists, but with
       // different attributes, so we split createQueue and setQueueAttributes

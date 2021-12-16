@@ -1,11 +1,12 @@
-import { QueueConfig } from "@queue-run/runtime";
+import type { QueueConfig } from "@queue-run/runtime";
 import ms from "ms";
 import ow from "ow";
 import invariant from "tiny-invariant";
 import { buildDir } from "../constants";
-import loadGroup from "../functions/loadGroup";
+import moduleLoader from "../moduleLoader";
 import createZip from "./createZip";
 import { addTriggers, removeTriggers } from "./lambdaTriggers";
+import loadQueues from "./loadQueues";
 import { createQueues, deleteOldQueues } from "./prepareQueues";
 import updateAlias from "./updateAlias";
 import uploadLambda from "./uploadLambda";
@@ -50,12 +51,8 @@ export default async function upload({
   // module, so some code issues will only show at this point.
   console.info("λ: Loading source code");
 
-  const queues = await loadGroup({
-    dirname: buildDir,
-    envVars,
-    group: "queue",
-    watch: false,
-  });
+  await moduleLoader({ dirname: buildDir, watch: false });
+  const queues = await loadQueues(buildDir);
   const lambdaTimeout = getLambdaTimeout(queues);
 
   const zip = await createZip(buildDir);
@@ -114,9 +111,9 @@ export default async function upload({
   console.info("");
 }
 
-function getLambdaTimeout(queues: Map<string, { config: QueueConfig }>) {
+function getLambdaTimeout(queues: Map<string, QueueConfig>) {
   const lambdaTimeout = Math.max(
-    ...Array.from(queues.values()).map(({ config }) => config.timeout ?? 10)
+    ...Array.from(queues.values()).map((config) => config.timeout ?? 10)
   );
   const maxTimeout = 30;
   ow(

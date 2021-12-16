@@ -1,8 +1,8 @@
+import { moduleLoader } from "@queue-run/builder";
 import { handler } from "@queue-run/runtime";
 import crypto from "crypto";
 import { createServer } from "http";
 import { URL } from "url";
-import { hotReloading } from "./hotReloading";
 
 export default async function devServer({ port }: { port: number }) {
   const server = createServer(async function (req, res) {
@@ -44,9 +44,9 @@ export default async function devServer({ port }: { port: number }) {
       res.writeHead(500).end("Internal Server Error");
     }
   });
+  await moduleLoader({ dirname: process.cwd(), watch: true });
   server.listen(port, () => {
     console.info("👋 Dev server listening on http://localhost:%d", port);
-    hotReloading({ rootDir: process.cwd(), target: "es2020" });
   });
   await new Promise((resolve, reject) =>
     server.on("close", resolve).on("error", reject)

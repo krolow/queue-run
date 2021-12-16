@@ -4,17 +4,19 @@ import { AbortController } from "node-abort-controller";
 import path from "path";
 import { addHook } from "pirates";
 import sourceMapSupport from "source-map-support";
+import getRuntime from "./util/getRuntime";
 
 // Enable hot reloading, TypeScript support, and import/export in JavaScript.
-export function hotReloading({
-  // Root directory we're watching over
-  rootDir,
-  // EcmaScript version target
-  target,
+export default async function moduleLoader({
+  // The directory we're watching over
+  dirname: dirname,
+  // True to watch for changes and reload (dev server)
+  watch,
 }: {
-  rootDir: string;
-  target: swc.JscTarget;
+  dirname: string;
+  watch: boolean;
 }) {
+  const { jscTarget } = await getRuntime(dirname);
   const sourceMaps = new Map<string, string>();
 
   // When we detect a change, this is how we abort all watchers.  There is no
@@ -34,6 +36,8 @@ export function hotReloading({
         `Do not import modules from outside the root directory ("${filename}")`
       );
 
+    if (!watch) return true;
+
     // Bind event handler to this particular abort signal — change events may trigger
     // after the signal has been aborted, and we don't want fake reloads.
     const { signal } = abortWatchers;
@@ -42,7 +46,7 @@ export function hotReloading({
   }
 
   function isInsideProjectDir(filename: string) {
-    return !path.relative(rootDir, filename).startsWith("../");
+    return !path.relative(dirname, filename).startsWith("../");
   }
 
   function onFileChanged(filename: string, signal: AbortSignal) {
@@ -52,7 +56,7 @@ export function hotReloading({
 
     console.info(
       "♻️\tFile %s changed, reloading",
-      path.relative(rootDir, filename)
+      path.relative(dirname, filename)
     );
     abortAllWatchers();
     clearRequireCache();
@@ -65,7 +69,7 @@ export function hotReloading({
 
   function clearRequireCache() {
     for (const filename of Object.keys(require.cache)) {
-      const relative = path.relative(rootDir, filename);
+      const relative = path.relative(dirname, filename);
       const evict = !relative.startsWith("node_modules/");
       if (evict) delete require.cache[filename];
     }
@@ -86,7 +90,7 @@ export function hotReloading({
     const { code: compiled, map: sourceMap } = swc.transformSync(source, {
       filename,
       envName: process.env.NODE_ENV,
-      jsc: { parser: { syntax }, target },
+      jsc: { parser: { syntax }, target: jscTarget },
       module: { type: "commonjs", noInterop: true },
       sourceMaps: true,
       swcrc: false,
