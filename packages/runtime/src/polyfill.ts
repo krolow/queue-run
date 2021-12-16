@@ -2,6 +2,7 @@ import * as http from "http";
 import * as https from "https";
 import * as nodeFetch from "node-fetch";
 
+// Make fetch, Headers, Request, and Response available globally
 if (!global.fetch) {
   const httpAgent = new http.Agent();
   const httpsAgent = new https.Agent();

@@ -2,21 +2,24 @@ import path from "path";
 import { install } from "source-map-support";
 import type { Middleware } from "../types";
 
-// We load backend functions on-demand when we need them for a route, queue, etc.
-// We also use this mechanism to load middleware and other modules.
+// Use this for loading backend functions on demand:
 //
-// If the module doesn't exist, this function returns null.
+// - Load module on-demand
+// - Return null if module is not found
+// - Load middleware and merge into module
+// - Compatible with dev server HMR
 export default async function loadModule<Exports = {}>(
   // The module name as route (not filename), eg "/api/project/$id",
-  // "/queue/update_score", "/api/_middleware""
+  // "/queue/update_score"
   name: string
-): Promise<(Exports & Middleware) | null> {
-  // Avoid path traversal. This turns "foobar", "/foobar", and "../../foobar" into "/foobar".
+): Promise<Readonly<Exports & Middleware> | null> {
   const fromProjectRoot = path.join("/", name);
   const filename = path.join(path.resolve("backend"), fromProjectRoot);
-  const middleware = await loadMiddleware(fromProjectRoot);
   try {
+    // Avoid path traversal. This turns "foobar", "/foobar", and "../../foobar" into "/foobar"
+    const middleware = await loadMiddleware(fromProjectRoot);
     const exports = await require(filename);
+    // This module's exports take precendece over _middleware
     return { ...middleware, ...exports };
   } catch (error) {
     const code =
@@ -24,25 +27,30 @@ export default async function loadModule<Exports = {}>(
     if (code === "MODULE_NOT_FOUND") {
       return null;
     } else {
-      console.error("Error loading %s", filename, error);
+      console.error("Error loading module %s", filename, error);
       throw error;
     }
   }
 }
 
 // Given a path, returns the combined middleware for that folder and all parent
-// folders.
-async function loadMiddleware(name: string): Promise<Middleware> {
-  if (name === "/") return {};
+// folders. For example, given the module name '/api/project/:id', this will return the
+// combined middleware for 'backend/api/project', 'backend/api', and '/backend'.
+async function loadMiddleware(name: string): Promise<Middleware | undefined> {
+  if (name === "/") return undefined;
   const parent = await loadMiddleware(path.dirname(name));
   const filename = path.join(path.resolve("backend"), name, "_middleware");
   try {
     const exports = await require(filename);
+    // This middleware's exports take precendece over parent's
     return { ...parent, ...exports };
   } catch (error) {
     const code =
       error instanceof Error && (error as Error & { code: string }).code;
+    // Module doesnt exist, don't sweat it
     if (code === "MODULE_NOT_FOUND") return parent;
+
+    console.error("Error loading middleware %s", filename, error);
     throw error;
   }
 }
