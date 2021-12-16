@@ -8,9 +8,8 @@ export default async function loadQueues(
   const filenames = glob.sync("[!_]*.{js,ts}", {
     cwd: path.join(dirname, "backend", "queue"),
     onlyFiles: true,
+    absolute: true,
   });
-  console.log(path.join(dirname, "backend", "queue"));
-  console.log(filenames);
 
   const map = await Promise.all(
     filenames.map(async (filename) => {
@@ -19,7 +18,10 @@ export default async function loadQueues(
       const handler = exports.handler || exports.default;
       if (typeof handler !== "function")
         throw new Error(
-          `The module "${filename}" does not export default/handler function`
+          `The module "${path.relative(
+            dirname,
+            filename
+          )}" does not export default/handler function`
         );
       const config = exports.config || {};
       return [queueName, config] as [string, QueueConfig];
