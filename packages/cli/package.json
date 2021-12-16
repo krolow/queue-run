@@ -17,6 +17,7 @@
     "src"
   ],
   "dependencies": {
+    "@queue-run/runtime": "../runtime",
     "@swc/core": "^1.2.120",
     "commander": "^8.3.0",
     "ms": "^2.1.3",
