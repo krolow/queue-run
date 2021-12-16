@@ -1,16 +1,10 @@
-import { handler, loadModuleSymbol } from "@queue-run/runtime";
+import { handler } from "@queue-run/runtime";
 import crypto from "crypto";
 import { createServer } from "http";
 import { URL } from "url";
-import loadModule from "./loadModule";
-
-declare var global: {
-  [loadModuleSymbol]: (filename: string) => Promise<any>;
-};
+import { hotReloading } from "./hotReloading";
 
 export default async function devServer({ port }: { port: number }) {
-  global[loadModuleSymbol] = async (filename) => loadModule(filename).exports;
-
   const server = createServer(async function (req, res) {
     const method = req.method?.toLocaleUpperCase() ?? "GET";
     const headers = Object.fromEntries(
@@ -52,6 +46,7 @@ export default async function devServer({ port }: { port: number }) {
   });
   server.listen(port, () => {
     console.info("👋 Dev server listening on http://localhost:%d", port);
+    hotReloading({ rootDir: process.cwd(), target: "es2020" });
   });
   await new Promise((resolve, reject) =>
     server.on("close", resolve).on("error", reject)

@@ -22,6 +22,7 @@
     "ms": "^2.1.3",
     "node-abort-controller": "^3.0.1",
     "node-fetch": "2.6.6",
+    "pirates": "^4.0.4",
     "source-map-support": "^0.5.21"
   },
   "devDependencies": {
