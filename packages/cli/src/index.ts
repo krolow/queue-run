@@ -1,5 +1,5 @@
-import { buildProject } from "@queue-run/builder";
-import { Command } from "commander";
+import { buildProject, uploadProject } from "@queue-run/builder";
+import { Command, Option } from "commander";
 import ms from "ms";
 import devServer from "./dev";
 
@@ -10,10 +10,34 @@ program.addCommand(devServer);
 program
   .command("build")
   .description("Build the backend")
-  .option("-o, --output <dir>", "Output directory", ".build")
-  .action(async () => {
-    const sourceDir = process.cwd();
-    await buildProject({ install: false, sourceDir });
+  .argument("[source]", "Source directory", "./")
+  .option("-o, --output <output>", "Output directory", ".build")
+  .action(async (source: string, { output }: { output: string }) => {
+    await buildProject({
+      install: true,
+      sourceDir: source,
+      targetDir: output,
+    });
+  });
+
+const region = new Option("-r, --region <region>", "AWS region")
+  .env("AWS_REGION")
+  .default("us-east-1")
+  .makeOptionMandatory();
+
+program
+  .command("upload", { hidden: true })
+  .description("Upload Lambda functions")
+  .argument("<project>", "Project ID")
+  .argument("[branch]", "Branch name", "main")
+  .addOption(region)
+  .action(async (project, branch, { region }) => {
+    await uploadProject({
+      buildDir: ".build",
+      branch,
+      projectId: project,
+      region,
+    });
   });
 
 program.showSuggestionAfterError();

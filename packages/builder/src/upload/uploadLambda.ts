@@ -1,32 +1,34 @@
-import { FunctionConfiguration, Lambda } from "@aws-sdk/client-lambda";
+import { IAM } from "@aws-sdk/client-iam";
+import type { FunctionConfiguration, Lambda } from "@aws-sdk/client-lambda";
 import invariant from "tiny-invariant";
 import { handler } from "../constants";
 import getRuntimeVersion from "../util/getRuntime";
-import { buildDir } from "./../constants";
 import getLambdaRole, { deleteLambdaRole } from "./lambdaRole";
 
 // Creates or updates Lambda function with latest configuration and code.
 // Publishes the new version and returns the published version ARN.
 export default async function uploadLambda({
+  buildDir,
   envVars,
+  iam,
   lambdaName,
   lambdaTimeout,
-  region,
+  lambda,
   zip,
 }: {
+  buildDir: string;
   envVars: Record<string, string>;
+  iam: IAM;
   lambdaName: string;
   lambdaTimeout: number;
-  region: string;
+  lambda: Lambda;
   zip: Uint8Array;
 }): Promise<string> {
-  const lambda = new Lambda({ region });
-
   const configuration = {
     Environment: { Variables: aliasAWSEnvVars(envVars) },
     FunctionName: lambdaName,
     Handler: handler,
-    Role: await getLambdaRole({ lambdaName, region }),
+    Role: await getLambdaRole({ lambdaName, iam }),
     Runtime: (await getRuntimeVersion(buildDir)).lambdaRuntime,
     Timeout: lambdaTimeout,
     TracingConfig: { Mode: "Active" },
@@ -69,7 +71,11 @@ export default async function uploadLambda({
   });
   // FunctionArn does not include version number
   const arn = `${newLambda.FunctionArn}:${newLambda.Version}`;
-  console.info("λ: Created new function %s in %s", lambdaName, region);
+  console.info(
+    "λ: Created new function %s in %s",
+    lambdaName,
+    await lambda.config.region()
+  );
 
   return arn;
 }
@@ -129,16 +135,14 @@ function aliasAWSEnvVars(
 }
 
 export async function deleteLambda({
+  iam,
+  lambda,
   lambdaName,
-  region,
 }: {
+  iam: IAM;
+  lambda: Lambda;
   lambdaName: string;
-  branch?: string;
-  region: string;
 }) {
-  const lambda = new Lambda({ region });
-  await lambda.deleteFunction({
-    FunctionName: lambdaName,
-  });
-  await deleteLambdaRole({ lambdaName, region });
+  await lambda.deleteFunction({ FunctionName: lambdaName });
+  await deleteLambdaRole({ lambdaName, iam });
 }

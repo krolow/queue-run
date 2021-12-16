@@ -30,6 +30,7 @@ export default async function compileSourceFiles({
     markDirectories: true,
     unique: true,
   });
+  console.log(filenames);
   let compiled = 0;
   let copied = 0;
   for (const filename of filenames) {

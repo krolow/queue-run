@@ -9,6 +9,8 @@ export default async function loadQueues(
     cwd: path.join(dirname, "backend", "queue"),
     onlyFiles: true,
   });
+  console.log(path.join(dirname, "backend", "queue"));
+  console.log(filenames);
 
   const map = await Promise.all(
     filenames.map(async (filename) => {

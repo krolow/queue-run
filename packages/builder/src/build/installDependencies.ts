@@ -2,16 +2,17 @@ import { spawn } from "child_process";
 import { copyFile } from "fs/promises";
 import ms from "ms";
 import path from "path";
-import { buildDir } from "../constants";
 
 export default async function installDependencies({
   sourceDir,
+  targetDir,
 }: {
   sourceDir: string;
+  targetDir: string;
 }) {
-  await copyPackageJSON(sourceDir, buildDir);
-  await yarn({ dirname: buildDir, args: ["install", "--production"] });
-  await yarn({ dirname: buildDir, args: ["link", "@queue-run/runtime"] });
+  await copyPackageJSON(sourceDir, targetDir);
+  await yarn({ dirname: targetDir, args: ["install", "--production"] });
+  await yarn({ dirname: targetDir, args: ["link", "@queue-run/runtime"] });
   console.info();
 }
 

@@ -1,20 +1,18 @@
-import { SQS } from "@aws-sdk/client-sqs";
+import type { SQS } from "@aws-sdk/client-sqs";
 import type { QueueConfig } from "@queue-run/runtime";
 import { URL } from "url";
 
 export async function createQueues({
   configs,
   prefix,
-  region,
+  sqs,
   lambdaTimeout,
 }: {
   configs: Map<string, QueueConfig>;
   prefix: string;
-  region: string;
+  sqs: SQS;
   lambdaTimeout: number;
 }): Promise<string[]> {
-  const sqs = new SQS({ region });
-
   return await Promise.all(
     Array.from(configs.entries()).map(async ([name, config]) => {
       // createQueue is idempotent so we can safely call it on each deploy.
@@ -56,14 +54,12 @@ export async function createQueues({
 export async function deleteOldQueues({
   prefix,
   queueARNs,
-  region,
+  sqs,
 }: {
   prefix: string;
   queueARNs: string[];
-  region: string;
+  sqs: SQS;
 }) {
-  const sqs = new SQS({ region });
-
   const { QueueUrls: queueURLs } = await sqs.listQueues({
     QueueNamePrefix: prefix,
   });

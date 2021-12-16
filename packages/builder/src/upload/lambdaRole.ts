@@ -1,5 +1,4 @@
-import type { Role } from "@aws-sdk/client-iam";
-import { IAM } from "@aws-sdk/client-iam";
+import type { IAM, Role } from "@aws-sdk/client-iam";
 import invariant from "tiny-invariant";
 
 const lambdaRolePath = "/services/queuerun";
@@ -54,14 +53,12 @@ const CloudWatchLogPolicy = {
 
 // Returns ARN for a role that only applies to the named function.
 export default async function getLambdaRole({
+  iam,
   lambdaName,
-  region,
 }: {
+  iam: IAM;
   lambdaName: string;
-  region: string;
 }): Promise<string> {
-  const iam = new IAM({ region });
-
   const role = await upsertRole(iam, lambdaName);
   invariant(role.Arn, "Role has no ARN");
 
@@ -111,13 +108,12 @@ async function updatePolicy(
 }
 
 export async function deleteLambdaRole({
+  iam,
   lambdaName,
-  region,
 }: {
+  iam: IAM;
   lambdaName: string;
-  region: string;
 }) {
-  const iam = new IAM({ region });
   await iam.deleteRole({
     RoleName: lambdaName,
   });
