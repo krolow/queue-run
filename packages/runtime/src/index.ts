@@ -8,11 +8,16 @@ import handleSQSMessages from "./handleSQSMessages";
 import "./polyfill";
 import pushMessage from "./pushMessage";
 
-const clientConfig =
-  process.env.NODE_ENV === "production" ? swapAWSEnvVars() : {};
+const { branch, projectId, region, ...clientConfig } =
+  process.env.NODE_ENV === "production"
+    ? swapAWSEnvVars()
+    : {
+        branch: "main",
+        projectId: "grumpy-sunshine",
+        region: "localhost",
+      };
 
 export async function handler(event: LambdaEvent, context: LambdaContext) {
-  const { branch, projectId, region } = parseARN(context.invokedFunctionArn);
   const { getRemainingTimeInMillis } = context;
 
   if ("Records" in event) {
@@ -40,18 +45,6 @@ export async function handler(event: LambdaEvent, context: LambdaContext) {
       else return new Response("Not Found", { status: 404 });
     });
   }
-}
-
-function parseARN(functionArn: string): {
-  region: string;
-  accountId: string;
-  projectId: string;
-  branch: string;
-} {
-  const [region, accountId, projectId, alias] =
-    /arn:aws:lambda:(.*):(.*):function:(.*):(.*)/.exec(functionArn)!.slice(1);
-  const branch = alias.replace(projectId, "").slice(1);
-  return { region, accountId, projectId, branch };
 }
 
 declare type LambdaEvent =
