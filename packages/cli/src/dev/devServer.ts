@@ -9,7 +9,7 @@ declare var global: {
 };
 
 export default async function devServer({ port }: { port: number }) {
-  global[loadModuleSymbol] = async (filename) => loadModule(filename);
+  global[loadModuleSymbol] = async (filename) => loadModule(filename).exports;
 
   const server = createServer(async function (req, res) {
     const method = req.method?.toLocaleUpperCase() ?? "GET";
@@ -19,7 +19,7 @@ export default async function devServer({ port }: { port: number }) {
     const url = new URL(req.url ?? "/", `http://${headers.host}`);
     let data: Buffer[] = [];
     for await (const chunk of req) data.push(chunk);
-    const body = Buffer.concat(data).toString();
+    const body = Buffer.concat(data).toString("base64");
 
     const lambdaEvent = {
       method,
