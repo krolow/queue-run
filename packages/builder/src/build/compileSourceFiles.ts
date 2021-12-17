@@ -75,7 +75,7 @@ async function compileSourceFile({
   const { code, map } = await swc.transformFile(filename, {
     envName: process.env.NODE_ENV,
     jsc: { parser: { syntax }, target: jscTarget },
-    module: { type: "commonjs", noInterop: true },
+    module: { type: "commonjs" },
     sourceMaps: true,
     swcrc: false,
   });

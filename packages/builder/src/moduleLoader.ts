@@ -91,7 +91,7 @@ export default async function moduleLoader({
       filename,
       envName: process.env.NODE_ENV,
       jsc: { parser: { syntax }, target: jscTarget },
-      module: { type: "commonjs", noInterop: true },
+      module: { type: "commonjs" },
       sourceMaps: true,
       swcrc: false,
     });

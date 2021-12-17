@@ -1,0 +1,16 @@
+{
+  "name": "@queue-run/api",
+  "scripts": {},
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.44.0",
+    "@aws-sdk/client-s3": "^3.44.0",
+    "jszip": "^3.7.1",
+    "tiny-invariant": "^1.2.0"
+  },
+  "devDependencies": {
+    "@queue-run/cli": "../cli"
+  },
+  "engines": {
+    "node": "14.x"
+  }
+}

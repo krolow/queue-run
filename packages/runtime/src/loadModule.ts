@@ -13,24 +13,20 @@ export default async function loadModule<Exports = {}>(
   // "/queue/update_score"
   name: string
 ): Promise<Readonly<Exports & Middleware> | null> {
+  // Avoid path traversal. This turns "foobar", "/foobar", and "../../foobar" into "/foobar"
   const fromProjectRoot = path.join("/", name);
-  const filename = path.join(path.resolve("backend"), fromProjectRoot);
+  let filename;
   try {
-    // Avoid path traversal. This turns "foobar", "/foobar", and "../../foobar" into "/foobar"
-    const middleware = await loadMiddleware(fromProjectRoot);
-    const exports = await require(filename);
-    // This module's exports take precendece over _middleware
-    return { ...middleware, ...exports };
-  } catch (error) {
-    const code =
-      error instanceof Error && (error as Error & { code: string }).code;
-    if (code === "MODULE_NOT_FOUND") {
-      return null;
-    } else {
-      console.error("Error loading module %s", filename, error);
-      throw error;
-    }
+    filename = require.resolve(
+      path.join(path.resolve("backend"), fromProjectRoot)
+    );
+  } catch {
+    return null;
   }
+  const exports = await require(filename);
+  const middleware = await loadMiddleware(fromProjectRoot);
+  // This module's exports take precendece over _middleware
+  return { ...middleware, ...exports };
 }
 
 // Given a path, returns the combined middleware for that folder and all parent
@@ -39,20 +35,17 @@ export default async function loadModule<Exports = {}>(
 async function loadMiddleware(name: string): Promise<Middleware | undefined> {
   if (name === "/") return undefined;
   const parent = await loadMiddleware(path.dirname(name));
-  const filename = path.join(path.resolve("backend"), name, "_middleware");
+  let filename;
   try {
-    const exports = await require(filename);
-    // This middleware's exports take precendece over parent's
-    return { ...parent, ...exports };
-  } catch (error) {
-    const code =
-      error instanceof Error && (error as Error & { code: string }).code;
-    // Module doesnt exist, don't sweat it
-    if (code === "MODULE_NOT_FOUND") return parent;
-
-    console.error("Error loading middleware %s", filename, error);
-    throw error;
+    filename = require.resolve(
+      path.join(path.resolve("backend"), name, "_middleware")
+    );
+  } catch {
+    return parent;
   }
+  const exports = await require(filename);
+  // This middleware's exports take precendece over parent's
+  return { ...parent, ...exports };
 }
 
 // Adds source maps for stack traces
