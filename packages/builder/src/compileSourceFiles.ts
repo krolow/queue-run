@@ -1,9 +1,8 @@
-import * as swc from "@swc/core";
-import { JscTarget } from "@swc/core";
+import swc from "@swc/core";
 import glob from "fast-glob";
-import { copyFile, mkdir, readFile, writeFile } from "fs/promises";
+import fs from "fs/promises";
 import path from "path";
-import getRuntimeVersion from "../util/getRuntime";
+import getRuntimeVersion from "./getRuntime";
 
 export default async function compileSourceFiles({
   sourceDir,
@@ -18,7 +17,9 @@ export default async function compileSourceFiles({
   console.info("λ: Compiling source code for Node %s", nodeVersion);
 
   const ignore = (
-    await readFile(path.join(sourceDir, ".gitignore"), "utf-8").catch(() => "")
+    await fs
+      .readFile(path.join(sourceDir, ".gitignore"), "utf-8")
+      .catch(() => "")
   )
     .split("\n")
     .filter((line) => line.trim().length > 0 && !line.startsWith("#"));
@@ -36,23 +37,24 @@ export default async function compileSourceFiles({
   for (const filename of filenames) {
     const dest = path.join(targetDir, path.relative(sourceDir, filename));
     if (filename.endsWith("/")) {
-      await mkdir(dest, { recursive: true });
+      await fs.mkdir(dest, { recursive: true });
     } else {
-      await mkdir(path.dirname(dest), { recursive: true });
+      await fs.mkdir(path.dirname(dest), { recursive: true });
       if (/\.(js|ts)$/.test(filename)) {
         await compileSourceFile({ filename, dest, jscTarget });
         compiled++;
       } else {
-        await copyFile(filename, dest);
+        await fs.copyFile(filename, dest);
         copied++;
       }
     }
   }
 
   console.info("λ: Compiled %d files and copied %d files", compiled, copied);
-  const entryPoints = glob.sync("backend/*/[!_]*.{ts,js}", {
-    cwd: sourceDir,
-  });
+  const entryPoints = glob.sync(
+    ["backend/queue/[!_]*.{js,ts}", "backend/api/**/[!_]*.{ts,js}"],
+    { cwd: sourceDir }
+  );
   if (entryPoints.length === 0) throw new Error("No entry points found");
   console.info(
     "λ: Entry points:\n%s",
@@ -69,7 +71,7 @@ async function compileSourceFile({
 }: {
   dest: string;
   filename: string;
-  jscTarget: JscTarget;
+  jscTarget: swc.JscTarget;
 }) {
   const syntax = filename.endsWith(".ts") ? "typescript" : "ecmascript";
   const { code, map } = await swc.transformFile(filename, {
@@ -79,6 +81,6 @@ async function compileSourceFile({
     sourceMaps: true,
     swcrc: false,
   });
-  await writeFile(dest.replace(/\.ts$/, ".js"), code, "utf-8");
-  if (map) await writeFile(dest.replace(/\.ts$/, ".js.map"), map, "utf-8");
+  await fs.writeFile(dest.replace(/\.ts$/, ".js"), code, "utf-8");
+  if (map) await fs.writeFile(dest.replace(/\.ts$/, ".js.map"), map, "utf-8");
 }

@@ -1,20 +1,18 @@
-import type { SQS } from "@aws-sdk/client-sqs";
-import type { QueueConfig } from "@queue-run/runtime";
+import { SQS } from "@aws-sdk/client-sqs";
 import { URL } from "url";
 
 export async function createQueues({
-  configs,
   prefix,
-  sqs,
-  lambdaTimeout,
+  queues,
+  queueTimeout,
 }: {
-  configs: Map<string, QueueConfig>;
   prefix: string;
-  sqs: SQS;
-  lambdaTimeout: number;
+  queues: string[];
+  queueTimeout: number;
 }): Promise<string[]> {
+  const sqs = new SQS({});
   return await Promise.all(
-    Array.from(configs.entries()).map(async ([name, config]) => {
+    queues.map(async (name) => {
       // createQueue is idempotent so we can safely call it on each deploy.
       // However, createQueue fails if the queue already exists, but with
       // different attributes, so we split createQueue and setQueueAttributes
@@ -38,13 +36,9 @@ export async function createQueues({
       await sqs.setQueueAttributes({
         QueueUrl: queueURL,
         Attributes: {
-          VisibilityTimeout: lambdaTimeout.toFixed(0),
+          VisibilityTimeout: queueTimeout.toFixed(0),
         },
       });
-
-      if (config && Object.keys(config).length > 0)
-        console.info("µ: Using queue %s %o", name, config);
-      else console.info("µ: Using queue %s", name);
 
       return arnFromQueueURL(queueURL);
     })
@@ -54,12 +48,11 @@ export async function createQueues({
 export async function deleteOldQueues({
   prefix,
   queueARNs,
-  sqs,
 }: {
   prefix: string;
   queueARNs: string[];
-  sqs: SQS;
 }) {
+  const sqs = new SQS({});
   const { QueueUrls: queueURLs } = await sqs.listQueues({
     QueueNamePrefix: prefix,
   });

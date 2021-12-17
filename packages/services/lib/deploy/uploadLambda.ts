@@ -1,35 +1,32 @@
-import { IAM } from "@aws-sdk/client-iam";
-import type { FunctionConfiguration, Lambda } from "@aws-sdk/client-lambda";
+import { FunctionConfiguration, Lambda, Runtime } from "@aws-sdk/client-lambda";
 import invariant from "tiny-invariant";
-import { handler } from "../constants";
-import getRuntimeVersion from "../util/getRuntime";
-import getLambdaRole, { deleteLambdaRole } from "./lambdaRole";
+import { deleteLambdaRole, getLambdaRole } from "./lambdaRole";
+
+export const handler = "node_modules/@queue-run/runtime/dist/index.handler";
 
 // Creates or updates Lambda function with latest configuration and code.
 // Publishes the new version and returns the published version ARN.
 export default async function uploadLambda({
-  buildDir,
   envVars,
-  iam,
   lambdaName,
   lambdaTimeout,
-  lambda,
+  lambdaRuntime,
   zip,
 }: {
-  buildDir: string;
   envVars: Record<string, string>;
-  iam: IAM;
   lambdaName: string;
   lambdaTimeout: number;
-  lambda: Lambda;
+  lambdaRuntime: Runtime;
   zip: Uint8Array;
 }): Promise<string> {
+  const lambda = new Lambda({});
+
   const configuration = {
     Environment: { Variables: aliasAWSEnvVars(envVars) },
     FunctionName: lambdaName,
     Handler: handler,
-    Role: await getLambdaRole({ lambdaName, iam }),
-    Runtime: (await getRuntimeVersion(buildDir)).lambdaRuntime,
+    Role: await getLambdaRole({ lambdaName }),
+    Runtime: lambdaRuntime,
     Timeout: lambdaTimeout,
     TracingConfig: { Mode: "Active" },
   };
@@ -134,15 +131,8 @@ function aliasAWSEnvVars(
   return aliased;
 }
 
-export async function deleteLambda({
-  iam,
-  lambda,
-  lambdaName,
-}: {
-  iam: IAM;
-  lambda: Lambda;
-  lambdaName: string;
-}) {
+export async function deleteLambda({ lambdaName }: { lambdaName: string }) {
+  const lambda = new Lambda({});
   await lambda.deleteFunction({ FunctionName: lambdaName });
-  await deleteLambdaRole({ lambdaName, iam });
+  await deleteLambdaRole({ lambdaName });
 }

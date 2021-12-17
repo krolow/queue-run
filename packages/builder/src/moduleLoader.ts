@@ -1,10 +1,10 @@
-import * as swc from "@swc/core";
-import * as fs from "fs";
+import swc from "@swc/core";
+import fs from "fs";
 import { AbortController } from "node-abort-controller";
 import path from "path";
 import { addHook } from "pirates";
 import sourceMapSupport from "source-map-support";
-import getRuntime from "./util/getRuntime";
+import getRuntime from "./getRuntime";
 
 // Enable hot reloading, TypeScript support, and import/export in JavaScript.
 export default async function moduleLoader({
