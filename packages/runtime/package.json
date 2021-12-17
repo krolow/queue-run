@@ -25,7 +25,7 @@
   "devDependencies": {
     "@queue-run/gateway": "../gateway",
     "@types/node-fetch": "^2.5.12",
-    "dts-cli": "^0.20.0"
+    "dts-cli": "^1.1.0"
   },
   "engines": {
     "node": "14.x"
