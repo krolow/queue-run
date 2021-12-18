@@ -1,6 +1,6 @@
 import type { JSONObject } from "./payload";
 
-export declare type QueueHandler = (
+export type QueueHandler = (
   payload: JSONObject | string,
   metadata: {
     // Group ID (FIFO queue only)
@@ -20,7 +20,7 @@ export declare type QueueHandler = (
   }
 ) => Promise<void> | void;
 
-export declare type QueueConfig = {
+export type QueueConfig = {
   // Timeout for processing message in seconds. Defaults to 30.
-  timeout: number;
+  timeout?: number;
 };

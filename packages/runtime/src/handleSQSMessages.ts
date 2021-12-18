@@ -2,12 +2,35 @@ import { SQS } from "@aws-sdk/client-sqs";
 import { AbortController } from "node-abort-controller";
 import invariant from "tiny-invariant";
 import type { JSONObject, QueueConfig, QueueHandler } from "../types";
-import type { SQSMessage } from "./index";
 import loadModule from "./loadModule";
 
 const minTimeout = 1;
 const maxTimeout = 30;
 const defaultTimeout = 10;
+
+export declare type SQSMessage = {
+  attributes: {
+    ApproximateFirstReceiveTimestamp: string;
+    ApproximateReceiveCount: string;
+    MessageDeduplicationId?: string;
+    MessageGroupId?: string;
+    SenderId: string;
+    SentTimestamp: string;
+    SequenceNumber?: string;
+  };
+  awsRegion: string;
+  body: string;
+  eventSource: "aws:sqs";
+  eventSourceARN: string;
+  md5OfBody: string;
+  messageAttributes: {
+    [key: string]: {
+      stringValue: string;
+    };
+  };
+  messageId: string;
+  receiptHandle: string;
+};
 
 export default async function handleSQSMessages({
   getRemainingTimeInMillis,

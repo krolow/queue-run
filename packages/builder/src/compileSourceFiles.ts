@@ -51,15 +51,6 @@ export default async function compileSourceFiles({
   }
 
   console.info("λ: Compiled %d files and copied %d files", compiled, copied);
-  const entryPoints = glob.sync(
-    ["backend/queue/[!_]*.{js,ts}", "backend/api/**/[!_]*.{ts,js}"],
-    { cwd: sourceDir }
-  );
-  if (entryPoints.length === 0) throw new Error("No entry points found");
-  console.info(
-    "λ: Entry points:\n%s",
-    entryPoints.map((filename) => `   ${filename}`).join("\n")
-  );
 }
 
 // We compile TypeScript to JavaScript, but also compile latest ECMAScript to

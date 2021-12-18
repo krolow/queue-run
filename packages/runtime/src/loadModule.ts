@@ -8,25 +8,38 @@ import type { Middleware } from "../types";
 // - Return null if module is not found
 // - Load middleware and merge into module
 // - Compatible with dev server HMR
-export default async function loadModule<Exports = {}>(
+export default async function loadModule<
+  Handler = () => Promise<void>,
+  Config = {}
+>(
   // The module name as route (not filename), eg "/api/project/$id",
   // "/queue/update_score"
   name: string
-): Promise<Readonly<Exports & Middleware> | null> {
+): Promise<Readonly<
+  {
+    handler: Handler;
+    config: Config;
+  } & Middleware
+> | null> {
   // Avoid path traversal. This turns "foobar", "/foobar", and "../../foobar" into "/foobar"
   const fromProjectRoot = path.join("/", name);
   let filename;
   try {
     filename = require.resolve(
-      path.join(path.resolve("backend"), fromProjectRoot)
+      path.join(process.cwd(), "backend", fromProjectRoot)
     );
-  } catch {
+  } catch (error) {
     return null;
   }
   const exports = await require(filename);
+  const handler = exports.handler ?? exports.default;
+  if (typeof handler !== "function")
+    throw new Error(`Moddule ${filename} does not export a handler`);
+  const config = exports.config ?? {};
+
   const middleware = await loadMiddleware(fromProjectRoot);
   // This module's exports take precendece over _middleware
-  return { ...middleware, ...exports };
+  return { ...middleware, ...exports, handler, config };
 }
 
 // Given a path, returns the combined middleware for that folder and all parent

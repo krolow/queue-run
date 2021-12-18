@@ -3,8 +3,7 @@ import crypto from "crypto";
 import { Request, Response } from "node-fetch";
 import invariant from "tiny-invariant";
 import { URL } from "url";
-import { SQSMessage } from ".";
-import handleSQSMessages from "./handleSQSMessages";
+import handleSQSMessages, { SQSMessage } from "./handleSQSMessages";
 import loadModule from "./loadModule";
 
 export default async function pushMessage({

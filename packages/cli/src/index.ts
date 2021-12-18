@@ -1,4 +1,5 @@
 import { buildProject } from "@queue-run/builder";
+import chalk from "chalk";
 import { Command } from "commander";
 import ms from "ms";
 import devServer from "./dev";
@@ -29,7 +30,9 @@ program
   .parseAsync(process.argv)
   .then(() => {
     if (process.stdout.isTTY)
-      console.info("🌟 Done in %s", ms(process.uptime() * 1000));
+      console.info(
+        chalk.bold.green("🐇 Done in %s", ms(process.uptime() * 1000))
+      );
     return undefined;
   })
   .catch((error) => {

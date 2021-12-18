@@ -1,5 +1,6 @@
 import { moduleLoader } from "@queue-run/builder";
 import { handler } from "@queue-run/runtime";
+import chalk from "chalk";
 import crypto from "crypto";
 import { createServer } from "http";
 import { URL } from "url";
@@ -46,7 +47,9 @@ export default async function devServer({ port }: { port: number }) {
   });
   await moduleLoader({ dirname: process.cwd(), watch: true });
   server.listen(port, () => {
-    console.info("👋 Dev server listening on http://localhost:%d", port);
+    console.info(
+      chalk.bold.green("👋 Dev server listening on http://localhost:%d", port)
+    );
   });
   await new Promise((resolve, reject) =>
     server.on("close", resolve).on("error", reject)

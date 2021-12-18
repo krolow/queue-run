@@ -4,7 +4,7 @@ import { Response } from "node-fetch";
 import { URL } from "url";
 import { asFetchRequest } from "./asFetch";
 import swapAWSEnvVars from "./environment";
-import handleSQSMessages from "./handleSQSMessages";
+import handleSQSMessages, { SQSMessage } from "./handleSQSMessages";
 import "./polyfill";
 import pushMessage from "./pushMessage";
 
@@ -16,6 +16,8 @@ const { branch, projectId, region, ...clientConfig } =
         projectId: "grumpy-sunshine",
         region: "localhost",
       };
+
+export { default as loadModule } from "./loadModule";
 
 export async function handler(event: LambdaEvent, context: LambdaContext) {
   const { getRemainingTimeInMillis } = context;
@@ -61,25 +63,4 @@ declare type LambdaContext = {
   logGroupName: string;
   getRemainingTimeInMillis: () => number;
   callbackWaitsForEmptyEventLoop: boolean;
-};
-
-// See https://docs.aws.amazon.com/lambda/latest/dg/with-sqs.html
-export declare type SQSMessage = {
-  attributes: {
-    ApproximateFirstReceiveTimestamp: string;
-    ApproximateReceiveCount: string;
-    MessageDeduplicationId?: string;
-    MessageGroupId?: string;
-    SenderId: string;
-    SentTimestamp: string;
-    SequenceNumber?: string;
-  };
-  awsRegion: string;
-  body: string;
-  eventSource: "aws:sqs";
-  eventSourceARN: string;
-  md5OfBody: string;
-  messageAttributes: { [key: string]: { stringValue: string } };
-  messageId: string;
-  receiptHandle: string;
 };

@@ -1,5 +1,6 @@
 /// <reference types="node" />
 import Lambda from '@aws-sdk/client-lambda';
+import { QueueConfig } from '@queue-run/runtime';
 import swc from '@swc/core';
 
 declare function buildProject({ full, signal, sourceDir, targetDir, }: {
@@ -9,7 +10,7 @@ declare function buildProject({ full, signal, sourceDir, targetDir, }: {
     targetDir: string;
 }): Promise<{
     lambdaRuntime: Lambda.Runtime;
-    queues: string[];
+    queues: Map<string, QueueConfig>;
     zip?: Uint8Array;
 }>;
 

@@ -24,6 +24,7 @@
     "@aws-sdk/client-lambda": "^3.43.0",
     "@aws-sdk/client-sqs": "^3.43.0",
     "@swc/core": "^1.2.120",
+    "@queue-run/runtime": "../runtime",
     "chokidar": "^3.5.2",
     "commander": "^8.3.0",
     "dotenv": "^10.0.0",
