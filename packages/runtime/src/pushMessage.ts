@@ -26,7 +26,7 @@ export default async function pushMessage({
 
   const queueURL = await getQueueURL({ branch, projectId, request, sqs });
 
-  const module = await loadModule(`queue/${queueName}`);
+  const module = await loadModule(`queues/${queueName}`);
   if (!module) {
     console.error("No module for queue", queueName);
     throw new Response("Not Found", { status: 404 });

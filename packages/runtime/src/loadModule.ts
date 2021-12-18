@@ -13,7 +13,7 @@ export default async function loadModule<
   Config = {}
 >(
   // The module name as route (not filename), eg "/api/project/$id",
-  // "/queue/update_score"
+  // "/queues/update_profile.fifo"
   name: string
 ): Promise<Readonly<
   {
@@ -63,12 +63,17 @@ async function loadMiddleware(name: string): Promise<Middleware | undefined> {
 }
 
 function verifyMiddleware(middleware: Middleware, filename: string): void {
-  for (const spec of ["authenticate", "onRequest", "onResponse", "onError"]) {
-    const fn = middleware[spec];
-    if (!fn) continue;
-    if (typeof fn !== "function")
+  const fnNames: (keyof Middleware)[] = [
+    "authenticate",
+    "onError",
+    "onRequest",
+    "onResponse",
+  ];
+  for (const fnName of fnNames) {
+    const fn = middleware[fnName];
+    if (fn && typeof fn !== "function")
       throw new Error(
-        `Middleware error: ${spec} must be a function (in ${filename})`
+        `Middleware error: ${fnName} must be a function (in ${filename})`
       );
   }
 }

@@ -1,6 +1,5 @@
 import { SQS } from "@aws-sdk/client-sqs";
 import { AbortController } from "node-abort-controller";
-import invariant from "tiny-invariant";
 import type { JSONObject, QueueConfig, QueueHandler } from "../types";
 import loadModule from "./loadModule";
 
@@ -120,15 +119,10 @@ async function handleOneMessage({
 }): Promise<boolean> {
   const { messageId } = message;
   const queueName = getQueueName(message);
-  const module = await loadModule<{
-    config?: QueueConfig;
-    default?: QueueHandler;
-    handler?: QueueHandler;
-  }>(`queue/${queueName}`);
+  const module = await loadModule<QueueHandler, QueueConfig>(
+    `queues/${queueName}`
+  );
   if (!module) throw new Error(`No handler for queue ${queueName}`);
-
-  const handler = module.handler ?? module.default;
-  invariant(handler, `No handler for queue ${queueName}`);
 
   // When handling FIFO messges, possible we'll run out of time.
   const timeout = Math.min(
@@ -147,7 +141,7 @@ async function handleOneMessage({
     const payload = getPayload(message);
 
     await Promise.race([
-      handler(payload, metadata),
+      module.handler(payload, metadata),
 
       new Promise((resolve) => {
         controller.signal.addEventListener("abort", resolve);

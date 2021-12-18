@@ -1,12 +1,11 @@
 import Lambda from "@aws-sdk/client-lambda";
-import { loadModule, QueueConfig, QueueHandler } from "@queue-run/runtime";
-import glob from "fast-glob";
-import invariant from "tiny-invariant";
+import { QueueConfig } from "@queue-run/runtime";
 import compileSourceFiles from "./compileSourceFiles";
 import createBuildDirectory from "./createBuildDirectory";
 import createZip from "./createZip";
 import getRuntime from "./getRuntime";
 import installDependencies from "./installDependencies";
+import { loadTopology, showTopology } from "./topology";
 
 // Short build: compile source files to target directory.
 //
@@ -39,53 +38,10 @@ export default async function buildProject({
   const zip = full ? await createZip(targetDir) : undefined;
   if (signal?.aborted) throw new Error();
 
-  const { queues } = await loadTopology(targetDir);
+  const topology = await loadTopology(targetDir);
+  if (topology.queues.size === 0)
+    throw new Error("No API endpoints, queues, or schedules");
+  showTopology(topology);
 
-  return { lambdaRuntime, queues, zip };
-}
-
-async function loadTopology(
-  targetDir: string
-): Promise<{ queues: Map<string, QueueConfig> }> {
-  let queues;
-
-  const cwd = process.cwd();
-  process.chdir(targetDir);
-  try {
-    queues = await mapQueues();
-  } finally {
-    process.chdir(cwd);
-  }
-
-  if (queues.size > 0) {
-    console.info("λ: Queues:");
-    Array.from(queues.keys()).forEach((name, i, all) => {
-      const last = i === all.length - 1;
-      console.info("   %s %s", last ? "⎣" : "⎜", name);
-    });
-  } else console.info("No queues");
-
-  return { queues };
-}
-
-async function mapQueues(): Promise<Map<string, QueueConfig>> {
-  const filenames = await glob("queue/[!_]*.js");
-  const queues = new Map();
-  for (const filename of filenames) {
-    const module = await loadModule<QueueHandler, QueueConfig>(filename);
-    invariant(module, `Module ${filename} not found`);
-
-    if (module.handler.length === 0)
-      throw new Error(`Module ${filename} exports a handler with no arguments`);
-
-    const { timeout } = module.config;
-    if (timeout !== undefined) {
-      if (typeof timeout !== "number")
-        throw new Error(`Module ${filename} timeout must be a number`);
-      if (timeout < 1)
-        throw new Error(`Module ${filename} timeout must be at least 1`);
-    }
-    queues.set(filename, module.config);
-  }
-  return queues;
+  return { lambdaRuntime, zip, ...topology };
 }
