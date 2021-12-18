@@ -15,6 +15,7 @@ export default async function moduleLoader({
   onReload,
 }: {
   dirname: string;
+  // eslint-disable-next-line no-unused-vars
   onReload?: (filename: string) => void;
 }) {
   const { jscTarget } = await getRuntime(dirname);

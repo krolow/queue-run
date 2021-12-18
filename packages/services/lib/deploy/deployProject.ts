@@ -54,7 +54,7 @@ export default async function deployProject({
   // From this point on, we hope to complete successfully and so ignore abort signal
   await switchOver({
     lambdaAlias,
-    queues,
+    queues: Array.from(queues.keys()),
     queuePrefix,
     versionARN,
     queueTimeout,

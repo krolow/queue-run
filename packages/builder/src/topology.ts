@@ -5,7 +5,7 @@ import path from "path";
 import invariant from "tiny-invariant";
 
 export type Topology = {
-  queues: Route<QueueConfig>;
+  queues: Map<string, Route>;
   routes: Route;
 };
 
@@ -13,8 +13,8 @@ export async function loadTopology(targetDir: string): Promise<Topology> {
   const cwd = process.cwd();
   process.chdir(targetDir);
   try {
-    const routes = await mapRoutes();
     const queues = await mapQueues();
+    const routes = await mapRoutes(queues);
     return { queues, routes };
   } finally {
     process.chdir(cwd);
@@ -29,15 +29,22 @@ export async function showTopology({ queues, routes }: Topology) {
   );
   console.info("%s", displayRoutes.map((line) => `   ${line}`).join("\n"));
 
-  const displayQueues = queues.displayFlat();
   console.info(
     chalk.bold.blue("λ: %s"),
-    displayQueues.length > 0 ? "Queues:" : "No queues"
+    queues.size > 0 ? "Queues:" : "No queues"
   );
-  console.info("%s", displayQueues.map((line) => `   ${line}`).join("\n"));
+  console.info(
+    "%s",
+    Array.from(queues.keys())
+      .map((name, i, all) => [i === all.length - 1 ? "└──" : "├──", name])
+      .map(([prefix, name]) => `   ${prefix} ${name}`)
+      .join("\n")
+  );
 }
 
-async function mapRoutes(): Promise<Topology["routes"]> {
+async function mapRoutes(
+  queues: Topology["queues"]
+): Promise<Topology["routes"]> {
   const filenames = await glob("api/**/[!_]*.{js,ts}");
   const routes = new Route("/");
   for (const filename of filenames) {
@@ -48,6 +55,10 @@ async function mapRoutes(): Promise<Topology["routes"]> {
     validateTimeout(timeout, 30);
 
     routes.add(pathFromFilename(filename), filename, module.config);
+  }
+  for (const queue of queues.values()) {
+    invariant(queue.filename && queue.config);
+    routes.add(queue.path, queue.filename, queue.config);
   }
   return routes;
 }
@@ -60,7 +71,7 @@ function pathFromFilename(filename: string): string {
 
 async function mapQueues(): Promise<Topology["queues"]> {
   const filenames = await glob("queues/[!_]*.{js,ts}");
-  const queues = new Route<QueueConfig>("queue");
+  const queues = new Map<string, Route<QueueConfig>>();
   for (const filename of filenames) {
     const module = await loadModule<QueueHandler, QueueConfig>(filename);
     invariant(module, `Module ${filename} not found`);
@@ -69,7 +80,13 @@ async function mapQueues(): Promise<Topology["queues"]> {
     // Maximum Lambda execution time
     validateTimeout(timeout, 900);
 
-    queues.add(queueFromFilename(filename), filename, module.config);
+    const queueName = path.basename(filename, path.extname(filename));
+    const route = new Route(
+      queueFromFilename(filename),
+      filename,
+      module.config
+    );
+    queues.set(queueName, route);
   }
   return queues;
 }
@@ -147,7 +164,9 @@ class Route<Config = {}> {
           : [`├── ${first}`, ...rest.map((line) => `│   ${line}`)];
       })
       .flat();
-    const self = this.filename ? `${this.path} → ${this.filename}` : this.path;
+    const self = this.filename
+      ? `${this.path}  →  ${this.filename}`
+      : this.path;
     return [self, ...nested];
   }
 
@@ -157,7 +176,7 @@ class Route<Config = {}> {
       .flat() as [string, string][];
     const width = Math.max(...nested.map(([path]) => path.length));
     return nested
-      .map(([path, filename]) => path.padEnd(width, " ") + ` → ${filename}`)
+      .map(([path, filename]) => path.padEnd(width, " ") + `  →  ${filename}`)
       .sort();
   }
 

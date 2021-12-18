@@ -1,10 +1,9 @@
 /// <reference types="node" />
 import Lambda from '@aws-sdk/client-lambda';
-import { QueueConfig } from '@queue-run/runtime';
 import swc from '@swc/core';
 
 declare type Topology = {
-    queues: Route<QueueConfig>;
+    queues: Map<string, Route>;
     routes: Route;
 };
 declare function loadTopology(targetDir: string): Promise<Topology>;
