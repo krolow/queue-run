@@ -7,6 +7,8 @@ declare type Topology = {
     queues: Route<QueueConfig>;
     routes: Route;
 };
+declare function loadTopology(targetDir: string): Promise<Topology>;
+declare function showTopology({ queues, routes }: Topology): Promise<void>;
 declare class Route<Config = {}> {
     path: string;
     regex: RegExp;
@@ -40,9 +42,9 @@ declare type RuntimeVersion = {
 };
 declare function getRuntime(dirname: string): Promise<RuntimeVersion>;
 
-declare function moduleLoader({ dirname: dirname, watch, }: {
+declare function moduleLoader({ dirname: dirname, onReload, }: {
     dirname: string;
-    watch: boolean;
+    onReload?: (filename: string) => void;
 }): Promise<void>;
 
-export { buildProject, getRuntime, moduleLoader };
+export { buildProject, getRuntime, loadTopology, moduleLoader, showTopology };

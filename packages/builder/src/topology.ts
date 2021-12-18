@@ -31,14 +31,14 @@ export async function showTopology({ queues, routes }: Topology) {
 
   const displayQueues = queues.displayFlat();
   console.info(
-    chalk.bold.blue("λ: %s:"),
-    displayQueues.length > 0 ? "Queues" : "No queues"
+    chalk.bold.blue("λ: %s"),
+    displayQueues.length > 0 ? "Queues:" : "No queues"
   );
   console.info("%s", displayQueues.map((line) => `   ${line}`).join("\n"));
 }
 
 async function mapRoutes(): Promise<Topology["routes"]> {
-  const filenames = await glob("api/**/[!_]*.js");
+  const filenames = await glob("api/**/[!_]*.{js,ts}");
   const routes = new Route("/");
   for (const filename of filenames) {
     const module = await loadModule<() => void, { timeout?: number }>(filename);
@@ -59,7 +59,7 @@ function pathFromFilename(filename: string): string {
 }
 
 async function mapQueues(): Promise<Topology["queues"]> {
-  const filenames = await glob("queues/[!_]*.js");
+  const filenames = await glob("queues/[!_]*.{js,ts}");
   const queues = new Route<QueueConfig>("queue");
   for (const filename of filenames) {
     const module = await loadModule<QueueHandler, QueueConfig>(filename);

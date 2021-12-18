@@ -10,11 +10,12 @@ import getRuntime from "./getRuntime";
 export default async function moduleLoader({
   // The directory we're watching over
   dirname: dirname,
-  // True to watch for changes and reload (dev server)
-  watch,
+  // Watch for changes and call this function when a change is detected
+  // (default: don't watch for changes)
+  onReload,
 }: {
   dirname: string;
-  watch: boolean;
+  onReload?: (filename: string) => void;
 }) {
   const { jscTarget } = await getRuntime(dirname);
   const sourceMaps = new Map<string, string>();
@@ -36,12 +37,13 @@ export default async function moduleLoader({
         `Do not import modules from outside the root directory ("${filename}")`
       );
 
-    if (!watch) return true;
+    if (onReload) {
+      // Bind event handler to this particular abort signal — change events may trigger
+      // after the signal has been aborted, and we don't want fake reloads.
+      const { signal } = abortWatchers;
+      fs.watch(filename, { signal }, () => onFileChanged(filename, signal));
+    }
 
-    // Bind event handler to this particular abort signal — change events may trigger
-    // after the signal has been aborted, and we don't want fake reloads.
-    const { signal } = abortWatchers;
-    fs.watch(filename, { signal }, () => onFileChanged(filename, signal));
     return true;
   }
 
@@ -54,10 +56,7 @@ export default async function moduleLoader({
     // We can rely on the abort signal to ignore multiple events
     if (signal.aborted) return;
 
-    console.info(
-      "♻️\tFile %s changed, reloading",
-      path.relative(dirname, filename)
-    );
+    onReload!(path.relative(dirname, filename));
     abortAllWatchers();
     clearRequireCache();
   }
