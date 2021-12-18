@@ -1,13 +1,13 @@
+import chalk from "chalk";
 import glob from "fast-glob";
 import filesize from "filesize";
 import { lstat, readFile } from "fs/promises";
 import JSZip from "jszip";
-import ms from "ms";
+import ora from "ora";
 import path from "path";
 
 export default async function createZip(dirname: string): Promise<Uint8Array> {
-  const start = Date.now();
-  console.info("λ: Zipping %s", dirname);
+  const spinner = ora(`Creating zip archive for ${dirname} …`).start();
 
   const zip = new JSZip();
   const filenames = glob.sync("**/*", {
@@ -30,8 +30,9 @@ export default async function createZip(dirname: string): Promise<Uint8Array> {
     compression: "DEFLATE",
     compressionOptions: { level: 9 },
   });
-  console.info("λ: Zipped %s", filesize(buffer.byteLength));
+  spinner.stop();
 
+  console.info(chalk.bold.blue("λ: Zipped %s"), filesize(buffer.byteLength));
   const folders = new Map<string, number>();
   await Promise.all(
     Object.values(zip.files).map(async (entry) => {
@@ -46,7 +47,6 @@ export default async function createZip(dirname: string): Promise<Uint8Array> {
       console.info("   %s   %s", truncated(dirname), filesize(size));
   }
 
-  console.info("✨  Done in %s.", ms(Date.now() - start));
   return buffer;
 }
 

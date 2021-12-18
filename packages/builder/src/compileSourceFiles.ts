@@ -1,6 +1,8 @@
 import swc from "@swc/core";
+import chalk from "chalk";
 import glob from "fast-glob";
 import fs from "fs/promises";
+import ora from "ora";
 import path from "path";
 import getRuntimeVersion from "./getRuntime";
 
@@ -11,10 +13,9 @@ export default async function compileSourceFiles({
   sourceDir: string;
   targetDir: string;
 }) {
-  console.info("λ: Building %s …", targetDir);
+  const spinner = ora("Compiling source files …").start();
 
-  const { jscTarget, nodeVersion } = await getRuntimeVersion(sourceDir);
-  console.info("λ: Compiling source code for Node %s", nodeVersion);
+  const { jscTarget } = await getRuntimeVersion(sourceDir);
 
   const ignore = (
     await fs
@@ -49,8 +50,13 @@ export default async function compileSourceFiles({
       }
     }
   }
+  spinner.stop();
 
-  console.info("λ: Compiled %d files and copied %d files", compiled, copied);
+  console.info(
+    chalk.bold.blue("λ: Compiled %d files and copied %d files"),
+    compiled,
+    copied
+  );
 }
 
 // We compile TypeScript to JavaScript, but also compile latest ECMAScript to

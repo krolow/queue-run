@@ -35,13 +35,13 @@ export default async function buildProject({
   if (full) await installDependencies({ sourceDir, targetDir });
   if (signal?.aborted) throw new Error();
 
-  const zip = full ? await createZip(targetDir) : undefined;
-  if (signal?.aborted) throw new Error();
-
   const topology = await loadTopology(targetDir);
   if (topology.queues.size === 0)
     throw new Error("No API endpoints, queues, or schedules");
-  showTopology(topology);
 
+  const zip = full ? await createZip(targetDir) : undefined;
+  if (signal?.aborted) throw new Error();
+
+  showTopology(topology);
   return { lambdaRuntime, zip, ...topology };
 }
