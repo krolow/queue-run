@@ -47,13 +47,22 @@ async function mapQueues(): Promise<Map<string, QueueConfig>> {
       throw new Error(`Module ${filename} exports a handler with no arguments`);
 
     const { timeout } = module.config;
-    if (timeout !== undefined) {
-      if (typeof timeout !== "number")
-        throw new Error(`Module ${filename} timeout must be a number`);
-      if (timeout < 1)
-        throw new Error(`Module ${filename} timeout must be at least 1`);
-    }
+    // Maximum Lambda execution time
+    validateTimeout(timeout, 900);
+
     queues.set(filename, module.config);
   }
   return queues;
+}
+
+function validateTimeout(
+  timeout: number | undefined,
+  maxTimeout?: number
+): void {
+  if (timeout === undefined || timeout === null) return;
+  if (typeof timeout !== "number")
+    throw new Error("config.timeout must be a number");
+  if (timeout < 1) throw new Error("config.timeout must be at least 1 second");
+  if (maxTimeout && timeout > maxTimeout)
+    throw new Error(`config.timeout cannot be more than ${maxTimeout} seconds`);
 }
