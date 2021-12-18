@@ -1,7 +1,6 @@
 import Lambda from "@aws-sdk/client-lambda";
 import { loadModule, QueueConfig, QueueHandler } from "@queue-run/runtime";
 import glob from "fast-glob";
-import path from "path";
 import invariant from "tiny-invariant";
 import compileSourceFiles from "./compileSourceFiles";
 import createBuildDirectory from "./createBuildDirectory";
@@ -70,15 +69,15 @@ async function loadTopology(
 }
 
 async function mapQueues(): Promise<Map<string, QueueConfig>> {
-  const filenames = await glob("queue/[!_]*.js", {
-    cwd: path.join("backend"),
-  });
+  const filenames = await glob("queue/[!_]*.js");
   const queues = new Map();
   for (const filename of filenames) {
     const module = await loadModule<QueueHandler, QueueConfig>(filename);
     invariant(module, `Module ${filename} not found`);
+
     if (module.handler.length === 0)
       throw new Error(`Module ${filename} exports a handler with no arguments`);
+
     const { timeout } = module.config;
     if (timeout !== undefined) {
       if (typeof timeout !== "number")
