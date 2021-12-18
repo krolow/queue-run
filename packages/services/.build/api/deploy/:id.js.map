@@ -1,1 +1,0 @@
-{"version":3,"sources":["/Users/assaf/Projects/queue.run/packages/services/api/deploy/:id.ts"],"sourcesContent":["export default async function () {\n  return {};\n}\n"],"names":[],"mappings":";;;;;0BAAiC,CAAC;IAChC,MAAM,CAAC,CAAC;IAAA,CAAC;AACX,CAAC"}

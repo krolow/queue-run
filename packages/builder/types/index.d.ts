@@ -3,6 +3,26 @@ import Lambda from '@aws-sdk/client-lambda';
 import { QueueConfig } from '@queue-run/runtime';
 import swc from '@swc/core';
 
+declare type Topology = {
+    queues: Route<QueueConfig>;
+    routes: Route;
+};
+declare class Route<Config = {}> {
+    path: string;
+    regex: RegExp;
+    param?: string;
+    children: Record<string, Route>;
+    filename?: string;
+    config?: Config;
+    constructor(path: string, filename?: string, config?: Config);
+    count(): number;
+    add(path: string, filename: string, config: Config): void;
+    displayTree(): string[];
+    _displayTree(): string[];
+    displayFlat(): string[];
+    _displayFlat(): [string, string][];
+}
+
 declare function buildProject({ full, signal, sourceDir, targetDir, }: {
     full?: boolean;
     signal?: AbortSignal;
@@ -10,9 +30,8 @@ declare function buildProject({ full, signal, sourceDir, targetDir, }: {
     targetDir: string;
 }): Promise<{
     lambdaRuntime: Lambda.Runtime;
-    queues: Map<string, QueueConfig>;
     zip?: Uint8Array;
-}>;
+} & Topology>;
 
 declare type RuntimeVersion = {
     nodeVersion: "12" | "14";

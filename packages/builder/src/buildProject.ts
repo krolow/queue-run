@@ -1,11 +1,10 @@
 import Lambda from "@aws-sdk/client-lambda";
-import { QueueConfig } from "@queue-run/runtime";
 import compileSourceFiles from "./compileSourceFiles";
 import createBuildDirectory from "./createBuildDirectory";
 import createZip from "./createZip";
 import getRuntime from "./getRuntime";
 import installDependencies from "./installDependencies";
-import { loadTopology, showTopology } from "./topology";
+import { loadTopology, showTopology, Topology } from "./topology";
 
 // Short build: compile source files to target directory.
 //
@@ -21,11 +20,12 @@ export default async function buildProject({
   signal?: AbortSignal;
   sourceDir: string;
   targetDir: string;
-}): Promise<{
-  lambdaRuntime: Lambda.Runtime;
-  queues: Map<string, QueueConfig>;
-  zip?: Uint8Array;
-}> {
+}): Promise<
+  {
+    lambdaRuntime: Lambda.Runtime;
+    zip?: Uint8Array;
+  } & Topology
+> {
   const { lambdaRuntime } = await getRuntime(sourceDir);
   await createBuildDirectory(targetDir);
 
@@ -36,8 +36,8 @@ export default async function buildProject({
   if (signal?.aborted) throw new Error();
 
   const topology = await loadTopology(targetDir);
-  if (topology.queues.size === 0)
-    throw new Error("No API endpoints, queues, or schedules");
+  const services = topology.queues.count() + topology.routes.count();
+  if (services === 0) throw new Error("No API endpoints, queues, or schedules");
 
   const zip = full ? await createZip(targetDir) : undefined;
   if (signal?.aborted) throw new Error();
