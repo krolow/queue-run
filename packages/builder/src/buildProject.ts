@@ -36,7 +36,7 @@ export default async function buildProject({
   if (signal?.aborted) throw new Error();
 
   const topology = await loadTopology(targetDir);
-  const services = topology.queues.size + topology.routes.count();
+  const services = topology.queues.size + topology.routes.size;
   if (services === 0) throw new Error("No API endpoints, queues, or schedules");
 
   const zip = full ? await createZip(targetDir) : undefined;

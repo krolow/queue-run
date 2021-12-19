@@ -29,7 +29,7 @@ export default async function compileSourceFiles({
     absolute: true,
     cwd: sourceDir,
     followSymbolicLinks: true,
-    ignore: [...ignore, "**/node_modules/**"],
+    ignore: [...ignore, "**/node_modules/**", targetDir],
     markDirectories: true,
     unique: true,
   });

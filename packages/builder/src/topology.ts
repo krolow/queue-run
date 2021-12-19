@@ -2,11 +2,18 @@ import { loadModule, QueueConfig, QueueHandler } from "@queue-run/runtime";
 import chalk from "chalk";
 import glob from "fast-glob";
 import path from "path";
+import { match, MatchFunction, pathToRegexp } from "path-to-regexp";
 import invariant from "tiny-invariant";
 
 export type Topology = {
-  queues: Map<string, Route>;
-  routes: Route;
+  queues: Map<string, Route<QueueConfig>>;
+  routes: Map<string, Route<{}>>;
+};
+
+type Route<Config = {}> = {
+  filename: string;
+  match: MatchFunction;
+  config: Config;
 };
 
 export async function loadTopology(targetDir: string): Promise<Topology> {
@@ -22,12 +29,24 @@ export async function loadTopology(targetDir: string): Promise<Topology> {
 }
 
 export async function showTopology({ queues, routes }: Topology) {
-  const displayRoutes = routes.displayFlat();
   console.info(
     chalk.bold.blue("λ: %s"),
-    displayRoutes.length > 0 ? "API:" : "No routes"
+    routes.size > 0 ? "API:" : "No routes"
   );
-  console.info("%s", displayRoutes.map((line) => `   ${line}`).join("\n"));
+  const rows: [string, string][] = Array.from(routes.entries()).map(
+    ([path, { filename }]) => [path, filename]
+  );
+  const width = Math.max(...rows.map(([path]) => path.length));
+  const table = rows.map(([path, filename]) =>
+    [path.padEnd(width), filename].join("  →  ")
+  );
+  console.info(
+    "%s",
+    table
+      .sort()
+      .map((line) => `   ${line}`)
+      .join("\n")
+  );
 
   console.info(
     chalk.bold.blue("λ: %s"),
@@ -45,8 +64,9 @@ export async function showTopology({ queues, routes }: Topology) {
 async function mapRoutes(
   queues: Topology["queues"]
 ): Promise<Topology["routes"]> {
+  const routes = new Map<string, Route<{}>>();
+  const dupes = new Set<string>();
   const filenames = await glob("api/**/[!_]*.{js,ts}");
-  const routes = new Route("/");
   for (const filename of filenames) {
     const module = await loadModule<() => void, { timeout?: number }>(filename);
     invariant(module, `Module ${filename} not found`);
@@ -54,24 +74,43 @@ async function mapRoutes(
     const { timeout } = module.config;
     validateTimeout(timeout, 30);
 
-    routes.add(pathFromFilename(filename), filename, module.config);
+    const route = pathFromFilename(filename).replace(
+      /(\/|^)\$(.*?)(\/|$)/g,
+      (_, prev, key, next) => `${prev}:${key || "rest*"}${next}`
+    );
+
+    const regexp = pathToRegexp(route).toString();
+    if (dupes.has(regexp))
+      throw new Error(`Duplicate route "${route}" from "${filename}"`);
+    dupes.add(regexp);
+
+    routes.set(route, {
+      config: module.config,
+      filename,
+      match: match(route),
+    });
   }
-  for (const queue of queues.values()) {
-    invariant(queue.filename && queue.config);
-    routes.add(queue.path, queue.filename, queue.config);
-  }
+
+  for (const [path, route] of queues.entries()) routes.set(path, route);
   return routes;
 }
 
 function pathFromFilename(filename: string): string {
-  const basename = path.basename(filename, path.extname(filename));
-  const directory = path.dirname(filename).replace("api/", "");
-  return basename === "index" ? directory : `${directory}/${basename}`;
+  const basename = path.basename(filename, path.extname(filename)).normalize();
+  const directory = path.dirname(filename).normalize();
+  const withoutIndex =
+    basename === "index" ? directory : `${directory}/${basename}`;
+  const expanded = withoutIndex.replace(/\./g, "/").replace(/\/+/g, "/");
+  const valid = expanded
+    .split("/")
+    .every((part) => /^(\$?[a-zA-Z0-9_-]*|\$*\*)$/.test(part));
+  if (!valid) throw new Error(`Cannot convert "${filename}" to a route`);
+  return expanded;
 }
 
 async function mapQueues(): Promise<Topology["queues"]> {
-  const filenames = await glob("queues/[!_]*.{js,ts}");
   const queues = new Map<string, Route<QueueConfig>>();
+  const filenames = await glob("queues/[!_]*.{js,ts}");
   for (const filename of filenames) {
     const module = await loadModule<QueueHandler, QueueConfig>(filename);
     invariant(module, `Module ${filename} not found`);
@@ -80,21 +119,27 @@ async function mapQueues(): Promise<Topology["queues"]> {
     // Maximum Lambda execution time
     validateTimeout(timeout, 900);
 
-    const queueName = path.basename(filename, path.extname(filename));
-    const route = new Route(
-      queueFromFilename(filename),
+    const route = queuePathFromFilename(filename);
+    queues.set(route, {
+      config: module.config,
       filename,
-      module.config
-    );
-    queues.set(queueName, route);
+      match: match(route),
+    });
   }
   return queues;
 }
 
-function queueFromFilename(queueName: string): string {
-  const basename = path.basename(queueName, path.extname(queueName));
+function queuePathFromFilename(filename: string): string {
+  const basename = path.basename(filename, path.extname(filename)).normalize();
   const isFifo = basename.endsWith(".fifo");
-  return isFifo ? `queue/${basename}/$group` : `queue/${basename}`;
+  const withoutFifo = isFifo ? basename.slice(0, -5) : basename;
+  if (!/^[a-zA-Z0-9_-]+$/.test(withoutFifo))
+    throw new Error(
+      `Invalid queue name, only alphanumeric, hyphen, and underscore allowed`
+    );
+  if (withoutFifo.length > 40)
+    throw new Error("Queue name too long, maximum 40 characters");
+  return isFifo ? `queue/${basename}/:group` : `queue/${basename}`;
 }
 
 function validateTimeout(
@@ -107,87 +152,4 @@ function validateTimeout(
   if (timeout < 1) throw new Error("config.timeout must be at least 1 second");
   if (maxTimeout && timeout > maxTimeout)
     throw new Error(`config.timeout cannot be more than ${maxTimeout} seconds`);
-}
-
-class Route<Config = {}> {
-  path: string;
-  regex: RegExp;
-  param?: string;
-  children: Record<string, Route>;
-  filename?: string;
-  config?: Config;
-
-  constructor(path: string, filename?: string, config?: Config) {
-    this.path = path;
-    this.children = {};
-    this.regex = new RegExp(path);
-    this.param = undefined;
-    this.filename = filename;
-    this.config = config;
-  }
-
-  count(): number {
-    const self = this.filename ? 1 : 0;
-    return Object.values(this.children).reduce(
-      (sum, route) => sum + route.count(),
-      self
-    );
-  }
-
-  add(path: string, filename: string, config: Config) {
-    const [base, ...rest] = path.split("/");
-    invariant(base, "Invalid path");
-
-    if (rest.length === 0) {
-      const child = this.children[base] || new Route(base);
-      this.children[base] = child;
-      child.filename = filename;
-      child.config = config;
-    } else {
-      const child = this.children[base] || new Route(base);
-      this.children[base] = child;
-      child.add(rest.join("/"), filename, config);
-    }
-  }
-
-  displayTree(): string[] {
-    return this._displayTree().slice(1);
-  }
-
-  _displayTree(): string[] {
-    const nested = Object.values(this.children)
-      .map((route, i, all) => {
-        const last = i === all.length - 1;
-        const [first, ...rest] = route._displayTree();
-        return last
-          ? [`└── ${first}`, ...rest.map((line) => `    ${line}`)]
-          : [`├── ${first}`, ...rest.map((line) => `│   ${line}`)];
-      })
-      .flat();
-    const self = this.filename
-      ? `${this.path}  →  ${this.filename}`
-      : this.path;
-    return [self, ...nested];
-  }
-
-  displayFlat(): string[] {
-    const nested = Object.values(this.children)
-      .map((route) => route._displayFlat())
-      .flat() as [string, string][];
-    const width = Math.max(...nested.map(([path]) => path.length));
-    return nested
-      .map(([path, filename]) => path.padEnd(width, " ") + `  →  ${filename}`)
-      .sort();
-  }
-
-  _displayFlat(): [string, string][] {
-    const nested = Object.values(this.children)
-      .map((route) =>
-        route
-          ._displayFlat()
-          .map(([path, filename]) => [`${this.path}/${path}`, filename])
-      )
-      .flat() as [string, string][];
-    return this.filename ? [[this.path, this.filename], ...nested] : nested;
-  }
 }
