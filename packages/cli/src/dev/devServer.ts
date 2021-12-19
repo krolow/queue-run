@@ -55,7 +55,8 @@ export default async function devServer({ port }: { port: number }) {
     spinner.stop();
 
     console.info(
-      chalk.bold.green("👋 Dev server listening on http://localhost:%d", port)
+      chalk.bold.green("👋 Dev server listening on http://localhost:%d"),
+      port
     );
 
     showTopology(topology);

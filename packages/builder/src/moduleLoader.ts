@@ -70,7 +70,12 @@ export default async function moduleLoader({
   function clearRequireCache() {
     for (const filename of Object.keys(require.cache)) {
       const relative = path.relative(dirname, filename);
-      const evict = !relative.startsWith("node_modules/");
+      // We don't watch over node_modules.  We also don't watch over imports
+      // from sibling directories. We don't allow the project to do that
+      // (enforced elsewhere). We do allow the environment to do that, in
+      // development packages are linked through the file system.
+      const evict =
+        !relative.startsWith("node_modules/") && !relative.startsWith("../");
       if (evict) delete require.cache[filename];
     }
     sourceMaps.clear();
