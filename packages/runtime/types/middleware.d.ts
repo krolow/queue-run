@@ -31,7 +31,7 @@ export type OnResponse = (
 // This middleware runs if your request or message handler throws an error.
 export type OnError = (
   error: Error,
-  reference: unknown
+  reference?: unknown
 ) => void | Promise<void>;
 
 export type Middleware = {
@@ -44,11 +44,11 @@ export type Middleware = {
 
   // This middleware runs for every HTTP request, including when a message is
   // sent to a queue.
-  onRequest?: OnRequest;
+  onRequest?: OnRequest | null;
 
   // This middleware runs for every HTTP response.
-  onResponse?: OnResponse;
+  onResponse?: OnResponse | null;
 
   // This middleware runs if your request or message handler throws an error.
-  onError?: OnError;
+  onError?: OnError | null;
 };

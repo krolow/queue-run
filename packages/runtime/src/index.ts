@@ -1,10 +1,10 @@
 import { SQS } from "@aws-sdk/client-sqs";
 import type { BackendLambdaRequest } from "@queue-run/gateway";
-import { Response } from "node-fetch";
 import { URL } from "url";
 import { asFetchRequest } from "./asFetch";
 import swapAWSEnvVars from "./environment";
 import handleSQSMessages, { SQSMessage } from "./handleSQSMessages";
+import httpRoute from "./httpRoute";
 import "./polyfill";
 import pushMessage from "./pushMessage";
 
@@ -42,9 +42,7 @@ export async function handler(event: LambdaEvent, context: LambdaContext) {
           request,
           sqs,
         });
-      } else if (pathname.startsWith("/api/"))
-        return new Response("OK", { status: 200 });
-      else return new Response("Not Found", { status: 404 });
+      } else return await httpRoute(request);
     });
   }
 }

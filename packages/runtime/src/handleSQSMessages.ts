@@ -152,7 +152,7 @@ async function handleOneMessage({
       throw new Error(
         `Timeout: message took longer than ${timeout} to process`
       );
-    } else controller.abort();
+    }
 
     console.info("Deleting message %s from queue %s", messageId, queueName);
     if ((await sqs.config.region()) !== "localhost") {
@@ -188,6 +188,7 @@ async function handleOneMessage({
     return false;
   } finally {
     clearTimeout(abortTimeout);
+    controller.abort();
   }
 }
 
@@ -227,6 +228,7 @@ function getMetadata(
   message: SQSMessage
 ): Omit<Parameters<QueueHandler>[1], "signal"> {
   const { attributes } = message;
+  const userId = message.messageAttributes["userId"]?.stringValue;
   return {
     messageID: message.messageId,
     groupID: attributes.MessageGroupId,
@@ -236,6 +238,7 @@ function getMetadata(
     sequenceNumber: attributes.SequenceNumber
       ? +attributes.SequenceNumber
       : undefined,
+    user: userId ? { id: userId } : undefined,
   };
 }
 
