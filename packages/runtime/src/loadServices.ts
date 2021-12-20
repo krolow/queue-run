@@ -130,7 +130,7 @@ async function loadRoutes(
     const module = await loadModule<() => void, RouteConfig>(filename);
     invariant(module, `Module ${filename} not found`);
 
-    const path = pathFromFilename(filename);
+    const path = pathFromFilename(filename.replace(/^api\//, ""));
 
     const signature = path.replace(/:(.*?)(\/|$)/g, ":$2");
     if (dupes.has(signature))
@@ -145,7 +145,6 @@ async function loadRoutes(
   }
 
   for (const [name, queue] of queues.entries()) {
-    console.log({ name, queue });
     if (!queue.url) continue;
 
     const path = renamePathProperties(queue.url.slice(1));
