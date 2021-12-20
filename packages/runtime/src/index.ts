@@ -8,6 +8,7 @@ import "./polyfill";
 import pushMessage, { PushMessageFunction } from "./pushMessage";
 export { default as loadModule } from "./loadModule";
 export * from "./loadServices";
+export { pushMessage };
 
 const { branch, projectId, region, ...clientConfig } =
   process.env.NODE_ENV === "production"

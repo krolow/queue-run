@@ -1,6 +1,6 @@
 import { Command, Option } from "commander";
 import devServer from "./devServer";
-import pushMessage from "./pushMessage";
+import queueMessage from "./queueMessage";
 
 const command = new Command("dev").description("Run the development server");
 
@@ -19,12 +19,12 @@ command
 
 command
   .command("queue")
-  .description("Push message to the named queue (dev server)")
+  .description("Runs the job using queue handler")
   .argument("<queueName>", "The queue name")
   .argument(
-    "<message>",
-    'The message; use @name to read from a file, or "-" to read from stdin'
+    "[body]",
+    'JSON or plain text (use @name to read from a file, "-" to read from stdin)'
   )
   .addOption(port)
   .option("-g --group <group>", "Group ID (FIFO queues only)")
-  .action(pushMessage);
+  .action(queueMessage);

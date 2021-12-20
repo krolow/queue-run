@@ -36,6 +36,6 @@ program
     return undefined;
   })
   .catch((error) => {
-    console.error(String(error));
-    process.exit(1);
+    console.error(chalk.bold.red(String(error)));
+    process.exit(-1);
   });

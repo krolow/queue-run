@@ -2,13 +2,13 @@ import { moduleLoader } from "@queue-run/builder";
 import { handler, loadServices } from "@queue-run/runtime";
 import chalk from "chalk";
 import crypto from "crypto";
-import dotenv from "dotenv";
 import { createServer, IncomingMessage, ServerResponse } from "http";
 import ora from "ora";
 import { URL } from "url";
+import envVariables from "./envVariables";
 
 export default async function devServer({ port }: { port: number }) {
-  setEnvVariables(port);
+  envVariables(port);
   await moduleLoader({ dirname: process.cwd(), onReload });
 
   const server = createServer(onRequest);
@@ -16,13 +16,6 @@ export default async function devServer({ port }: { port: number }) {
   await new Promise((resolve, reject) =>
     server.on("close", resolve).on("error", reject)
   );
-}
-
-function setEnvVariables(port: number) {
-  dotenv.config({ path: ".env" });
-  process.env.NODE_ENV = "development";
-  process.env.QUEUE_RUN_ENV = "development";
-  process.env.QUEUE_RUM_URL = `http://localhost:${port}`;
 }
 
 async function onListening(port: number) {
