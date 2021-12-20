@@ -60,4 +60,8 @@ export type QueueHandler = (
 export type QueueConfig = {
   // Timeout for processing message in seconds. Defaults to 30.
   timeout?: number;
+  // Expose this queue as HTTP POST request on this path (eg /user/:id/update)
+  url?: string;
+  // Only accept messages with specific content type
+  accepts?: string[] | string;
 };

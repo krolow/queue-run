@@ -21,8 +21,8 @@ export type Services = {
 
 type Queue = {
   checkContentType: (type: string) => boolean;
-  checkMethod: (method: string) => boolean;
   filename: string;
+  url?: string;
   timeout: number;
 };
 
@@ -122,7 +122,7 @@ function moreSpecificRoute(
 async function loadRoutes(
   queues: Services["queues"]
 ): Promise<Services["routes"]> {
-  const routes: Services["routes"] = new Map();
+  const routes = new Map<string, Route>();
   const dupes = new Set<string>();
 
   const filenames = await glob("api/**/[!_]*.{js,ts}");
@@ -130,21 +130,40 @@ async function loadRoutes(
     const module = await loadModule<() => void, RouteConfig>(filename);
     invariant(module, `Module ${filename} not found`);
 
-    const route = pathFromFilename(filename);
+    const path = pathFromFilename(filename);
 
-    const signature = route.replace(/:(.*?)(\/|$)/g, ":$2");
+    const signature = path.replace(/:(.*?)(\/|$)/g, ":$2");
     if (dupes.has(signature))
       throw new Error(`Error in "${filename}": duplicate route exists`);
     dupes.add(signature);
 
-    routes.set(route, {
+    routes.set(path, {
       ...getRouteConfig(module.config),
       filename,
-      match: match(route),
+      match: match(path),
     });
   }
 
-  for (const [path, route] of queues.entries()) routes.set(path, route);
+  for (const [name, queue] of queues.entries()) {
+    console.log({ name, queue });
+    if (!queue.url) continue;
+
+    const path = renamePathProperties(queue.url.slice(1));
+    verifyPathParameters(queue.filename, path);
+
+    const signature = path.replace(/:(.*?)(\/|$)/g, ":$2");
+    if (dupes.has(signature))
+      throw new Error(`Error in "${queue.filename}": duplicate route exists`);
+    dupes.add(signature);
+
+    routes.set(path, {
+      checkContentType: queue.checkContentType,
+      checkMethod: (method: string) => method.toUpperCase() === "POST",
+      filename: queue.filename,
+      match: match(path),
+      timeout: queue.timeout,
+    });
+  }
   return routes;
 }
 
@@ -162,8 +181,13 @@ function pathFromFilename(filename: string): string {
   const renamed = renamePathProperties(withoutIndex);
   const expanded = expandNestedRoutes(renamed);
 
+  verifyPathParameters(filename, expanded);
+  return expanded;
+}
+
+function verifyPathParameters(filename: string, path: string) {
   const keys: Key[] | undefined = [];
-  pathToRegexp(expanded, keys);
+  pathToRegexp(path, keys);
 
   if (new Set(keys.map((key) => key.name)).size < keys.length)
     throw new Error(`Error in "${filename}": duplicate parameter names`);
@@ -174,12 +198,10 @@ function pathFromFilename(filename: string): string {
       `Error in "${filename}": catch all parameter must be the last one`
     );
 
-  if (!expanded.split("/").every(isValidPathPart))
+  if (!path.split("/").every(isValidPathPart))
     throw new Error(
       `Error in "${filename}": only alphanumeric, hyphen, and underscore allowed as path parts`
     );
-
-  return expanded;
 }
 
 // Support nested routes: foo.bar.js is the same as foo/bar.js
@@ -234,7 +256,9 @@ function checkMethod(config: RouteConfig): (method: string) => boolean {
   return (method: string) => methods.has(method.toUpperCase());
 }
 
-function checkContentType(config: RouteConfig): (type: string) => boolean {
+function checkContentType(config: {
+  accepts?: string[] | string;
+}): (type: string) => boolean {
   if (!config.accepts) return () => true;
 
   const accepts = Array.isArray(config.accepts)
@@ -261,8 +285,8 @@ async function loadQueues(): Promise<Services["queues"]> {
     const module = await loadModule<QueueHandler, QueueConfig>(filename);
     invariant(module, `Module ${filename} not found`);
 
-    const route = queuePathFromFilename(filename);
-    queues.set(route, {
+    const queueName = queueNameFromFilename(filename);
+    queues.set(queueName, {
       ...getQueueConfig(module.config),
       filename,
     });
@@ -270,25 +294,25 @@ async function loadQueues(): Promise<Services["queues"]> {
   return queues;
 }
 
-// queue/foo.fifo.js => queues/foo.fifo
-function queuePathFromFilename(filename: string): string {
-  const basename = path.basename(filename, path.extname(filename)).normalize();
-  const isFifo = basename.endsWith(".fifo");
-  const queueName = isFifo ? basename.slice(0, -5) : basename;
-  if (!/^[a-z0-9_-]+$/i.test(queueName))
+// queue/foo.fifo.js => foo.fifo
+function queueNameFromFilename(filename: string): string {
+  const queueName = path.basename(filename, path.extname(filename)).normalize();
+  if (!/^[a-z0-9_-]+(\.fifo)?$/i.test(queueName))
     throw new Error(
       `Invalid queue name, only alphanumeric, hyphen, and underscore allowed`
     );
   if (queueName.length > 40)
     throw new Error("Queue name too long, maximum 40 characters");
-  return isFifo ? `queue/${basename}/:group` : `queue/${basename}`;
+  return queueName;
 }
 
 function getQueueConfig(config: QueueConfig) {
+  if (config.url && !config.url.startsWith("/"))
+    throw new Error('config.url must start with "/"');
   return {
     checkContentType: checkContentType(config),
-    checkMethod: (method: string) => method.toUpperCase() === "POST",
     timeout: getTimeout(config, { max: 500, default: 30 }),
+    url: config.url,
   };
 }
 

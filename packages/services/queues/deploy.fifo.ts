@@ -12,3 +12,8 @@ export default async function deployJob(
     }
   );
 }
+
+export const config = {
+  url: "/project/:projectId/deploy",
+  accepts: "application/json",
+};
