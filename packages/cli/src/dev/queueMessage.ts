@@ -24,11 +24,11 @@ export default async function queueMessage(
     spinner.stop();
     throw error;
   }
-  const body = await getMessageBody(message);
+  const body = maybeJSON(await readMessageBody(message));
   await pushMessage({ body, groupId: group, params: {}, queueName });
 }
 
-async function getMessageBody(message: string): Promise<string> {
+async function readMessageBody(message: string): Promise<string> {
   if (!message) {
     console.info(
       chalk.bold.blue(
@@ -49,4 +49,12 @@ async function getMessageBody(message: string): Promise<string> {
   else if (message.startsWith("@"))
     return await readFile(message.slice(1), "utf-8");
   else return message;
+}
+
+function maybeJSON(body: string) {
+  try {
+    return JSON.parse(body);
+  } catch {
+    return body;
+  }
 }

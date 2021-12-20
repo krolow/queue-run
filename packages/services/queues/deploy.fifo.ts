@@ -3,8 +3,9 @@ import { deployInSequence } from "../lib/deploy/inSequence";
 
 export default async function deployJob(
   { deployId }: { deployId: string },
-  { signal }: { signal: AbortSignal }
+  { params, signal }: { params: { projectId: string }; signal: AbortSignal }
 ) {
+  console.log({ params });
   await deployInSequence(
     { deployId, signal },
     async ({ archive, deploy, signal }) => {
@@ -14,6 +15,6 @@ export default async function deployJob(
 }
 
 export const config = {
-  url: "/project/:projectId/deploy",
+  url: "/project/:group/deploy/",
   accepts: "application/json",
 };
