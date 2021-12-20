@@ -1,5 +1,7 @@
 import { SQS } from "@aws-sdk/client-sqs";
+import chalk from "chalk";
 import { AbortController } from "node-abort-controller";
+import { URLSearchParams } from "url";
 import type { JSONObject, QueueConfig, QueueHandler } from "../types";
 import loadModule from "./loadModule";
 
@@ -33,19 +35,27 @@ export declare type SQSMessage = {
 
 export default async function handleSQSMessages({
   getRemainingTimeInMillis,
-  sqs,
   messages,
+  sqs,
 }: {
   getRemainingTimeInMillis: () => number;
-  sqs: SQS;
   messages: SQSMessage[];
+  sqs: SQS;
 }): Promise<{
   // https://docs.aws.amazon.com/lambda/latest/dg/with-ddb.html#services-ddb-batchfailurereporting
   batchItemFailures: Array<{ itemIdentifier: string }>;
 }> {
   return isFifoQueue(messages[0])
-    ? await handleFifoMessages({ getRemainingTimeInMillis, messages, sqs })
-    : await handleStandardMessages({ getRemainingTimeInMillis, messages, sqs });
+    ? await handleFifoMessages({
+        getRemainingTimeInMillis,
+        messages,
+        sqs,
+      })
+    : await handleStandardMessages({
+        getRemainingTimeInMillis,
+        messages,
+        sqs,
+      });
 }
 
 // We follow the convention that FIFO queues end with .fifo.
@@ -66,7 +76,11 @@ async function handleStandardMessages({
 }) {
   const failedMessageIds = await Promise.all(
     messages.map(async (message) =>
-      (await handleOneMessage({ getRemainingTimeInMillis, message, sqs }))
+      (await handleOneMessage({
+        message,
+        sqs,
+        timeout: getRemainingTimeInMillis(),
+      }))
         ? null
         : message.messageId
     )
@@ -93,9 +107,9 @@ async function handleFifoMessages({
   let message;
   while ((message = messages.shift())) {
     const successful = await handleOneMessage({
-      getRemainingTimeInMillis,
       message,
       sqs,
+      timeout: getRemainingTimeInMillis(),
     });
     if (!successful) {
       return {
@@ -109,13 +123,13 @@ async function handleFifoMessages({
 }
 
 async function handleOneMessage({
-  getRemainingTimeInMillis,
   message,
   sqs,
+  timeout: remainingTime,
 }: {
-  getRemainingTimeInMillis: () => number;
   message: SQSMessage;
   sqs: SQS;
+  timeout: number;
 }): Promise<boolean> {
   const { messageId } = message;
   const queueName = getQueueName(message);
@@ -125,10 +139,7 @@ async function handleOneMessage({
   if (!module) throw new Error(`No handler for queue ${queueName}`);
 
   // When handling FIFO messges, possible we'll run out of time.
-  const timeout = Math.min(
-    getTimeout(module.config),
-    getRemainingTimeInMillis()
-  );
+  const timeout = Math.min(getTimeout(module.config), remainingTime);
   if (timeout <= 0) return false;
 
   // Create an abort controller to allow the handler to cancel incomplete work.
@@ -154,19 +165,20 @@ async function handleOneMessage({
       );
     }
 
-    console.info("Deleting message %s from queue %s", messageId, queueName);
     if ((await sqs.config.region()) !== "localhost") {
+      console.info("Deleting message %s from queue %s", messageId, queueName);
       await sqs.deleteMessage({
         QueueUrl: getQueueURL(message),
         ReceiptHandle: message.receiptHandle,
       });
     }
+
     return true;
   } catch (error) {
     console.error(
-      "Error with message %s on queue %s",
-      messageId,
+      chalk.bold.red('Error in queue "%s" message %s:'),
       queueName,
+      messageId,
       error
     );
 
@@ -178,7 +190,7 @@ async function handleOneMessage({
         );
       } catch (error) {
         console.error(
-          "Error in onError handler for queue %s",
+          chalk.bold.red('Error in onError handler queue "%s"'),
           queueName,
           error
         );
@@ -229,9 +241,16 @@ function getMetadata(
 ): Omit<Parameters<QueueHandler>[1], "signal"> {
   const { attributes } = message;
   const userId = message.messageAttributes["userId"]?.stringValue;
+  const params = Array.from(
+    new URLSearchParams(
+      message.messageAttributes["params"]?.stringValue
+    ).entries()
+  ).reduce((all, [name, value]) => ({ ...all, [name]: value }), {});
+
   return {
     messageID: message.messageId,
     groupID: attributes.MessageGroupId,
+    params,
     queueName: getQueueName(message),
     receivedCount: +attributes.ApproximateReceiveCount,
     sentAt: new Date(+attributes.SentTimestamp),

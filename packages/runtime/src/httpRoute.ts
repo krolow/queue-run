@@ -1,14 +1,16 @@
+import chalk from "chalk";
 import { AbortController } from "node-abort-controller";
 import { Request, Response } from "node-fetch";
 import { Middleware, RequestHandler } from "./../types";
-import { loadRoute, loadServices } from "./loadServices";
+import loadRoute from "./loadRoute";
+import { loadServices } from "./loadServices";
 
 export default async function httpRoute(request: Request): Promise<Response> {
   try {
-    const services = await loadServices(process.cwd());
+    const { routes } = await loadServices(process.cwd());
     const { handler, middleware, params, route } = await loadRoute(
       request.url,
-      services
+      routes
     );
 
     const { checkContentType, checkMethod } = route;
@@ -111,7 +113,7 @@ async function runWithMiddleware({
   } catch (error) {
     if (error instanceof Response) throw error;
 
-    console.log('Response from module "%s" failed', filename, error);
+    console.error(chalk.bold.red('Error in module "%s":'), filename, error);
     if (onError) {
       await onError(
         error instanceof Error ? error : new Error(String(error)),

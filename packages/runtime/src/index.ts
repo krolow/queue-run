@@ -1,12 +1,11 @@
 import { SQS } from "@aws-sdk/client-sqs";
 import type { BackendLambdaRequest } from "@queue-run/gateway";
-import { URL } from "url";
 import { asFetchRequest } from "./asFetch";
 import swapAWSEnvVars from "./environment";
 import handleSQSMessages, { SQSMessage } from "./handleSQSMessages";
 import httpRoute from "./httpRoute";
 import "./polyfill";
-import pushMessage from "./pushMessage";
+import pushMessage, { PushMessageFunction } from "./pushMessage";
 export { default as loadModule } from "./loadModule";
 export * from "./loadServices";
 
@@ -19,8 +18,16 @@ const { branch, projectId, region, ...clientConfig } =
         region: "localhost",
       };
 
+declare var global: {
+  pushMessage: PushMessageFunction;
+};
+
 export async function handler(event: LambdaEvent, context: LambdaContext) {
   const { getRemainingTimeInMillis } = context;
+
+  const slug = `${projectId}-${branch}`;
+  const sqs = new SQS({ ...clientConfig, region });
+  global.pushMessage = pushMessage({ slug, sqs });
 
   if ("Records" in event) {
     const messages = event.Records.filter(
@@ -28,22 +35,14 @@ export async function handler(event: LambdaEvent, context: LambdaContext) {
     );
     if (messages.length > 0) {
       const sqs = new SQS({ ...clientConfig, region });
-      await handleSQSMessages({ getRemainingTimeInMillis, messages, sqs });
+      await handleSQSMessages({
+        getRemainingTimeInMillis,
+        messages,
+        sqs,
+      });
     }
   } else if ("url" in event) {
-    return await asFetchRequest(event, async (request) => {
-      const { pathname } = new URL(request.url);
-      if (pathname.startsWith("/queue/")) {
-        const sqs = new SQS({ ...clientConfig, region });
-        return await pushMessage({
-          branch,
-          getRemainingTimeInMillis,
-          projectId,
-          request,
-          sqs,
-        });
-      } else return await httpRoute(request);
-    });
+    return await asFetchRequest(event, (request) => httpRoute(request));
   }
 }
 

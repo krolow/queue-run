@@ -37,14 +37,18 @@ export default async function buildProject({
   if (signal?.aborted) throw new Error();
 
   const spinner = ora("Reviewing endpoints …").start();
-  const { queues, routes } = await loadServices(targetDir);
-  if (routes.size + queues.size === 0)
-    throw new Error("No API endpoints, queues, or schedules");
-  spinner.stop();
+  let services;
+  try {
+    services = await loadServices(targetDir);
+    if (services.routes.size + services.queues.size === 0)
+      throw new Error("No API endpoints, queues, or schedules");
+  } finally {
+    spinner.stop();
+  }
 
   const zip = full ? await createZip(targetDir) : undefined;
   if (signal?.aborted) throw new Error();
 
-  displayServices({ queues, routes });
-  return { lambdaRuntime, zip, queues, routes };
+  displayServices(services);
+  return { lambdaRuntime, zip, ...services };
 }

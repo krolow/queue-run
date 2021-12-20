@@ -1,17 +1,9 @@
 import chalk from "chalk";
 import glob from "fast-glob";
-import { Response } from "node-fetch";
 import path from "path";
 import { Key, match, MatchFunction, pathToRegexp } from "path-to-regexp";
 import invariant from "tiny-invariant";
-import { URL } from "url";
-import {
-  QueueConfig,
-  QueueHandler,
-  RequestHandler,
-  RouteConfig,
-} from "../types";
-import { Middleware } from "../types/middleware";
+import { QueueConfig, QueueHandler, RouteConfig } from "../types";
 import loadModule from "./loadModule";
 
 export type Services = {
@@ -19,21 +11,22 @@ export type Services = {
   routes: Map<string, Route>;
 };
 
-type Queue = {
+export type Queue = {
   checkContentType: (type: string) => boolean;
   filename: string;
   isFifo: boolean;
   path: string | null;
+  queueName: string;
   timeout: number;
 };
 
-type Route = {
+export type Route = {
   checkContentType: (type: string) => boolean;
   checkMethod: (method: string) => boolean;
   filename: string;
   match: MatchFunction<{ [key: string]: string }>;
+  queue?: Queue;
   timeout: number;
-  isQueue: boolean;
 };
 
 export async function loadServices(dirname: string): Promise<Services> {
@@ -81,45 +74,6 @@ export function displayServices({ routes, queues }: Services) {
   );
 }
 
-export async function loadRoute(
-  url: string,
-  { routes }: Services
-): Promise<{
-  handler: RequestHandler;
-  middleware: Middleware;
-  params: { [key: string]: string };
-  route: Route;
-}> {
-  const pathname = new URL(url).pathname.slice(1);
-  const matches = Array.from(routes.values())
-    .map((route) => ({
-      route,
-      match: route.match(pathname),
-    }))
-    .filter(({ match }) => match)
-    .map(({ match, route }) => ({
-      params: match ? match.params : {},
-      route,
-    }))
-    .sort((a, b) => moreSpecificRoute(a.params, b.params));
-  if (!matches[0]) throw new Response("Not Found", { status: 404 });
-
-  const { route, params } = matches[0];
-
-  const module = await loadModule<RequestHandler, RouteConfig>(route.filename);
-  if (!module) throw new Response("Not Found", { status: 404 });
-  const { handler, ...middleware } = module;
-
-  return { handler, middleware, params, route };
-}
-
-function moreSpecificRoute(
-  a: { [key: string]: string },
-  b: { [key: string]: string }
-) {
-  return Object.keys(a).length - Object.keys(b).length;
-}
-
 async function loadRoutes(
   queues: Services["queues"]
 ): Promise<Services["routes"]> {
@@ -145,7 +99,6 @@ async function loadRoutes(
         checkContentType: checkContentType(module.config),
         checkMethod: checkMethod(module.config),
         filename,
-        isQueue: false,
         match: match(path),
         timeout: getTimeout(module.config, { max: 30, default: 30 }),
       });
@@ -172,7 +125,7 @@ async function loadRoutes(
         checkContentType: queue.checkContentType,
         checkMethod: (method: string) => method.toUpperCase() === "POST",
         filename: queue.filename,
-        isQueue: true,
+        queue,
         match: match(path),
         timeout: queue.timeout,
       });
@@ -301,6 +254,7 @@ async function loadQueues(): Promise<Services["queues"]> {
         filename,
         isFifo,
         path: getQueuePath(module.config, isFifo),
+        queueName,
         timeout: getTimeout(module.config, { max: 500, default: 30 }),
       });
     } catch (error) {

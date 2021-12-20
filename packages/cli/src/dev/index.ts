@@ -28,12 +28,3 @@ command
   .addOption(port)
   .option("-g --group <group>", "Group ID (FIFO queues only)")
   .action(pushMessage);
-
-command
-  .command("schedule", { hidden: true })
-  .description("Run a scheduled job (dev server)")
-  .argument("<jobName>", "The scheduled job name")
-  .addOption(port)
-  .action(async (jobName, options) => {
-    console.log("run job", jobName, options);
-  });
