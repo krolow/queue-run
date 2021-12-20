@@ -1,5 +1,5 @@
 import { moduleLoader } from "@queue-run/builder";
-import { loadServices, pushMessage } from "@queue-run/runtime";
+import { loadModule, pushMessage } from "@queue-run/runtime";
 import chalk from "chalk";
 import { readFile } from "fs/promises";
 import ora from "ora";
@@ -11,21 +11,19 @@ export default async function queueMessage(
   message: string,
   { port, group }: { port: number; group?: string }
 ) {
-  const spinner = ora("Loading services").start();
-  envVariables(port);
-  await moduleLoader({ dirname: process.cwd() });
-
-  let queue;
+  const spinner = ora("Loading job handler").start();
   try {
-    const { queues } = await loadServices(process.cwd());
-    queue = queues.get(queueName);
-    spinner.stop();
-  } catch (error) {
-    spinner.fail(String(error));
-    process.exit(1);
-  }
+    envVariables(port);
+    await moduleLoader({ dirname: process.cwd() });
 
-  if (!queue) throw new Error(`Queue ${queueName} not found`);
+    const module = await loadModule(`queues/${queueName}`);
+    if (!module) throw new Error(`Queue ${queueName} not found`);
+
+    spinner.succeed();
+  } catch (error) {
+    spinner.stop();
+    throw error;
+  }
   const body = await getMessageBody(message);
   await pushMessage({ body, groupId: group, params: {}, queueName });
 }
