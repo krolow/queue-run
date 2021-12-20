@@ -2,7 +2,7 @@ import chalk from "chalk";
 import glob from "fast-glob";
 import { Response } from "node-fetch";
 import path from "path";
-import { match, MatchFunction, pathToRegexp } from "path-to-regexp";
+import { Key, match, MatchFunction, pathToRegexp } from "path-to-regexp";
 import invariant from "tiny-invariant";
 import { URL } from "url";
 import {
@@ -132,10 +132,10 @@ async function loadRoutes(
 
     const route = pathFromFilename(filename);
 
-    const regexp = pathToRegexp(route).toString();
-    if (dupes.has(regexp))
-      throw new Error(`Duplicate route "${route}" from "${filename}"`);
-    dupes.add(regexp);
+    const signature = route.replace(/:(.*?)(\/|$)/g, ":$2");
+    if (dupes.has(signature))
+      throw new Error(`Error in "${filename}": duplicate route exists`);
+    dupes.add(signature);
 
     routes.set(route, {
       ...getRouteConfig(module.config),
@@ -148,7 +148,7 @@ async function loadRoutes(
   return routes;
 }
 
-// foo/$bar/index.js -> foo/:bar
+// foo/[bar]/index.js -> foo/:bar
 function pathFromFilename(filename: string): string {
   // Separate basename, so we can drop extension and /index.js
   const basename = path.basename(filename, path.extname(filename)).normalize();
@@ -156,14 +156,27 @@ function pathFromFilename(filename: string): string {
   const withoutIndex =
     basename === "index" ? directory : `${directory}/${basename}`;
 
-  const expanded = expandNestedRoutes(withoutIndex);
+  const renamed = renamePathProperties(withoutIndex);
+  const expanded = expandNestedRoutes(renamed);
+
+  const keys: Key[] | undefined = [];
+  pathToRegexp(expanded, keys);
+
+  if (new Set(keys.map((key) => key.name)).size < keys.length)
+    throw new Error(`Error in "${filename}": duplicate parameter names`);
+
+  const catchAll = keys.findIndex(({ modifier }) => modifier === "*");
+  if (catchAll >= 0 && catchAll !== keys.length - 1)
+    throw new Error(
+      `Error in "${filename}": catch all parameter must be the last one`
+    );
 
   if (!expanded.split("/").every(isValidPathPart))
     throw new Error(
-      `Cannot convert "${filename}" to a route, only alphanumeric, hyphen, and underscore allowed`
+      `Error in "${filename}": only alphanumeric, hyphen, and underscore allowed as path parts`
     );
 
-  return renamePathProperties(expanded);
+  return expanded;
 }
 
 // Support nested routes: foo.bar.js is the same as foo/bar.js
@@ -171,17 +184,23 @@ function expandNestedRoutes(filename: string): string {
   return filename.replace(/\./g, "/").replace(/\/+/g, "/");
 }
 
-// Filenames look like `foo/$bar.js`, but reg-exp paths and rewrite rules use
-// `foo/:bar`. Filenames don't allow colon (Windows).
+// foo/[bar].js -> foo/:bar
+// foo/[...bar].js -> foo/:bar*
+//
+// path-to-regexp excepts colon for named parameters, but Windows doesn't
+// support colon in filenames.  Brackets are easier to see than single character
+// prefix when looking at the file tree.
 function renamePathProperties(filename: string): string {
-  return filename.replace(
-    /(\/|^)\$(.*?)(\/|$)/g,
-    (_, prev, key, next) => `${prev}:${key || "rest*"}${next}`
-  );
+  return filename
+    .split("/")
+    .map((part) =>
+      part.replace(/^\[\.{3}(.*)\]$/, ":$1*").replace(/^\[(.*)\]$/, ":$1")
+    )
+    .join("/");
 }
 
 function isValidPathPart(part: string): boolean {
-  return /^(\$?[a-z0-9_-]*|\$*\*)$/i.test(part);
+  return /^([a-z0-9_-]+)|(:[a-z0-9_-]+\*?)$/i.test(part);
 }
 
 function getRouteConfig(config: RouteConfig) {
