@@ -149,6 +149,9 @@ async function loadRoutes(
 }
 
 // foo/[bar]/index.js -> foo/:bar
+//
+// This also does a lot of validation and throws errors for common mistakes like
+// space in filename, duplicate parameter names, etc.
 function pathFromFilename(filename: string): string {
   // Separate basename, so we can drop extension and /index.js
   const basename = path.basename(filename, path.extname(filename)).normalize();
@@ -187,9 +190,10 @@ function expandNestedRoutes(filename: string): string {
 // foo/[bar].js -> foo/:bar
 // foo/[...bar].js -> foo/:bar*
 //
-// path-to-regexp excepts colon for named parameters, but Windows doesn't
-// support colon in filenames.  Brackets are easier to see than single character
-// prefix when looking at the file tree.
+// path-to-regexp uses colon for named parameters.  Can't use these in file
+// names, Windows always used colon for something else.  Besides, it's easier to
+// see parameters in file names when using brackets than with a single prefix
+// (colon, dollar, etc).
 function renamePathProperties(filename: string): string {
   return filename
     .split("/")
@@ -199,6 +203,9 @@ function renamePathProperties(filename: string): string {
     .join("/");
 }
 
+// path-to-regexp supports a lot more options than we want to allow in filenames.
+// If you need all these options, use rewrite rules.
+//  We limit to "file_name_92-3.js".
 function isValidPathPart(part: string): boolean {
   return /^([a-z0-9_-]+)|(:[a-z0-9_-]+\*?)$/i.test(part);
 }
