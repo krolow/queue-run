@@ -2,12 +2,8 @@ import { Request, Response } from "node-fetch";
 import invariant from "tiny-invariant";
 import { URLSearchParams } from "url";
 import { RequestHandler } from "../types/handlers";
+import { pushMessage } from "./index";
 import { Route } from "./loadServices";
-import { PushMessageFunction } from "./pushMessage";
-
-declare var global: {
-  pushMessage: PushMessageFunction;
-};
 
 export default async function queueRequestHandlerFor(
   route: Route,
@@ -19,19 +15,16 @@ export default async function queueRequestHandlerFor(
   if (isFifo && !params.group)
     throw new Response("Missing group parameter", { status: 400 });
 
-  const messageId = await global.pushMessage({
+  await pushMessage({
     body: await getMessageBody(request),
     ...(isFifo
-      ? {
-          dedupeId: params.dedupe,
-          groupId: params.group,
-        }
+      ? { dedupeId: params.dedupe, groupId: params.group }
       : undefined),
     queueName: queueName,
     params,
     user,
   });
-  return { messageId };
+  return new Response("Accepted", { status: 202 });
 }
 
 async function getMessageBody(

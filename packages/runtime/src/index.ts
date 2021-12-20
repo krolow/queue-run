@@ -5,10 +5,9 @@ import swapAWSEnvVars from "./environment";
 import handleSQSMessages, { SQSMessage } from "./handleSQSMessages";
 import httpRoute from "./httpRoute";
 import "./polyfill";
-import pushMessage, { PushMessageFunction } from "./pushMessage";
+import createPushMessage from "./pushMessage";
 export { default as loadModule } from "./loadModule";
 export * from "./loadServices";
-export { pushMessage };
 
 const { branch, projectId, region, ...clientConfig } =
   process.env.NODE_ENV === "production"
@@ -19,16 +18,11 @@ const { branch, projectId, region, ...clientConfig } =
         region: "localhost",
       };
 
-declare var global: {
-  pushMessage: PushMessageFunction;
-};
+const slug = `${projectId}-${branch}`;
+const sqs = new SQS({ ...clientConfig, region });
 
 export async function handler(event: LambdaEvent, context: LambdaContext) {
   const { getRemainingTimeInMillis } = context;
-
-  const slug = `${projectId}-${branch}`;
-  const sqs = new SQS({ ...clientConfig, region });
-  global.pushMessage = pushMessage({ slug, sqs });
 
   if ("Records" in event) {
     const messages = event.Records.filter(
@@ -46,6 +40,8 @@ export async function handler(event: LambdaEvent, context: LambdaContext) {
     return await asFetchRequest(event, (request) => httpRoute(request));
   }
 }
+
+export const pushMessage = createPushMessage({ slug, sqs });
 
 declare type LambdaEvent =
   | { Records: Array<SQSMessage> }

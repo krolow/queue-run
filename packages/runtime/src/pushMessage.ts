@@ -14,7 +14,7 @@ export type PushMessageFunction = (params: {
   user?: AuthenticatedUser;
 }) => Promise<string>;
 
-export default function pushMessage({
+export default function createPushMessage({
   sqs,
   slug,
 }: {

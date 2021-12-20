@@ -1,4 +1,3 @@
-import { SQS } from "@aws-sdk/client-sqs";
 import { moduleLoader } from "@queue-run/builder";
 import { loadServices, pushMessage } from "@queue-run/runtime";
 import chalk from "chalk";
@@ -28,10 +27,7 @@ export default async function queueMessage(
 
   if (!queue) throw new Error(`Queue ${queueName} not found`);
   const body = await getMessageBody(message);
-  await pushMessage({
-    slug: "localhost",
-    sqs: new SQS({ region: "localhost" }),
-  })({ body, groupId: group, params: {}, queueName });
+  await pushMessage({ body, groupId: group, params: {}, queueName });
 }
 
 async function getMessageBody(message: string): Promise<string> {
