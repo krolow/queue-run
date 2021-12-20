@@ -9,13 +9,14 @@ import path from "path";
 export default async function createZip(dirname: string): Promise<Uint8Array> {
   const spinner = ora(`Creating zip archive for ${dirname} …`).start();
 
-  const zip = new JSZip();
   const filenames = glob.sync("**/*", {
     cwd: dirname,
     dot: true,
     followSymbolicLinks: true,
     onlyFiles: true,
   });
+
+  const zip = new JSZip();
   await Promise.all(
     filenames.map(async (filename) => {
       const filepath = path.resolve(dirname, filename);
@@ -30,9 +31,10 @@ export default async function createZip(dirname: string): Promise<Uint8Array> {
     compression: "DEFLATE",
     compressionOptions: { level: 9 },
   });
-  spinner.stop();
 
+  spinner.stop();
   console.info(chalk.bold.blue("λ: Zipped %s"), filesize(buffer.byteLength));
+
   const folders = new Map<string, number>();
   await Promise.all(
     Object.values(zip.files).map(async (entry) => {

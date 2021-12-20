@@ -1,5 +1,5 @@
-import { loadTopology, moduleLoader, showTopology } from "@queue-run/builder";
-import { handler } from "@queue-run/runtime";
+import { moduleLoader } from "@queue-run/builder";
+import { handler, loadServices } from "@queue-run/runtime";
 import chalk from "chalk";
 import crypto from "crypto";
 import { createServer, IncomingMessage, ServerResponse } from "http";
@@ -17,17 +17,21 @@ export default async function devServer({ port }: { port: number }) {
 }
 
 async function onListening(port: number) {
-  const spinner = ora("Reviewing endpoints").start();
-  const topology = await loadTopology(process.cwd());
-  spinner.stop();
+  const spinner = ora("Reviewing services").start();
+  try {
+    await loadServices(process.cwd());
+    spinner.stop();
 
-  console.info(
-    chalk.bold.green("👋 Dev server listening on http://localhost:%d"),
-    port
-  );
+    console.info(
+      chalk.bold.green("👋 Dev server listening on http://localhost:%d"),
+      port
+    );
 
-  showTopology(topology);
-  console.info(chalk.gray("   Watching for changes …"));
+    console.info(chalk.gray("   Watching for changes …"));
+  } catch (error) {
+    spinner.fail(String(error));
+    process.exit(1);
+  }
 }
 
 async function onRequest(req: IncomingMessage, res: ServerResponse) {
@@ -72,9 +76,13 @@ async function onRequest(req: IncomingMessage, res: ServerResponse) {
 
 async function onReload(filename: string) {
   const spinner = ora(`File ${filename} changed, reloading`).start();
-  await Promise.all([
-    loadTopology(process.cwd()),
-    new Promise((resolve) => setTimeout(resolve, 500)),
-  ]);
-  spinner.succeed(`File ${filename} changed, reloaded`);
+  try {
+    await Promise.all([
+      loadServices(process.cwd()),
+      new Promise((resolve) => setTimeout(resolve, 500)),
+    ]);
+    spinner.succeed(`File ${filename} changed, reloaded`);
+  } catch (error) {
+    spinner.fail(String(error));
+  }
 }

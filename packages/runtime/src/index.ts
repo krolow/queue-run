@@ -7,6 +7,8 @@ import handleSQSMessages, { SQSMessage } from "./handleSQSMessages";
 import httpRoute from "./httpRoute";
 import "./polyfill";
 import pushMessage from "./pushMessage";
+export { default as loadModule } from "./loadModule";
+export * from "./loadServices";
 
 const { branch, projectId, region, ...clientConfig } =
   process.env.NODE_ENV === "production"
@@ -16,8 +18,6 @@ const { branch, projectId, region, ...clientConfig } =
         projectId: "grumpy-sunshine",
         region: "localhost",
       };
-
-export { default as loadModule } from "./loadModule";
 
 export async function handler(event: LambdaEvent, context: LambdaContext) {
   const { getRemainingTimeInMillis } = context;

@@ -1,10 +1,11 @@
 import Lambda from "@aws-sdk/client-lambda";
+import { displayServices, loadServices, Services } from "@queue-run/runtime";
+import ora from "ora";
 import compileSourceFiles from "./compileSourceFiles";
 import createBuildDirectory from "./createBuildDirectory";
 import createZip from "./createZip";
 import getRuntime from "./getRuntime";
 import installDependencies from "./installDependencies";
-import { loadTopology, showTopology, Topology } from "./topology";
 
 // Short build: compile source files to target directory.
 //
@@ -24,7 +25,7 @@ export default async function buildProject({
   {
     lambdaRuntime: Lambda.Runtime;
     zip?: Uint8Array;
-  } & Topology
+  } & Services
 > {
   const { lambdaRuntime } = await getRuntime(sourceDir);
   await createBuildDirectory(targetDir);
@@ -35,13 +36,15 @@ export default async function buildProject({
   if (full) await installDependencies({ sourceDir, targetDir });
   if (signal?.aborted) throw new Error();
 
-  const topology = await loadTopology(targetDir);
-  const services = topology.queues.size + topology.routes.size;
-  if (services === 0) throw new Error("No API endpoints, queues, or schedules");
+  const spinner = ora("Reviewing endpoints …").start();
+  const { queues, routes } = await loadServices(targetDir);
+  if (routes.size + queues.size === 0)
+    throw new Error("No API endpoints, queues, or schedules");
+  spinner.stop();
 
   const zip = full ? await createZip(targetDir) : undefined;
   if (signal?.aborted) throw new Error();
 
-  showTopology(topology);
-  return { lambdaRuntime, zip, ...topology };
+  displayServices({ queues, routes });
+  return { lambdaRuntime, zip, queues, routes };
 }

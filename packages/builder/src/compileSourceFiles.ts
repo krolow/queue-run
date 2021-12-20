@@ -51,7 +51,6 @@ export default async function compileSourceFiles({
     }
   }
   spinner.stop();
-
   console.info(
     chalk.bold.blue("λ: Compiled %d files and copied %d files"),
     compiled,

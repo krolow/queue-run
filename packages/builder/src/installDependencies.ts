@@ -1,3 +1,4 @@
+import chalk from "chalk";
 import { spawn } from "child_process";
 import { R_OK } from "constants";
 import fs from "fs/promises";
@@ -20,7 +21,7 @@ export default async function installDependencies({
   sourceDir: string;
   targetDir: string;
 }) {
-  console.info("λ: Installing node modules …");
+  console.info(chalk.bold.blue("λ: Installing node modules …"));
   await Promise.all(
     installFiles.map(async (filename) =>
       copyFile(filename, sourceDir, targetDir)
@@ -32,7 +33,6 @@ export default async function installDependencies({
     : "npm install --only=production --no-fund --ignore-scripts --no-optional --no-audit";
 
   await runCommand({ dirname: targetDir, command });
-  console.info();
 }
 
 async function copyFile(

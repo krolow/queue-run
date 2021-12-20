@@ -17,18 +17,19 @@ export type RouteConfig = {
   // Only accepts requests with specific content type
   accepts?: string[] | string;
   // Only accepts requests with specific HTTP method
-  methods?: (
-    | "GET"
-    | "POST"
-    | "PUT"
-    | "PATCH"
-    | "DELETE"
-    | "HEAD"
-    | "OPTIONS"
-  )[];
+  methods?: HTTPMethod | HTTPMethod[];
   // Timeout for processing message in seconds. Defaults to 30.
   timeout?: number;
 };
+
+type HTTPMethod =
+  | "GET"
+  | "POST"
+  | "PUT"
+  | "PATCH"
+  | "DELETE"
+  | "HEAD"
+  | "OPTIONS";
 
 type JSONObject = { [key: string]: JSONValue };
 type JSONArray = JSONValue[];

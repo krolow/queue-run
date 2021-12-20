@@ -1,20 +1,7 @@
 /// <reference types="node" />
 import Lambda from '@aws-sdk/client-lambda';
-import { QueueConfig } from '@queue-run/runtime';
-import { MatchFunction } from 'path-to-regexp';
+import { Services } from '@queue-run/runtime';
 import swc from '@swc/core';
-
-declare type Topology = {
-    queues: Map<string, Route<QueueConfig>>;
-    routes: Map<string, Route<{}>>;
-};
-declare type Route<Config = {}> = {
-    filename: string;
-    match: MatchFunction;
-    config: Config;
-};
-declare function loadTopology(targetDir: string): Promise<Topology>;
-declare function showTopology({ queues, routes }: Topology): Promise<void>;
 
 declare function buildProject({ full, signal, sourceDir, targetDir, }: {
     full?: boolean;
@@ -24,7 +11,7 @@ declare function buildProject({ full, signal, sourceDir, targetDir, }: {
 }): Promise<{
     lambdaRuntime: Lambda.Runtime;
     zip?: Uint8Array;
-} & Topology>;
+} & Services>;
 
 declare type RuntimeVersion = {
     nodeVersion: "12" | "14";
@@ -38,4 +25,4 @@ declare function moduleLoader({ dirname: dirname, onReload, }: {
     onReload?: (filename: string) => void;
 }): Promise<void>;
 
-export { buildProject, getRuntime, loadTopology, moduleLoader, showTopology };
+export { buildProject, getRuntime, moduleLoader };
