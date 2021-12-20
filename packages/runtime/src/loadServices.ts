@@ -22,7 +22,8 @@ export type Services = {
 type Queue = {
   checkContentType: (type: string) => boolean;
   filename: string;
-  url?: string;
+  isFifo: boolean;
+  path: string | null;
   timeout: number;
 };
 
@@ -30,7 +31,7 @@ type Route = {
   checkContentType: (type: string) => boolean;
   checkMethod: (method: string) => boolean;
   filename: string;
-  match?: MatchFunction<{ [key: string]: string }>;
+  match: MatchFunction<{ [key: string]: string }>;
   timeout: number;
   isQueue: boolean;
 };
@@ -83,34 +84,33 @@ export function displayServices({ routes, queues }: Services) {
 export async function loadRoute(
   url: string,
   { routes }: Services
-): Promise<
-  {
-    handler: RequestHandler;
-    params: { [key: string]: string };
-  } & Route &
-    Middleware
-> {
+): Promise<{
+  handler: RequestHandler;
+  middleware: Middleware;
+  params: { [key: string]: string };
+  route: Route;
+}> {
   const pathname = new URL(url).pathname.slice(1);
-  const route = Array.from(routes.values())
+  const matches = Array.from(routes.values())
     .map((route) => ({
-      ...route,
-      match: route.match?.(pathname),
+      route,
+      match: route.match(pathname),
     }))
     .filter(({ match }) => match)
-    .map(({ match, ...route }) => ({
+    .map(({ match, route }) => ({
       params: match ? match.params : {},
-      ...route,
+      route,
     }))
-    .sort((a, b) => moreSpecificRoute(a.params, b.params))[0];
-  if (!route) throw new Response("Not Found", { status: 404 });
+    .sort((a, b) => moreSpecificRoute(a.params, b.params));
+  if (!matches[0]) throw new Response("Not Found", { status: 404 });
 
-  const { filename, params } = route;
-  invariant(params);
-  const module = await loadModule<RequestHandler, RouteConfig>(filename);
+  const { route, params } = matches[0];
+
+  const module = await loadModule<RequestHandler, RouteConfig>(route.filename);
   if (!module) throw new Response("Not Found", { status: 404 });
-  const { handler } = module;
+  const { handler, ...middleware } = module;
 
-  return { handler, ...route };
+  return { handler, middleware, params, route };
 }
 
 function moreSpecificRoute(
@@ -128,43 +128,57 @@ async function loadRoutes(
 
   const filenames = await glob("api/**/[!_]*.{js,ts}");
   for (const filename of filenames) {
-    const module = await loadModule<() => void, RouteConfig>(filename);
-    invariant(module, `Module ${filename} not found`);
+    try {
+      const module = await loadModule<() => void, RouteConfig>(filename);
+      invariant(module, "Module not found");
 
-    const path = pathFromFilename(filename.replace(/^api\//, ""));
+      const path = pathFromFilename(filename.replace(/^api\//, ""));
 
-    const signature = path.replace(/:(.*?)(\/|$)/g, ":$2");
-    if (dupes.has(signature))
-      throw new Error(`Error in "${filename}": duplicate route exists`);
-    dupes.add(signature);
+      const signature = path.replace(/:(.*?)(\/|$)/g, ":$2");
+      if (dupes.has(signature))
+        throw new Error(
+          "An identical route already exists, maybe with different parameter names"
+        );
+      dupes.add(signature);
 
-    routes.set(path, {
-      ...getRouteConfig(module.config),
-      filename,
-      isQueue: false,
-      match: match(path),
-    });
+      routes.set(path, {
+        checkContentType: checkContentType(module.config),
+        checkMethod: checkMethod(module.config),
+        filename,
+        isQueue: false,
+        match: match(path),
+        timeout: getTimeout(module.config, { max: 30, default: 30 }),
+      });
+    } catch (error) {
+      throw new Error(`Error in "${filename}": ${error}`);
+    }
   }
 
   for (const queue of queues.values()) {
-    if (!queue.url) continue;
+    if (!queue.path) continue;
 
-    const path = renamePathProperties(queue.url.slice(1));
-    verifyPathParameters(queue.filename, path);
+    try {
+      const path = renamePathProperties(
+        queue.path.replace(/^\/?(.*?)\/?$/g, "$1")
+      );
+      verifyPathParameters(path);
 
-    const signature = path.replace(/:(.*?)(\/|$)/g, ":$2");
-    if (dupes.has(signature))
-      throw new Error(`Error in "${queue.filename}": duplicate route exists`);
-    dupes.add(signature);
+      const signature = path.replace(/:(.*?)(\/|$)/g, ":$2");
+      if (dupes.has(signature))
+        throw new Error(`Error in "${queue.filename}": duplicate route exists`);
+      dupes.add(signature);
 
-    routes.set(path, {
-      checkContentType: queue.checkContentType,
-      checkMethod: (method: string) => method.toUpperCase() === "POST",
-      filename: queue.filename,
-      isQueue: true,
-      match: match(path),
-      timeout: queue.timeout,
-    });
+      routes.set(path, {
+        checkContentType: queue.checkContentType,
+        checkMethod: (method: string) => method.toUpperCase() === "POST",
+        filename: queue.filename,
+        isQueue: true,
+        match: match(path),
+        timeout: queue.timeout,
+      });
+    } catch (error) {
+      throw new Error(`Error in "${queue.filename}": ${error}`);
+    }
   }
   return routes;
 }
@@ -183,26 +197,26 @@ function pathFromFilename(filename: string): string {
   const renamed = renamePathProperties(withoutIndex);
   const expanded = expandNestedRoutes(renamed);
 
-  verifyPathParameters(filename, expanded);
+  verifyPathParameters(expanded);
   return expanded;
 }
 
-function verifyPathParameters(filename: string, path: string) {
+function verifyPathParameters(path: string) {
   const keys: Key[] | undefined = [];
   pathToRegexp(path, keys);
 
   if (new Set(keys.map((key) => key.name)).size < keys.length)
-    throw new Error(`Error in "${filename}": duplicate parameter names`);
+    throw new Error("Found two parameters with the same name");
 
   const catchAll = keys.findIndex(({ modifier }) => modifier === "*");
   if (catchAll >= 0 && catchAll !== keys.length - 1)
     throw new Error(
-      `Error in "${filename}": catch all parameter must be the last one`
+      "The catch-all parameter can only come at the end of the path"
     );
 
   if (!path.split("/").every(isValidPathPart))
     throw new Error(
-      `Error in "${filename}": only alphanumeric, hyphen, and underscore allowed as path parts`
+      "Path parts may only be alphanumeric, dash, underscore, or dot"
     );
 }
 
@@ -234,14 +248,6 @@ function isValidPathPart(part: string): boolean {
   return /^([a-z0-9_-]+)|(:[a-z0-9_-]+\*?)$/i.test(part);
 }
 
-function getRouteConfig(config: RouteConfig) {
-  return {
-    timeout: getTimeout(config, { max: 30, default: 30 }),
-    checkContentType: checkContentType(config),
-    checkMethod: checkMethod(config),
-  };
-}
-
 function checkMethod(config: RouteConfig): (method: string) => boolean {
   if (!config.methods) return () => true;
   const methods = new Set(
@@ -253,7 +259,7 @@ function checkMethod(config: RouteConfig): (method: string) => boolean {
     !Array.from(Object.keys(methods)).every((method) => /^[A-Z]+$/.test(method))
   )
     throw new Error(
-      `config.methods must contain only HTTP methods like "GET" or ["GET", "POST"]`
+      `config.methods list acceptable HTTP methods, like "GET" or ["GET", "POST"]`
     );
   return (method: string) => methods.has(method.toUpperCase());
 }
@@ -268,7 +274,7 @@ function checkContentType(config: {
     : [config.accepts];
   if (!accepts.every((accepts) => /^[a-z]+\/([a-z]+|\*)$/i.test(accepts)))
     throw new Error(
-      `config.accepts must be content type like "application/json" or "text/*"`
+      `config.accepts lists acceptable MIME types, like "application/json" or "text/*"`
     );
 
   const exact = new Set(accepts.filter((accepts) => !accepts.endsWith("/*")));
@@ -284,14 +290,22 @@ async function loadQueues(): Promise<Services["queues"]> {
   const queues: Services["queues"] = new Map();
   const filenames = await glob("queues/[!_]*.{js,ts}");
   for (const filename of filenames) {
-    const module = await loadModule<QueueHandler, QueueConfig>(filename);
-    invariant(module, `Module ${filename} not found`);
+    try {
+      const module = await loadModule<QueueHandler, QueueConfig>(filename);
+      invariant(module, "Module not found");
 
-    const queueName = queueNameFromFilename(filename);
-    queues.set(queueName, {
-      ...getQueueConfig(module.config),
-      filename,
-    });
+      const queueName = queueNameFromFilename(filename);
+      const isFifo = queueName.endsWith(".fifo");
+      queues.set(queueName, {
+        checkContentType: checkContentType(module.config),
+        filename,
+        isFifo,
+        path: getQueuePath(module.config, isFifo),
+        timeout: getTimeout(module.config, { max: 500, default: 30 }),
+      });
+    } catch (error) {
+      throw new Error(`Error in "${filename}": ${error}`);
+    }
   }
   return queues;
 }
@@ -301,21 +315,39 @@ function queueNameFromFilename(filename: string): string {
   const queueName = path.basename(filename, path.extname(filename)).normalize();
   if (!/^[a-z0-9_-]+(\.fifo)?$/i.test(queueName))
     throw new Error(
-      `Invalid queue name, only alphanumeric, hyphen, and underscore allowed`
+      "Queue name must be alphanumeric, dash, or underscore, and optionally followed by '.fifo'"
     );
   if (queueName.length > 40)
-    throw new Error("Queue name too long, maximum 40 characters");
+    throw new Error("Queue name longer than the allowed 40 characters");
   return queueName;
 }
 
-function getQueueConfig(config: QueueConfig) {
-  if (config.url && !config.url.startsWith("/"))
-    throw new Error('config.url must start with "/"');
-  return {
-    checkContentType: checkContentType(config),
-    timeout: getTimeout(config, { max: 500, default: 30 }),
-    url: config.url,
-  };
+function getQueuePath(config: QueueConfig, isFifo: boolean) {
+  if (!config.url) return null;
+  if (!config.url.startsWith("/"))
+    throw new Error('config.url is a relative URL and must start with "/"');
+
+  const path = renamePathProperties(config.url);
+
+  const keys: Key[] | undefined = [];
+  pathToRegexp(path, keys);
+  const hasGroupParam = keys.find(({ name }) => name === "group");
+  const hasDedupeParam = keys.find(({ name }) => name === "dedupe");
+  if (isFifo && !hasGroupParam)
+    throw new Error(
+      "FIFO queue must have a :group parameter in the URL, and optionally a :dedupe parameter"
+    );
+  if (!isFifo && (hasGroupParam || hasDedupeParam)) {
+    console.warn(
+      chalk.yellow(
+        'Found standard queue "%s" with the parameter %s in the URL. This parameter is used for FIFO queues. Was this intentional?'
+      ),
+      config.url,
+      hasGroupParam ? ":group" : ":dedupe"
+    );
+  }
+
+  return path;
 }
 
 function getTimeout(
@@ -324,7 +356,7 @@ function getTimeout(
 ): number {
   if (timeout === undefined || timeout === null) return def;
   if (typeof timeout !== "number")
-    throw new Error("config.timeout must be a number");
+    throw new Error("config.timeout must be a number (seconds)");
   if (timeout < 1) throw new Error("config.timeout must be at least 1 second");
   if (timeout > max)
     throw new Error(`config.timeout cannot be more than ${max} seconds`);

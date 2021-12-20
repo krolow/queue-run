@@ -6,17 +6,25 @@ import { loadRoute, loadServices } from "./loadServices";
 export default async function httpRoute(request: Request): Promise<Response> {
   try {
     const services = await loadServices(process.cwd());
-    const { checkContentType, checkMethod, ...route } = await loadRoute(
+    const { handler, middleware, params, route } = await loadRoute(
       request.url,
       services
     );
 
+    const { checkContentType, checkMethod } = route;
     if (!checkMethod(request.method))
       throw new Response("Method not allowed", { status: 405 });
     if (!checkContentType(request.headers.get("Content-Type") ?? ""))
       throw new Response("Unsupported media type", { status: 406 });
 
-    return await handleRequest({ request, ...route });
+    return await handleRequest({
+      ...middleware,
+      filename: route.filename,
+      handler,
+      params,
+      request,
+      timeout: route.timeout,
+    });
   } catch (error) {
     if (error instanceof Response) {
       return new Response(error.body, {

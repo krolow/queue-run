@@ -44,6 +44,8 @@ export type QueueHandler = (
     queueName: string;
     // Unique message ID
     messageID: string;
+    // Parameters from the request URL, eg /project/:projectId will have the parameter `projectId`
+    params: { [key: string]: string };
     // Number of times message was received
     receivedCount: number;
     // Timestamp when message was sent
@@ -60,7 +62,7 @@ export type QueueHandler = (
 export type QueueConfig = {
   // Timeout for processing message in seconds. Defaults to 30.
   timeout?: number;
-  // Expose this queue as HTTP POST request on this path (eg /user/:id/update)
+  // Expose this queue as HTTP POST request on this URL path (eg /project/:projectId)
   url?: string;
   // Only accept messages with specific content type
   accepts?: string[] | string;
