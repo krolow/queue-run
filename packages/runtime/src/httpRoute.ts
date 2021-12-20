@@ -84,6 +84,8 @@ async function runWithMiddleware({
   request: Request;
 } & Middleware) {
   try {
+    if (onRequest) await onRequest(request);
+
     const user = authenticate ? await authenticate(request) : undefined;
     if (authenticate && !user?.id) {
       console.error(
@@ -92,8 +94,6 @@ async function runWithMiddleware({
       );
       throw new Response("Forbidden", { status: 403 });
     }
-
-    if (onRequest) await onRequest(request);
 
     const result = await handler(request, { ...metadata, user });
     const response = resultToResponse(result, filename);

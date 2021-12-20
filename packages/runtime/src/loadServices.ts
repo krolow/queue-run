@@ -32,6 +32,7 @@ type Route = {
   filename: string;
   match?: MatchFunction<{ [key: string]: string }>;
   timeout: number;
+  isQueue: boolean;
 };
 
 export async function loadServices(dirname: string): Promise<Services> {
@@ -140,11 +141,12 @@ async function loadRoutes(
     routes.set(path, {
       ...getRouteConfig(module.config),
       filename,
+      isQueue: false,
       match: match(path),
     });
   }
 
-  for (const [name, queue] of queues.entries()) {
+  for (const queue of queues.values()) {
     if (!queue.url) continue;
 
     const path = renamePathProperties(queue.url.slice(1));
@@ -159,6 +161,7 @@ async function loadRoutes(
       checkContentType: queue.checkContentType,
       checkMethod: (method: string) => method.toUpperCase() === "POST",
       filename: queue.filename,
+      isQueue: true,
       match: match(path),
       timeout: queue.timeout,
     });
