@@ -106,12 +106,12 @@ export default async function deployProject({
   if (signal?.aborted) throw new Error("Timeout");
 
   const lambdaName = `${qrPrefix}${project}`;
-  const queuePrefix = `${qrPrefix}${project}_${branch}__`;
+  const queuePrefix = branch ? `${lambdaName}_${branch}__` : `${lambdaName}__`;
   const lambdaTimeout = Math.max(
     ...Array.from(queues.values()).map((queue) => queue.timeout),
     ...Array.from(routes.values()).map((route) => route.timeout)
   );
-  const lambdaAlias = branch ?? "$production";
+  const lambdaAlias = branch ?? "_production";
 
   // TODO load environment variables from database
   const isProduction = !branch;
@@ -185,11 +185,7 @@ async function switchOver({
   //
   //   trigger {projectId}-{branch}__{queueName} => {projectId}-{branch}
   await addTriggers({ lambdaARN: aliasARN, sourceARNs: queueARNs });
-  console.info(
-    "λ: Using %s version %s",
-    aliasARN.split(":").slice(-1),
-    versionARN.split(":").slice(-1)
-  );
+  console.info("λ: Using version %s", versionARN.split(":").slice(-1)[0]);
 
   // Delete any queues that are no longer needed.
   await deleteOldQueues({ prefix: queuePrefix, queueARNs });
@@ -211,7 +207,7 @@ async function addRouting({
   const dynamoDB = new DynamoDB({});
   try {
     await dynamoDB.executeStatement({
-      Statement: `INSERT INTO ${qrPrefix}-backends VALUES {'hostname': ?, 'project : ?, 'lambda_arn': ?, 'created_at': ?}`,
+      Statement: `INSERT INTO "${qrPrefix}backends" VALUE {'hostname': ?, 'project' : ?, 'lambda_arn': ?, 'created_at': ?}`,
       Parameters: [
         { S: hostname },
         { S: project },
@@ -224,4 +220,5 @@ async function addRouting({
       return;
     else throw error;
   }
+  console.info("λ: Updated routing table");
 }

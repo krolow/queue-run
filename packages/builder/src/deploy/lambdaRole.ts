@@ -16,7 +16,7 @@ const assumeRolePolicy = {
   ],
 };
 
-const SQSPolicy = {
+const LambdaPolicy = {
   Version,
   Statement: [
     {
@@ -32,12 +32,6 @@ const SQSPolicy = {
       ],
       Resource: `arn:aws:sqs:*`,
     },
-  ],
-};
-
-const CloudWatchLogPolicy = {
-  Version,
-  Statement: [
     {
       Effect: "Allow",
       Action: "logs:CreateLogGroup",
@@ -58,16 +52,16 @@ export async function getLambdaRole({
   lambdaName: string;
 }): Promise<string> {
   const iam = new IAM({});
+  const roleName = lambdaName;
   const role = await upsertRole(iam, lambdaName);
   invariant(role.Arn, "Role has no ARN");
 
-  await updatePolicies(iam, role);
+  await updatePolicy(iam, role);
+  console.info("λ: With role %s", roleName);
   return role.Arn;
 }
 
-async function upsertRole(iam: IAM, lambdaName: string): Promise<Role> {
-  const roleName = lambdaName;
-  console.log({ roleName, lambdaRolePath });
+async function upsertRole(iam: IAM, roleName: string): Promise<Role> {
   try {
     const { Role: role } = await iam.getRole({ RoleName: roleName });
     if (role) return role;
@@ -81,30 +75,15 @@ async function upsertRole(iam: IAM, lambdaName: string): Promise<Role> {
     AssumeRolePolicyDocument: JSON.stringify(assumeRolePolicy),
   });
   invariant(newRole, "Failed to create role");
-
-  console.info("λ: Created role %s", roleName);
   return newRole;
 }
 
-async function updatePolicies(iam: IAM, role: Role) {
-  await Promise.all([
-    updatePolicy(iam, role, "CloudWatch", CloudWatchLogPolicy),
-    updatePolicy(iam, role, "SQS", SQSPolicy),
-  ]);
-}
-
-async function updatePolicy(
-  iam: IAM,
-  role: Role,
-  policyName: string,
-  policy: unknown
-) {
+async function updatePolicy(iam: IAM, role: Role) {
   await iam.putRolePolicy({
     RoleName: role.RoleName,
-    PolicyName: policyName,
-    PolicyDocument: JSON.stringify(policy),
+    PolicyName: "queue-run",
+    PolicyDocument: JSON.stringify(LambdaPolicy),
   });
-  console.info("λ: Updated policy %s", policyName);
 }
 
 export async function deleteLambdaRole({ lambdaName }: { lambdaName: string }) {

@@ -28,10 +28,10 @@ program.configureHelp({
 program
   .parseAsync(process.argv)
   .then(() => {
-    if (process.stdout.isTTY)
-      console.info(
-        chalk.bold.green("🐇 Done in %s", ms(process.uptime() * 1000))
-      );
+    console.info(
+      chalk.bold.green("🐇 Done in %s"),
+      ms(process.uptime() * 1000)
+    );
     return undefined;
   })
   .catch((error) => {

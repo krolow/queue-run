@@ -16,6 +16,8 @@ export async function createQueues({
     ...Array.from(queues.values()).map((queue) => queue.timeout * 6)
   );
 
+  console.info("λ: Using queues %s", Array.from(queues.keys()).join(", "));
+
   return await Promise.all(
     Array.from(queues.keys()).map(async (name) => {
       // createQueue is idempotent so we can safely call it on each deploy.
