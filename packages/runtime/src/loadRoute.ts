@@ -1,10 +1,9 @@
 import { Response } from "node-fetch";
 import { URL } from "url";
-import { RouteConfig } from "../types";
-import { Middleware } from "../types/middleware";
-import { RequestHandler } from "./../types/handlers.d";
+import { RequestHandler, RouteConfig } from "./handlers";
 import loadModule from "./loadModule";
 import { Route } from "./loadServices";
+import { Middleware } from "./middleware";
 import queuingHandler from "./queueingHandler";
 
 export default async function loadRoute(

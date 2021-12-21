@@ -2,7 +2,7 @@
 import type { Request, Response } from "node-fetch";
 
 // Successful authentication returns an object with the user ID.
-type AuthenticatedUser = { id: string; [key: string]: unknown };
+export type AuthenticatedUser = { id: string; [key: string]: unknown };
 
 // Export this method from your module or middleware to authenticate this route/queue.
 //

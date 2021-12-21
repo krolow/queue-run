@@ -33,10 +33,16 @@ type HTTPMethod =
 
 type JSONObject = { [key: string]: JSONValue };
 type JSONArray = JSONValue[];
-type JSONValue = string | number | boolean | null | JSONArray | JSONObject;
+export type JSONValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JSONArray
+  | JSONObject;
 
 export type QueueHandler = (
-  payload: JSONObject | string,
+  payload: JSONValue | string | Buffer,
   metadata: {
     // Group ID (FIFO queue only)
     groupID?: string;

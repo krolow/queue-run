@@ -1,6 +1,6 @@
 import path from "path";
 import { install } from "source-map-support";
-import type { Middleware } from "../types";
+import type { Middleware } from "./middleware";
 
 // Use this for loading backend functions on demand:
 //

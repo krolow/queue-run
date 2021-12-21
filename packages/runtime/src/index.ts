@@ -1,5 +1,4 @@
 import { SQS } from "@aws-sdk/client-sqs";
-import type { BackendLambdaRequest } from "@queue-run/gateway";
 import { asFetchRequest } from "./asFetch";
 import swapAWSEnvVars from "./environment";
 import handleSQSMessages, { SQSMessage } from "./handleSQSMessages";
@@ -21,33 +20,34 @@ const { branch, projectId, region, ...clientConfig } =
 const slug = `${projectId}-${branch}`;
 const sqs = new SQS({ ...clientConfig, region });
 
-export async function handler(event: LambdaEvent, context: LambdaContext) {
+export async function handler(
+  event: LambdaEvent,
+  context: LambdaContext
+): Promise<BackendLambdaResponse | SQSBatchResponse | undefined> {
   const { getRemainingTimeInMillis } = context;
 
-  if ("Records" in event) {
+  if ("url" in event) {
+    return await asFetchRequest(event, (request) => httpRoute(request));
+  } else if ("Records" in event) {
     const messages = event.Records.filter(
       (record) => record.eventSource === "aws:sqs"
     );
-    if (messages.length > 0) {
-      const sqs = new SQS({ ...clientConfig, region });
-      await handleSQSMessages({
-        getRemainingTimeInMillis,
-        messages,
-        sqs,
-      });
-    }
-  } else if ("url" in event) {
-    return await asFetchRequest(event, (request) => httpRoute(request));
+    if (messages.length === 0) return;
+
+    const sqs = new SQS({ ...clientConfig, region });
+    return await handleSQSMessages({
+      getRemainingTimeInMillis,
+      messages,
+      sqs,
+    });
   }
 }
 
 export const pushMessage = createPushMessage({ slug, sqs });
 
-declare type LambdaEvent =
-  | { Records: Array<SQSMessage> }
-  | BackendLambdaRequest;
+type LambdaEvent = { Records: Array<SQSMessage> } | BackendLambdaRequest;
 
-declare type LambdaContext = {
+type LambdaContext = {
   functionName: string;
   functionVersion: string;
   // The Amazon Resource Name (ARN) that's used to invoke the function. Indicates if the invoker specified a version number or alias.
@@ -57,4 +57,24 @@ declare type LambdaContext = {
   logGroupName: string;
   getRemainingTimeInMillis: () => number;
   callbackWaitsForEmptyEventLoop: boolean;
+};
+
+type SQSBatchResponse = {
+  // https://docs.aws.amazon.com/lambda/latest/dg/with-ddb.html#services-ddb-batchfailurereporting
+  batchItemFailures: Array<{ itemIdentifier: string }>;
+};
+
+type BackendLambdaRequest = {
+  body?: string;
+  headers: Record<string, string>;
+  method: string;
+  requestId?: string;
+  url: string;
+};
+
+type BackendLambdaResponse = {
+  body: string;
+  bodyEncoding: "text" | "base64";
+  headers: Record<string, string>;
+  statusCode: number;
 };

@@ -2,8 +2,8 @@ import { SendMessageCommandInput, SQS } from "@aws-sdk/client-sqs";
 import crypto from "crypto";
 import invariant from "tiny-invariant";
 import { URLSearchParams } from "url";
-import { AuthenticatedUser } from "../types";
 import handleSQSMessages, { SQSMessage } from "./handleSQSMessages";
+import type { AuthenticatedUser } from "./middleware";
 
 type PushMessageFunction = (params: {
   body: Buffer | string | object;

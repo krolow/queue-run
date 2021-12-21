@@ -2,7 +2,7 @@ import { SQS } from "@aws-sdk/client-sqs";
 import chalk from "chalk";
 import { AbortController } from "node-abort-controller";
 import { URLSearchParams } from "url";
-import type { JSONObject, QueueConfig, QueueHandler } from "../types";
+import type { JSONValue, QueueConfig, QueueHandler } from "./handlers";
 import loadModule from "./loadModule";
 
 const minTimeout = 1;
@@ -225,7 +225,7 @@ function getQueueName(message: SQSMessage) {
 
 // Gets the payload from the message.  We rely on the content type, otherwise
 // guess by trying to parse as JSON.
-function getPayload(message: SQSMessage): JSONObject | string {
+function getPayload(message: SQSMessage): JSONValue | string {
   const type = message.messageAttributes["type"]?.stringValue;
   if (type === "application/json") return JSON.parse(message.body);
   if (type) return message.body;

@@ -1,7 +1,7 @@
 import { Request, Response } from "node-fetch";
 import invariant from "tiny-invariant";
 import { URLSearchParams } from "url";
-import { RequestHandler } from "../types/handlers";
+import { RequestHandler } from "./handlers";
 import { pushMessage } from "./index";
 import { Route } from "./loadServices";
 

@@ -3,7 +3,7 @@ import glob from "fast-glob";
 import path from "path";
 import { Key, match, MatchFunction, pathToRegexp } from "path-to-regexp";
 import invariant from "tiny-invariant";
-import { QueueConfig, QueueHandler, RouteConfig } from "../types";
+import { QueueConfig, QueueHandler, RouteConfig } from "./handlers";
 import loadModule from "./loadModule";
 
 export type Services = {
