@@ -215,10 +215,12 @@ async function switchOver({
 
 async function addBackendRouting({
   aliasARN,
+  branch,
   project,
   url,
 }: {
   aliasARN: string;
+  branch?: string;
   project: string;
   url: string;
 }) {
@@ -227,10 +229,11 @@ async function addBackendRouting({
   console.info("   Updated routing table");
   try {
     await dynamoDB.executeStatement({
-      Statement: `INSERT INTO "${qrPrefix}backends" VALUE {'hostname': ?, 'project' : ?, 'lambda_arn': ?, 'created_at': ?}`,
+      Statement: `INSERT INTO "${qrPrefix}backends" VALUE {'hostname': ?, 'project' : ?, 'branch': ?, 'lambda_arn': ?, 'created_at': ?}`,
       Parameters: [
         { S: hostname },
         { S: project },
+        branch ? { S: branch } : { NULL: true },
         { S: aliasARN },
         { N: String(Date.now()) },
       ],
@@ -253,11 +256,11 @@ async function getBackendRouting(
   });
   const backend = backends?.[0];
   if (!backend) return null;
-  const project = backend.project.S;
+
+  console.info({ backend });
+
+  const project = backend.project?.S;
   invariant(project);
-  const branch = backend.lambda_arn.S?.split(":").slice(-1)[0];
-  return {
-    project,
-    branch: branch === "_production" ? undefined : branch,
-  };
+  const branch = backend.branch?.S;
+  return { project, branch };
 }

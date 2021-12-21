@@ -80,7 +80,7 @@
       "Quantity": 1,
       "Items": [
         {
-          "LambdaFunctionARN": "arn:aws:lambda:us-east-1:122210178198:function:queuerun-gateway:36",
+          "LambdaFunctionARN": "arn:aws:lambda:us-east-1:122210178198:function:queuerun-gateway:40",
           "EventType": "origin-request",
           "IncludeBody": true
         }

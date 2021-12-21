@@ -13,21 +13,23 @@ import type {
 } from "./types";
 export type { BackendLambdaRequest, BackendLambdaResponse } from "./types";
 
-const debug = false;
-const requestTimeout = ms("10s");
+const debug = true;
+const requestTimeout = ms("30s");
 
 const lambda = new Lambda({ region: "us-east-1" });
 const dynamoDB = new DynamoDB({ region: "us-east-1" });
+
+const qrPrefix = "qr-";
 
 export async function handler(
   event: APIGatewayEvent | LambdaEdgeRequest
 ): Promise<APIGatewayResponse | LambdaEdgeResponse> {
   try {
     const request = toRequest(event);
-    const project = await getProject(request);
+    const { project, branch, lambdaARN } = await findBackend(request);
     if (request.method === "GET" && new URL(request.url).pathname === "/")
-      return toResponse(event, redirectToDashboard(project));
-    else return toResponse(event, await invokeBackend(request, project));
+      return toResponse(event, redirectToDashboard({ project, branch }));
+    else return toResponse(event, await invokeBackend(request, lambdaARN));
   } catch (error) {
     if (error instanceof StatusCodeError) {
       return toResponse(event, {
@@ -133,46 +135,43 @@ class StatusCodeError extends Error {
 }
 
 // Parse project ID and branch from request URL
-export default async function getProject(
+export default async function findBackend(
   request: BackendLambdaRequest
 ): Promise<{
-  projectId: string;
-  branch: string;
+  branch?: string | null;
+  lambdaARN: string;
+  project: string;
 }> {
-  const subdomain = request.headers.host?.split(".")[0] ?? "";
-  const [, projectId, , branch] =
-    subdomain.match(/^([a-z]+-[a-z]+)((?:-)(.*))?$/) ?? [];
-  if (projectId) {
-    debug &&
-      console.debug(
-        'Request for project "%s" branch "%s"',
-        projectId,
-        branch ?? "n/a"
-      );
-  } else {
-    debug && console.debug("No project/branch match in sub-domain", subdomain);
-    throw new StatusCodeError("Not found", 404);
-  }
-
-  const { Items: items } = await dynamoDB.executeStatement({
-    Statement: "SELECT id, default_branch FROM projects WHERE id = ?",
-    Parameters: [{ S: projectId }],
+  const hostname = request.headers.host;
+  const { Items: backends } = await dynamoDB.executeStatement({
+    Statement: `SELECT * FROM "${qrPrefix}backends" WHERE hostname = ?`,
+    Parameters: [{ S: hostname }],
   });
-  const fromDB = items?.[0];
-  if (!fromDB) {
-    debug && console.debug('No project "%s" in database', projectId);
-    throw new StatusCodeError("Not found", 404);
-  }
+  const backend = backends?.[0];
+  if (!backend) throw new StatusCodeError("Not found", 404);
 
-  return {
-    projectId: projectId,
-    branch: branch ?? fromDB.default_branch?.S ?? "main",
-  };
+  dynamoDB
+    .executeStatement({
+      Statement: `UPDATE "${qrPrefix}backends" SET last_accessed_at = ? WHERE hostname = ? AND (NOT attribute_exists(last_accessed_at) OR last_accessed_at < ?)`,
+      Parameters: [
+        { N: String(Date.now()) },
+        { S: hostname },
+        { N: String(Date.now() - 1000) },
+      ],
+    })
+    .catch(console.error);
+
+  const lambdaARN = backend.lambda_arn.S;
+  invariant(lambdaARN);
+  const project = backend.project.S;
+  invariant(project);
+  const branch = backend.branch?.S;
+  return { lambdaARN, project, branch };
 }
 
 async function invokeBackend(
   request: BackendLambdaRequest,
-  { projectId, branch }: { projectId: string; branch: string }
+  lambdaARN: string
 ): Promise<{
   body?: Buffer;
   headers: { [key: string]: string };
@@ -180,14 +179,10 @@ async function invokeBackend(
 }> {
   return await withTimeout(async (signal) => {
     try {
-      const lambdaName = `backend-${projectId}`;
-      const aliasName = `${lambdaName}:${lambdaName}-${branch}`;
-      debug && console.debug('Invoking backend lambda "%s"', aliasName);
-
-      const result = await logInvocation(lambdaName, signal, () =>
+      const result = await logInvocation(lambdaARN, signal, () =>
         lambda.invoke(
           {
-            FunctionName: aliasName,
+            FunctionName: lambdaARN,
             InvocationType: "RequestResponse",
             LogType: debug ? "Tail" : "None",
             Payload: Buffer.from(JSON.stringify(request)),
@@ -285,16 +280,18 @@ function parsePayload(result: InvokeCommandOutput): {
 
 function redirectToDashboard({
   branch,
-  projectId,
+  project,
 }: {
-  branch: string;
-  projectId: string;
+  branch?: string | null;
+  project: string;
 }): {
   body: string;
   headers: { [key: string]: string };
   statusCode: number;
 } {
-  const path = `/project/${projectId}/branch/${branch}`;
+  const path = branch
+    ? `/project/${project}/branch/${branch}`
+    : `/project/${project}`;
   const dashboardURL = new URL(path, "https://queue.run").href;
   return {
     body: `See ${dashboardURL}`,

@@ -2,16 +2,16 @@
   "Version": "2012-10-17",
   "Statement": [
     {
-      "Sid": "FindProject",
+      "Sid": "FindBackend",
       "Effect": "Allow",
-      "Action": ["dynamodb:PartiQLSelect", "dynamodb:GetItem"],
-      "Resource": "arn:aws:dynamodb:*:122210178198:table/projects"
+      "Action": ["dynamodb:PartiQLSelect", "dynamodb:PartiQLUpdate"],
+      "Resource": "arn:aws:dynamodb:*:122210178198:table/qr-backends"
     },
     {
       "Sid": "InvokeBackend",
       "Effect": "Allow",
       "Action": "lambda:InvokeFunction",
-      "Resource": "arn:aws:lambda:*:122210178198:function:backend-*"
+      "Resource": "arn:aws:lambda:*:122210178198:function:qr-*"
     },
     {
       "Effect": "Allow",
