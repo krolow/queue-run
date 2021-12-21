@@ -14,15 +14,6 @@ type BuildConfig = {
   // Misc environment variables to add
   envVars?: Record<string, string>;
 
-  // This prefix is used in Lambda names, IAM roles, SQS queues, DynamoDB
-  // tables, etc to distinguish from other resources in your AWS account.
-  //
-  // Use the same prefix for all projects in the same AWS account. Use slugs to
-  // distinguish between projects/branches.
-  //
-  // Limited to 10 characters and must end with a dash. Defaults to 'qr-.
-  qrPrefix?: string | "qr-";
-
   // Project name.  Two words separated by dash, limited to 20 characters, lower
   // case, eg "grumpy-sunshine".
   project: string;
@@ -46,7 +37,14 @@ type BuildConfig = {
   layerARNs?: string[];
 };
 
-const defaultQRPrefix = "qr-";
+// This prefix is used in Lambda names, IAM roles, SQS queues, DynamoDB tables,
+// etc to distinguish from other resources in your AWS account.
+//
+// Use the same prefix for all projects in the same AWS account. Use slugs to
+// distinguish between projects/branches.
+//
+// Limited to 10 characters and must end with a dash. Defaults to 'qr-.
+const qrPrefix = "qr-";
 
 export default async function deployProject({
   config,
@@ -57,7 +55,7 @@ export default async function deployProject({
   signal?: AbortSignal;
   sourceDir: string;
 }) {
-  const { branch, qrPrefix = defaultQRPrefix, project } = config;
+  const { branch, project } = config;
 
   // Note: queue names have 80 characters limit, when we combine
   // {qrPrefix}{project}_{branch}__{queueName} we have a total of 27 characters
@@ -94,6 +92,10 @@ export default async function deployProject({
   const lambdaName = `${qrPrefix}${project}`;
   const queuePrefix = branch ? `${lambdaName}_${branch}__` : `${lambdaName}__`;
   const lambdaAlias = branch ?? "_production";
+
+  const backend = await getBackendRouting(url);
+  if (backend && backend.project !== project && backend.branch !== branch)
+    throw new Error("This URL is used by a different project/branch");
 
   console.info(
     chalk.bold.green("🐇 Deploying %s to %s"),
@@ -140,7 +142,7 @@ export default async function deployProject({
     queuePrefix,
     versionARN,
   });
-  await addRouting({ aliasARN, project, qrPrefix, url });
+  await addBackendRouting({ aliasARN, project, url });
 }
 
 async function loadEnvVars({
@@ -204,22 +206,20 @@ async function switchOver({
   //
   //   trigger {projectId}-{branch}__{queueName} => {projectId}-{branch}
   await addTriggers({ lambdaARN: aliasARN, sourceARNs: queueARNs });
-  console.info("  Using version %s", versionARN.split(":").slice(-1)[0]);
+  console.info("   This is version %s", versionARN.split(":").slice(-1)[0]);
 
   // Delete any queues that are no longer needed.
   await deleteOldQueues({ prefix: queuePrefix, queueARNs });
   return aliasARN;
 }
 
-async function addRouting({
+async function addBackendRouting({
   aliasARN,
   project,
-  qrPrefix,
   url,
 }: {
   aliasARN: string;
   project: string;
-  qrPrefix: string;
   url: string;
 }) {
   const { hostname } = new URL(url);
@@ -240,4 +240,24 @@ async function addRouting({
       return;
     else throw error;
   }
+}
+
+async function getBackendRouting(
+  url: string
+): Promise<{ project: string; branch?: string } | null> {
+  const { hostname } = new URL(url);
+  const dynamoDB = new DynamoDB({});
+  const { Items: backends } = await dynamoDB.executeStatement({
+    Statement: `SELECT * FROM "${qrPrefix}backends" WHERE hostname = ?`,
+    Parameters: [{ S: hostname }],
+  });
+  const backend = backends?.[0];
+  if (!backend) return null;
+  const project = backend.project.S;
+  invariant(project);
+  const branch = backend.lambda_arn.S?.split(":").slice(-1)[0];
+  return {
+    project,
+    branch: branch === "_production" ? undefined : branch,
+  };
 }

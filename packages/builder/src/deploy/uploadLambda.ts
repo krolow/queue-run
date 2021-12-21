@@ -59,7 +59,7 @@ export default async function uploadLambda({
     // FunctionArn includes version number
     invariant(updatedCode.FunctionArn && updatedCode.RevisionId);
 
-    console.info("λ: Updated function %s", lambdaName);
+    console.info("   Updated function %s", lambdaName);
     return updatedCode.FunctionArn;
   }
 
