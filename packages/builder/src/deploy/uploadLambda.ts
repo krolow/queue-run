@@ -18,7 +18,7 @@ export default async function uploadLambda({
   lambdaName: string;
   lambdaTimeout: number;
   lambdaRuntime: Runtime;
-  layerARNs: string[];
+  layerARNs?: string[];
   zip: Uint8Array;
 }): Promise<string> {
   const lambda = new Lambda({});
@@ -30,7 +30,7 @@ export default async function uploadLambda({
     Role: await getLambdaRole({ lambdaName }),
     Runtime: lambdaRuntime,
     Timeout: lambdaTimeout,
-    Layers: layerARNs,
+    Layers: await addRuntimeLayerARN(layerARNs),
     TracingConfig: { Mode: "Active" },
   };
 
@@ -132,6 +132,23 @@ function aliasAWSEnvVars(
     else aliased[key] = value;
   }
   return aliased;
+}
+
+async function addRuntimeLayerARN(layerARNs: string[] = []): Promise<string[]> {
+  if (layerARNs.find((arn) => /:layer:queue-run-runtime:\d+$/.test(arn)))
+    return layerARNs;
+
+  const lambda = new Lambda({});
+  const { LayerVersions: versions } = await lambda.listLayerVersions({
+    LayerName: "queue-run-runtime",
+  });
+  if (!versions)
+    throw new Error(
+      "Could not find recent version of the QueueRun Runtime layer: did you deploy it to this account?"
+    );
+  const runtimeARN = versions[0].LayerVersionArn;
+  invariant(runtimeARN);
+  return [runtimeARN, ...layerARNs];
 }
 
 export async function deleteLambda({ lambdaName }: { lambdaName: string }) {

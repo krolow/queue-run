@@ -29,7 +29,7 @@ export async function createQueues({
           ...(isFifo
             ? {
                 ContentBasedDeduplication: "true",
-                DeduplicationScope: "messageGroupId",
+                DeduplicationScope: "messageGroup",
                 FifoQueue: "true",
                 FifoThroughputLimit: "perMessageGroupId",
               }

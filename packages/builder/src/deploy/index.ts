@@ -1,11 +1,8 @@
 import { DynamoDB } from "@aws-sdk/client-dynamodb";
-import Lambda from "@aws-sdk/client-lambda";
 import { Services } from "@queue-run/runtime";
-import ms from "ms";
-import os from "os";
 import ow from "ow";
-import path from "path";
 import invariant from "tiny-invariant";
+import { URL } from "url";
 import buildProject from "../build";
 import { addTriggers, removeTriggers } from "./eventSource";
 import { createQueues, deleteOldQueues } from "./prepareQueues";
@@ -13,72 +10,108 @@ import updateAlias from "./updateAlias";
 import uploadLambda from "./uploadLambda";
 
 type BuildConfig = {
-  // The project ID, eg "goose-bump".
-  projectId: string;
-  // Lambda name, eg backend-${projectId}
-  lambdaName: string;
-  // URL slug, eg ${projectId}-${branch}
-  slug: string;
-  // Full URL, eg https://${slug}.queue.run
-  url: string;
-  // True for production, false for preview
+  // Misc environment variables to add
+  envVars?: Record<string, string>;
+
+  // This prefix is used in Lambda names, IAM roles, SQS queues, DynamoDB
+  // tables, etc to distinguish from other resources in your AWS account. Use the
+  // same prefix for all projects in the same AWS account. Use slugs to distinguish
+  // between projects/branches.
+  //
+  // Limited to 10 characters and must end with a dash. Defaults to 'qr-.
+  prefix?: string | "qr-";
+
+  // True when deploying to production, false for preview.
+  //
+  // This determines which sercets to use as environment variables, and sets
+  // QUEUE_RUN_ENV.
   production: boolean;
-  // ARN for the layer containing @queue-run/runtime
-  runtimeLayerARN: string;
+
+  // The slug is used as the Lambda name, SQS queue prefix, etc to distinguish
+  // resources for a single project/branch.  The slug can also be used in the URL.
+  //
+  // Limited to 40 characters (a-z, 0-9, -).  Undescores are not allowed.
+  slug: string;
+
+  // The full URL for this backend, eg https://${slug}.queue.run
+  // Available to the backed as QUEUE_RUN_URL.
+  url: string;
+
+  // ARNs for layers you want to include in the Lambda.
+  // The runtime is included by default, but you can use this to choose a
+  // different version.
+  layerARNs?: string[];
 };
+
+const defaultPrefix = "qr-";
 
 export default async function deployProject({
   config,
-  deployId,
   signal,
   sourceDir,
 }: {
   config: BuildConfig;
-  deployId: string;
-  signal: AbortSignal;
+  signal?: AbortSignal;
   sourceDir: string;
 }) {
-  const { lambdaName, slug } = config;
-  ow(lambdaName, ow.string.matches(/^[a-zA-Z0-9-]+$/));
-  ow(slug, ow.string.matches(/^[a-zA-Z0-9-]+$/));
-  ow(config.url, ow.string.url);
+  const { prefix = defaultPrefix, slug } = config;
+  ow(
+    prefix,
+    ow.string
+      .matches(/^[a-z0-9_-]+-$/i)
+      .message("Prefix must be [a-z0-9_-] and end with a hyphen")
+      .maxLength(10)
+      .message("Prefix must be 10 characters or less")
+  );
+  ow(
+    slug,
+    ow.string
+      .matches(/^[a-z0-9-]{5,40}$/i)
+      .message("Slug must be [a-z0-9-] and 5-40 characters long")
+  );
+  const { hostname } = new URL(config.url);
 
-  const start = Date.now();
-  console.info("🐇 Starting deploy", deployId);
+  console.info("🐇 Starting deploy");
 
-  const targetDir = path.join(os.tmpdir(), ".build");
   const { lambdaRuntime, zip, routes, queues } = await buildProject({
     full: true,
     signal,
     sourceDir,
-    targetDir,
   });
   invariant(zip);
-  if (signal.aborted) throw new Error();
+  if (signal?.aborted) throw new Error("Timeout");
 
-  const queuePrefix = `${config.slug}__`;
-  const lambdaAlias = config.slug;
+  const lambdaName = `${prefix}${slug}`;
+  const queuePrefix = `${prefix}${slug}__`;
   const lambdaTimeout = Math.max(
     ...Array.from(queues.values()).map((queue) => queue.timeout),
     ...Array.from(routes.values()).map((route) => route.timeout)
   );
+  const lambdaAlias = "current";
 
   // TODO load environment variables from database
   const envVars = {
+    ...config.envVars,
     NODE_ENV: "production",
     QUEUE_RUN_URL: config.url,
     QUEUE_RUN_ENV: config.production ? "production" : "preview",
   };
 
-  const versionARN = await prepareLambda({
+  // Upload new Lambda function and publish a new version.
+  // This doesn't make any difference yet: event sources are tied to an alias,
+  // and the alias points to an earlier version (or no version on first deploy).
+  const versionARN = await uploadLambda({
     envVars,
     lambdaName,
-    lambdaRuntime,
     lambdaTimeout,
-    layerARNs: [config.runtimeLayerARN],
+    lambdaRuntime,
+    layerARNs: config.layerARNs,
     zip,
   });
-  if (signal.aborted) throw new Error();
+  // goose-bump:50 => goose-bump:goose-bump-main
+  const version = versionARN.match(/(\d)+$/)?.[1];
+  invariant(version);
+  if (signal?.aborted) throw new Error();
 
   // From this point on, we hope to complete successfully and so ignore abort signal
   await switchOver({
@@ -91,11 +124,10 @@ export default async function deployProject({
   const dynamoDB = new DynamoDB({});
   try {
     await dynamoDB.executeStatement({
-      Statement: `INSERT INTO queue-run-backends VALUES {'slug': ?, 'project_id': ?, 'lambda_name': ?, 'created_at': ?}`,
+      Statement: `INSERT INTO ${prefix}-backends VALUES {'hostname': ?, 'lambda_name': ?, 'created_at': ?}`,
       Parameters: [
-        { S: config.slug },
-        { S: config.projectId },
-        { S: config.lambdaName },
+        { S: hostname },
+        { S: lambdaName },
         { N: String(Date.now()) },
       ],
     });
@@ -104,40 +136,6 @@ export default async function deployProject({
       return;
     else throw error;
   }
-
-  console.info("🐇 Done in %s", ms(Date.now() - start));
-}
-
-async function prepareLambda({
-  envVars,
-  lambdaName,
-  lambdaRuntime,
-  lambdaTimeout,
-  layerARNs,
-  zip,
-}: {
-  envVars: Record<string, string>;
-  lambdaName: string;
-  lambdaRuntime: Lambda.Runtime;
-  lambdaTimeout: number;
-  layerARNs: string[];
-  zip: Uint8Array;
-}) {
-  // Upload new Lambda function and publish a new version.
-  // This doesn't make any difference yet: event sources are tied to an alias,
-  // and the alias points to an earlier version (or no version on first deploy).
-  const versionARN = await uploadLambda({
-    envVars,
-    lambdaName,
-    lambdaTimeout,
-    lambdaRuntime,
-    layerARNs,
-    zip,
-  });
-  // goose-bump:50 => goose-bump:goose-bump-main
-  const version = versionARN.match(/(\d)+$/)?.[1];
-  invariant(version);
-  return versionARN;
 }
 
 async function switchOver({
