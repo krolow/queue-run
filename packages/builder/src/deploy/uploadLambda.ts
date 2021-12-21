@@ -2,7 +2,7 @@ import { FunctionConfiguration, Lambda, Runtime } from "@aws-sdk/client-lambda";
 import invariant from "tiny-invariant";
 import { deleteLambdaRole, getLambdaRole } from "./lambdaRole";
 
-export const handler = "node_modules/@queue-run/runtime/dist/index.handler";
+export const handler = "index.handler";
 
 // Creates or updates Lambda function with latest configuration and code.
 // Publishes the new version and returns the published version ARN.
