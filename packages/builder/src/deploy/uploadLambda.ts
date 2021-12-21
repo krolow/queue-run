@@ -72,7 +72,7 @@ export default async function uploadLambda({
   // FunctionArn does not include version number
   const arn = `${newLambda.FunctionArn}:${newLambda.Version}`;
   console.info(
-    "λ: Created new function %s in %s",
+    "   Created new function %s in %s",
     lambdaName,
     await lambda.config.region()
   );

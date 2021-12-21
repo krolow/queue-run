@@ -51,13 +51,13 @@ export async function getLambdaRole({
 }: {
   lambdaName: string;
 }): Promise<string> {
+  console.info("   Updating role/permissions");
+
   const iam = new IAM({});
   const roleName = lambdaName;
-  const role = await upsertRole(iam, lambdaName);
+  const role = await upsertRole(iam, roleName);
   invariant(role.Arn, "Role has no ARN");
-
   await updatePolicy(iam, role);
-  console.info("λ: With role %s", roleName);
   return role.Arn;
 }
 

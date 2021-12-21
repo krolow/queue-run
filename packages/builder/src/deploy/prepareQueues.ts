@@ -16,7 +16,7 @@ export async function createQueues({
     ...Array.from(queues.values()).map((queue) => queue.timeout * 6)
   );
 
-  console.info("λ: Using queues %s", Array.from(queues.keys()).join(", "));
+  console.info("   Using queues: %s", Array.from(queues.keys()).join(", "));
 
   return await Promise.all(
     Array.from(queues.keys()).map(async (name) => {

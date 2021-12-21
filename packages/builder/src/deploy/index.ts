@@ -91,13 +91,17 @@ export default async function deployProject({
     `https://${branch ? [project, branch].join("-") : project}.queue.run`;
   ow(url, ow.string.url);
 
+  const lambdaName = `${qrPrefix}${project}`;
+  const queuePrefix = branch ? `${lambdaName}_${branch}__` : `${lambdaName}__`;
+  const lambdaAlias = branch ?? "_production";
+
   console.info(
     chalk.bold.green("🐇 Deploying %s to %s"),
     branch ? `${project}:${branch}` : project,
     url
   );
 
-  const { lambdaRuntime, zip, routes, queues } = await buildProject({
+  const { lambdaRuntime, zip, ...services } = await buildProject({
     full: true,
     signal,
     sourceDir,
@@ -105,22 +109,15 @@ export default async function deployProject({
   invariant(zip);
   if (signal?.aborted) throw new Error("Timeout");
 
-  const lambdaName = `${qrPrefix}${project}`;
-  const queuePrefix = branch ? `${lambdaName}_${branch}__` : `${lambdaName}__`;
-  const lambdaTimeout = Math.max(
-    ...Array.from(queues.values()).map((queue) => queue.timeout),
-    ...Array.from(routes.values()).map((route) => route.timeout)
-  );
-  const lambdaAlias = branch ?? "_production";
+  console.info(chalk.bold.blue("λ: Deploying Lambda function and queues"));
 
-  // TODO load environment variables from database
-  const isProduction = !branch;
-  const envVars = {
-    ...config.envVars,
-    NODE_ENV: "production",
-    QUEUE_RUN_URL: url,
-    QUEUE_RUN_ENV: isProduction ? "production" : "preview",
-  };
+  const envVars = await loadEnvVars({
+    envVars: config.envVars,
+    environment: branch ? "preview" : "production",
+    url,
+  });
+
+  if (signal?.aborted) throw new Error();
 
   // Upload new Lambda function and publish a new version.
   // This doesn't make any difference yet: event sources are tied to an alias,
@@ -128,25 +125,47 @@ export default async function deployProject({
   const versionARN = await uploadLambda({
     envVars,
     lambdaName,
-    lambdaTimeout,
+    lambdaTimeout: getLambdaTimeout(services),
     lambdaRuntime,
     layerARNs: config.layerARNs,
     zip,
   });
-  // goose-bump:50 => goose-bump:my-branch
-  const version = versionARN.match(/(\d)+$/)?.[1];
-  invariant(version);
 
   if (signal?.aborted) throw new Error();
 
   // From this point on, we hope to complete successfully and so ignore abort signal
   const aliasARN = await switchOver({
     lambdaAlias,
-    queues,
+    queues: services.queues,
     queuePrefix,
     versionARN,
   });
   await addRouting({ aliasARN, project, qrPrefix, url });
+}
+
+async function loadEnvVars({
+  environment,
+  envVars,
+  url,
+}: {
+  environment: "production" | "preview";
+  envVars?: Record<string, string>;
+  url: string;
+}) {
+  // TODO load environment variables from database
+  return {
+    ...envVars,
+    NODE_ENV: "production",
+    QUEUE_RUN_URL: url,
+    QUEUE_RUN_ENV: environment,
+  };
+}
+
+function getLambdaTimeout(services: Services) {
+  return Math.max(
+    ...Array.from(services.queues.values()).map((queue) => queue.timeout),
+    ...Array.from(services.routes.values()).map((route) => route.timeout)
+  );
 }
 
 async function switchOver({
@@ -185,7 +204,7 @@ async function switchOver({
   //
   //   trigger {projectId}-{branch}__{queueName} => {projectId}-{branch}
   await addTriggers({ lambdaARN: aliasARN, sourceARNs: queueARNs });
-  console.info("λ: Using version %s", versionARN.split(":").slice(-1)[0]);
+  console.info("  Using version %s", versionARN.split(":").slice(-1)[0]);
 
   // Delete any queues that are no longer needed.
   await deleteOldQueues({ prefix: queuePrefix, queueARNs });
@@ -205,6 +224,7 @@ async function addRouting({
 }) {
   const { hostname } = new URL(url);
   const dynamoDB = new DynamoDB({});
+  console.info("   Updated routing table");
   try {
     await dynamoDB.executeStatement({
       Statement: `INSERT INTO "${qrPrefix}backends" VALUE {'hostname': ?, 'project' : ?, 'lambda_arn': ?, 'created_at': ?}`,
@@ -220,5 +240,4 @@ async function addRouting({
       return;
     else throw error;
   }
-  console.info("λ: Updated routing table");
 }
