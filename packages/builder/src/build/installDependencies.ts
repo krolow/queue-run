@@ -28,11 +28,8 @@ export default async function installDependencies({
     )
   );
   const useYarn = await hasYarnLockFile(targetDir);
-  const command = useYarn
-    ? "yarn install --production --ignore-scripts --ignore-optional --non-interactive"
-    : "npm install --only=production --no-fund --ignore-scripts --no-optional --no-audit";
-
-  await runCommand({ dirname: targetDir, command });
+  if (useYarn) await yarnInstall(targetDir);
+  else await npmInstall(targetDir);
 }
 
 async function copyFile(
@@ -57,6 +54,22 @@ async function hasYarnLockFile(dirname: string) {
   } catch {
     return false;
   }
+}
+
+async function yarnInstall(dirname: string) {
+  await runCommand({ dirname, command: "yarn remove @queue-run/runtime" });
+  await runCommand({
+    dirname,
+    command: "yarn install --production --ignore-optional --non-interactive",
+  });
+}
+
+async function npmInstall(dirname: string) {
+  await runCommand({ dirname, command: "npm remove @queue-run/runtime" });
+  await runCommand({
+    dirname,
+    command: "npm install --only=production --no-fund --no-optional --no-audit",
+  });
 }
 
 async function runCommand({

@@ -20,6 +20,7 @@
     "types"
   ],
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.44.0",
     "@aws-sdk/client-iam": "^3.43.0",
     "@aws-sdk/client-lambda": "^3.43.0",
     "@aws-sdk/client-sqs": "^3.43.0",

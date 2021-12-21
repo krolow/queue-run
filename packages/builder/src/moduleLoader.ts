@@ -4,7 +4,7 @@ import { AbortController } from "node-abort-controller";
 import path from "path";
 import { addHook } from "pirates";
 import sourceMapSupport from "source-map-support";
-import getRuntime from "./getRuntime";
+import getRuntime from "./build/getRuntime";
 
 // Enable hot reloading, TypeScript support, and import/export in JavaScript.
 export default async function moduleLoader({

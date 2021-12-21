@@ -20,9 +20,22 @@ declare type RuntimeVersion = {
 };
 declare function getRuntime(dirname: string): Promise<RuntimeVersion>;
 
+declare type BuildConfig = {
+    lambdaName: string;
+    slug: string;
+    url: string;
+    production: boolean;
+};
+declare function deployProject({ config, deployId, signal, sourceDir, }: {
+    config: BuildConfig;
+    deployId: string;
+    signal: AbortSignal;
+    sourceDir: string;
+}): Promise<void>;
+
 declare function moduleLoader({ dirname: dirname, onReload, }: {
     dirname: string;
     onReload?: (filename: string) => void;
 }): Promise<void>;
 
-export { buildProject, getRuntime, moduleLoader };
+export { buildProject, deployProject, getRuntime, moduleLoader };
