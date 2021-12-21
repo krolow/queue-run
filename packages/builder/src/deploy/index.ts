@@ -1,5 +1,6 @@
 import { DynamoDB } from "@aws-sdk/client-dynamodb";
 import { Services } from "@queue-run/runtime";
+import chalk from "chalk";
 import ow from "ow";
 import invariant from "tiny-invariant";
 import { URL } from "url";
@@ -14,36 +15,38 @@ type BuildConfig = {
   envVars?: Record<string, string>;
 
   // This prefix is used in Lambda names, IAM roles, SQS queues, DynamoDB
-  // tables, etc to distinguish from other resources in your AWS account. Use the
-  // same prefix for all projects in the same AWS account. Use slugs to distinguish
-  // between projects/branches.
+  // tables, etc to distinguish from other resources in your AWS account.
+  //
+  // Use the same prefix for all projects in the same AWS account. Use slugs to
+  // distinguish between projects/branches.
   //
   // Limited to 10 characters and must end with a dash. Defaults to 'qr-.
-  prefix?: string | "qr-";
+  qrPrefix?: string | "qr-";
 
-  // True when deploying to production, false for preview.
+  // Project name.  Two words separated by dash, limited to 20 characters, lower
+  // case, eg "grumpy-sunshine".
+  project: string;
+
+  // Branch name.  Limited to 20 characters, alphanumeric, and dashes, eg
+  // "pr-123".
   //
-  // This determines which sercets to use as environment variables, and sets
-  // QUEUE_RUN_ENV.
-  production: boolean;
+  // If specified, this is a preview deployment, otherwise production.
+  branch?: string;
 
-  // The slug is used as the Lambda name, SQS queue prefix, etc to distinguish
-  // resources for a single project/branch.  The slug can also be used in the URL.
+  // The full URL for this backend. Available to the backed as the environment
+  // variable QUEUE_RUN_URL.
   //
-  // Limited to 40 characters (a-z, 0-9, -).  Undescores are not allowed.
-  slug: string;
-
-  // The full URL for this backend, eg https://${slug}.queue.run
-  // Available to the backed as QUEUE_RUN_URL.
-  url: string;
+  // If not specified, uses the template: https://${project-branch}.queue.run
+  url?: string;
 
   // ARNs for layers you want to include in the Lambda.
-  // The runtime is included by default, but you can use this to choose a
+  //
+  // The Runtime is included by default, but you can use this to choose a
   // different version.
   layerARNs?: string[];
 };
 
-const defaultPrefix = "qr-";
+const defaultQRPrefix = "qr-";
 
 export default async function deployProject({
   config,
@@ -54,24 +57,45 @@ export default async function deployProject({
   signal?: AbortSignal;
   sourceDir: string;
 }) {
-  const { prefix = defaultPrefix, slug } = config;
+  const { branch, qrPrefix = defaultQRPrefix, project } = config;
+
+  // Note: queue names have 80 characters limit, when we combine
+  // {qrPrefix}{project}_{branch}__{queueName} we have a total of 27 characters
+  // available.
+
   ow(
-    prefix,
+    branch,
+    ow.optional.string
+      .matches(/^[a-z0-9-]{1,20}$/i)
+      .message("Branch must be 20 characters or less, alphanumeric and dashes")
+  );
+  ow(
+    project,
+    ow.string
+      .matches(/^[a-z]+-[a-z]+$/i)
+      .message("Prefix must be two words separated by a dash")
+      .maxLength(20)
+      .message("Prefix must be 20 characters or less")
+  );
+  ow(
+    qrPrefix,
     ow.string
       .matches(/^[a-z0-9_-]+-$/i)
       .message("Prefix must be [a-z0-9_-] and end with a hyphen")
       .maxLength(10)
       .message("Prefix must be 10 characters or less")
   );
-  ow(
-    slug,
-    ow.string
-      .matches(/^[a-z0-9-]{5,40}$/i)
-      .message("Slug must be [a-z0-9-] and 5-40 characters long")
-  );
-  const { hostname } = new URL(config.url);
 
-  console.info("🐇 Starting deploy");
+  const url =
+    config.url ??
+    `https://${branch ? [project, branch].join("-") : project}.queue.run`;
+  ow(url, ow.string.url);
+
+  console.info(
+    chalk.bold.green("🐇 Deploying %s to %s"),
+    branch ? `${project}:${branch}` : project,
+    url
+  );
 
   const { lambdaRuntime, zip, routes, queues } = await buildProject({
     full: true,
@@ -81,20 +105,21 @@ export default async function deployProject({
   invariant(zip);
   if (signal?.aborted) throw new Error("Timeout");
 
-  const lambdaName = `${prefix}${slug}`;
-  const queuePrefix = `${prefix}${slug}__`;
+  const lambdaName = `${qrPrefix}${project}`;
+  const queuePrefix = `${qrPrefix}${project}_${branch}__`;
   const lambdaTimeout = Math.max(
     ...Array.from(queues.values()).map((queue) => queue.timeout),
     ...Array.from(routes.values()).map((route) => route.timeout)
   );
-  const lambdaAlias = "current";
+  const lambdaAlias = branch ?? "$production";
 
   // TODO load environment variables from database
+  const isProduction = !branch;
   const envVars = {
     ...config.envVars,
     NODE_ENV: "production",
-    QUEUE_RUN_URL: config.url,
-    QUEUE_RUN_ENV: config.production ? "production" : "preview",
+    QUEUE_RUN_URL: url,
+    QUEUE_RUN_ENV: isProduction ? "production" : "preview",
   };
 
   // Upload new Lambda function and publish a new version.
@@ -108,34 +133,20 @@ export default async function deployProject({
     layerARNs: config.layerARNs,
     zip,
   });
-  // goose-bump:50 => goose-bump:goose-bump-main
+  // goose-bump:50 => goose-bump:my-branch
   const version = versionARN.match(/(\d)+$/)?.[1];
   invariant(version);
+
   if (signal?.aborted) throw new Error();
 
   // From this point on, we hope to complete successfully and so ignore abort signal
-  await switchOver({
+  const aliasARN = await switchOver({
     lambdaAlias,
     queues,
     queuePrefix,
     versionARN,
   });
-
-  const dynamoDB = new DynamoDB({});
-  try {
-    await dynamoDB.executeStatement({
-      Statement: `INSERT INTO ${prefix}-backends VALUES {'hostname': ?, 'lambda_name': ?, 'created_at': ?}`,
-      Parameters: [
-        { S: hostname },
-        { S: lambdaName },
-        { N: String(Date.now()) },
-      ],
-    });
-  } catch (error) {
-    if (error instanceof Error && error.name === "DuplicateItemException")
-      return;
-    else throw error;
-  }
+  await addRouting({ aliasARN, project, qrPrefix, url });
 }
 
 async function switchOver({
@@ -148,7 +159,7 @@ async function switchOver({
   queuePrefix: string;
   queues: Services["queues"];
   versionARN: string;
-}) {
+}): Promise<string> {
   const aliasARN = versionARN.replace(/(\d+)$/, lambdaAlias);
 
   // Create queues that new version expects, and remove triggers for event
@@ -182,4 +193,35 @@ async function switchOver({
 
   // Delete any queues that are no longer needed.
   await deleteOldQueues({ prefix: queuePrefix, queueARNs });
+  return aliasARN;
+}
+
+async function addRouting({
+  aliasARN,
+  project,
+  qrPrefix,
+  url,
+}: {
+  aliasARN: string;
+  project: string;
+  qrPrefix: string;
+  url: string;
+}) {
+  const { hostname } = new URL(url);
+  const dynamoDB = new DynamoDB({});
+  try {
+    await dynamoDB.executeStatement({
+      Statement: `INSERT INTO ${qrPrefix}-backends VALUES {'hostname': ?, 'project : ?, 'lambda_arn': ?, 'created_at': ?}`,
+      Parameters: [
+        { S: hostname },
+        { S: project },
+        { S: aliasARN },
+        { N: String(Date.now()) },
+      ],
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "DuplicateItemException")
+      return;
+    else throw error;
+  }
 }

@@ -1,7 +1,7 @@
 import { IAM, Role } from "@aws-sdk/client-iam";
 import invariant from "tiny-invariant";
 
-const lambdaRolePath = "/services/queuerun";
+const lambdaRolePath = "/services/queuerun/";
 
 const Version = "2012-10-17";
 
@@ -67,6 +67,7 @@ export async function getLambdaRole({
 
 async function upsertRole(iam: IAM, lambdaName: string): Promise<Role> {
   const roleName = lambdaName;
+  console.log({ roleName, lambdaRolePath });
   try {
     const { Role: role } = await iam.getRole({ RoleName: roleName });
     if (role) return role;

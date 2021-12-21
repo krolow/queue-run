@@ -1,4 +1,5 @@
 /// <reference types="node" />
+import { SQS } from '@aws-sdk/client-sqs';
 import { Request, Response } from 'node-fetch';
 import { MatchFunction } from 'path-to-regexp';
 
@@ -27,6 +28,10 @@ declare type PushMessageFunction = (params: {
     queueName: string;
     user?: AuthenticatedUser;
 }) => Promise<string>;
+declare function createPushMessage({ sqs, slug, }: {
+    sqs: SQS;
+    slug: string;
+}): PushMessageFunction;
 
 declare type Globals = {
     pushMessage: PushMessageFunction;
@@ -90,6 +95,7 @@ declare function loadServices(dirname: string): Promise<Services>;
 declare function displayServices({ routes, queues }: Services): void;
 
 declare function handler(event: LambdaEvent, context: LambdaContext): Promise<BackendLambdaResponse | SQSBatchResponse | undefined>;
+declare const pushMessage: PushMessageFunction;
 declare type LambdaEvent = {
     Records: Array<SQSMessage>;
 } | BackendLambdaRequest;
@@ -122,4 +128,4 @@ declare type BackendLambdaResponse = {
     statusCode: number;
 };
 
-export { Queue, Route, Services, displayServices, handler, loadModule, loadServices };
+export { Services, createPushMessage, displayServices, handler, loadModule, loadServices, pushMessage };

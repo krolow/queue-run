@@ -8,8 +8,8 @@ import {
   getNextWaitingDeploy,
   markDeployCompleted,
   markDeployStarted,
-} from "../../../builder/src/deploy/state";
-import { readS3Archive } from "../../../builder/src/deploy/storage";
+} from "./state";
+import { readS3Archive } from "./storage";
 
 type RunDeployHandler = ({
   // Zip with code to deploy

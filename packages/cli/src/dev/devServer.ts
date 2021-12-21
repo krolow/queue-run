@@ -4,6 +4,7 @@ import chalk from "chalk";
 import crypto from "crypto";
 import { createServer, IncomingMessage, ServerResponse } from "http";
 import ora from "ora";
+import invariant from "tiny-invariant";
 import { URL } from "url";
 import envVariables from "./envVariables";
 
@@ -66,6 +67,7 @@ async function onRequest(req: IncomingMessage, res: ServerResponse) {
   };
 
   const response = await handler(lambdaEvent, lambdaContext);
+  invariant(response && "statusCode" in response && response?.statusCode);
   if (response) {
     console.info("%s %s => %s", method, req.url, response.statusCode);
     res.writeHead(response.statusCode, response.headers);

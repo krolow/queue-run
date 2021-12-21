@@ -7,7 +7,8 @@ import httpRoute from "./httpRoute";
 import "./polyfill";
 import createPushMessage from "./pushMessage";
 export { default as loadModule } from "./loadModule";
-export * from "./loadServices";
+export { displayServices, loadServices, Services } from "./loadServices";
+export { createPushMessage };
 
 const { branch, projectId, region, ...clientConfig } =
   process.env.NODE_ENV === "production"
@@ -26,7 +27,7 @@ export async function handler(
   context: LambdaContext
 ): Promise<BackendLambdaResponse | SQSBatchResponse | undefined> {
   const { getRemainingTimeInMillis } = context;
-  global._qr.pushMessage = createPushMessage({ sqs, slug });
+  global._qr.pushMessage = pushMessage;
 
   if ("url" in event) {
     return await asFetchRequest(event, (request) => httpRoute(request));
@@ -44,6 +45,8 @@ export async function handler(
     });
   }
 }
+
+export const pushMessage = createPushMessage({ sqs, slug });
 
 type LambdaEvent = { Records: Array<SQSMessage> } | BackendLambdaRequest;
 

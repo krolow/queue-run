@@ -7,18 +7,6 @@ readonly archive="runtime.zip"
 readonly layer_name="queue-run-runtime"
 readonly profile="queuerun"
 
-readonly account_id="122210178198"
-readonly domain_name="queue.run"
-readonly env_vars=""
-readonly lambda_memory_size=128
-readonly lambda_name="queuerun-gateway"
-readonly lambda_runtime=nodejs14.x
-readonly lambda_timeout=10
-readonly role_name="queuerun-gateway"
-readonly distribution_id="E6K2AQKPW7FJN"
-readonly alias_name="${lambda_name}-current"
-
-
 function build_layer() {
   echo -e "\033[34m  Building $layer_name …  \033[0m"
   rm -rf .build
@@ -56,7 +44,7 @@ function upload_layer() {
   )
   echo "ARN: $layer_version_arn"
 
-  echo -e "\033[32m  Published new version of $lambda_name  \033[0m\n"
+  echo -e "\033[32m  Published new version of $layer_name  \033[0m\n"
 }
 
 function run() {

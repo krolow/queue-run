@@ -2,11 +2,13 @@ import { buildProject } from "@queue-run/builder";
 import chalk from "chalk";
 import { Command } from "commander";
 import ms from "ms";
+import deploy from "./deploy";
 import devServer from "./dev";
 
 const program = new Command().version(require("../package.json").version);
 
 program.addCommand(devServer);
+program.addCommand(deploy);
 
 program
   .command("build")
@@ -14,10 +16,7 @@ program
   .argument("[source]", "Source directory", "./")
   .option("-o, --output <output>", "Output directory", ".build")
   .action(async (source: string, { output }: { output: string }) => {
-    await buildProject({
-      sourceDir: source,
-      targetDir: output,
-    });
+    await buildProject({ buildDir: output, sourceDir: source });
   });
 
 program.showSuggestionAfterError();
@@ -37,5 +36,6 @@ program
   })
   .catch((error) => {
     console.error(chalk.bold.red(String(error)));
+    console.error(error.stack);
     process.exit(-1);
   });
