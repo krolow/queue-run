@@ -5,7 +5,7 @@ import { URLSearchParams } from "url";
 import handleSQSMessages, { SQSMessage } from "./handleSQSMessages";
 import type { AuthenticatedUser } from "./middleware";
 
-type PushMessageFunction = (params: {
+export type PushMessageFunction = (params: {
   body: Buffer | string | object;
   dedupeId?: string;
   groupId?: string;

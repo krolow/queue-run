@@ -17,6 +17,24 @@ declare type Middleware = {
     onError?: OnError | null;
 };
 
+declare type PushMessageFunction = (params: {
+    body: Buffer | string | object;
+    dedupeId?: string;
+    groupId?: string;
+    params?: {
+        [key: string]: string;
+    };
+    queueName: string;
+    user?: AuthenticatedUser;
+}) => Promise<string>;
+
+declare type Globals = {
+    pushMessage: PushMessageFunction;
+};
+declare global {
+    var _qr: Globals;
+}
+
 declare type SQSMessage = {
     attributes: {
         ApproximateFirstReceiveTimestamp: string;
@@ -72,16 +90,6 @@ declare function loadServices(dirname: string): Promise<Services>;
 declare function displayServices({ routes, queues }: Services): void;
 
 declare function handler(event: LambdaEvent, context: LambdaContext): Promise<BackendLambdaResponse | SQSBatchResponse | undefined>;
-declare const pushMessage: (params: {
-    body: string | object | Buffer;
-    dedupeId?: string | undefined;
-    groupId?: string | undefined;
-    params?: {
-        [key: string]: string;
-    } | undefined;
-    queueName: string;
-    user?: AuthenticatedUser | undefined;
-}) => Promise<string>;
 declare type LambdaEvent = {
     Records: Array<SQSMessage>;
 } | BackendLambdaRequest;
@@ -114,4 +122,4 @@ declare type BackendLambdaResponse = {
     statusCode: number;
 };
 
-export { Queue, Route, Services, displayServices, handler, loadModule, loadServices, pushMessage };
+export { Queue, Route, Services, displayServices, handler, loadModule, loadServices };

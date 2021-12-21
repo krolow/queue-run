@@ -1,6 +1,7 @@
 import { SQS } from "@aws-sdk/client-sqs";
 import { asFetchRequest } from "./asFetch";
 import swapAWSEnvVars from "./environment";
+import "./globals";
 import handleSQSMessages, { SQSMessage } from "./handleSQSMessages";
 import httpRoute from "./httpRoute";
 import "./polyfill";
@@ -25,6 +26,7 @@ export async function handler(
   context: LambdaContext
 ): Promise<BackendLambdaResponse | SQSBatchResponse | undefined> {
   const { getRemainingTimeInMillis } = context;
+  global._qr.pushMessage = createPushMessage({ sqs, slug });
 
   if ("url" in event) {
     return await asFetchRequest(event, (request) => httpRoute(request));
@@ -42,8 +44,6 @@ export async function handler(
     });
   }
 }
-
-export const pushMessage = createPushMessage({ slug, sqs });
 
 type LambdaEvent = { Records: Array<SQSMessage> } | BackendLambdaRequest;
 
