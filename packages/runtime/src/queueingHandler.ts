@@ -1,4 +1,5 @@
 import { Request, Response } from "node-fetch";
+import multipart from "parse-multipart-data";
 import invariant from "tiny-invariant";
 import { URLSearchParams } from "url";
 import "./globals";
@@ -30,34 +31,64 @@ export default async function queueingHandler(
 async function getMessageBody(
   request: Request
 ): Promise<Buffer | string | object> {
-  switch (request.headers.get("Content-Type")) {
+  const contentType = request.headers.get("content-type");
+  const mimeType = contentType?.split(";")[0];
+
+  switch (mimeType) {
     case "application/json": {
       try {
         return await request.json();
       } catch (error) {
-        throw new Response("Request body not a valid JSON document", {
-          status: 400,
+        throw new Response("application/json: not a valid JSON document", {
+          status: 422,
         });
       }
     }
-    case "plain/text": {
-      const text = await request.text();
-      if (!text) throw new Response("No message body", { status: 400 });
-      return text;
-    }
+
     case "application/octet-stream": {
       const buffer = await request.buffer();
       if (!buffer.byteLength)
-        throw new Response("No message body", { status: 400 });
+        throw new Response("application/octet-stream: no message body", {
+          status: 400,
+        });
       return buffer;
     }
+
     case "application/x-www-form-urlencoded": {
       const text = await request.text();
       const params = new URLSearchParams(text);
       return Object.fromEntries(params.entries());
     }
+
+    case "multipart/form-data": {
+      const boundary = contentType?.match(/;\s*boundary=([^;]+)/)?.[1];
+      if (!boundary)
+        throw new Response("multipart/form-data: missing boundary", {
+          status: 422,
+        });
+      const inputParts = multipart.parse(await request.buffer(), boundary);
+      return inputParts.reduce((parts, part) => {
+        if (part.filename)
+          throw new Response("multipart/form-data: files not supported", {
+            status: 422,
+          });
+        if (!part.name)
+          throw new Response("multipart/form-data: missing part name", {
+            status: 422,
+          });
+        return { ...parts, [part.name]: part.data.toString() };
+      }, {} as Record<string, string>);
+    }
+
+    case "text/plain": {
+      const text = await request.text();
+      if (!text)
+        throw new Response("text/plain: no message body", { status: 400 });
+      return text;
+    }
+
     default: {
-      throw new Response("Unsupported media type", { status: 406 });
+      throw new Response("Unsupported media type", { status: 415 });
     }
   }
 }
