@@ -2,8 +2,8 @@ import { SQS } from "@aws-sdk/client-sqs";
 import swapAWSEnvVars from "./environment";
 import "./globals";
 import handleHTTPRequest, {
+  APIGatewayProxyResponse,
   BackendLambdaRequest,
-  BackendLambdaResponse,
 } from "./http";
 import {
   handleSQSMessages,
@@ -28,7 +28,7 @@ const sqs = new SQS({ ...clientConfig, region });
 export async function handler(
   event: LambdaEvent,
   context: LambdaContext
-): Promise<BackendLambdaResponse | SQSBatchResponse> {
+): Promise<APIGatewayProxyResponse | SQSBatchResponse> {
   const { getRemainingTimeInMillis } = context;
   global.$queueRun = {
     pushMessage: (args) => pushMessage({ ...args, sqs, slug }),

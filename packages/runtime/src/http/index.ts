@@ -2,10 +2,29 @@ import { asFetchRequest } from "./asFetch";
 import handleHTTPRequest from "./handleHTTPRequest";
 
 export default async function (
-  event: BackendLambdaRequest
-): Promise<BackendLambdaResponse> {
+  event: BackendLambdaRequest | APIGatewayProxyEvent
+): Promise<APIGatewayProxyResponse> {
   return await asFetchRequest(event, (request) => handleHTTPRequest(request));
 }
+
+// https://docs.aws.amazon.com/lambda/latest/dg/services-apigateway.html#apigateway-example-event
+export type APIGatewayProxyEvent = {
+  requestContext: {
+    domainName: string;
+    httpMethod: string;
+    path: string;
+  };
+  headers: { [key: string]: string };
+  body?: string;
+  isBase64Encoded: boolean;
+};
+
+export type APIGatewayProxyResponse = {
+  body: string;
+  bodyEncoding: "text" | "base64";
+  headers: Record<string, string>;
+  statusCode: number;
+};
 
 export type BackendLambdaRequest = {
   body?: string;
@@ -13,11 +32,4 @@ export type BackendLambdaRequest = {
   method: string;
   requestId?: string;
   url: string;
-};
-
-export type BackendLambdaResponse = {
-  body: string;
-  bodyEncoding: "text" | "base64";
-  headers: Record<string, string>;
-  statusCode: number;
 };

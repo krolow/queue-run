@@ -1,14 +1,13 @@
-import type {
-  BackendLambdaRequest,
-  BackendLambdaResponse,
-} from "@queue-run/gateway";
 import { Request, Response } from "node-fetch";
+import {
+  APIGatewayProxyEvent, APIGatewayProxyResponse, BackendLambdaRequest
+} from "./index";
 
 export async function asFetchRequest(
-  event: BackendLambdaRequest,
+  event: APIGatewayProxyEvent | BackendLambdaRequest,
   // eslint-disable-next-line no-unused-vars
   handler: (request: Request) => Promise<Response | string | object>
-): Promise<BackendLambdaResponse> {
+): Promise<APIGatewayProxyResponse> {
   try {
     const response = await handler(toFetchRequest(event));
 
@@ -49,22 +48,30 @@ export async function asFetchRequest(
   }
 }
 
-function toFetchRequest(event: BackendLambdaRequest): Request {
-  const hasBody = !["GET", "HEAD"].includes(event.method.toUpperCase());
-  const body =
-    hasBody && event.body ? Buffer.from(event.body, "base64") : undefined;
-  const headers = new Headers(event.headers);
-  const method = event.method.toUpperCase();
-  return new Request(event.url, {
-    body,
-    headers,
-    method,
-  });
+function toFetchRequest(
+  event: APIGatewayProxyEvent | BackendLambdaRequest
+): Request {
+  if ("requestContext" in event) {
+    const method = event.requestContext.httpMethod;
+    const url = `https://${event.requestContext.domainName}${event.requestContext.path}`;
+    const headers = new Headers(event.headers);
+    const body =
+      event.body && event.isBase64Encoded
+        ? Buffer.from(event.body, "base64")
+        : event.body;
+    return new Request(url, { body, headers, method });
+  } else {
+    const { headers, method, url } = event;
+    const hasBody = !["GET", "HEAD"].includes(method);
+    const body =
+      hasBody && event.body ? Buffer.from(event.body, "base64") : undefined;
+    return new Request(url, { body, headers, method });
+  }
 }
 
 async function fromFetchResponse(
   response: Response
-): Promise<BackendLambdaResponse> {
+): Promise<APIGatewayProxyResponse> {
   return {
     body: (await response.buffer()).toString("base64"),
     bodyEncoding: "base64",
