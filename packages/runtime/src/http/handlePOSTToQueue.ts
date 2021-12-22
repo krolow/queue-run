@@ -1,7 +1,7 @@
 import { getLocalStorage, RequestHandler } from "queue-run";
 import invariant from "tiny-invariant";
 import { URLSearchParams } from "url";
-import { HTTPRoute } from "../HTTPRoute";
+import { HTTPRoute } from "./HTTPRoute";
 
 export default async function handlePOSTToQueue(
   route: HTTPRoute,

@@ -2,9 +2,9 @@ import chalk from "chalk";
 import { AbortController } from "node-abort-controller";
 import type { RequestHandler } from "queue-run";
 import { Middleware } from "queue-run/src/middleware";
-import { HTTPRoute } from "../HTTPRoute";
 import { loadServices } from "../loadServices";
 import findRoute from "./findRoute";
+import { HTTPRoute } from "./HTTPRoute";
 
 export default async function handleHTTPRequest(
   request: Request

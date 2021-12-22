@@ -4,22 +4,13 @@ import path from "path";
 import { Key, match, pathToRegexp } from "path-to-regexp";
 import type { QueueConfig, QueueHandler, RouteConfig } from "queue-run";
 import invariant from "tiny-invariant";
-import { HTTPRoute } from "./HTTPRoute";
+import { HTTPRoute } from "./http/HTTPRoute";
 import loadModule from "./loadModule";
+import { QueueService } from "./queues/QueueService";
 
 export type Services = {
-  queues: Map<string, Queue>;
+  queues: Map<string, QueueService>;
   routes: Map<string, HTTPRoute>;
-};
-
-export type Queue = {
-  accepts: Set<string>;
-  cors: boolean;
-  filename: string;
-  isFifo: boolean;
-  path: string | null;
-  queueName: string;
-  timeout: number;
 };
 
 export async function loadServices(dirname: string): Promise<Services> {
