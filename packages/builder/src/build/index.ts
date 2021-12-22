@@ -12,9 +12,14 @@ import zipLambda from "./zipLambda";
 // Full build: also install node modules, create and return a Zip.
 // May return undefined if build aborted by signal.
 export default async function buildProject({
+  // Build into this directory, .build from CLI, temp dir on AWS
   buildDir,
+  // Full build - install node modules, and create Zip
+  // Partial build — only compile source files and show available routes/services
   full,
+  // Build server can use this to terminate builds early
   signal,
+  // Directory with the source files, current directory from CLI, or temp dir on AWS
   sourceDir,
 }: {
   buildDir: string;
