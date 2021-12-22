@@ -17,6 +17,7 @@
   ],
   "dependencies": {
     "@aws-sdk/client-sqs": "^3.43.0",
+    "chalk": "4.1.2",
     "fast-glob": "^3.2.7",
     "node-abort-controller": "^3.0.1",
     "node-fetch": "2.6.6",
