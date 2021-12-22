@@ -1,4 +1,4 @@
-import { deployProject } from "@queue-run/builder";
+import { deployLambda } from "@queue-run/builder";
 import { Command } from "commander";
 
 const command = new Command("deploy").description("Deploy your project");
@@ -9,21 +9,17 @@ command
   .command("direct")
   .description("Deploy straight to AWS")
   .argument(
-    "<project>",
-    'The project name (pattern: [a-z]+-[a-z]+{,20}, eg: "grumpy-sunshine")'
-  )
-  .argument(
-    "[branch]",
-    'Branch name if this is a preview (pattern: [a-z0-9-]{,20}, eg: "pr-12")'
+    "<slug>",
+    'The project slug (pattern: [a-z0-9-]+{1,40}, eg: "my-project")'
   )
   .option(
     "-u --url <url>",
     'The backend will be available at this URL (default: "http://[project/branch].queue-run.com")'
   )
-  .action(async (project, branch, { url }) => {
-    await deployProject({
+  .action(async (slug, { url }) => {
+    await deployLambda({
       buildDir: ".build",
       sourceDir: process.cwd(),
-      config: { branch, project, url },
+      config: { env: "production", slug, url },
     });
   });
