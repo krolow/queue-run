@@ -1,12 +1,9 @@
-import { Request, Response } from "node-fetch";
-import multipart from "parse-multipart-data";
 import invariant from "tiny-invariant";
 import { URLSearchParams } from "url";
-import "../globals";
 import { RequestHandler } from "../handlers";
 import { HTTPRoute } from "../Route";
 
-export default async function queueingHandler(
+export default async function handlePOSTToQueue(
   route: HTTPRoute,
   request: Request,
   { params, user }: Parameters<RequestHandler>[1]
@@ -49,7 +46,7 @@ async function getMessageBody(
       const buffer = await request.buffer();
       if (!buffer.byteLength)
         throw new Response("application/octet-stream: no message body", {
-          status: 400,
+          status: 422,
         });
       return buffer;
     }
@@ -61,29 +58,17 @@ async function getMessageBody(
     }
 
     case "multipart/form-data": {
-      const boundary = contentType?.match(/;\s*boundary=([^;]+)/)?.[1];
-      if (!boundary)
-        throw new Response("multipart/form-data: missing boundary", {
-          status: 422,
-        });
-      const inputParts = multipart.parse(await request.buffer(), boundary);
-      return inputParts.reduce((parts, part) => {
-        if (part.filename)
-          throw new Response("multipart/form-data: files not supported", {
-            status: 422,
-          });
-        if (!part.name)
-          throw new Response("multipart/form-data: missing part name", {
-            status: 422,
-          });
-        return { ...parts, [part.name]: part.data.toString() };
-      }, {} as Record<string, string>);
+      try {
+        return await formDataToObject(request);
+      } catch (error) {
+        throw new Response(String(error), { status: 422 });
+      }
     }
 
     case "text/plain": {
       const text = await request.text();
       if (!text)
-        throw new Response("text/plain: no message body", { status: 400 });
+        throw new Response("text/plain: no message body", { status: 422 });
       return text;
     }
 
@@ -91,4 +76,21 @@ async function getMessageBody(
       throw new Response("Unsupported media type", { status: 415 });
     }
   }
+}
+
+async function formDataToObject(request: Request) {
+  const form = await request.form();
+  return Array.from(form.entries()).reduce(
+    (fields, [name, { contentType, data, filename }]) => {
+      if (filename) throw new Error("multipart/form-data: files not supported");
+      if (!name) throw new Error("multipart/form-data: part without name");
+      const encoding = contentType?.match(/;\s*charset=([^;]+)/)?.[1];
+      return {
+        ...fields,
+        // @ts-ignore
+        [name]: data.toString(encoding ?? "utf-8"),
+      };
+    },
+    {}
+  );
 }

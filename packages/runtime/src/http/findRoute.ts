@@ -4,7 +4,7 @@ import { RequestHandler, RouteConfig } from "../handlers";
 import loadModule from "../loadModule";
 import { Middleware } from "../middleware";
 import { HTTPRoute } from "../Route";
-import queuingHandler from "./queueingHandler";
+import handlePOSTToQueue from "./handlePOSTToQueue";
 
 export default async function findRoute(
   url: string,
@@ -37,7 +37,7 @@ export default async function findRoute(
 
   return {
     handler: route.queue
-      ? (request, metadata) => queuingHandler(route, request, metadata)
+      ? (request, metadata) => handlePOSTToQueue(route, request, metadata)
       : handler,
     middleware,
     params,

@@ -2,7 +2,7 @@ import type {
   BackendLambdaRequest,
   BackendLambdaResponse,
 } from "@queue-run/gateway";
-import { Headers, Request, Response } from "node-fetch";
+import { Request, Response } from "node-fetch";
 
 export async function asFetchRequest(
   event: BackendLambdaRequest,
