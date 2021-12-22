@@ -4,7 +4,6 @@ import swapAWSEnvVars from "./environment";
 import "./globals";
 import handleSQSMessages, { SQSMessage } from "./handleSQSMessages";
 import httpRoute from "./httpRoute";
-import "./polyfill";
 import createPushMessage from "./pushMessage";
 export { default as loadModule } from "./loadModule";
 export { displayServices, loadServices, Services } from "./loadServices";
@@ -27,7 +26,7 @@ export async function handler(
   context: LambdaContext
 ): Promise<BackendLambdaResponse | SQSBatchResponse | undefined> {
   const { getRemainingTimeInMillis } = context;
-  global._qr.pushMessage = pushMessage;
+  global.$queueRun = { pushMessage };
 
   if ("url" in event) {
     return await asFetchRequest(event, (request) => httpRoute(request));

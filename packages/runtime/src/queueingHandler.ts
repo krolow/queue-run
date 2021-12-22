@@ -15,7 +15,7 @@ export default async function queueingHandler(
   if (isFifo && !params.group)
     throw new Response("Missing group parameter", { status: 400 });
 
-  await global._qr.pushMessage({
+  await global.$queueRun.pushMessage({
     body: await getMessageBody(request),
     ...(isFifo
       ? { dedupeId: params.dedupe, groupId: params.group }
