@@ -1,9 +1,11 @@
 import { moduleLoader } from "@queue-run/builder";
-import { loadModule, pushMessage } from "@queue-run/runtime";
+import { development, loadModule } from "@queue-run/runtime";
 import chalk from "chalk";
 import { readFile } from "fs/promises";
 import ora from "ora";
+import { getLocalStorage } from "queue-run";
 import readline from "readline";
+import invariant from "tiny-invariant";
 import envVariables from "./envVariables";
 
 export default async function queueMessage(
@@ -11,7 +13,7 @@ export default async function queueMessage(
   message: string,
   { port, group }: { port: number; group?: string }
 ) {
-  const spinner = ora("Loading job handler").start();
+  const spinner = ora(`Loading queue handler for ${queueName}`).start();
   try {
     envVariables(port);
     await moduleLoader({ dirname: process.cwd() });
@@ -24,8 +26,12 @@ export default async function queueMessage(
     spinner.stop();
     throw error;
   }
-  const body = maybeJSON(await readMessageBody(message));
-  await pushMessage({ body, groupId: group, params: {}, queueName });
+  await development(async () => {
+    const body = maybeJSON(await readMessageBody(message));
+    const store = getLocalStorage().getStore();
+    invariant(store, "Local storage not found");
+    await store.pushMessage({ body, groupId: group, params: {}, queueName });
+  });
 }
 
 async function readMessageBody(message: string): Promise<string> {

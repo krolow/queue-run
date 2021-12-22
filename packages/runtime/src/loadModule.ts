@@ -1,6 +1,6 @@
 import path from "path";
+import type { Middleware } from "queue-run";
 import { install } from "source-map-support";
-import type { Middleware } from "./middleware";
 
 // Use this for loading backend functions on demand:
 //

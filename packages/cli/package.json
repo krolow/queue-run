@@ -27,6 +27,7 @@
     "node-fetch": "2.6.6",
     "ora": "5.4.1",
     "pirates": "^4.0.4",
+    "queue-run": "../queue-run",
     "source-map-support": "^0.5.21"
   },
   "devDependencies": {

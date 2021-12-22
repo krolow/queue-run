@@ -1,7 +1,7 @@
+import { getLocalStorage, RequestHandler } from "queue-run";
 import invariant from "tiny-invariant";
 import { URLSearchParams } from "url";
-import { RequestHandler } from "../handlers";
-import { HTTPRoute } from "../Route";
+import { HTTPRoute } from "../HTTPRoute";
 
 export default async function handlePOSTToQueue(
   route: HTTPRoute,
@@ -13,7 +13,10 @@ export default async function handlePOSTToQueue(
   if (isFifo && !params.group)
     throw new Response("Missing group parameter", { status: 400 });
 
-  await global.$queueRun.pushMessage({
+  const store = getLocalStorage().getStore();
+  invariant(store, "Store must be available");
+
+  await store.pushMessage({
     body: await getMessageBody(request),
     ...(isFifo
       ? { dedupeId: params.dedupe, groupId: params.group }

@@ -1,14 +1,19 @@
 import { SQS } from "@aws-sdk/client-sqs";
 import chalk from "chalk";
 import { AbortController } from "node-abort-controller";
+import type { JSONValue, QueueConfig, QueueHandler } from "queue-run";
 import { URLSearchParams } from "url";
-import type { JSONValue, QueueConfig, QueueHandler } from "../handlers";
 import loadModule from "../loadModule";
 import type { SQSMessage } from "./index";
 
 const minTimeout = 1;
 const maxTimeout = 30;
 const defaultTimeout = 10;
+
+export type SQSBatchResponse = {
+  // https://docs.aws.amazon.com/lambda/latest/dg/with-ddb.html#services-ddb-batchfailurereporting
+  batchItemFailures: Array<{ itemIdentifier: string }>;
+};
 
 export default async function handleSQSMessages({
   getRemainingTimeInMillis,
@@ -18,10 +23,7 @@ export default async function handleSQSMessages({
   getRemainingTimeInMillis: () => number;
   messages: SQSMessage[];
   sqs: SQS;
-}): Promise<{
-  // https://docs.aws.amazon.com/lambda/latest/dg/with-ddb.html#services-ddb-batchfailurereporting
-  batchItemFailures: Array<{ itemIdentifier: string }>;
-}> {
+}): Promise<SQSBatchResponse> {
   return isFifoQueue(messages[0])
     ? await handleFifoMessages({
         getRemainingTimeInMillis,

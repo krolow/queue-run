@@ -2,10 +2,10 @@ import chalk from "chalk";
 import glob from "fast-glob";
 import path from "path";
 import { Key, match, pathToRegexp } from "path-to-regexp";
+import type { QueueConfig, QueueHandler, RouteConfig } from "queue-run";
 import invariant from "tiny-invariant";
-import { QueueConfig, QueueHandler, RouteConfig } from "./handlers";
+import { HTTPRoute } from "./HTTPRoute";
 import loadModule from "./loadModule";
-import { HTTPRoute } from "./Route";
 
 export type Services = {
   queues: Map<string, Queue>;

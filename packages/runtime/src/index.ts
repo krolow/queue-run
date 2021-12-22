@@ -1,6 +1,6 @@
 import { SQS } from "@aws-sdk/client-sqs";
+import { getLocalStorage } from "queue-run";
 import swapAWSEnvVars from "./environment";
-import "./globals";
 import handleHTTPRequest, {
   APIGatewayProxyResponse,
   BackendLambdaRequest,
@@ -10,46 +10,54 @@ import {
   pushMessage as pushMessage,
   SQSMessage,
 } from "./queues";
+import { SQSBatchResponse } from "./queues/handleSQSMessages";
 export { default as loadModule } from "./loadModule";
 export { displayServices, loadServices, Services } from "./loadServices";
 
-const { branch, projectId, region, ...clientConfig } =
+const { slug, region, ...clientConfig } =
   process.env.NODE_ENV === "production"
     ? swapAWSEnvVars()
-    : {
-        branch: "main",
-        projectId: "grumpy-sunshine",
-        region: "localhost",
-      };
-
-const slug = `${projectId}-${branch}`;
-const sqs = new SQS({ ...clientConfig, region });
+    : { slug: "localhost", region: "localhost" };
 
 export async function handler(
   event: LambdaEvent,
   context: LambdaContext
 ): Promise<APIGatewayProxyResponse | SQSBatchResponse> {
-  const { getRemainingTimeInMillis } = context;
-  global.$queueRun = {
-    pushMessage: (args) => pushMessage({ ...args, sqs, slug }),
-  };
+  const sqs = new SQS({ ...clientConfig, region });
+  return await getLocalStorage().run(
+    {
+      pushMessage: (args) => pushMessage({ ...args, sqs, slug }),
+    },
+    async () => {
+      if ("url" in event) return await handleHTTPRequest(event);
 
-  if ("url" in event) return await handleHTTPRequest(event);
+      if ("Records" in event) {
+        const { getRemainingTimeInMillis } = context;
+        const messages = event.Records.filter(
+          (record) => record.eventSource === "aws:sqs"
+        );
 
-  if ("Records" in event) {
-    const messages = event.Records.filter(
-      (record) => record.eventSource === "aws:sqs"
-    );
+        const sqs = new SQS({ ...clientConfig, region });
+        return await handleSQSMessages({
+          getRemainingTimeInMillis,
+          messages,
+          sqs,
+        });
+      }
 
-    const sqs = new SQS({ ...clientConfig, region });
-    return await handleSQSMessages({
-      getRemainingTimeInMillis,
-      messages,
-      sqs,
-    });
-  }
+      throw new Error("Unknown event type");
+    }
+  );
+}
 
-  throw new Error("Unknown event type");
+export async function development(cb: () => Promise<void>) {
+  const sqs = new SQS({ region: "localhost" });
+  return await getLocalStorage().run(
+    {
+      pushMessage: (args) => pushMessage({ ...args, sqs, slug }),
+    },
+    cb
+  );
 }
 
 type LambdaEvent = { Records: Array<SQSMessage> } | BackendLambdaRequest;
@@ -64,9 +72,4 @@ type LambdaContext = {
   logGroupName: string;
   getRemainingTimeInMillis: () => number;
   callbackWaitsForEmptyEventLoop: boolean;
-};
-
-type SQSBatchResponse = {
-  // https://docs.aws.amazon.com/lambda/latest/dg/with-ddb.html#services-ddb-batchfailurereporting
-  batchItemFailures: Array<{ itemIdentifier: string }>;
 };

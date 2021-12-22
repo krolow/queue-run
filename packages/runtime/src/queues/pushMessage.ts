@@ -1,8 +1,8 @@
 import { SendMessageCommandInput, SQS } from "@aws-sdk/client-sqs";
 import crypto from "crypto";
+import type { AuthenticatedUser } from "queue-run";
 import invariant from "tiny-invariant";
 import { URLSearchParams } from "url";
-import type { AuthenticatedUser } from "../middleware";
 import handleSQSMessages from "./handleSQSMessages";
 import type { SQSMessage } from "./index";
 

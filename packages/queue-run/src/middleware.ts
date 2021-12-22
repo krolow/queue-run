@@ -1,5 +1,4 @@
 /* eslint-disable no-unused-vars */
-import type { Request, Response } from "node-fetch";
 
 // Successful authentication returns an object with the user ID.
 export type AuthenticatedUser = { id: string; [key: string]: unknown };

@@ -1,4 +1,5 @@
 /* eslint-disable no-unused-vars */
+import type { AbortSignal } from "node-abort-controller";
 import type { Request, Response } from "node-fetch";
 
 export type RequestHandler = (

@@ -14,10 +14,9 @@ import type { CredentialProvider } from "@aws-sdk/types";
 //
 // Then we un-alias from user's AWS environment variables.
 export default function swapAWSEnvVars(): {
-  branch: string;
   credentials: CredentialProvider;
-  projectId: string;
   region: string;
+  slug: string;
 } {
   const credentials = {
     sessionToken: process.env.AWS_SESSION_TOKEN!,
@@ -43,8 +42,7 @@ export default function swapAWSEnvVars(): {
     else delete process.env[key];
   }
 
-  const branch = process.env.QUEUE_RUN_BRANCH!;
-  const projectId = process.env.QUEUE_RUN_PROJECT!;
+  const slug = process.env.AWS_LAMBDA_FUNCTION_NAME!;
 
-  return { branch, credentials: async () => credentials, projectId, region };
+  return { credentials: async () => credentials, region, slug };
 }

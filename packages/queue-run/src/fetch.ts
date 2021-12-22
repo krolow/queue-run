@@ -1,20 +1,8 @@
 /* eslint-disable no-unused-vars */
-/// <reference path="../node_modules/@types/node-fetch/index.d.ts" />
-import * as http from "http";
-import * as https from "https";
 import * as nodeFetch from "node-fetch";
 import multipart from "parse-multipart-data";
-import type { pushMessage } from "./queues";
 
-const httpAgent = new http.Agent();
-const httpsAgent = new https.Agent();
-const agent = ({ protocol }: { protocol: string }) =>
-  protocol === "http:" ? httpAgent : httpsAgent;
-const fetchWithAgent: typeof nodeFetch.default = (url, init) =>
-  nodeFetch.default(url, { agent, ...init });
-fetchWithAgent.isRedirect = nodeFetch.default.isRedirect;
-
-class RequestFormData {
+export class RequestFormData {
   private fields: Map<
     string,
     { data: Buffer; filename?: string; contentType?: string }
@@ -84,11 +72,7 @@ nodeFetch.Request.prototype.form = async function () {
 };
 
 declare global {
-  var $queueRun: {
-    pushMessage: (
-      args: Omit<Parameters<typeof pushMessage>[0], "sqs" | "slug">
-    ) => Promise<string>;
-  };
+  var $queueRun: {};
   var fetch: typeof nodeFetch.default;
   var Response: typeof nodeFetch.Response;
   var Headers: typeof nodeFetch.Headers;
@@ -102,4 +86,4 @@ declare global {
 global.Request = nodeFetch.Request;
 global.Response = nodeFetch.Response;
 global.Headers = nodeFetch.Headers;
-global.fetch = fetchWithAgent;
+global.fetch = nodeFetch.default;

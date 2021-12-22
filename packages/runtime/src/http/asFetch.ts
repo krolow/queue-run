@@ -1,6 +1,7 @@
-import { Request, Response } from "node-fetch";
 import {
-  APIGatewayProxyEvent, APIGatewayProxyResponse, BackendLambdaRequest
+  APIGatewayProxyEvent,
+  APIGatewayProxyResponse,
+  BackendLambdaRequest,
 } from "./index";
 
 export async function asFetchRequest(
