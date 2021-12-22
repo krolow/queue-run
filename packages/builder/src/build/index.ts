@@ -4,9 +4,9 @@ import ora from "ora";
 import path from "path";
 import compileSourceFiles from "./compileSourceFiles";
 import createBuildDirectory from "./createBuildDirectory";
-import createZip from "./createZip";
 import getRuntime from "./getRuntime";
 import installDependencies from "./installDependencies";
+import zipLambda from "./zipLambda";
 
 // Short build: compile source files to target directory.
 //
@@ -47,7 +47,7 @@ export default async function buildProject({
     spinner.stop();
   }
 
-  const zip = full ? await createZip(buildDir) : undefined;
+  const zip = full ? await zipLambda(buildDir) : undefined;
   if (signal?.aborted) throw new Error();
 
   displayServices(services);
