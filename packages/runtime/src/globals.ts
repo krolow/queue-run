@@ -61,24 +61,26 @@ declare module "node-fetch" {
 }
 
 nodeFetch.Request.prototype.form = async function () {
-  const boundary = this.headers
-    .get("Content-Type")
-    ?.match(/;\s*boundary=([^;]+)/)?.[1];
-  if (!boundary) throw new Error("multipart/form-data: missing boundary");
-  const inputParts = multipart.parse(await this.buffer(), boundary);
-  const fields = inputParts.reduce((fields, part) => {
-    if (!part.name)
-      throw new Response("multipart/form-data: missing part name");
-    return {
-      ...fields,
-      [part.name]: {
-        data: part.data,
-        filename: part.filename,
-        contentType: part.type,
-      },
-    };
-  }, {});
-  return new RequestFormData(fields);
+  const contentType = this.headers.get("content-type");
+  const mimeType = contentType?.split(";")[0];
+  if (mimeType === "multipart/form-data") {
+    const boundary = contentType?.match(/;\s*boundary=([^;]+)/)?.[1];
+    if (!boundary) throw new Error("multipart/form-data: missing boundary");
+    const inputParts = multipart.parse(await this.buffer(), boundary);
+    const fields = inputParts.reduce((fields, part) => {
+      if (!part.name)
+        throw new Response("multipart/form-data: missing part name");
+      return {
+        ...fields,
+        [part.name]: {
+          data: part.data,
+          filename: part.filename,
+          contentType: part.type,
+        },
+      };
+    }, {});
+    return new RequestFormData(fields);
+  } else throw new Error("Unsupported media type");
 };
 
 declare global {
