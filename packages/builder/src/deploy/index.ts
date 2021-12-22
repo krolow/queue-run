@@ -47,10 +47,12 @@ type BuildConfig = {
 const qrPrefix = "qr-";
 
 export default async function deployProject({
+  buildDir,
   config,
   signal,
   sourceDir,
 }: {
+  buildDir: string;
   config: BuildConfig;
   signal?: AbortSignal;
   sourceDir: string;
@@ -104,6 +106,7 @@ export default async function deployProject({
   );
 
   const { lambdaRuntime, zip, ...services } = await buildProject({
+    buildDir,
     full: true,
     signal,
     sourceDir,
@@ -256,8 +259,6 @@ async function getBackendRouting(
   });
   const backend = backends?.[0];
   if (!backend) return null;
-
-  console.info({ backend });
 
   const project = backend.project?.S;
   invariant(project);

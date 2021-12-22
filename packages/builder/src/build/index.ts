@@ -1,7 +1,6 @@
 import Lambda from "@aws-sdk/client-lambda";
 import { displayServices, loadServices, Services } from "@queue-run/runtime";
 import ora from "ora";
-import path from "path";
 import compileSourceFiles from "./compileSourceFiles";
 import createBuildDirectory from "./createBuildDirectory";
 import getRuntime from "./getRuntime";
@@ -13,12 +12,12 @@ import zipLambda from "./zipLambda";
 // Full build: also install node modules, create and return a Zip.
 // May return undefined if build aborted by signal.
 export default async function buildProject({
-  buildDir = path.join(process.cwd(), "queue-run"),
+  buildDir,
   full,
   signal,
   sourceDir,
 }: {
-  buildDir?: string;
+  buildDir: string;
   full?: boolean;
   signal?: AbortSignal;
   sourceDir: string;

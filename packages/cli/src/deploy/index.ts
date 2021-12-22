@@ -22,6 +22,7 @@ command
   )
   .action(async (project, branch, { url }) => {
     await deployProject({
+      buildDir: ".build",
       sourceDir: process.cwd(),
       config: { branch, project, url },
     });

@@ -16,10 +16,9 @@ function build_layer() {
   cp dist/runtime.cjs.production.min.js .build/nodejs/index.js
 
   echo -e "\033[34m  Installing production dependencies …  \033[0m"
-  cp package.json .build/package.json
-  cd .build
+  cp package.json .build/nodejs/package.json
+  cd .build/nodejs
   yarn install --prod
-  mv node_modules nodejs/
   cd -
 }
 
