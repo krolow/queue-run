@@ -57,7 +57,6 @@ async function hasYarnLockFile(dirname: string) {
 }
 
 async function yarnInstall(dirname: string) {
-  await runCommand({ dirname, command: "yarn remove @queue-run/runtime" });
   await runCommand({
     dirname,
     command: "yarn install --production --ignore-optional --non-interactive",
@@ -65,7 +64,6 @@ async function yarnInstall(dirname: string) {
 }
 
 async function npmInstall(dirname: string) {
-  await runCommand({ dirname, command: "npm remove @queue-run/runtime" });
   await runCommand({
     dirname,
     command: "npm install --only=production --no-fund --no-optional --no-audit",
@@ -91,6 +89,11 @@ async function runCommand({
     timeout: ms("30s"),
   });
   await new Promise((resolve, reject) =>
-    install.on("exit", resolve).on("error", reject)
+    install
+      .on("exit", (code) => {
+        if (code === 0) resolve(undefined);
+        else reject(new Error(`${executable} exited with code ${code}`));
+      })
+      .on("error", reject)
   );
 }

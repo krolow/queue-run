@@ -15,9 +15,15 @@ program
   .description("Build the backend")
   .argument("[source]", "Source directory", "./")
   .option("-o, --output <output>", "Output directory", ".build")
-  .action(async (source: string, { output }: { output: string }) => {
-    await buildProject({ buildDir: output, sourceDir: source });
-  });
+  .option("--full", "Full build", false)
+  .action(
+    async (
+      source: string,
+      { output, full }: { output: string; full: boolean }
+    ) => {
+      await buildProject({ buildDir: output, sourceDir: source, full });
+    }
+  );
 
 program.showSuggestionAfterError();
 program.addHelpCommand();
