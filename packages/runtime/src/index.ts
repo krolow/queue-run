@@ -1,13 +1,17 @@
 import { SQS } from "@aws-sdk/client-sqs";
-import { asFetchRequest } from "./asFetch";
 import swapAWSEnvVars from "./environment";
 import "./globals";
-import handleSQSMessages, { SQSMessage } from "./handleSQSMessages";
-import httpRoute from "./httpRoute";
-import createPushMessage from "./pushMessage";
+import httpHandler, {
+  BackendLambdaRequest,
+  BackendLambdaResponse,
+} from "./http";
+import {
+  handleSQSMessages,
+  pushMessage as pushMessage,
+  SQSMessage,
+} from "./queues";
 export { default as loadModule } from "./loadModule";
 export { displayServices, loadServices, Services } from "./loadServices";
-export { createPushMessage };
 
 const { branch, projectId, region, ...clientConfig } =
   process.env.NODE_ENV === "production"
@@ -24,17 +28,18 @@ const sqs = new SQS({ ...clientConfig, region });
 export async function handler(
   event: LambdaEvent,
   context: LambdaContext
-): Promise<BackendLambdaResponse | SQSBatchResponse | undefined> {
+): Promise<BackendLambdaResponse | SQSBatchResponse> {
   const { getRemainingTimeInMillis } = context;
-  global.$queueRun = { pushMessage };
+  global.$queueRun = {
+    pushMessage: (args) => pushMessage({ ...args, sqs, slug }),
+  };
 
-  if ("url" in event) {
-    return await asFetchRequest(event, (request) => httpRoute(request));
-  } else if ("Records" in event) {
+  if ("url" in event) return await httpHandler(event);
+
+  if ("Records" in event) {
     const messages = event.Records.filter(
       (record) => record.eventSource === "aws:sqs"
     );
-    if (messages.length === 0) return;
 
     const sqs = new SQS({ ...clientConfig, region });
     return await handleSQSMessages({
@@ -43,9 +48,9 @@ export async function handler(
       sqs,
     });
   }
-}
 
-export const pushMessage = createPushMessage({ sqs, slug });
+  throw new Error("Unknown event type");
+}
 
 type LambdaEvent = { Records: Array<SQSMessage> } | BackendLambdaRequest;
 
@@ -64,19 +69,4 @@ type LambdaContext = {
 type SQSBatchResponse = {
   // https://docs.aws.amazon.com/lambda/latest/dg/with-ddb.html#services-ddb-batchfailurereporting
   batchItemFailures: Array<{ itemIdentifier: string }>;
-};
-
-type BackendLambdaRequest = {
-  body?: string;
-  headers: Record<string, string>;
-  method: string;
-  requestId?: string;
-  url: string;
-};
-
-type BackendLambdaResponse = {
-  body: string;
-  bodyEncoding: "text" | "base64";
-  headers: Record<string, string>;
-  statusCode: number;
 };

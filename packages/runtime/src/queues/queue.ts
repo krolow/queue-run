@@ -1,4 +1,4 @@
-import { pushMessage } from ".";
+import { pushMessage } from "..";
 
 interface Queue<Payload> {
   // The queue name

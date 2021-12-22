@@ -2,80 +2,68 @@ import { SendMessageCommandInput, SQS } from "@aws-sdk/client-sqs";
 import crypto from "crypto";
 import invariant from "tiny-invariant";
 import { URLSearchParams } from "url";
-import handleSQSMessages, { SQSMessage } from "./handleSQSMessages";
-import type { AuthenticatedUser } from "./middleware";
+import type { AuthenticatedUser } from "../middleware";
+import handleSQSMessages from "./handleSQSMessages";
+import type { SQSMessage } from "./index";
 
-export type PushMessageFunction = (params: {
+export default async function pushMessage({
+  body,
+  dedupeId,
+  groupId,
+  params,
+  queueName,
+  slug,
+  sqs,
+  user,
+}: {
   body: Buffer | string | object;
   dedupeId?: string;
   groupId?: string;
   params?: { [key: string]: string };
   queueName: string;
-  user?: AuthenticatedUser;
-}) => Promise<string>;
-
-export default function createPushMessage({
-  sqs,
-  slug,
-}: {
-  sqs: SQS;
   slug: string;
-}): PushMessageFunction {
-  return async function ({
-    body,
-    dedupeId,
-    groupId,
-    params,
-    queueName,
-    user,
-  }: {
-    body: Buffer | string | object;
-    dedupeId?: string;
-    groupId?: string;
-    params?: { [key: string]: string };
-    queueName: string;
-    user?: AuthenticatedUser;
-  }) {
-    const isDevServer = (await sqs.config.region()) === "localhost";
+  sqs: SQS;
+  user?: AuthenticatedUser;
+}): Promise<string> {
+  const isDevServer = (await sqs.config.region()) === "localhost";
 
-    const queueURL = isDevServer
-      ? `http://localhost/queue/${slug}__${queueName}`
-      : await getQueueURL({ queueName, slug, sqs });
+  const queueURL = isDevServer
+    ? `http://localhost/queue/${slug}__${queueName}`
+    : await getQueueURL({ queueName, slug, sqs });
 
-    const contentType = Buffer.isBuffer(body)
-      ? "application/octet-stream"
-      : typeof body === "string"
-      ? "text/plain"
-      : "application/json";
-    const messageBody = Buffer.isBuffer(body)
-      ? body.toString("base64")
-      : typeof body === "string"
-      ? body
-      : JSON.stringify(body);
+  const contentType = Buffer.isBuffer(body)
+    ? "application/octet-stream"
+    : typeof body === "string"
+    ? "text/plain"
+    : "application/json";
+  const messageBody = Buffer.isBuffer(body)
+    ? body.toString("base64")
+    : typeof body === "string"
+    ? body
+    : JSON.stringify(body);
 
-    const message: SendMessageCommandInput = {
-      QueueUrl: queueURL,
-      MessageBody: messageBody,
-      MessageAttributes: {
-        "Content-Type": { DataType: "String", StringValue: contentType },
-        params: {
-          DataType: "String",
-          StringValue: new URLSearchParams(params).toString(),
-        },
-        ...(user && { userId: { DataType: "String", StringValue: user.id } }),
+  const message: SendMessageCommandInput = {
+    QueueUrl: queueURL,
+    MessageBody: messageBody,
+    MessageAttributes: {
+      "Content-Type": { DataType: "String", StringValue: contentType },
+      params: {
+        DataType: "String",
+        StringValue: new URLSearchParams(params).toString(),
       },
-      MessageGroupId: groupId,
-      MessageDeduplicationId: dedupeId,
-    };
-
-    if (isDevServer) {
-      return await sendMessageInDev({ message, sqs });
-    } else {
-      const { MessageId: messageId } = await sqs.sendMessage(message);
-      invariant(messageId);
-      return messageId;
-    }
+      ...(user && { userId: { DataType: "String", StringValue: user.id } }),
+    },
+    MessageGroupId: groupId,
+    MessageDeduplicationId: dedupeId,
   };
+
+  if (isDevServer) {
+    return await sendMessageInDev({ message, sqs });
+  } else {
+    const { MessageId: messageId } = await sqs.sendMessage(message);
+    invariant(messageId);
+    return messageId;
+  }
 }
 
 async function sendMessageInDev({

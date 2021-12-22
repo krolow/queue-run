@@ -1,10 +1,10 @@
 import chalk from "chalk";
 import { AbortController } from "node-abort-controller";
 import { Request, Response } from "node-fetch";
-import { RequestHandler } from "./handlers";
+import { RequestHandler } from "../handlers";
+import { loadServices } from "../loadServices";
+import { Middleware } from "../middleware";
 import loadRoute from "./loadRoute";
-import { loadServices } from "./loadServices";
-import { Middleware } from "./middleware";
 
 export default async function httpRoute(request: Request): Promise<Response> {
   try {

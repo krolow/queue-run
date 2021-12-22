@@ -2,9 +2,9 @@ import { Request, Response } from "node-fetch";
 import multipart from "parse-multipart-data";
 import invariant from "tiny-invariant";
 import { URLSearchParams } from "url";
-import "./globals";
-import { RequestHandler } from "./handlers";
-import { Route } from "./loadServices";
+import "../globals";
+import { RequestHandler } from "../handlers";
+import { Route } from "../loadServices";
 
 export default async function queueingHandler(
   route: Route,

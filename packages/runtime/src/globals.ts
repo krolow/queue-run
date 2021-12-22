@@ -2,7 +2,7 @@
 import * as http from "http";
 import * as https from "https";
 import * as nodeFetch from "node-fetch";
-import type { PushMessageFunction } from "./pushMessage";
+import type { pushMessage } from "./queues";
 
 const httpAgent = new http.Agent();
 const httpsAgent = new https.Agent();
@@ -14,7 +14,9 @@ fetchWithAgent.isRedirect = nodeFetch.default.isRedirect;
 
 declare global {
   var $queueRun: {
-    pushMessage: PushMessageFunction;
+    pushMessage: (
+      args: Omit<Parameters<typeof pushMessage>[0], "sqs" | "slug">
+    ) => Promise<string>;
   };
   var fetch: typeof nodeFetch.default;
   var Response: typeof nodeFetch.Response;
