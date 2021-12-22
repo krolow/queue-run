@@ -2,18 +2,18 @@ import { Response } from "node-fetch";
 import { URL } from "url";
 import { RequestHandler, RouteConfig } from "../handlers";
 import loadModule from "../loadModule";
-import { Route } from "../loadServices";
 import { Middleware } from "../middleware";
+import { HTTPRoute } from "../Route";
 import queuingHandler from "./queueingHandler";
 
-export default async function loadRoute(
+export default async function findRoute(
   url: string,
-  routes: Map<string, Route>
+  routes: Map<string, HTTPRoute>
 ): Promise<{
   handler: RequestHandler;
   middleware: Middleware;
   params: { [key: string]: string };
-  route: Route;
+  route: HTTPRoute;
 }> {
   const pathname = new URL(url).pathname.slice(1);
   const matches = Array.from(routes.values())

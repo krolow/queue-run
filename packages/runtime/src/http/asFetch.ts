@@ -54,7 +54,7 @@ function toFetchRequest(event: BackendLambdaRequest): Request {
   const body =
     hasBody && event.body ? Buffer.from(event.body, "base64") : undefined;
   const headers = new Headers(event.headers);
-  const method = event.method;
+  const method = event.method.toUpperCase();
   return new Request(event.url, {
     body,
     headers,

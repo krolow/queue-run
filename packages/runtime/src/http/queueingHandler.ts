@@ -4,10 +4,10 @@ import invariant from "tiny-invariant";
 import { URLSearchParams } from "url";
 import "../globals";
 import { RequestHandler } from "../handlers";
-import { Route } from "../loadServices";
+import { HTTPRoute } from "../Route";
 
 export default async function queueingHandler(
-  route: Route,
+  route: HTTPRoute,
   request: Request,
   { params, user }: Parameters<RequestHandler>[1]
 ) {

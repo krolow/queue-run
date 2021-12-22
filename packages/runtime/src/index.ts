@@ -1,7 +1,7 @@
 import { SQS } from "@aws-sdk/client-sqs";
 import swapAWSEnvVars from "./environment";
 import "./globals";
-import httpHandler, {
+import handleHTTPRequest, {
   BackendLambdaRequest,
   BackendLambdaResponse,
 } from "./http";
@@ -34,7 +34,7 @@ export async function handler(
     pushMessage: (args) => pushMessage({ ...args, sqs, slug }),
   };
 
-  if ("url" in event) return await httpHandler(event);
+  if ("url" in event) return await handleHTTPRequest(event);
 
   if ("Records" in event) {
     const messages = event.Records.filter(

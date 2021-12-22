@@ -1,10 +1,10 @@
 import { asFetchRequest } from "./asFetch";
-import httpRoute from "./httpRoute";
+import handleHTTPRequest from "./handleHTTPRequest";
 
 export default async function (
   event: BackendLambdaRequest
 ): Promise<BackendLambdaResponse> {
-  return await asFetchRequest(event, (request) => httpRoute(request));
+  return await asFetchRequest(event, (request) => handleHTTPRequest(request));
 }
 
 export type BackendLambdaRequest = {

@@ -14,10 +14,18 @@ export type RequestHandler = (
 ) => Promise<Response | JSONValue> | Response | JSONValue;
 
 export type RouteConfig = {
-  // Only accepts requests with specific content type
+  // Only accepts requests with specific content type(s).  Default to '*/*' (any content types).
   accepts?: string[] | string;
-  // Only accepts requests with specific HTTP method
+
+  // True if this route supports CORS request (default: true).
+  cors?: boolean;
+
+  // Only accepts requests with specific HTTP method(s).  Default to '*' (all
+  // methods).
+  //
+  // If you want to handle OPTIONS method, you need to set `cors` to false.
   methods?: HTTPMethod | HTTPMethod[];
+
   // Timeout for processing message in seconds. Defaults to 30.
   timeout?: number;
 };
@@ -66,6 +74,8 @@ export type QueueHandler = (
 ) => Promise<void> | void;
 
 export type QueueConfig = {
+  // True if this route supports CORS request (default: true).
+  cors?: boolean;
   // Timeout for processing message in seconds. Defaults to 30.
   timeout?: number;
   // Expose this queue as HTTP POST request on this URL path (eg /project/:projectId)

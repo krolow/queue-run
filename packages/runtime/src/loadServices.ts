@@ -1,31 +1,24 @@
 import chalk from "chalk";
 import glob from "fast-glob";
 import path from "path";
-import { Key, match, MatchFunction, pathToRegexp } from "path-to-regexp";
+import { Key, match, pathToRegexp } from "path-to-regexp";
 import invariant from "tiny-invariant";
 import { QueueConfig, QueueHandler, RouteConfig } from "./handlers";
 import loadModule from "./loadModule";
+import { HTTPRoute } from "./Route";
 
 export type Services = {
   queues: Map<string, Queue>;
-  routes: Map<string, Route>;
+  routes: Map<string, HTTPRoute>;
 };
 
 export type Queue = {
-  checkContentType: (type: string) => boolean;
+  accepts: Set<string>;
+  cors: boolean;
   filename: string;
   isFifo: boolean;
   path: string | null;
   queueName: string;
-  timeout: number;
-};
-
-export type Route = {
-  checkContentType: (type: string) => boolean;
-  checkMethod: (method: string) => boolean;
-  filename: string;
-  match: MatchFunction<{ [key: string]: string }>;
-  queue?: Queue;
   timeout: number;
 };
 
@@ -77,7 +70,7 @@ export function displayServices({ routes, queues }: Services) {
 async function loadRoutes(
   queues: Services["queues"]
 ): Promise<Services["routes"]> {
-  const routes = new Map<string, Route>();
+  const routes = new Map<string, HTTPRoute>();
   const dupes = new Set<string>();
 
   const filenames = await glob("api/**/[!_]*.{js,ts}");
@@ -96,8 +89,9 @@ async function loadRoutes(
       dupes.add(signature);
 
       routes.set(path, {
-        checkContentType: checkContentType(module.config),
-        checkMethod: checkMethod(module.config),
+        accepts: getContentTypes(module.config),
+        cors: module.config.cors ?? true,
+        methods: getMethods(module.config),
         filename,
         match: match(path),
         timeout: getTimeout(module.config, { max: 30, default: 30 }),
@@ -122,8 +116,9 @@ async function loadRoutes(
       dupes.add(signature);
 
       routes.set(path, {
-        checkContentType: queue.checkContentType,
-        checkMethod: (method: string) => method.toUpperCase() === "POST",
+        accepts: queue.accepts,
+        cors: queue.cors,
+        methods: new Set(["POST"]),
         filename: queue.filename,
         queue,
         match: match(path),
@@ -201,42 +196,33 @@ function isValidPathPart(part: string): boolean {
   return /^([a-z0-9_-]+)|(:[a-z0-9_-]+\*?)$/i.test(part);
 }
 
-function checkMethod(config: RouteConfig): (method: string) => boolean {
-  if (!config.methods) return () => true;
+function getMethods(config: RouteConfig): Set<string> {
   const methods = new Set(
-    (Array.isArray(config.methods) ? config.methods : [config.methods]).map(
-      (method) => method.toUpperCase()
-    )
+    (Array.isArray(config.methods)
+      ? config.methods
+      : [config.methods ?? "*"]
+    ).map((method) => method.toUpperCase())
   );
-  if (
-    !Array.from(Object.keys(methods)).every((method) => /^[A-Z]+$/.test(method))
-  )
+  if (!Array.from(methods).every((method) => /^[A-Z]+|\*$/.test(method)))
     throw new Error(
       `config.methods list acceptable HTTP methods, like "GET" or ["GET", "POST"]`
     );
-  return (method: string) => methods.has(method.toUpperCase());
+  return methods;
 }
 
-function checkContentType(config: {
-  accepts?: string[] | string;
-}): (type: string) => boolean {
-  if (!config.accepts) return () => true;
-
-  const accepts = Array.isArray(config.accepts)
-    ? config.accepts
-    : [config.accepts];
-  if (!accepts.every((accepts) => /^[a-z]+\/([a-z]+|\*)$/i.test(accepts)))
+function getContentTypes(config: { accepts?: string[] | string }): Set<string> {
+  const accepts = new Set(
+    Array.isArray(config.accepts) ? config.accepts : [config.accepts ?? "*/*"]
+  );
+  if (
+    !Array.from(accepts).every((accepts) =>
+      /^([a-z]+|\*)\/([a-z]+|\*)$/i.test(accepts)
+    )
+  )
     throw new Error(
       `config.accepts lists acceptable MIME types, like "application/json" or "text/*"`
     );
-
-  const exact = new Set(accepts.filter((accepts) => !accepts.endsWith("/*")));
-  const primary = new Set(
-    (Array.isArray(config.accepts) ? config.accepts : [config.accepts])
-      .filter((type) => type.endsWith("/*"))
-      .map((accepts) => accepts.split("/")[0])
-  );
-  return (type: string) => exact.has(type) || primary.has(type.split("/")[0]);
+  return accepts;
 }
 
 async function loadQueues(): Promise<Services["queues"]> {
@@ -249,8 +235,17 @@ async function loadQueues(): Promise<Services["queues"]> {
 
       const queueName = queueNameFromFilename(filename);
       const isFifo = queueName.endsWith(".fifo");
+      const path = getQueuePath(module.config, isFifo);
+      if (module.config.accepts && !path)
+        throw new Error(
+          "config.accepts only applicable together with config.url"
+        );
+      if (module.config.cors !== undefined && !path)
+        throw new Error("config.cors only applicable together with config.url");
+
       queues.set(queueName, {
-        checkContentType: checkContentType(module.config),
+        accepts: getContentTypes(module.config),
+        cors: module.config.cors ?? true,
         filename,
         isFifo,
         path: getQueuePath(module.config, isFifo),

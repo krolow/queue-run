@@ -1,27 +1,31 @@
 import chalk from "chalk";
 import { AbortController } from "node-abort-controller";
-import { Request, Response } from "node-fetch";
+import { Headers, Request, Response } from "node-fetch";
 import { RequestHandler } from "../handlers";
 import { loadServices } from "../loadServices";
 import { Middleware } from "../middleware";
-import loadRoute from "./loadRoute";
+import { HTTPRoute } from "./../Route";
+import findRoute from "./findRoute";
 
-export default async function httpRoute(request: Request): Promise<Response> {
+export default async function handleHTTPRequest(
+  request: Request
+): Promise<Response> {
   try {
     const { routes } = await loadServices(process.cwd());
-    const { handler, middleware, params, route } = await loadRoute(
+    const { handler, middleware, params, route } = await findRoute(
       request.url,
       routes
     );
 
-    const { checkContentType, checkMethod } = route;
-    if (!checkMethod(request.method))
-      throw new Response("Method not allowed", { status: 405 });
-    if (!checkContentType(request.headers.get("Content-Type") ?? ""))
-      throw new Response("Unsupported media type", { status: 406 });
+    const cors = route.cors ? corsHeaders(route) : undefined;
+    if (cors && request.method === "OPTIONS")
+      throw new Response(undefined, { headers: cors, status: 204 });
+
+    checkRequest(request, route);
 
     return await handleRequest({
       ...middleware,
+      cors,
       filename: route.filename,
       handler,
       params,
@@ -31,7 +35,7 @@ export default async function httpRoute(request: Request): Promise<Response> {
   } catch (error) {
     if (error instanceof Response) {
       return new Response(error.body, {
-        ...error,
+        headers: error.headers,
         status: error.status ?? 500,
       });
     } else {
@@ -41,7 +45,27 @@ export default async function httpRoute(request: Request): Promise<Response> {
   }
 }
 
+function checkRequest(request: Request, route: HTTPRoute) {
+  if (
+    route.methods &&
+    !(route.methods.has("*") || route.methods.has(request.method))
+  )
+    throw new Response("Method not allowed", { status: 405 });
+
+  if (route.accepts) {
+    const mimeType = request.headers.get("content-type")?.split(";")[0];
+    const accepted =
+      mimeType &&
+      (route.accepts.has("*/*") ||
+        route.accepts.has(mimeType) ||
+        route.accepts.has(`${mimeType.split("/")[0]}/*`));
+    if (!accepted)
+      throw new Response("Unsupported Media Type", { status: 415 });
+  }
+}
+
 async function handleRequest({
+  cors,
   filename,
   handler,
   params,
@@ -49,6 +73,7 @@ async function handleRequest({
   timeout,
   ...middleware
 }: {
+  cors?: Headers;
   filename: string;
   handler: RequestHandler;
   params: { [key: string]: string };
@@ -61,6 +86,7 @@ async function handleRequest({
   try {
     const response = await Promise.race([
       runWithMiddleware({
+        cors,
         handler,
         request,
         filename,
@@ -81,6 +107,7 @@ async function handleRequest({
 
 async function runWithMiddleware({
   authenticate,
+  cors,
   filename,
   handler,
   metadata,
@@ -89,6 +116,7 @@ async function runWithMiddleware({
   onResponse,
   request,
 }: {
+  cors?: Headers;
   filename: string;
   handler: RequestHandler;
   metadata: Parameters<RequestHandler>[1];
@@ -107,7 +135,7 @@ async function runWithMiddleware({
     }
 
     const result = await handler(request, { ...metadata, user });
-    const response = resultToResponse(result, filename);
+    const response = resultToResponse({ cors, filename, result });
 
     if (onResponse) await onResponse(request, response);
     return response;
@@ -125,21 +153,36 @@ async function runWithMiddleware({
   }
 }
 
-function resultToResponse(
-  result: ReturnType<RequestHandler> | undefined,
-  filename: string
-): Response {
+function corsHeaders({ methods }: { methods?: Set<string> }): Headers {
+  return new Headers({
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": methods
+      ? Array.from(methods).join(", ")
+      : "*",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  });
+}
+
+function resultToResponse({
+  cors,
+  filename,
+  result,
+}: {
+  cors?: Headers;
+  filename: string;
+  result: ReturnType<RequestHandler> | undefined;
+}): Response {
   if (result instanceof Response)
     return new Response(result.body, {
-      ...result,
+      headers: { ...result.headers, ...cors },
       status: result.status ?? 200,
     });
   if (result)
     return new Response(JSON.stringify(result), {
       status: 200,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...cors },
     });
 
   console.error('No response returned from module "%s"', filename);
-  return new Response(undefined, { status: 204 });
+  return new Response(undefined, { headers: cors, status: 204 });
 }
