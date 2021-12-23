@@ -21,7 +21,8 @@ export async function handler(
   const sqs = new SQS({ ...clientConfig, region });
   const newLocalStorage = bindNewLocalStorage({ sqs });
 
-  if ("url" in event) return await handleHTTPRequest(event, newLocalStorage);
+  if ("url" in event || "requestContext" in event)
+    return await handleHTTPRequest(event, newLocalStorage);
 
   if ("Records" in event) {
     const { getRemainingTimeInMillis } = context;
