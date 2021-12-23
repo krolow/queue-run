@@ -62,11 +62,12 @@ function checkRequest(request: Request, route: HTTPRoute) {
     throw new Response("Method not allowed", { status: 405 });
 
   if (route.accepts) {
+    if (route.accepts.has("*/*")) return;
+
     const mimeType = request.headers.get("content-type")?.split(";")[0];
     const accepted =
       mimeType &&
-      (route.accepts.has("*/*") ||
-        route.accepts.has(mimeType) ||
+      (route.accepts.has(mimeType) ||
         route.accepts.has(`${mimeType.split("/")[0]}/*`));
     if (!accepted)
       throw new Response("Unsupported Media Type", { status: 415 });
