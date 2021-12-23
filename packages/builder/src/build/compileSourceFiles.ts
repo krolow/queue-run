@@ -78,5 +78,6 @@ async function compileSourceFile({
     swcrc: false,
   });
   await fs.writeFile(dest.replace(/\.ts$/, ".js"), code, "utf-8");
-  if (map) await fs.writeFile(dest.replace(/\.ts$/, ".js.map"), map, "utf-8");
+  if (map)
+    await fs.writeFile(dest.replace(/\.(js|ts)$/, ".js.map"), map, "utf-8");
 }
