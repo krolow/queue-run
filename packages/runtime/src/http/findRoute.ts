@@ -14,7 +14,7 @@ export default async function findRoute(
   params: { [key: string]: string };
   route: HTTPRoute;
 }> {
-  const pathname = new URL(url).pathname.slice(1);
+  const pathname = new URL(url).pathname;
   const matches = Array.from(routes.values())
     .map((route) => ({
       route,

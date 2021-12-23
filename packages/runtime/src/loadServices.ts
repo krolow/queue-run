@@ -70,7 +70,7 @@ async function loadRoutes(
       const module = await loadModule<() => void, RouteConfig>(filename);
       invariant(module, "Module not found");
 
-      const path = pathFromFilename(filename.replace(/^api\//, ""));
+      const path = pathFromFilename(filename.replace(/^api\//, "/"));
 
       const signature = path.replace(/:(.*?)(\/|$)/g, ":$2");
       if (dupes.has(signature))
@@ -97,7 +97,7 @@ async function loadRoutes(
 
     try {
       const path = renamePathProperties(
-        queue.path.replace(/^\/?(.*?)\/?$/g, "$1")
+        queue.path.replace(/^\/?(.*?)\/?$/g, "/$1")
       );
       verifyPathParameters(path);
 
@@ -153,7 +153,7 @@ function verifyPathParameters(path: string) {
       "The catch-all parameter can only come at the end of the path"
     );
 
-  if (!path.split("/").every(isValidPathPart))
+  if (!path.split("/").filter(Boolean).every(isValidPathPart))
     throw new Error(
       "Path parts may only be alphanumeric, dash, underscore, or dot"
     );
