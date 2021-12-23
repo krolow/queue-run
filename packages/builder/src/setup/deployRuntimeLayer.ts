@@ -42,7 +42,7 @@ async function installFiles(buildDir: string) {
   );
   spinner.succeed("Runtime copied");
 
-  const install = spawn("npm", ["install", "--production"], {
+  const install = spawn("npm", ["install", "--only=production"], {
     cwd: nodeDir,
     stdio: "inherit",
   });
@@ -70,6 +70,7 @@ async function createArchive(buildDir: string): Promise<Buffer> {
     })
   );
   const buffer = await zip.generateAsync({ type: "nodebuffer" });
+  await fs.writeFile(path.join(buildDir, "layer.zip"), buffer);
   spinner.succeed(`Archive created (${filesize(buffer.byteLength)})`);
   return buffer;
 }

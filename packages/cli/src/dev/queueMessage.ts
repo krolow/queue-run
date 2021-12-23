@@ -1,11 +1,9 @@
 import { moduleLoader } from "@queue-run/builder";
-import { development, loadModule } from "@queue-run/runtime";
+import { handler, loadModule } from "@queue-run/runtime";
 import chalk from "chalk";
 import { readFile } from "fs/promises";
 import ora from "ora";
-import { getLocalStorage } from "queue-run";
 import readline from "readline";
-import invariant from "tiny-invariant";
 import envVariables from "./envVariables";
 
 export default async function queueMessage(
@@ -26,12 +24,40 @@ export default async function queueMessage(
     spinner.stop();
     throw error;
   }
-  await development(async () => {
-    const body = maybeJSON(await readMessageBody(message));
-    const store = getLocalStorage().getStore();
-    invariant(store, "Local storage not found");
-    await store.pushMessage({ body, groupId: group, params: {}, queueName });
-  });
+
+  handler(
+    {
+      Records: [
+        {
+          messageId: "1",
+          receiptHandle: "1",
+          body: await readMessageBody(message),
+          attributes: {
+            ApproximateReceiveCount: "1",
+            SentTimestamp: String(Date.now()),
+            SenderId: "1",
+            ApproximateFirstReceiveTimestamp: "1",
+            MessageGroupId: group,
+          },
+          messageAttributes: {},
+          md5OfBody: "1",
+          eventSource: "aws:sqs",
+          eventSourceARN: `arn:aws:sqs:localhost:local__${queueName}`,
+          awsRegion: "localhost",
+        },
+      ],
+    },
+    {
+      functionName: "local",
+      functionVersion: "1",
+      invokedFunctionArn: "arn:aws:lambda:localhost:local",
+      memoryLimitInMB: "128MB",
+      awsRequestId: "1",
+      logGroupName: "local",
+      getRemainingTimeInMillis: () => 30 * 1000,
+      callbackWaitsForEmptyEventLoop: true,
+    }
+  );
 }
 
 async function readMessageBody(message: string): Promise<string> {
@@ -55,12 +81,4 @@ async function readMessageBody(message: string): Promise<string> {
   else if (message.startsWith("@"))
     return await readFile(message.slice(1), "utf-8");
   else return message;
-}
-
-function maybeJSON(body: string) {
-  try {
-    return JSON.parse(body);
-  } catch {
-    return body;
-  }
 }

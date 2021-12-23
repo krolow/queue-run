@@ -1,5 +1,5 @@
 import { SQS } from "@aws-sdk/client-sqs";
-import { getLocalStorage } from "queue-run";
+import { LocalStorage } from "queue-run";
 import swapAWSEnvVars from "./environment";
 import handleHTTPRequest, {
   APIGatewayProxyResponse,
@@ -17,45 +17,56 @@ const { slug, region, ...clientConfig } =
     ? swapAWSEnvVars()
     : { slug: "localhost", region: "localhost" };
 
+// Entry point for AWS Lambda
 export async function handler(
   event: LambdaEvent,
   context: LambdaContext
 ): Promise<APIGatewayProxyResponse | SQSBatchResponse> {
   const sqs = new SQS({ ...clientConfig, region });
-  return await getLocalStorage().run(
-    {
-      pushMessage: (args) => pushMessage({ ...args, sqs, slug }),
-    },
-    async () => {
-      if ("url" in event) return await handleHTTPRequest(event);
+  const newLocalStorage = bindNewLocalStorage({ sqs });
 
-      if ("Records" in event) {
-        const { getRemainingTimeInMillis } = context;
-        const messages = event.Records.filter(
-          (record) => record.eventSource === "aws:sqs"
-        );
+  if ("url" in event) return await handleHTTPRequest(event, newLocalStorage);
 
-        const sqs = new SQS({ ...clientConfig, region });
-        return await handleSQSMessages({
-          getRemainingTimeInMillis,
-          messages,
-          sqs,
-        });
-      }
+  if ("Records" in event) {
+    const { getRemainingTimeInMillis } = context;
+    const messages = event.Records.filter(
+      (record) => record.eventSource === "aws:sqs"
+    );
 
-      throw new Error("Unknown event type");
-    }
-  );
+    const sqs = new SQS({ ...clientConfig, region });
+    return await handleSQSMessages({
+      getRemainingTimeInMillis,
+      messages,
+      newLocalStorage,
+      sqs,
+    });
+  }
+
+  throw new Error("Unknown event type");
 }
 
-export async function development(cb: () => Promise<void>) {
-  const sqs = new SQS({ region: "localhost" });
-  return await getLocalStorage().run(
-    {
-      pushMessage: (args) => pushMessage({ ...args, sqs, slug }),
-    },
-    cb
-  );
+function bindNewLocalStorage({ sqs }: { sqs: SQS }) {
+  return function (): LocalStorage {
+    let user: { id: string } | null;
+    return {
+      pushMessage: (args) =>
+        pushMessage({
+          ...args,
+          sqs,
+          slug,
+          user: args.user === undefined ? user : args.user,
+        }),
+
+      sendWebSocketMessage() {
+        throw new Error("Not implemented");
+      },
+
+      setUser(newUser?: { id: string }) {
+        if (user !== undefined) throw new Error("User already set");
+        user = newUser ?? null;
+      },
+    };
+  };
 }
 
 type LambdaEvent = { Records: Array<SQSMessage> } | BackendLambdaRequest;
@@ -63,7 +74,6 @@ type LambdaEvent = { Records: Array<SQSMessage> } | BackendLambdaRequest;
 type LambdaContext = {
   functionName: string;
   functionVersion: string;
-  // The Amazon Resource Name (ARN) that's used to invoke the function. Indicates if the invoker specified a version number or alias.
   invokedFunctionArn: string;
   memoryLimitInMB: string;
   awsRequestId: string;

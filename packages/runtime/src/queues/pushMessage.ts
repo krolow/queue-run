@@ -3,7 +3,7 @@ import crypto from "crypto";
 import type { AuthenticatedUser } from "queue-run";
 import invariant from "tiny-invariant";
 import { URLSearchParams } from "url";
-import handleSQSMessages from "./handleSQSMessages";
+import { handleOneSQSMessage } from "./handleSQSMessages";
 import type { SQSMessage } from "./index";
 
 export default async function pushMessage({
@@ -23,7 +23,7 @@ export default async function pushMessage({
   queueName: string;
   slug: string;
   sqs: SQS;
-  user?: AuthenticatedUser;
+  user?: AuthenticatedUser | null;
 }): Promise<string> {
   const isDevServer = (await sqs.config.region()) === "localhost";
 
@@ -67,55 +67,51 @@ export default async function pushMessage({
 }
 
 async function sendMessageInDev({
-  message,
+  message: sqsMessage,
   sqs,
 }: {
   message: SendMessageCommandInput;
   sqs: SQS;
 }) {
-  invariant(message.MessageBody);
-  invariant(message.QueueUrl);
-  invariant(message.MessageAttributes);
+  invariant(sqsMessage.MessageBody);
+  invariant(sqsMessage.QueueUrl);
+  invariant(sqsMessage.MessageAttributes);
 
-  const queueName = message.QueueUrl.split("/").pop();
+  const queueName = sqsMessage.QueueUrl.split("/").pop();
   const messageId = crypto.randomBytes(8).toString("hex");
   const timestamp = Date.now().toString();
-  const messages: SQSMessage[] = [
-    {
-      messageId,
-      body: message.MessageBody,
-      attributes: {
-        MessageGroupId: message.MessageGroupId,
-        MessageDeduplicationId: message.MessageDeduplicationId,
-        ApproximateFirstReceiveTimestamp: timestamp,
-        ApproximateReceiveCount: "1",
-        SentTimestamp: timestamp,
-        SequenceNumber: "1",
-        SenderId: "sender",
-      },
-      messageAttributes: Object.fromEntries(
-        Object.entries(message.MessageAttributes).map(([key, value]) => [
-          key,
-          { stringValue: value.StringValue! },
-        ])
-      ),
-      receiptHandle: crypto.randomBytes(8).toString("hex"),
-      eventSourceARN: `arn:aws:sqs:localhost:12345:${queueName}`,
-      awsRegion: "localhost",
-      eventSource: "aws:sqs",
-      md5OfBody: crypto
-        .createHash("md5")
-        .update(message.MessageBody)
-        .digest("hex"),
+  const message: SQSMessage = {
+    messageId,
+    body: sqsMessage.MessageBody,
+    attributes: {
+      MessageGroupId: sqsMessage.MessageGroupId,
+      MessageDeduplicationId: sqsMessage.MessageDeduplicationId,
+      ApproximateFirstReceiveTimestamp: timestamp,
+      ApproximateReceiveCount: "1",
+      SentTimestamp: timestamp,
+      SequenceNumber: "1",
+      SenderId: "sender",
     },
-  ];
+    messageAttributes: Object.fromEntries(
+      Object.entries(sqsMessage.MessageAttributes).map(([key, value]) => [
+        key,
+        { stringValue: value.StringValue! },
+      ])
+    ),
+    receiptHandle: crypto.randomBytes(8).toString("hex"),
+    eventSourceARN: `arn:aws:sqs:localhost:12345:${queueName}`,
+    awsRegion: "localhost",
+    eventSource: "aws:sqs",
+    md5OfBody: crypto
+      .createHash("md5")
+      .update(sqsMessage.MessageBody)
+      .digest("hex"),
+  };
 
   const endTime = Date.now() + 30 * 1000;
-  const getRemainingTimeInMillis = () => Math.max(0, endTime - Date.now());
+  const remainingTime = Math.max(0, endTime - Date.now());
 
-  setTimeout(() =>
-    handleSQSMessages({ getRemainingTimeInMillis, sqs, messages })
-  );
+  setTimeout(() => handleOneSQSMessage({ message, sqs, remainingTime }));
   return messageId;
 }
 

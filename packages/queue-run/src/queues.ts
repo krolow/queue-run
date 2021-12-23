@@ -1,4 +1,4 @@
-import getLocalStorage from "./localStorage";
+import { getLocalStorage } from "./localStorage";
 
 export class Queue<Payload> {
   private _group?: string;

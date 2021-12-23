@@ -1,10 +1,14 @@
+import type { LocalStorage } from "queue-run";
 import { asFetchRequest } from "./asFetch";
 import handleHTTPRequest from "./handleHTTPRequest";
 
 export default async function (
-  event: BackendLambdaRequest | APIGatewayProxyEvent
+  event: BackendLambdaRequest | APIGatewayProxyEvent,
+  newLocalStorage: () => LocalStorage
 ): Promise<APIGatewayProxyResponse> {
-  return await asFetchRequest(event, (request) => handleHTTPRequest(request));
+  return await asFetchRequest(event, (request) =>
+    handleHTTPRequest({ newLocalStorage, request })
+  );
 }
 
 // https://docs.aws.amazon.com/lambda/latest/dg/services-apigateway.html#apigateway-example-event

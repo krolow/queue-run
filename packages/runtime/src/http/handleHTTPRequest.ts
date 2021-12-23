@@ -1,14 +1,19 @@
 import chalk from "chalk";
 import { AbortController } from "node-abort-controller";
-import type { RequestHandler } from "queue-run";
+import { getLocalStorage, LocalStorage, RequestHandler } from "queue-run";
 import { Middleware } from "queue-run/src/middleware";
 import { loadServices } from "../loadServices";
+import type { NewLocalStorage } from "./../handler";
 import findRoute from "./findRoute";
 import { HTTPRoute } from "./HTTPRoute";
 
-export default async function handleHTTPRequest(
-  request: Request
-): Promise<Response> {
+export default async function handleHTTPRequest({
+  request,
+  newLocalStorage,
+}: {
+  request: Request;
+  newLocalStorage: NewLocalStorage;
+}): Promise<Response> {
   try {
     const { routes } = await loadServices(process.cwd());
     const { handler, middleware, params, route } = await findRoute(
@@ -29,6 +34,7 @@ export default async function handleHTTPRequest(
       handler,
       params,
       request,
+      newLocalStorage,
       timeout: route.timeout,
     });
   } catch (error) {
@@ -67,6 +73,7 @@ async function handleRequest({
   cors,
   filename,
   handler,
+  newLocalStorage,
   params,
   request,
   timeout,
@@ -75,6 +82,7 @@ async function handleRequest({
   cors?: Headers;
   filename: string;
   handler: RequestHandler;
+  newLocalStorage: () => LocalStorage;
   params: { [key: string]: string };
   request: Request;
   timeout: number;
@@ -84,14 +92,16 @@ async function handleRequest({
 
   try {
     const response = await Promise.race([
-      runWithMiddleware({
-        cors,
-        handler,
-        request,
-        filename,
-        metadata: { params, signal: controller.signal },
-        ...middleware,
-      }),
+      getLocalStorage().run(newLocalStorage(), async () =>
+        runWithMiddleware({
+          cors,
+          handler,
+          request,
+          filename,
+          metadata: { params, signal: controller.signal },
+          ...middleware,
+        })
+      ),
       new Promise<undefined>((resolve) =>
         controller.signal.addEventListener("abort", () => resolve(undefined))
       ),
@@ -132,6 +142,7 @@ async function runWithMiddleware({
       );
       throw new Response("Forbidden", { status: 403 });
     }
+    getLocalStorage().getStore()?.setUser(user);
 
     const result = await handler(request, { ...metadata, user });
     const response = resultToResponse({ cors, filename, result });

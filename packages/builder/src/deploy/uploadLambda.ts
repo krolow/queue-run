@@ -1,6 +1,6 @@
 import { FunctionConfiguration, Lambda, Runtime } from "@aws-sdk/client-lambda";
 import invariant from "tiny-invariant";
-import { layerName } from "../layer";
+import { layerName } from "../setup/deployRuntimeLayer";
 import { deleteLambdaRole, getLambdaRole } from "./lambdaRole";
 
 export const handler = "/opt/nodejs/index.handler";

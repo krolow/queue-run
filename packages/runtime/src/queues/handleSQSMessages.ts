@@ -1,8 +1,15 @@
 import { SQS } from "@aws-sdk/client-sqs";
 import chalk from "chalk";
 import { AbortController } from "node-abort-controller";
-import type { JSONValue, QueueConfig, QueueHandler } from "queue-run";
+import {
+  getLocalStorage,
+  JSONValue,
+  LocalStorage,
+  QueueConfig,
+  QueueHandler,
+} from "queue-run";
 import { URLSearchParams } from "url";
+import type { NewLocalStorage } from "../handler";
 import loadModule from "../loadModule";
 import type { SQSMessage } from "./index";
 
@@ -18,21 +25,25 @@ export type SQSBatchResponse = {
 export default async function handleSQSMessages({
   getRemainingTimeInMillis,
   messages,
+  newLocalStorage,
   sqs,
 }: {
   getRemainingTimeInMillis: () => number;
   messages: SQSMessage[];
+  newLocalStorage: () => LocalStorage;
   sqs: SQS;
 }): Promise<SQSBatchResponse> {
   return isFifoQueue(messages[0])
     ? await handleFifoMessages({
         getRemainingTimeInMillis,
         messages,
+        newLocalStorage,
         sqs,
       })
     : await handleStandardMessages({
         getRemainingTimeInMillis,
         messages,
+        newLocalStorage,
         sqs,
       });
 }
@@ -47,22 +58,22 @@ function isFifoQueue(message: SQSMessage): boolean {
 async function handleStandardMessages({
   getRemainingTimeInMillis,
   messages,
+  newLocalStorage,
   sqs,
 }: {
   getRemainingTimeInMillis: () => number;
   messages: SQSMessage[];
+  newLocalStorage: () => LocalStorage;
   sqs: SQS;
 }) {
+  const remainingTime = getRemainingTimeInMillis();
   const failedMessageIds = await Promise.all(
-    messages.map(async (message) =>
-      (await handleOneMessage({
-        message,
-        sqs,
-        timeout: getRemainingTimeInMillis(),
-      }))
-        ? null
-        : message.messageId
-    )
+    messages.map(async (message) => {
+      const successful = await getLocalStorage().run(newLocalStorage(), () =>
+        handleOneSQSMessage({ message, sqs, remainingTime })
+      );
+      return successful ? null : message.messageId;
+    })
   );
   return {
     batchItemFailures: failedMessageIds
@@ -77,22 +88,24 @@ async function handleStandardMessages({
 async function handleFifoMessages({
   getRemainingTimeInMillis,
   messages,
+  newLocalStorage,
   sqs,
 }: {
   getRemainingTimeInMillis: () => number;
   messages: SQSMessage[];
+  newLocalStorage: NewLocalStorage;
   sqs: SQS;
 }) {
-  let message;
-  while ((message = messages.shift())) {
-    const successful = await handleOneMessage({
-      message,
-      sqs,
-      timeout: getRemainingTimeInMillis(),
-    });
+  let next;
+  while ((next = messages.shift())) {
+    const message = next;
+    const remainingTime = getRemainingTimeInMillis();
+    const successful = await getLocalStorage().run(newLocalStorage(), () =>
+      handleOneSQSMessage({ message, sqs, remainingTime })
+    );
     if (!successful) {
       return {
-        batchItemFailures: [message]
+        batchItemFailures: [next]
           .concat(messages)
           .map((message) => ({ itemIdentifier: message.messageId })),
       };
@@ -101,14 +114,14 @@ async function handleFifoMessages({
   return { batchItemFailures: [] };
 }
 
-async function handleOneMessage({
+export async function handleOneSQSMessage({
   message,
+  remainingTime,
   sqs,
-  timeout: remainingTime,
 }: {
   message: SQSMessage;
+  remainingTime: number;
   sqs: SQS;
-  timeout: number;
 }): Promise<boolean> {
   const { messageId } = message;
   const queueName = getQueueName(message);
@@ -129,6 +142,8 @@ async function handleOneMessage({
   try {
     console.info("Handling message %s on queue %s", messageId, queueName);
     const payload = getPayload(message);
+
+    getLocalStorage().getStore()?.setUser(metadata.user);
 
     await Promise.race([
       module.handler(payload, metadata),
@@ -242,8 +257,10 @@ function getMetadata(
 
 // Timeout in seconds.
 function getTimeout(config?: QueueConfig): number {
-  return Math.min(
-    Math.max(config?.timeout ?? defaultTimeout, minTimeout),
-    maxTimeout
+  return (
+    Math.min(
+      Math.max(config?.timeout ?? defaultTimeout, minTimeout),
+      maxTimeout
+    ) * 1000
   );
 }
