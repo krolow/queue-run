@@ -1,6 +1,8 @@
 import { Lambda } from "@aws-sdk/client-lambda";
 import { Services } from "@queue-run/runtime";
 import chalk from "chalk";
+import dotenv from "dotenv";
+import fs from "fs/promises";
 import ow from "ow";
 import invariant from "tiny-invariant";
 import buildProject from "../build";
@@ -20,11 +22,17 @@ type BuildConfig = {
   // It should be unique for each project/branch.
   slug: string;
 
-  // The full URL for this backend. Available to the backed as the environment
-  // variable QUEUE_RUN_URL.
+  // The full URL for this backend's HTTP API. Available to the backed as the
+  // environment variable QUEUE_RUN_URL.
   //
   // If not specified, uses the template: https://${slug}.queue.run
   url?: string;
+
+  // The full URL for this backend's WebSockets. Available to the backed as the
+  // environment variable QUEUE_RUN_WS.
+  //
+  // If not specified, uses the template: wss://ws.queue.run
+  ws?: string;
 
   // ARNs for layers you want to include in the Lambda.
   //
@@ -66,7 +74,9 @@ export default async function deployLambda({
   );
 
   const url = config.url ?? `https://${slug}.queue.run`;
-  ow(url, ow.string.url);
+  ow(url, ow.string.url.startsWith("https://"));
+  const ws = config.ws ?? `wss://ws.queue.run`;
+  ow(ws, ow.string.url.startsWith("wss://"));
 
   const lambdaName = `qr-${slug}`;
   const queuePrefix = `${lambdaName}__`;
@@ -88,6 +98,7 @@ export default async function deployLambda({
     envVars: config.envVars,
     environment: config.env,
     url,
+    ws,
   });
 
   if (signal?.aborted) throw new Error();
@@ -118,16 +129,27 @@ async function loadEnvVars({
   environment,
   envVars,
   url,
+  ws,
 }: {
   environment: "production" | "preview";
   envVars?: Record<string, string>;
   url: string;
+  ws: string;
 }) {
-  // TODO load environment variables from database
+  const fromFile = await fs
+    .readFile(`.env.${environment}`, "utf8")
+    .catch(() => fs.readFile(".env", "utf8"))
+    .then(
+      (file) => dotenv.parse(file),
+      () => undefined
+    );
+
   return {
+    ...fromFile,
     ...envVars,
     NODE_ENV: "production",
     QUEUE_RUN_URL: url,
+    QUEUE_RUN_WS: ws,
     QUEUE_RUN_ENV: environment,
   };
 }

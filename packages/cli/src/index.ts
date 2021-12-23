@@ -1,34 +1,17 @@
-import { buildProject, deployRuntimeLayer } from "@queue-run/builder";
 import chalk from "chalk";
 import { Command } from "commander";
 import ms from "ms";
-import deploy from "./deploy";
-import devServer from "./dev";
+import buildCommand from "./build";
+import deployCommand from "./deploy";
+import devCommand from "./dev";
+import setupCommand from "./setup";
 
 const program = new Command().version(require("../package.json").version);
 
-program.addCommand(devServer);
-program.addCommand(deploy);
-
-program
-  .command("build")
-  .description("Build the backend")
-  .argument("[source]", "Source directory", "./")
-  .option("-o, --output <output>", "Output directory", ".build")
-  .option("--full", "Full build", false)
-  .action(
-    async (
-      source: string,
-      { output, full }: { output: string; full: boolean }
-    ) => {
-      await buildProject({ buildDir: output, sourceDir: source, full });
-    }
-  );
-
-program.command("setup").action(async () => {
-  process.env.NODE_ENV = "production";
-  await deployRuntimeLayer();
-});
+program.addCommand(devCommand);
+program.addCommand(deployCommand);
+program.addCommand(buildCommand);
+program.addCommand(setupCommand);
 
 program.showSuggestionAfterError();
 program.addHelpCommand();

@@ -1,8 +1,7 @@
 import chalk from "chalk";
 import { AbortController } from "node-abort-controller";
 import type { LocalStorage } from "queue-run";
-import { getLocalStorage, RequestHandler } from "queue-run";
-import { Middleware } from "queue-run/src/middleware";
+import { getLocalStorage, Middleware, RequestHandler } from "queue-run";
 import { loadServices } from "../loadServices";
 import {
   APIGatewayProxyEvent,

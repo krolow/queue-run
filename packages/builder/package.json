@@ -4,9 +4,6 @@
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
-  "bin": {
-    "build": "node dist/index.js build"
-  },
   "scripts": {
     "build": "dts build",
     "lint": "dts lint src",
@@ -20,6 +17,7 @@
     "types"
   ],
   "dependencies": {
+    "@aws-sdk/client-apigatewayv2": "^3.43.0",
     "@aws-sdk/client-dynamodb": "^3.44.0",
     "@aws-sdk/client-iam": "^3.43.0",
     "@aws-sdk/client-lambda": "^3.43.0",

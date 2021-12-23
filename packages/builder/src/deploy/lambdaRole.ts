@@ -1,7 +1,7 @@
 import { IAM, Role } from "@aws-sdk/client-iam";
 import invariant from "tiny-invariant";
 
-const lambdaRolePath = "/services/queuerun/";
+const lambdaRolePath = "/queue-run/projects/";
 
 const Version = "2012-10-17";
 
