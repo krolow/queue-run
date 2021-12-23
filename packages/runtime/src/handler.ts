@@ -5,11 +5,7 @@ import handleHTTPRequest, {
   APIGatewayProxyResponse,
   BackendLambdaRequest,
 } from "./http";
-import {
-  handleSQSMessages,
-  pushMessage as pushMessage,
-  SQSMessage,
-} from "./queues";
+import { handleSQSMessages, pushMessage, SQSMessage } from "./queues";
 import { SQSBatchResponse } from "./queues/handleSQSMessages";
 
 const { slug, region, ...clientConfig } =

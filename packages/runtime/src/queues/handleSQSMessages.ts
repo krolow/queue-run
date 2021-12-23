@@ -9,7 +9,6 @@ import {
   QueueHandler,
 } from "queue-run";
 import { URLSearchParams } from "url";
-import type { NewLocalStorage } from "../handler";
 import loadModule from "../loadModule";
 import type { SQSMessage } from "./index";
 
@@ -93,7 +92,7 @@ async function handleFifoMessages({
 }: {
   getRemainingTimeInMillis: () => number;
   messages: SQSMessage[];
-  newLocalStorage: NewLocalStorage;
+  newLocalStorage: () => LocalStorage;
   sqs: SQS;
 }) {
   let next;

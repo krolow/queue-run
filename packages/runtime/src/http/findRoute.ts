@@ -2,8 +2,8 @@ import { Response } from "node-fetch";
 import type { Middleware, RequestHandler, RouteConfig } from "queue-run";
 import { URL } from "url";
 import loadModule from "../loadModule";
-import handlePOSTToQueue from "./handlePOSTToQueue";
 import { HTTPRoute } from "./HTTPRoute";
+import postToQueue from "./postToQueue";
 
 export default async function findRoute(
   url: string,
@@ -36,7 +36,7 @@ export default async function findRoute(
 
   return {
     handler: route.queue
-      ? (request, metadata) => handlePOSTToQueue(route, request, metadata)
+      ? (request, metadata) => postToQueue(route, request, metadata)
       : handler,
     middleware,
     params,

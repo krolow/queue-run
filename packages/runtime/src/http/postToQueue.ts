@@ -3,7 +3,7 @@ import invariant from "tiny-invariant";
 import { URLSearchParams } from "url";
 import { HTTPRoute } from "./HTTPRoute";
 
-export default async function handlePOSTToQueue(
+export default async function postToQueue(
   route: HTTPRoute,
   request: Request,
   { params, user }: Parameters<RequestHandler>[1]
