@@ -47,6 +47,5 @@ program
   })
   .catch((error) => {
     console.error(chalk.bold.red(String(error)));
-    console.error(error.stack);
     process.exit(-1);
   });

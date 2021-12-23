@@ -1,28 +1,34 @@
 import { Lambda } from "@aws-sdk/client-lambda";
 import chalk from "chalk";
-import { spawn } from "child_process";
+import { exec } from "child_process";
 import glob from "fast-glob";
 import filesize from "filesize";
 import fs from "fs/promises";
 import JSZip from "jszip";
 import ora from "ora";
 import path from "path";
+import invariant from "tiny-invariant";
+import { promisify } from "util";
 
 export const layerName = "qr-runtime";
 
 // Deploy runtime layer to Lambda.  The most recent layer will be used when
 // deploying your project.
 export default async function deployRuntimeLayer() {
-  console.info(chalk.bold.green("Building layer..."));
+  console.info(
+    chalk.bold.green(`Building Lambda runtime layer (${layerName}) ...`)
+  );
 
   const buildDir = ".build";
-  await installFiles(buildDir);
+  await copyFiles(buildDir);
+  await installDependencies(buildDir);
   const archive = await createArchive(buildDir);
-  await uploadLayer(archive);
+  const version = await uploadLayer(archive);
+  await deletingOldLayers(version);
 }
 
-async function installFiles(buildDir: string) {
-  const spinner = ora("Copying runtime...").start();
+async function copyFiles(buildDir: string) {
+  const spinner = ora("Copying runtime ...").start();
 
   await fs.rm(buildDir, { recursive: true, force: true });
   const nodeDir = path.join(buildDir, "nodejs");
@@ -40,24 +46,26 @@ async function installFiles(buildDir: string) {
     path.join(runtime, "../package.json"),
     path.join(nodeDir, "package.json")
   );
-  spinner.succeed("Runtime copied");
+  spinner.succeed("Copied runtime");
+}
 
-  const install = spawn("npm", ["install", "--only=production"], {
-    cwd: nodeDir,
-    stdio: "inherit",
-  });
-  await new Promise((resolve, reject) =>
-    install
-      .on("exit", (code) => {
-        if (code === 0) resolve(undefined);
-        else reject(new Error(`npm exited with code ${code}`));
-      })
-      .on("error", reject)
-  );
+async function installDependencies(buildDir: string) {
+  const spinner = ora("Installing dependencies ...").start();
+  try {
+    await promisify(exec)("npm install --only=production", {
+      cwd: path.join(buildDir, "nodejs"),
+    });
+  } catch (error) {
+    spinner.fail();
+    const { stdout } = error as { stdout: string; stderr: string };
+    process.stdout.write(stdout);
+    throw error;
+  }
+  spinner.succeed("Installed dependencies");
 }
 
 async function createArchive(buildDir: string): Promise<Buffer> {
-  const spinner = ora("Creating archive...").start();
+  const spinner = ora("Creating archive ...").start();
   const zip = new JSZip();
   const filenames = glob.sync("**/*", {
     cwd: buildDir,
@@ -71,23 +79,51 @@ async function createArchive(buildDir: string): Promise<Buffer> {
   );
   const buffer = await zip.generateAsync({ type: "nodebuffer" });
   await fs.writeFile(path.join(buildDir, "layer.zip"), buffer);
-  spinner.succeed(`Archive created (${filesize(buffer.byteLength)})`);
+  spinner.succeed(`Created archive (${filesize(buffer.byteLength)})`);
   return buffer;
 }
 
-async function uploadLayer(archive: Buffer) {
-  const spinner = ora("Publishing layer...").start();
+async function uploadLayer(archive: Buffer): Promise<number> {
+  const spinner = ora("Publishing layer ...").start();
   try {
     const lambda = new Lambda({});
-    const { LayerVersionArn: versionARN } = await lambda.publishLayerVersion({
-      LayerName: layerName,
-      Description: "Runtime layer for QueueRun (Node)",
-      CompatibleRuntimes: ["nodejs12.x", "nodejs14.x"],
-      Content: { ZipFile: archive },
-    });
-    spinner.succeed(`Layer published (${versionARN})`);
+    const { LayerVersionArn: versionARN, Version: version } =
+      await lambda.publishLayerVersion({
+        LayerName: layerName,
+        Description: "Runtime layer for QueueRun (Node)",
+        CompatibleRuntimes: ["nodejs12.x", "nodejs14.x"],
+        Content: { ZipFile: archive },
+      });
+    spinner.succeed(`Published layer: ${versionARN}`);
+    invariant(version);
+    return version;
   } catch (error) {
     spinner.fail(String(error));
     throw error;
+  }
+}
+
+async function deletingOldLayers(lastVersion: number) {
+  const spinner = ora("Deleting old layers ...").start();
+  try {
+    const lambda = new Lambda({});
+    const { LayerVersions: versions } = await lambda.listLayerVersions({
+      LayerName: layerName,
+    });
+    invariant(versions);
+    const oldVersions = versions.filter(
+      ({ Version }) => !Version || Version < lastVersion
+    );
+    await Promise.all(
+      oldVersions.map(async ({ Version }) =>
+        lambda.deleteLayerVersion({
+          LayerName: layerName,
+          VersionNumber: Version,
+        })
+      )
+    );
+    spinner.succeed("Deleted old layers");
+  } catch (error) {
+    spinner.fail(String(error));
   }
 }
