@@ -1,5 +1,6 @@
 import { FunctionConfiguration, Lambda, Runtime } from "@aws-sdk/client-lambda";
 import invariant from "tiny-invariant";
+import { layerName } from "../layer";
 import { deleteLambdaRole, getLambdaRole } from "./lambdaRole";
 
 export const handler = "/opt/nodejs/index.handler";
@@ -135,16 +136,16 @@ function aliasAWSEnvVars(
 }
 
 async function addRuntimeLayerARN(layerARNs: string[] = []): Promise<string[]> {
-  if (layerARNs.find((arn) => /:layer:queue-run-runtime:\d+$/.test(arn)))
-    return layerARNs;
+  const searchString = `:layer:${layerName}:`;
+  if (layerARNs.find((arn) => arn.includes(searchString))) return layerARNs;
 
   const lambda = new Lambda({});
   const { LayerVersions: versions } = await lambda.listLayerVersions({
-    LayerName: "queue-run-runtime",
+    LayerName: layerName,
   });
   if (!versions)
     throw new Error(
-      "Could not find recent version of the QueueRun Runtime layer: did you deploy it to this account?"
+      `Could not find recent version of the QueueRun Runtime layer (${layerName}): did you deploy it to this account?`
     );
   const runtimeARN = versions[0].LayerVersionArn;
   invariant(runtimeARN);

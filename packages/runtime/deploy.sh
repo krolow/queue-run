@@ -4,7 +4,7 @@ set -eo pipefail
 export AWS_REGION="us-east-1"
 
 readonly archive="runtime.zip"
-readonly layer_name="queue-run-runtime"
+readonly layer_name="qr-runtime"
 readonly profile="queuerun"
 
 function build_layer() {

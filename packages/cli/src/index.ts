@@ -1,4 +1,4 @@
-import { buildProject } from "@queue-run/builder";
+import { buildProject, deployRuntimeLayer } from "@queue-run/builder";
 import chalk from "chalk";
 import { Command } from "commander";
 import ms from "ms";
@@ -24,6 +24,11 @@ program
       await buildProject({ buildDir: output, sourceDir: source, full });
     }
   );
+
+program.command("setup").action(async () => {
+  process.env.NODE_ENV = "production";
+  await deployRuntimeLayer();
+});
 
 program.showSuggestionAfterError();
 program.addHelpCommand();
