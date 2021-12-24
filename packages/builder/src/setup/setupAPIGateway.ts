@@ -7,10 +7,14 @@ import {
   IntegrationType,
   ProtocolType,
 } from "@aws-sdk/client-apigatewayv2";
+import { Lambda } from "@aws-sdk/client-lambda";
 import ora from "ora";
 import invariant from "tiny-invariant";
 
 const apiGateway = new ApiGatewayV2({});
+const lambda = new Lambda({});
+
+// See https://docs.aws.amazon.com/lambda/latest/dg/services-apigateway.html#apigateway-permissions
 
 // Setup API Gateway. We need the endpoint URLs before we can deploy the project
 // for the first time.
@@ -68,6 +72,7 @@ export async function setupIntegrations({
     setupHTTPIntegrations(project, lambdaARN),
     setupWSIntegrations(project, lambdaARN),
   ]);
+
   spinner.succeed("Finished with API Gateway integrations");
 }
 
@@ -86,6 +91,19 @@ async function setupHTTPIntegrations(project: string, lambdaARN: string) {
     ApiId: api.ApiId,
     RouteKey: "$default",
     Target: `integrations/${http}`,
+  });
+  await createStage(api, "$default");
+  await addPermission(api, lambdaARN);
+}
+
+async function createStage(api: Api, stage: string): Promise<void> {
+  const { Items: items } = await apiGateway.getStages({ ApiId: api.ApiId });
+  const stageExists = items?.find(({ StageName }) => StageName === stage);
+  if (stageExists) return;
+  await apiGateway.createStage({
+    ApiId: api.ApiId,
+    StageName: stage,
+    AutoDeploy: true,
   });
 }
 
@@ -123,6 +141,7 @@ async function setupWSIntegrations(project: string, lambdaARN: string) {
       Target: `integrations/${ws}`,
     }),
   ]);
+  await addPermission(api, lambdaARN);
 }
 
 async function createIntegration(
@@ -152,6 +171,24 @@ async function createRoute(args: CreateRouteRequest) {
   const route = routes?.find(({ RouteKey }) => RouteKey === args.RouteKey);
   if (route) await apiGateway.updateRoute({ ...args, RouteId: route.RouteId });
   else await apiGateway.createRoute(args);
+}
+
+async function addPermission(api: Api, lambdaARN: string) {
+  const [region, accountId] = lambdaARN
+    .match(/arn:aws:lambda:(.*?):(.*?):/)!
+    .slice(1);
+  const statementId = "qr-api-gateway-http";
+  await lambda.removePermission({
+    FunctionName: lambdaARN,
+    StatementId: statementId,
+  });
+  await lambda.addPermission({
+    Action: "lambda:InvokeFunction",
+    FunctionName: lambdaARN,
+    Principal: "apigateway.amazonaws.com",
+    SourceArn: `arn:aws:execute-api:${region}:${accountId}:${api.ApiId}/*/*/*`,
+    StatementId: statementId,
+  });
 }
 
 async function findGatewayAPI({
