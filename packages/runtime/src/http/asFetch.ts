@@ -77,14 +77,16 @@ function toFetchRequest(
     const method = event.requestContext.httpMethod;
     const url = `https://${event.requestContext.domainName}${event.requestContext.path}`;
     const headers = new Headers(event.headers);
-    const body =
-      event.body && event.isBase64Encoded
+    const hasBody = method !== "GET" && method !== "HEAD";
+    const body = hasBody
+      ? event.body && event.isBase64Encoded
         ? Buffer.from(event.body, "base64")
-        : event.body;
+        : event.body
+      : undefined;
     return new Request(url, { body, headers, method });
   } else {
     const { headers, method, url } = event;
-    const hasBody = !["GET", "HEAD"].includes(method);
+    const hasBody = method !== "GET" && method !== "HEAD";
     const body =
       hasBody && event.body ? Buffer.from(event.body, "base64") : undefined;
     return new Request(url, { body, headers, method });
