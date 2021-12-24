@@ -1,5 +1,6 @@
 import { SQS } from "@aws-sdk/client-sqs";
 import { Services } from "@queue-run/runtime";
+import ora from "ora";
 import { URL } from "url";
 
 export async function createQueues({
@@ -16,9 +17,11 @@ export async function createQueues({
     ...Array.from(queues.values()).map((queue) => queue.timeout * 6)
   );
 
-  console.info("   Using queues: %s", Array.from(queues.keys()).join(", "));
+  const spinner = ora(
+    `Using queues ${Array.from(queues.keys()).join(", ")}`
+  ).start();
 
-  return await Promise.all(
+  const arns = await Promise.all(
     Array.from(queues.keys()).map(async (name) => {
       // createQueue is idempotent so we can safely call it on each deploy.
       // However, createQueue fails if the queue already exists, but with
@@ -50,6 +53,8 @@ export async function createQueues({
       return arnFromQueueURL(queueURL);
     })
   );
+  spinner.succeed();
+  return arns;
 }
 
 export async function deleteOldQueues({

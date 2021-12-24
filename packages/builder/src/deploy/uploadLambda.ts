@@ -1,4 +1,5 @@
 import { FunctionConfiguration, Lambda, Runtime } from "@aws-sdk/client-lambda";
+import ora from "ora";
 import invariant from "tiny-invariant";
 import { layerName } from "../setup/deployRuntimeLayer";
 import { deleteLambdaRole, getLambdaRole } from "./lambdaRole";
@@ -23,6 +24,7 @@ export default async function uploadLambda({
   zip: Uint8Array;
 }): Promise<string> {
   const lambda = new Lambda({});
+  const spinner = ora(`Uploading Lambda ${lambdaName}`).start();
 
   const configuration = {
     Environment: { Variables: aliasAWSEnvVars(envVars) },
@@ -60,25 +62,22 @@ export default async function uploadLambda({
     // FunctionArn includes version number
     invariant(updatedCode.FunctionArn && updatedCode.RevisionId);
 
-    console.info("   Updated function %s", lambdaName);
+    spinner.succeed(`Updated Lambda ${lambdaName}`);
     return updatedCode.FunctionArn;
+  } else {
+    const newLambda = await lambda.createFunction({
+      ...configuration,
+      Code: { ZipFile: zip },
+      PackageType: "Zip",
+      Publish: true,
+    });
+    // FunctionArn does not include version number
+    const arn = `${newLambda.FunctionArn}:${newLambda.Version}`;
+    spinner.succeed(
+      `Created Lambda ${lambdaName} in ${await lambda.config.region()}`
+    );
+    return arn;
   }
-
-  const newLambda = await lambda.createFunction({
-    ...configuration,
-    Code: { ZipFile: zip },
-    PackageType: "Zip",
-    Publish: true,
-  });
-  // FunctionArn does not include version number
-  const arn = `${newLambda.FunctionArn}:${newLambda.Version}`;
-  console.info(
-    "   Created new function %s in %s",
-    lambdaName,
-    await lambda.config.region()
-  );
-
-  return arn;
 }
 
 async function getFunction({

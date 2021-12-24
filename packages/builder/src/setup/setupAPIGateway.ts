@@ -89,7 +89,7 @@ async function setupHTTPIntegrations(project: string, lambdaARN: string) {
   });
   await createRoute({
     ApiId: api.ApiId,
-    RouteKey: "$default",
+    RouteKey: "ANY /",
     Target: `integrations/${http}`,
   });
   await createStage(api, "$default");
@@ -174,21 +174,18 @@ async function createRoute(args: CreateRouteRequest) {
 }
 
 async function addPermission(api: Api, lambdaARN: string) {
-  const [region, accountId] = lambdaARN
-    .match(/arn:aws:lambda:(.*?):(.*?):/)!
-    .slice(1);
   const statementId = "qr-api-gateway-http";
-  await lambda.removePermission({
-    FunctionName: lambdaARN,
-    StatementId: statementId,
-  });
-  await lambda.addPermission({
-    Action: "lambda:InvokeFunction",
-    FunctionName: lambdaARN,
-    Principal: "apigateway.amazonaws.com",
-    SourceArn: `arn:aws:execute-api:${region}:${accountId}:${api.ApiId}/*/*/*`,
-    StatementId: statementId,
-  });
+  try {
+    await lambda.addPermission({
+      Action: "lambda:InvokeFunction",
+      FunctionName: lambdaARN,
+      Principal: "apigateway.amazonaws.com",
+      StatementId: statementId,
+    });
+  } catch (error) {
+    if (!(error instanceof Error && error.name === "ResourceConflictException"))
+      throw error;
+  }
 }
 
 async function findGatewayAPI({

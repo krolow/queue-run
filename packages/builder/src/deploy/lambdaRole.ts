@@ -1,4 +1,5 @@
 import { IAM, Role } from "@aws-sdk/client-iam";
+import ora from "ora";
 import invariant from "tiny-invariant";
 
 const lambdaRolePath = "/queue-run/projects/";
@@ -10,7 +11,9 @@ const assumeRolePolicy = {
   Statement: [
     {
       Effect: "Allow",
-      Principal: { Service: "lambda.amazonaws.com" },
+      Principal: {
+        Service: ["lambda.amazonaws.com", "apigateway.amazonaws.com"],
+      },
       Action: "sts:AssumeRole",
     },
   ],
@@ -51,13 +54,13 @@ export async function getLambdaRole({
 }: {
   lambdaName: string;
 }): Promise<string> {
-  console.info("   Updating role/permissions");
-
+  const spinner = ora("Updating role/permissions").start();
   const iam = new IAM({});
   const roleName = lambdaName;
   const role = await upsertRole(iam, roleName);
   invariant(role.Arn, "Role has no ARN");
   await updatePolicy(iam, role);
+  spinner.succeed(`Update role ${roleName}`);
   return role.Arn;
 }
 

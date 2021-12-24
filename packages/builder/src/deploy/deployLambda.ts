@@ -195,7 +195,7 @@ async function switchOver({
   //
   //   trigger {projectId}-{branch}__{queueName} => {projectId}-{branch}
   await addTriggers({ lambdaARN: aliasARN, sourceARNs: queueARNs });
-  console.info("   This is version %s", versionARN.split(":").slice(-1)[0]);
+  console.info("  This is version %s", versionARN.split(":").slice(-1)[0]);
 
   // Delete any queues that are no longer needed.
   await deleteOldQueues({ prefix: queuePrefix, queueARNs });
