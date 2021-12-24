@@ -4,12 +4,17 @@ import { URL } from "url";
 import loadModule from "../loadModule";
 import { HTTPRoute } from "./HTTPRoute";
 
+export type RouteModule = {
+  config?: RouteConfig;
+} & {
+  [method: string]: RequestHandler;
+} & Middleware;
+
 export default async function findRoute(
   url: string,
   routes: Map<string, HTTPRoute>
 ): Promise<{
-  handler: RequestHandler;
-  middleware: Middleware;
+  module: RouteModule;
   params: { [key: string]: string };
   route: HTTPRoute;
 }> {
@@ -29,11 +34,10 @@ export default async function findRoute(
 
   const { route, params } = matches[0];
 
-  const module = await loadModule<RequestHandler, RouteConfig>(route.filename);
+  const module = await loadModule<RouteModule>(route.filename);
   if (!module) throw new Response("Not Found", { status: 404 });
-  const { handler, ...middleware } = module;
 
-  return { handler, middleware, params, route };
+  return { module, params, route };
 }
 
 function moreSpecificRoute(

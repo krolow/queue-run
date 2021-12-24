@@ -1,5 +1,5 @@
 import path from "path";
-import type { Middleware } from "queue-run";
+import { Middleware } from "queue-run";
 import { install } from "source-map-support";
 
 // Use this for loading backend functions on demand:
@@ -8,19 +8,11 @@ import { install } from "source-map-support";
 // - Return null if module is not found
 // - Load middleware and merge into module
 // - Compatible with dev server HMR
-export default async function loadModule<
-  Handler = () => Promise<void>,
-  Config = {}
->(
+export default async function loadModule<Exports>(
   // The module name as route (not filename), eg "/api/project/$id",
   // "/queues/update_profile.fifo"
   name: string
-): Promise<Readonly<
-  {
-    handler: Handler;
-    config: Config;
-  } & Middleware
-> | null> {
+): Promise<Readonly<Exports & Middleware> | null> {
   // Avoid path traversal. This turns "foobar", "/foobar", and "../../foobar" into "/foobar"
   const fromProjectRoot = path.join("/", name);
   let filename;
@@ -31,17 +23,12 @@ export default async function loadModule<
   }
   const exports = await require(filename);
 
-  const handler = exports.handler ?? exports.default;
-  if (typeof handler !== "function")
-    throw new Error(
-      `Module error: expected module to export a handler (in ${filename})`
-    );
   const config = exports.config ?? {};
   verifyMiddleware(exports, filename);
 
   const middleware = await loadMiddleware(fromProjectRoot);
   // This module's exports take precendece over _middleware
-  return { ...middleware, ...exports, handler, config };
+  return { ...middleware, ...exports, config };
 }
 
 // Given a path, returns the combined middleware for that folder and all parent

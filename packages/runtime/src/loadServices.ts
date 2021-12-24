@@ -2,7 +2,12 @@ import chalk from "chalk";
 import glob from "fast-glob";
 import path from "path";
 import { Key, match, pathToRegexp } from "path-to-regexp";
-import type { QueueConfig, QueueHandler, RouteConfig } from "queue-run";
+import type {
+  QueueConfig,
+  QueueHandler,
+  RequestHandler,
+  RouteConfig,
+} from "queue-run";
 import invariant from "tiny-invariant";
 import { HTTPRoute } from "./http/HTTPRoute";
 import loadModule from "./loadModule";
@@ -65,7 +70,9 @@ async function loadRoutes(): Promise<Services["routes"]> {
   const filenames = await glob("api/**/[!_]*.{js,ts}");
   for (const filename of filenames) {
     try {
-      const module = await loadModule<() => void, RouteConfig>(filename);
+      const module = await loadModule<
+        { [key: string]: RequestHandler } & { config: RouteConfig }
+      >(filename);
       invariant(module, "Module not found");
 
       const path = pathFromFilename(filename.replace(/^api\//, "/"));
@@ -80,7 +87,7 @@ async function loadRoutes(): Promise<Services["routes"]> {
       routes.set(path, {
         accepts: getContentTypes(module.config),
         cors: module.config.cors ?? true,
-        methods: getMethods(module.config),
+        methods: getMethods(module),
         filename,
         match: match(path),
         timeout: getTimeout(module.config, { max: 30, default: 30 }),
@@ -158,18 +165,44 @@ function isValidPathPart(part: string): boolean {
   return /^([a-z0-9_-]+)|(:[a-z0-9_-]+\*?)$/i.test(part);
 }
 
-function getMethods(config: RouteConfig): Set<string> {
-  const methods = new Set(
-    (Array.isArray(config.methods)
-      ? config.methods
-      : [config.methods ?? "*"]
-    ).map((method) => method.toUpperCase())
-  );
-  if (!Array.from(methods).every((method) => /^[A-Z]+|\*$/.test(method)))
-    throw new Error(
-      `config.methods list acceptable HTTP methods, like "GET" or ["GET", "POST"]`
+function getMethods(
+  module: { [key: string]: RequestHandler } & { config: RouteConfig }
+): Set<string> {
+  const { config } = module;
+  const methodHandlers = [
+    "get",
+    "post",
+    "put",
+    "delete",
+    "patch",
+    "options",
+    "head",
+  ].filter((method) => typeof module[method] === "function");
+  if (methodHandlers.length > 0) {
+    if (config.methods)
+      throw new Error(
+        "config.methods: cannot use this together with explicit method handlers"
+      );
+    return new Set(methodHandlers.map((method) => method.toUpperCase()));
+  } else {
+    const handler = module.handler ?? module.default;
+    if (!handler)
+      throw new Error(
+        "Module missing request handler (export default function …)"
+      );
+
+    const methods = new Set(
+      (Array.isArray(config.methods)
+        ? config.methods
+        : [config.methods ?? "*"]
+      ).map((method) => method.toUpperCase())
     );
-  return methods;
+    if (!Array.from(methods).every((method) => /^[A-Z]+|\*$/.test(method)))
+      throw new Error(
+        `config.methods list acceptable HTTP methods, like "GET" or ["GET", "POST"]`
+      );
+    return methods;
+  }
 }
 
 function getContentTypes(config: { accepts?: string[] | string }): Set<string> {
@@ -192,8 +225,15 @@ async function loadQueues(): Promise<Services["queues"]> {
   const filenames = await glob("queues/[!_]*.{js,ts}");
   for (const filename of filenames) {
     try {
-      const module = await loadModule<QueueHandler, QueueConfig>(filename);
+      const module = await loadModule<{
+        config: QueueConfig;
+        default?: QueueHandler;
+        handler?: QueueHandler;
+      }>(filename);
       invariant(module, "Module not found");
+      const handler = module.handler ?? module.default;
+      if (typeof handler !== "function")
+        throw new Error("Expected queue handler to export a function");
 
       const queueName = queueNameFromFilename(filename);
       const isFifo = queueName.endsWith(".fifo");

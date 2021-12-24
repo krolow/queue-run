@@ -19,10 +19,7 @@ export default async function handleHTTPRequest(
   return await asFetchRequest(event, async (request) => {
     try {
       const { routes } = await loadServices(process.cwd());
-      const { handler, middleware, params, route } = await findRoute(
-        request.url,
-        routes
-      );
+      const { module, params, route } = await findRoute(request.url, routes);
 
       const cors = route.cors ? corsHeaders(route) : undefined;
       if (cors && request.method === "OPTIONS")
@@ -30,11 +27,17 @@ export default async function handleHTTPRequest(
 
       checkRequest(request, route);
 
+      const handler =
+        module[request.method.toLowerCase()] ??
+        module.handler ??
+        module.default;
+      if (!handler) throw new Response("Method not allowed", { status: 405 });
+
       return await handleRequest({
-        ...middleware,
         cors,
         filename: route.filename,
         handler,
+        middleware: module,
         params,
         request,
         newLocalStorage,
@@ -79,20 +82,21 @@ async function handleRequest({
   cors,
   filename,
   handler,
+  middleware,
   newLocalStorage,
   params,
   request,
   timeout,
-  ...middleware
 }: {
   cors?: Headers;
   filename: string;
   handler: RequestHandler;
+  middleware: Middleware;
   newLocalStorage: () => LocalStorage;
   params: { [key: string]: string };
   request: Request;
   timeout: number;
-} & Middleware): Promise<Response> {
+}): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout * 1000);
 
@@ -102,10 +106,10 @@ async function handleRequest({
         runWithMiddleware({
           cors,
           handler,
+          middleware,
           request,
           filename,
           metadata: { params, signal: controller.signal },
-          ...middleware,
         })
       ),
       new Promise<undefined>((resolve) =>
@@ -121,22 +125,21 @@ async function handleRequest({
 }
 
 async function runWithMiddleware({
-  authenticate,
   cors,
   filename,
   handler,
+  middleware,
   metadata,
-  onError,
-  onRequest,
-  onResponse,
   request,
 }: {
   cors?: Headers;
   filename: string;
   handler: RequestHandler;
   metadata: Parameters<RequestHandler>[1];
+  middleware: Middleware;
   request: Request;
-} & Middleware) {
+}) {
+  const { authenticate, onError, onRequest, onResponse } = middleware;
   try {
     if (onRequest) await onRequest(request);
 
