@@ -6000,10 +6000,10 @@ queue-microtask@^1.2.2:
   resolved "https://registry.yarnpkg.com/queue-microtask/-/queue-microtask-1.2.3.tgz#4929228bbc724dfac43e0efb058caf7b6cfb6243"
   integrity sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==
 
-queue-run@^0.0.1:
-  version "0.0.1"
-  resolved "https://registry.yarnpkg.com/queue-run/-/queue-run-0.0.1.tgz#7daa33e4b104068d69d11f7e36aa8aeb955e995e"
-  integrity sha512-qt4a5gJ9xcA5jFBlbQB5WDyNCfOsz4brVIHqXHrj1+k+JiG0e2UpVWZmTTlWpltIerZN2D5wImJTrNAX7ZsbKw==
+queue-run@^0.0.2:
+  version "0.0.2"
+  resolved "https://registry.yarnpkg.com/queue-run/-/queue-run-0.0.2.tgz#945a14e2768bea7a69e4742cb94f5704d101cd76"
+  integrity sha512-Vtoyz8B1QZQdgh16G0ZotoyqNEicV2mfZ2xgj1ZP+i/zCbpyc4TuN6SSkG7fBmeRPkUxiUqmK96WfnJ8KYl1Og==
   dependencies:
     node-abort-controller "^3.0.1"
     node-fetch "2.6.6"

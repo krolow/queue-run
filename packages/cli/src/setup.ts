@@ -69,13 +69,13 @@ async function saveConfig(config: any) {
 
 async function getProjectName(rl: Interface): Promise<string> {
   const config = await loadConfig();
-  const suggested =
-    config.name ??
-    (await fs
-      .readFile("package.json", "utf8")
-      .then(JSON.parse)
-      .then((pkg) => pkg.name)
-      .catch(() => null));
+  if (config.name) return config.name;
+
+  const suggested = await fs
+    .readFile("package.json", "utf8")
+    .then(JSON.parse)
+    .then((pkg) => pkg.name)
+    .catch(() => null);
 
   const prompt = chalk.bold.blue(
     suggested

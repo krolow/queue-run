@@ -22,7 +22,7 @@
     "node-fetch": "2.6.6",
     "parse-multipart-data": "^1.2.1",
     "path-to-regexp": "^6.2.0",
-    "queue-run": "^0.0.1",
+    "queue-run": "^0.0.2",
     "source-map-support": "^0.5.21",
     "tiny-invariant": "^1.2.0"
   },
