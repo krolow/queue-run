@@ -79,12 +79,6 @@ export type QueueHandlerMetadata = {
 };
 
 export type QueueConfig = {
-  // True if this route supports CORS request (default: true).
-  cors?: boolean;
   // Timeout for processing message in seconds. Defaults to 30.
   timeout?: number;
-  // Expose this queue as HTTP POST request on this URL path (eg /project/:projectId)
-  url?: string;
-  // Only accept messages with specific content type
-  accepts?: string[] | string;
 };

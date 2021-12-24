@@ -18,7 +18,7 @@ export async function loadServices(dirname: string): Promise<Services> {
   process.chdir(dirname);
   try {
     const queues = await loadQueues();
-    const routes = await loadRoutes(queues);
+    const routes = await loadRoutes();
     return { queues, routes };
   } finally {
     process.chdir(cwd);
@@ -58,9 +58,7 @@ export function displayServices({ routes, queues }: Services) {
   );
 }
 
-async function loadRoutes(
-  queues: Services["queues"]
-): Promise<Services["routes"]> {
+async function loadRoutes(): Promise<Services["routes"]> {
   const routes = new Map<string, HTTPRoute>();
   const dupes = new Set<string>();
 
@@ -92,33 +90,6 @@ async function loadRoutes(
     }
   }
 
-  for (const queue of queues.values()) {
-    if (!queue.path) continue;
-
-    try {
-      const path = renamePathProperties(
-        queue.path.replace(/^\/?(.*?)\/?$/g, "/$1")
-      );
-      verifyPathParameters(path);
-
-      const signature = path.replace(/:(.*?)(\/|$)/g, ":$2");
-      if (dupes.has(signature))
-        throw new Error(`Error in "${queue.filename}": duplicate route exists`);
-      dupes.add(signature);
-
-      routes.set(path, {
-        accepts: queue.accepts,
-        cors: queue.cors,
-        methods: new Set(["POST"]),
-        filename: queue.filename,
-        queue,
-        match: match(path),
-        timeout: queue.timeout,
-      });
-    } catch (error) {
-      throw new Error(`Error in "${queue.filename}": ${error}`);
-    }
-  }
   return routes;
 }
 
@@ -226,20 +197,10 @@ async function loadQueues(): Promise<Services["queues"]> {
 
       const queueName = queueNameFromFilename(filename);
       const isFifo = queueName.endsWith(".fifo");
-      const path = getQueuePath(module.config, isFifo);
-      if (module.config.accepts && !path)
-        throw new Error(
-          "config.accepts only applicable together with config.url"
-        );
-      if (module.config.cors !== undefined && !path)
-        throw new Error("config.cors only applicable together with config.url");
 
       queues.set(queueName, {
-        accepts: getContentTypes(module.config),
-        cors: module.config.cors ?? true,
         filename,
         isFifo,
-        path: getQueuePath(module.config, isFifo),
         queueName,
         timeout: getTimeout(module.config, { max: 500, default: 30 }),
       });
@@ -260,34 +221,6 @@ function queueNameFromFilename(filename: string): string {
   if (queueName.length > 40)
     throw new Error("Queue name longer than the allowed 40 characters");
   return queueName;
-}
-
-function getQueuePath(config: QueueConfig, isFifo: boolean) {
-  if (!config.url) return null;
-  if (!config.url.startsWith("/"))
-    throw new Error('config.url is a relative URL and must start with "/"');
-
-  const path = renamePathProperties(config.url);
-
-  const keys: Key[] | undefined = [];
-  pathToRegexp(path, keys);
-  const hasGroupParam = keys.find(({ name }) => name === "group");
-  const hasDedupeParam = keys.find(({ name }) => name === "dedupe");
-  if (isFifo && !hasGroupParam)
-    throw new Error(
-      "FIFO queue must have a :group parameter in the URL, and optionally a :dedupe parameter"
-    );
-  if (!isFifo && (hasGroupParam || hasDedupeParam)) {
-    console.warn(
-      chalk.yellow(
-        'Found standard queue "%s" with the parameter %s in the URL. This parameter is used for FIFO queues. Was this intentional?'
-      ),
-      config.url,
-      hasGroupParam ? ":group" : ":dedupe"
-    );
-  }
-
-  return path;
 }
 
 function getTimeout(

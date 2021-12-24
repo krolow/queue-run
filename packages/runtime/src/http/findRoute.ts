@@ -3,7 +3,6 @@ import type { Middleware, RequestHandler, RouteConfig } from "queue-run";
 import { URL } from "url";
 import loadModule from "../loadModule";
 import { HTTPRoute } from "./HTTPRoute";
-import postToQueue from "./postToQueue";
 
 export default async function findRoute(
   url: string,
@@ -34,14 +33,7 @@ export default async function findRoute(
   if (!module) throw new Response("Not Found", { status: 404 });
   const { handler, ...middleware } = module;
 
-  return {
-    handler: route.queue
-      ? (request, metadata) => postToQueue(route, request, metadata)
-      : handler,
-    middleware,
-    params,
-    route,
-  };
+  return { handler, middleware, params, route };
 }
 
 function moreSpecificRoute(
