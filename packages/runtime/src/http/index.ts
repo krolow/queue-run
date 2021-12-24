@@ -187,19 +187,24 @@ function resultToResponse({
   filename: string;
   result: ReturnType<RequestHandler> | undefined;
 }): Response {
-  if (result instanceof Response)
-    return new Response(result.body, {
-      headers: { ...result.headers, ...cors },
-      status: result.status ?? 200,
+  if (result instanceof Response) {
+    const headers = new Headers({
+      ...(cors ? Object.fromEntries(cors.entries()) : undefined),
+      ...Object.fromEntries(result.headers.entries()),
     });
-  if (result)
-    return new Response(JSON.stringify(result), {
-      status: 200,
-      headers: { "Content-Type": "application/json", ...cors },
-    });
-
-  console.error('No response returned from module "%s"', filename);
-  return new Response(undefined, { headers: cors, status: 204 });
+    return new Response(result.body, { headers, status: result.status ?? 200 });
+  } else if (typeof result === "string" || Buffer.isBuffer(result)) {
+    const headers = new Headers(cors);
+    headers.set("Content-Type", "text/plain");
+    return new Response(result, { status: 200, headers });
+  } else if (result) {
+    const headers = new Headers(cors);
+    headers.set("Content-Type", "application/json");
+    return new Response(JSON.stringify(result), { status: 200, headers });
+  } else {
+    console.error('No response returned from module "%s"', filename);
+    return new Response(undefined, { headers: cors, status: 204 });
+  }
 }
 
 export type {

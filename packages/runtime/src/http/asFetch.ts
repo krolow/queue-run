@@ -1,9 +1,18 @@
+import { URL } from "url";
+
 // https://docs.aws.amazon.com/lambda/latest/dg/services-apigateway.html#apigateway-example-event
 export type APIGatewayProxyEvent = {
+  rawPath: string;
+  rawQueryString: string;
   requestContext: {
     domainName: string;
-    httpMethod: string;
-    path: string;
+    http: {
+      method: string;
+      path: string;
+      protocol: string;
+      sourceIp: string;
+      userAgent: string;
+    };
   };
   headers: { [key: string]: string };
   body?: string;
@@ -74,8 +83,19 @@ function toFetchRequest(
   event: APIGatewayProxyEvent | BackendLambdaRequest
 ): Request {
   if ("requestContext" in event) {
-    const method = event.requestContext.httpMethod;
-    const url = `https://${event.requestContext.domainName}${event.requestContext.path}`;
+    const { http } = event.requestContext;
+    console.info(
+      '[%s] %s %s %s "%s%"',
+      http.sourceIp,
+      http.protocol,
+      http.method,
+      http.path,
+      http.userAgent
+    );
+    const { method } = http;
+    const url = new URL(
+      `https://${event.requestContext.domainName}${event.rawPath}?${event.rawQueryString}`
+    ).href;
     const headers = new Headers(event.headers);
     const hasBody = method !== "GET" && method !== "HEAD";
     const body = hasBody
@@ -99,7 +119,7 @@ async function fromFetchResponse(
   return {
     body: (await response.buffer()).toString("base64"),
     isBase64Encoded: true,
-    headers: Object.fromEntries(response.headers),
+    headers: Object.fromEntries(Array.from(response.headers.entries())),
     statusCode: response.status ?? 200,
   };
 }
