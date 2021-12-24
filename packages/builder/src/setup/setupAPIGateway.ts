@@ -89,7 +89,7 @@ async function setupHTTPIntegrations(project: string, lambdaARN: string) {
   });
   await createRoute({
     ApiId: api.ApiId,
-    RouteKey: "ANY /",
+    RouteKey: "ANY /{proxy+}",
     Target: `integrations/${http}`,
   });
   await createStage(api, "$default");
