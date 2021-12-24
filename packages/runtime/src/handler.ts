@@ -18,6 +18,8 @@ export async function handler(
   event: LambdaEvent,
   context: LambdaContext
 ): Promise<APIGatewayProxyResponse | SQSBatchResponse> {
+  console.info({ event, context });
+
   const sqs = new SQS({ ...clientConfig, region });
   const newLocalStorage = bindNewLocalStorage({ sqs });
 

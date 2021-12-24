@@ -123,6 +123,19 @@ async function setupWSIntegrations(project: string, lambdaARN: string) {
     PayloadFormatVersion: "1.0",
     TimeoutInMillis: 29000,
   });
+
+  const { Items: responses } = await apiGateway.getIntegrationResponses({
+    ApiId: api.ApiId,
+    IntegrationId: ws,
+  });
+  if (!responses?.length) {
+    await apiGateway.createIntegrationResponse({
+      ApiId: api.ApiId,
+      IntegrationId: ws,
+      IntegrationResponseKey: "$default",
+    });
+  }
+
   await Promise.all([
     createRoute({
       ApiId: api.ApiId,
@@ -141,6 +154,7 @@ async function setupWSIntegrations(project: string, lambdaARN: string) {
       Target: `integrations/${ws}`,
     }),
   ]);
+
   await addPermission(api, lambdaARN);
 }
 
