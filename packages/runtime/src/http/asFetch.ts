@@ -12,7 +12,7 @@ export type APIGatewayProxyEvent = {
 
 export type APIGatewayProxyResponse = {
   body: string;
-  bodyEncoding: "text" | "base64";
+  isBase64Encoded: boolean;
   headers: Record<string, string>;
   statusCode: number;
 };
@@ -96,7 +96,7 @@ async function fromFetchResponse(
 ): Promise<APIGatewayProxyResponse> {
   return {
     body: (await response.buffer()).toString("base64"),
-    bodyEncoding: "base64",
+    isBase64Encoded: true,
     headers: Object.fromEntries(response.headers),
     statusCode: response.status ?? 200,
   };
