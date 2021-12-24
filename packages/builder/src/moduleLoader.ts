@@ -1,4 +1,5 @@
 import swc from "@swc/core";
+import chalk from "chalk";
 import fs from "fs";
 import { AbortController } from "node-abort-controller";
 import path from "path";
@@ -32,11 +33,14 @@ export default async function moduleLoader({
   //
   // You can still import from parent node_modules, since addHook ignores all of
   // node_modules.
-  function watchOver(filename: string): true {
-    if (!isInsideProjectDir(filename))
-      throw new Error(
-        `Do not import modules from outside the root directory ("${filename}")`
+  function watchOver(filename: string) {
+    if (!isInsideProjectDir(filename)) {
+      console.warn(
+        chalk.yellow('Warning: "%s" is outside the project directory.'),
+        filename
       );
+      return;
+    }
 
     if (onReload) {
       // Bind event handler to this particular abort signal — change events may trigger
@@ -44,8 +48,6 @@ export default async function moduleLoader({
       const { signal } = abortWatchers;
       fs.watch(filename, { signal }, () => onFileChanged(filename, signal));
     }
-
-    return true;
   }
 
   function isInsideProjectDir(filename: string) {
@@ -105,20 +107,26 @@ export default async function moduleLoader({
   }
 
   addHook(
-    (source, filename) =>
-      watchOver(filename) &&
-      compileSourceFile({ source, filename, syntax: "ecmascript" }),
+    (source, filename) => {
+      watchOver(filename);
+      return compileSourceFile({ source, filename, syntax: "ecmascript" });
+    },
     { extensions: [".js", ".jsx"] }
   );
   addHook(
-    (source, filename) =>
-      watchOver(filename) &&
-      compileSourceFile({ source, filename, syntax: "typescript" }),
+    (source, filename) => {
+      watchOver(filename);
+      return compileSourceFile({ source, filename, syntax: "typescript" });
+    },
     { extensions: [".ts", ".tsx"] }
   );
-  addHook((source, filename) => watchOver(filename) && JSON.parse(source), {
-    extensions: [".json"],
-  });
+  addHook(
+    (source, filename) => {
+      watchOver(filename);
+      return JSON.parse(source);
+    },
+    { extensions: [".json"] }
+  );
 
   sourceMapSupport.install({
     environment: "node",

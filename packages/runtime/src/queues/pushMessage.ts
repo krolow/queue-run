@@ -16,7 +16,7 @@ export default async function pushMessage({
   sqs,
   user,
 }: {
-  body: Buffer | string | object;
+  body: Buffer | string | object | Request;
   dedupeId?: string;
   groupId?: string;
   params?: { [key: string]: string };
@@ -30,6 +30,11 @@ export default async function pushMessage({
   const queueURL = isDevServer
     ? `http://localhost/queue/${slug}__${queueName}`
     : await getQueueURL({ queueName, slug, sqs });
+
+  // When queuing directly from request, we support various content types like
+  // multipart form data, and URL encoded. What we store in the queue is either
+  // JSON, plain text, or binary.
+  if (body instanceof Request) body = await messageBodyFromRequest(body);
 
   const contentType = Buffer.isBuffer(body)
     ? "application/octet-stream"
@@ -139,4 +144,74 @@ async function getQueueURL({
       throw new Error("No access to queue");
     } else throw error;
   }
+}
+
+async function messageBodyFromRequest(
+  request: Request
+): Promise<Buffer | string | object> {
+  const contentType = request.headers.get("content-type");
+  const mimeType = contentType?.split(";")[0];
+
+  switch (mimeType) {
+    case "application/json": {
+      try {
+        return await request.json();
+      } catch (error) {
+        throw new Response("application/json: not a valid JSON document", {
+          status: 422,
+        });
+      }
+    }
+
+    case "application/octet-stream": {
+      const buffer = await request.buffer();
+      if (!buffer.byteLength)
+        throw new Response("application/octet-stream: no message body", {
+          status: 422,
+        });
+      return buffer;
+    }
+
+    case "application/x-www-form-urlencoded": {
+      const text = await request.text();
+      const params = new URLSearchParams(text);
+      return Object.fromEntries(params.entries());
+    }
+
+    case "multipart/form-data": {
+      try {
+        return await formDataToObject(request);
+      } catch (error) {
+        throw new Response(String(error), { status: 422 });
+      }
+    }
+
+    case "text/plain": {
+      const text = await request.text();
+      if (!text)
+        throw new Response("text/plain: no message body", { status: 422 });
+      return text;
+    }
+
+    default: {
+      throw new Response("Unsupported media type", { status: 415 });
+    }
+  }
+}
+
+async function formDataToObject(request: Request) {
+  const form = await request.form();
+  return Array.from(form.entries()).reduce(
+    (fields, [name, { contentType, data, filename }]) => {
+      if (filename) throw new Error("multipart/form-data: files not supported");
+      if (!name) throw new Error("multipart/form-data: part without name");
+      const encoding = contentType?.match(/;\s*charset=([^;]+)/)?.[1];
+      return {
+        ...fields,
+        // @ts-ignore
+        [name]: data.toString(encoding ?? "utf-8"),
+      };
+    },
+    {}
+  );
 }

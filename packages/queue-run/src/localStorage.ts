@@ -17,11 +17,10 @@ export type LocalStorage = {
     user: { id: string };
   }): Promise<void>;
 
-  // eslint-disable-next-line no-unused-vars
-  setUser(user?: { id: string } | null): void;
+  user?: { id: string } | null;
 };
 
-const symbol = Symbol("queue-run");
+const symbol = Symbol.for("qr-local-storage");
 
 // This is used internally to allow handlers to queue jobs, send WS messages, etc.
 export function getLocalStorage(): AsyncLocalStorage<LocalStorage> {

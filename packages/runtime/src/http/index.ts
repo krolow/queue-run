@@ -97,7 +97,7 @@ async function handleRequest({
 
   try {
     const response = await Promise.race([
-      getLocalStorage().run(newLocalStorage(), async () =>
+      getLocalStorage().run(newLocalStorage(), () =>
         runWithMiddleware({
           cors,
           handler,
@@ -147,7 +147,7 @@ async function runWithMiddleware({
       );
       throw new Response("Forbidden", { status: 403 });
     }
-    getLocalStorage().getStore()?.setUser(user);
+    getLocalStorage().getStore()!.user = user;
 
     const result = await handler(request, { ...metadata, user });
     const response = resultToResponse({ cors, filename, result });

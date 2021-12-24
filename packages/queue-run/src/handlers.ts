@@ -4,15 +4,17 @@ import type { Request, Response } from "node-fetch";
 
 export type RequestHandler = (
   request: Request,
-  metadata: {
-    // Parameters from the request URL, eg /project/:projectId will have the parameter `projectId`
-    params: { [key: string]: string };
-    // Notified when reached timeout, request aborted
-    signal: AbortSignal;
-    // If authenticted, the user ID and any other properties
-    user?: { id: string; [key: string]: any };
-  }
+  metadata: RequestHandlerMetadata
 ) => Promise<Response | JSONValue> | Response | JSONValue;
+
+export type RequestHandlerMetadata = {
+  // Parameters from the request URL, eg /project/:projectId will have the parameter `projectId`
+  params: { [key: string]: string };
+  // Notified when reached timeout, request aborted
+  signal: AbortSignal;
+  // If authenticted, the user ID and any other properties
+  user?: { id: string; [key: string]: any };
+};
 
 export type RouteConfig = {
   // Only accepts requests with specific content type(s).  Default to '*/*' (any content types).
@@ -52,27 +54,29 @@ export type JSONValue =
 
 export type QueueHandler = (
   payload: JSONValue | string | Buffer,
-  metadata: {
-    // Group ID (FIFO queue only)
-    groupID?: string;
-    // The queue name
-    queueName: string;
-    // Unique message ID
-    messageID: string;
-    // Parameters from the request URL, eg /project/:projectId will have the parameter `projectId`
-    params: { [key: string]: string };
-    // Number of times message was received
-    receivedCount: number;
-    // Timestamp when message was sent
-    sentAt: Date;
-    // Sequence number (FIFO queue only)
-    sequenceNumber?: number;
-    // Notified when reached timeout, message will be rejected
-    signal: AbortSignal;
-    // If authenticted, the user ID
-    user?: { id: string };
-  }
+  metadata: QueueHandlerMetadata
 ) => Promise<void> | void;
+
+export type QueueHandlerMetadata = {
+  // Group ID (FIFO queue only)
+  groupID?: string;
+  // The queue name
+  queueName: string;
+  // Unique message ID
+  messageID: string;
+  // Parameters from the request URL, eg /project/:projectId will have the parameter `projectId`
+  params: { [key: string]: string };
+  // Number of times message was received
+  receivedCount: number;
+  // Timestamp when message was sent
+  sentAt: Date;
+  // Sequence number (FIFO queue only)
+  sequenceNumber?: number;
+  // Notified when reached timeout, message will be rejected
+  signal: AbortSignal;
+  // If authenticted, the user ID
+  user?: { id: string };
+};
 
 export type QueueConfig = {
   // True if this route supports CORS request (default: true).

@@ -58,8 +58,9 @@ function bindNewLocalStorage({ sqs }: { sqs: SQS }) {
         throw new Error("Not implemented");
       },
 
-      setUser(newUser?: { id: string }) {
-        if (user !== undefined) throw new Error("User already set");
+      set user(newUser: { id: string } | null | undefined) {
+        if (user !== undefined && user?.id !== newUser?.id)
+          throw new Error("User already set");
         user = newUser ?? null;
       },
     };

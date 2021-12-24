@@ -142,7 +142,7 @@ export async function handleOneSQSMessage({
     console.info("Handling message %s on queue %s", messageId, queueName);
     const payload = getPayload(message);
 
-    getLocalStorage().getStore()?.setUser(metadata.user);
+    getLocalStorage().getStore()!.user = metadata.user;
 
     await Promise.race([
       module.handler(payload, metadata),
