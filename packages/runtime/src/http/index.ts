@@ -41,10 +41,11 @@ export default async function handleHTTPRequest(
         timeout: route.timeout,
       });
     } catch (error) {
-      if (error instanceof Response) {
-        return new Response(error.body, {
-          headers: error.headers,
-          status: error.status ?? 500,
+      if (error instanceof Object && error.constructor.name === "Response") {
+        const response = error as Response;
+        return new Response(response.body, {
+          headers: response.headers,
+          status: response.status ?? 500,
         });
       } else {
         console.error("Internal processing error", error);
