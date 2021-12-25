@@ -2,6 +2,7 @@ import { URL } from "url";
 
 // https://docs.aws.amazon.com/lambda/latest/dg/services-apigateway.html#apigateway-example-event
 export type APIGatewayHTTPEvent = {
+  cookies?: string[];
   rawPath: string;
   rawQueryString: string;
   requestContext: {
@@ -70,11 +71,15 @@ function toFetchRequest(
       http.path,
       http.userAgent
     );
+
     const { method } = http;
     const url = new URL(
       `https://${event.requestContext.domainName}${event.rawPath}?${event.rawQueryString}`
     ).href;
+
     const headers = new Headers(event.headers);
+    if (event.cookies) headers.set("Cookie", event.cookies.join(";"));
+
     const hasBody = method !== "GET" && method !== "HEAD";
     const body = hasBody
       ? event.body && event.isBase64Encoded

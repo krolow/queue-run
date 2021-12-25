@@ -11,7 +11,9 @@ export type AuthenticatedUser = { id: string; [key: string]: unknown };
 // If authentication fails, this function should throw a Response object with
 // the appropriate status code (401/403).
 export type AuthenticateMethod = (
-  request: Request
+  request: Request,
+  // Parsed cookies.
+  cookies: { [key: string]: string }
 ) => AuthenticatedUser | Promise<AuthenticatedUser>;
 
 // This middleware runs on every HTTP request, including when a message is sent

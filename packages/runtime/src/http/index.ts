@@ -5,6 +5,7 @@ import {
   LocalStorage,
   Middleware,
   RequestHandler,
+  RequestHandlerMetadata,
   RouteExports,
 } from "queue-run";
 import { loadServices } from "../loadServices";
@@ -116,6 +117,7 @@ async function handleRequest({
 }): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout * 1000);
+  const cookies = getCookies(request);
 
   try {
     const response = await Promise.race([
@@ -126,7 +128,7 @@ async function handleRequest({
           middleware,
           request,
           filename,
-          metadata: { params, signal: controller.signal },
+          metadata: { cookies, params, signal: controller.signal },
         })
       ),
       new Promise<undefined>((resolve) =>
@@ -152,7 +154,7 @@ async function runWithMiddleware({
   cors?: Headers;
   filename: string;
   handler: RequestHandler;
-  metadata: Parameters<RequestHandler>[1];
+  metadata: RequestHandlerMetadata;
   middleware: Middleware;
   request: Request;
 }) {
@@ -160,7 +162,9 @@ async function runWithMiddleware({
   try {
     if (onRequest) await onRequest(request);
 
-    const user = authenticate ? await authenticate(request) : undefined;
+    const user = authenticate
+      ? await authenticate(request, metadata.cookies)
+      : undefined;
     if (authenticate && !user?.id) {
       console.error(
         "Authenticate function returned an invalid user object",
@@ -187,6 +191,22 @@ async function runWithMiddleware({
     }
     return new Response("Internal server error", { status: 500 });
   }
+}
+
+function getCookies(request: Request): { [key: string]: string } {
+  const header = request.headers.get("cookie");
+  if (!header) return {};
+  return header
+    .split(";")
+    .map((cookie) => cookie.trim())
+    .map((cookie) => cookie.match(/^([^=]+?)=(.*)$/)?.slice(1)!)
+    .reduce(
+      (cookies, [key, value]) => ({
+        ...cookies,
+        [key]: value,
+      }),
+      {}
+    );
 }
 
 function corsHeaders({ methods }: { methods?: Set<string> }): Headers {

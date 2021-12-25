@@ -13,6 +13,8 @@ export type RequestHandler = (
 ) => Promise<Response | JSONValue> | Response | JSONValue;
 
 export type RequestHandlerMetadata = {
+  // Parsed cookies.
+  cookies: { [key: string]: string };
   // Parameters from the request URL, eg /project/:projectId will have the parameter `projectId`
   params: { [key: string]: string };
   // Notified when reached timeout, request aborted
