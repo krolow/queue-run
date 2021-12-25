@@ -67,6 +67,9 @@ function checkRequest(request: Request, route: HTTPRoute) {
   )
     throw new Response("Method not allowed", { status: 405 });
 
+  const hasBody = request.method !== "GET" && request.method !== "HEAD";
+  if (!hasBody) return;
+
   if (route.accepts) {
     if (route.accepts.has("*/*")) return;
 
