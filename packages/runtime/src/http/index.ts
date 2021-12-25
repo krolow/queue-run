@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import { AbortController } from "node-abort-controller";
-import type { LocalStorage } from "queue-run";
+import type { LocalStorage, RouteExports } from "queue-run";
 import { getLocalStorage, Middleware, RequestHandler } from "queue-run";
 import { loadServices } from "../loadServices";
 import {
@@ -32,9 +32,7 @@ export default async function handleHTTPRequest(
 
       checkRequest(request, route);
 
-      const handler = module[request.method.toLowerCase()] ?? module.default;
-      if (!handler) throw new Response("Method not allowed", { status: 405 });
-
+      const handler = getHandler(module, request.method);
       return await handleRequest({
         cors,
         filename: route.filename,
@@ -81,6 +79,15 @@ function checkRequest(request: Request, route: HTTPRoute) {
     if (!accepted)
       throw new Response("Unsupported Media Type", { status: 415 });
   }
+}
+
+function getHandler(module: RouteExports, method: string): RequestHandler {
+  const handler =
+    module[method.toLowerCase()] ??
+    (method === "HEAD" ? module.get : undefined) ??
+    module.default;
+  if (handler) return handler;
+  else throw new Response("Method not allowed", { status: 405 });
 }
 
 async function handleRequest({
