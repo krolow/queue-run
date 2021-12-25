@@ -109,7 +109,7 @@ function toFetchResponse(
   }
   if (typeof response === "string" || response instanceof String) {
     return new Response(String(response), {
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
     });
   }
   if (response instanceof Buffer) {

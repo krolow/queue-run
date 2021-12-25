@@ -18,6 +18,7 @@
     "@aws-sdk/client-sqs": "^3.43.0",
     "chalk": "4.1.2",
     "fast-glob": "^3.2.7",
+    "jsx-xml": "^0.2.3",
     "node-abort-controller": "^3.0.1",
     "node-fetch": "2.6.6",
     "parse-multipart-data": "^1.2.1",

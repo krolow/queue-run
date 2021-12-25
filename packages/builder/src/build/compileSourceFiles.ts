@@ -93,9 +93,16 @@ export function compileSource({
       parser: { syntax },
       target: jscTarget,
       transform: {
+        optimizer: {
+          globals: {
+            vars: {
+              __JSX: 'require("jsx-xml")',
+            },
+          },
+        },
         react: {
-          pragma: "jsx",
-          pragmaFrag: "jsx",
+          pragma: "__JSX.JSXXML",
+          pragmaFrag: "__JSX.Fragment",
           runtime: "classic",
           throwIfNamespace: false,
         },
