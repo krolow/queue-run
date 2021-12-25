@@ -1,7 +1,7 @@
 import { URL } from "url";
 
 // https://docs.aws.amazon.com/lambda/latest/dg/services-apigateway.html#apigateway-example-event
-export type APIGatewayProxyEvent = {
+export type APIGatewayHTTPEvent = {
   rawPath: string;
   rawQueryString: string;
   requestContext: {
@@ -19,7 +19,7 @@ export type APIGatewayProxyEvent = {
   isBase64Encoded: boolean;
 };
 
-export type APIGatewayProxyResponse = {
+export type APIGatewayResponse = {
   body: string;
   isBase64Encoded: boolean;
   headers: Record<string, string>;
@@ -35,10 +35,10 @@ export type BackendLambdaRequest = {
 };
 
 export async function asFetchRequest(
-  event: APIGatewayProxyEvent | BackendLambdaRequest,
+  event: APIGatewayHTTPEvent | BackendLambdaRequest,
   // eslint-disable-next-line no-unused-vars
   handler: (request: Request) => Promise<Response | string | object>
-): Promise<APIGatewayProxyResponse> {
+): Promise<APIGatewayResponse> {
   try {
     const response = await handler(toFetchRequest(event));
 
@@ -80,7 +80,7 @@ export async function asFetchRequest(
 }
 
 function toFetchRequest(
-  event: APIGatewayProxyEvent | BackendLambdaRequest
+  event: APIGatewayHTTPEvent | BackendLambdaRequest
 ): Request {
   if ("requestContext" in event) {
     const { http } = event.requestContext;
@@ -115,7 +115,7 @@ function toFetchRequest(
 
 async function fromFetchResponse(
   response: Response
-): Promise<APIGatewayProxyResponse> {
+): Promise<APIGatewayResponse> {
   return {
     body: (await response.buffer()).toString("base64"),
     isBase64Encoded: true,

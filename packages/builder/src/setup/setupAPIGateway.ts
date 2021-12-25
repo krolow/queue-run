@@ -6,6 +6,7 @@ import {
   CreateRouteRequest,
   IntegrationType,
   ProtocolType,
+  UpdateStageRequest,
 } from "@aws-sdk/client-apigatewayv2";
 import { Lambda } from "@aws-sdk/client-lambda";
 import ora from "ora";
@@ -29,7 +30,7 @@ export async function setupAPIGateway(project: string): Promise<{
   spinner.succeed(`Created API Gateway HTTP endpoint: ${http}`);
   const ws = await createApi(project, {
     ProtocolType: ProtocolType.WEBSOCKET,
-    RouteSelectionExpression: "@default",
+    RouteSelectionExpression: "\\$default",
   });
   spinner.succeed(`Created API Gateway WS endpoint: ${ws}`);
 
@@ -68,6 +69,7 @@ export async function setupIntegrations({
   lambdaARN: string;
 }) {
   const spinner = ora("Setting up API Gateway integrations ...").start();
+  await addInvokePermission(lambdaARN);
   await Promise.all([
     setupHTTPIntegrations(project, lambdaARN),
     setupWSIntegrations(project, lambdaARN),
@@ -92,19 +94,7 @@ async function setupHTTPIntegrations(project: string, lambdaARN: string) {
     RouteKey: "ANY /{proxy+}",
     Target: `integrations/${http}`,
   });
-  await createStage(api, "$default");
-  await addPermission(api, lambdaARN);
-}
-
-async function createStage(api: Api, stage: string): Promise<void> {
-  const { Items: items } = await apiGateway.getStages({ ApiId: api.ApiId });
-  const stageExists = items?.find(({ StageName }) => StageName === stage);
-  if (stageExists) return;
-  await apiGateway.createStage({
-    ApiId: api.ApiId,
-    StageName: stage,
-    AutoDeploy: true,
-  });
+  await deployAPI(api, "$default");
 }
 
 async function setupWSIntegrations(project: string, lambdaARN: string) {
@@ -117,28 +107,17 @@ async function setupWSIntegrations(project: string, lambdaARN: string) {
   const ws = await createIntegration({
     ApiId: api.ApiId,
     ContentHandlingStrategy: "CONVERT_TO_TEXT",
+    IntegrationMethod: "POST",
     IntegrationType: IntegrationType.AWS_PROXY,
     IntegrationUri: `arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/${lambdaARN}/invocations`,
     PassthroughBehavior: "WHEN_NO_MATCH",
-    PayloadFormatVersion: "1.0",
     TimeoutInMillis: 29000,
   });
-
-  const { Items: responses } = await apiGateway.getIntegrationResponses({
-    ApiId: api.ApiId,
-    IntegrationId: ws,
-  });
-  if (!responses?.length) {
-    await apiGateway.createIntegrationResponse({
-      ApiId: api.ApiId,
-      IntegrationId: ws,
-      IntegrationResponseKey: "$default",
-    });
-  }
 
   await Promise.all([
     createRoute({
       ApiId: api.ApiId,
+      AuthorizationType: "NONE",
       RouteKey: "$connect",
       Target: `integrations/${ws}`,
     }),
@@ -147,15 +126,17 @@ async function setupWSIntegrations(project: string, lambdaARN: string) {
       RouteKey: "$disconnect",
       Target: `integrations/${ws}`,
     }),
-    createRoute({
-      ApiId: api.ApiId,
-      RouteKey: "$default",
-      RouteResponseSelectionExpression: "$default",
-      Target: `integrations/${ws}`,
-    }),
   ]);
 
-  await addPermission(api, lambdaARN);
+  const defaultRouteId = await createRoute({
+    ApiId: api.ApiId,
+    RouteKey: "$default",
+    RouteResponseSelectionExpression: "$default",
+    Target: `integrations/${ws}`,
+  });
+  await createRouteResponse(api, ws, defaultRouteId);
+
+  await deployAPI(api, "$default");
 }
 
 async function createIntegration(
@@ -180,15 +161,78 @@ async function createIntegration(
   }
 }
 
-async function createRoute(args: CreateRouteRequest) {
+async function createRoute(args: CreateRouteRequest): Promise<string> {
   const { Items: routes } = await apiGateway.getRoutes({ ApiId: args.ApiId });
   const route = routes?.find(({ RouteKey }) => RouteKey === args.RouteKey);
-  if (route) await apiGateway.updateRoute({ ...args, RouteId: route.RouteId });
-  else await apiGateway.createRoute(args);
+  if (route?.RouteId) {
+    await apiGateway.updateRoute({ ...args, RouteId: route.RouteId });
+    return route.RouteId;
+  } else {
+    const { RouteId: id } = await apiGateway.createRoute(args);
+    invariant(id);
+    return id;
+  }
 }
 
-async function addPermission(api: Api, lambdaARN: string) {
-  const statementId = "qr-api-gateway-http";
+async function createRouteResponse(
+  api: Api,
+  integrationId: string,
+  routeId: string
+) {
+  const { Items: routeResponses } = await apiGateway.getRouteResponses({
+    ApiId: api.ApiId,
+    RouteId: routeId,
+  });
+  const hasRouteResponse = routeResponses?.find(
+    ({ RouteResponseKey }) => RouteResponseKey === "$default"
+  );
+  if (!hasRouteResponse) {
+    await apiGateway.createRouteResponse({
+      ApiId: api.ApiId,
+      RouteResponseKey: "$default",
+      RouteId: routeId,
+    });
+  }
+
+  const { Items: integrationResponses } =
+    await apiGateway.getIntegrationResponses({
+      ApiId: api.ApiId,
+      IntegrationId: integrationId,
+    });
+  const hasIntegrationResponse = integrationResponses?.find(
+    ({ IntegrationResponseKey }) => IntegrationResponseKey === "$default"
+  );
+  if (!hasIntegrationResponse) {
+    await apiGateway.createIntegrationResponse({
+      ApiId: api.ApiId,
+      IntegrationId: integrationId,
+      IntegrationResponseKey: "$default",
+      ContentHandlingStrategy: "CONVERT_TO_TEXT",
+    });
+  }
+}
+
+async function deployAPI(api: Api, stageName: string): Promise<void> {
+  const { DeploymentId, DeploymentStatus } = await apiGateway.createDeployment({
+    ApiId: api.ApiId,
+  });
+  if (DeploymentStatus !== "DEPLOYED")
+    throw new Error("Failed to deploy API Gateway");
+
+  const stage: UpdateStageRequest = {
+    ApiId: api.ApiId,
+    DeploymentId,
+    StageName: stageName,
+  };
+
+  const { Items: items } = await apiGateway.getStages({ ApiId: api.ApiId });
+  const stageExists = items?.find(({ StageName }) => StageName === stageName);
+  if (stageExists) await apiGateway.updateStage(stage);
+  else await apiGateway.createStage(stage);
+}
+
+async function addInvokePermission(lambdaARN: string) {
+  const statementId = "qr-api-gateway";
   try {
     await lambda.addPermission({
       Action: "lambda:InvokeFunction",

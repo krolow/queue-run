@@ -2,11 +2,13 @@ import { SQS } from "@aws-sdk/client-sqs";
 import { LocalStorage } from "queue-run";
 import swapAWSEnvVars from "./environment";
 import handleHTTPRequest, {
-  APIGatewayProxyResponse,
+  APIGatewayHTTPEvent,
+  APIGatewayResponse,
   BackendLambdaRequest,
 } from "./http";
 import { handleSQSMessages, pushMessage, SQSMessage } from "./queues";
 import { SQSBatchResponse } from "./queues/handleSQSMessages";
+import handleWebSocketRequest, { APIGatewayWebSocketEvent } from "./websockets";
 
 const { slug, region, ...clientConfig } =
   process.env.NODE_ENV === "production"
@@ -17,16 +19,27 @@ const { slug, region, ...clientConfig } =
 export async function handler(
   event: LambdaEvent,
   context: LambdaContext
-): Promise<APIGatewayProxyResponse | SQSBatchResponse> {
+): Promise<APIGatewayResponse | SQSBatchResponse> {
   console.info({ event, context });
 
   const sqs = new SQS({ ...clientConfig, region });
   const newLocalStorage = bindNewLocalStorage({ sqs });
 
-  if ("url" in event || "requestContext" in event)
+  if ("requestContext" in event) {
+    if ("connectionId" in event.requestContext) {
+      return await handleWebSocketRequest(
+        event as APIGatewayWebSocketEvent,
+        newLocalStorage
+      );
+    } else {
+      return await handleHTTPRequest(
+        event as APIGatewayHTTPEvent,
+        newLocalStorage
+      );
+    }
+  } else if ("url" in event) {
     return await handleHTTPRequest(event, newLocalStorage);
-
-  if ("Records" in event) {
+  } else if ("Records" in event) {
     const { getRemainingTimeInMillis } = context;
     const messages = event.Records.filter(
       (record) => record.eventSource === "aws:sqs"
@@ -39,9 +52,7 @@ export async function handler(
       newLocalStorage,
       sqs,
     });
-  }
-
-  throw new Error("Unknown event type");
+  } else throw new Error("Unknown event type");
 }
 
 function bindNewLocalStorage({ sqs }: { sqs: SQS }) {
@@ -69,7 +80,11 @@ function bindNewLocalStorage({ sqs }: { sqs: SQS }) {
   };
 }
 
-type LambdaEvent = { Records: Array<SQSMessage> } | BackendLambdaRequest;
+type LambdaEvent =
+  | APIGatewayHTTPEvent
+  | APIGatewayWebSocketEvent
+  | { Records: Array<SQSMessage> }
+  | BackendLambdaRequest;
 
 type LambdaContext = {
   functionName: string;

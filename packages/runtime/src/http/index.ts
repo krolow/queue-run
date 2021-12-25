@@ -4,18 +4,23 @@ import type { LocalStorage } from "queue-run";
 import { getLocalStorage, Middleware, RequestHandler } from "queue-run";
 import { loadServices } from "../loadServices";
 import {
-  APIGatewayProxyEvent,
-  APIGatewayProxyResponse,
+  APIGatewayHTTPEvent,
+  APIGatewayResponse,
   asFetchRequest,
   BackendLambdaRequest,
 } from "./asFetch";
 import findRoute from "./findRoute";
 import { HTTPRoute } from "./HTTPRoute";
+export {
+  APIGatewayHTTPEvent,
+  APIGatewayResponse,
+  BackendLambdaRequest,
+} from "./asFetch";
 
 export default async function handleHTTPRequest(
-  event: BackendLambdaRequest | APIGatewayProxyEvent,
+  event: BackendLambdaRequest | APIGatewayHTTPEvent,
   newLocalStorage: () => LocalStorage
-): Promise<APIGatewayProxyResponse> {
+): Promise<APIGatewayResponse> {
   return await asFetchRequest(event, async (request) => {
     try {
       const { routes } = await loadServices(process.cwd());
@@ -210,9 +215,3 @@ function resultToResponse({
     return new Response(undefined, { headers: cors, status: 204 });
   }
 }
-
-export type {
-  APIGatewayProxyEvent,
-  APIGatewayProxyResponse,
-  BackendLambdaRequest,
-};
