@@ -10,7 +10,7 @@ import getRuntime from "./build/getRuntime";
 // Enable hot reloading, TypeScript support, and import/export in JavaScript.
 export default async function moduleLoader({
   // The directory we're watching over
-  dirname: dirname,
+  dirname,
   // Watch for changes and call this function when a change is detected
   // (default: don't watch for changes)
   onReload,
