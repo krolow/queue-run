@@ -1,6 +1,11 @@
 /* eslint-disable no-unused-vars */
 import type { AbortSignal } from "node-abort-controller";
 import type { Request, Response } from "node-fetch";
+import { Middleware, OnError } from "./middleware";
+
+export type RouteExports = {
+  [key: string]: RequestHandler;
+} & { config?: RouteConfig } & Middleware;
 
 export type RequestHandler = (
   request: Request,
@@ -56,6 +61,12 @@ export type QueueHandler = (
   payload: JSONValue | string | Buffer,
   metadata: QueueHandlerMetadata
 ) => Promise<void> | void;
+
+export type QueueExports = {
+  default: QueueHandler;
+  config?: QueueConfig;
+  onError: OnError;
+};
 
 export type QueueHandlerMetadata = {
   // Group ID (FIFO queue only)

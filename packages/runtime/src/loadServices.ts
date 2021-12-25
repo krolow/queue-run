@@ -2,12 +2,7 @@ import chalk from "chalk";
 import glob from "fast-glob";
 import path from "path";
 import { Key, match, pathToRegexp } from "path-to-regexp";
-import type {
-  QueueConfig,
-  QueueHandler,
-  RequestHandler,
-  RouteConfig,
-} from "queue-run";
+import { QueueExports, RouteExports } from "queue-run";
 import invariant from "tiny-invariant";
 import { HTTPRoute } from "./http/HTTPRoute";
 import loadModule from "./loadModule";
@@ -70,10 +65,10 @@ async function loadRoutes(): Promise<Services["routes"]> {
   const filenames = await glob("api/**/[!_]*.{js,ts}");
   for (const filename of filenames) {
     try {
-      const module = await loadModule<
-        { [key: string]: RequestHandler } & { config: RouteConfig }
-      >(filename);
+      const module = await loadModule<RouteExports>(filename);
       invariant(module, "Module not found");
+      const { config } = module;
+      invariant(config);
 
       const path = pathFromFilename(filename.replace(/^api\//, "/"));
 
@@ -85,12 +80,12 @@ async function loadRoutes(): Promise<Services["routes"]> {
       dupes.add(signature);
 
       routes.set(path, {
-        accepts: getContentTypes(module.config),
-        cors: module.config.cors ?? true,
+        accepts: getContentTypes(config),
+        cors: config.cors ?? true,
         methods: getMethods(module),
         filename,
         match: match(path),
-        timeout: getTimeout(module.config, { max: 30, default: 30 }),
+        timeout: getTimeout(config, { max: 30, default: 30 }),
       });
     } catch (error) {
       throw new Error(`Error in "${filename}": ${error}`);
@@ -165,10 +160,10 @@ function isValidPathPart(part: string): boolean {
   return /^([a-z0-9_-]+)|(:[a-z0-9_-]+\*?)$/i.test(part);
 }
 
-function getMethods(
-  module: { [key: string]: RequestHandler } & { config: RouteConfig }
-): Set<string> {
+function getMethods(module: RouteExports): Set<string> {
   const { config } = module;
+  invariant(config);
+
   const methodHandlers = [
     "get",
     "post",
@@ -222,14 +217,13 @@ async function loadQueues(): Promise<Services["queues"]> {
   const filenames = await glob("queues/[!_]*.{js,ts}");
   for (const filename of filenames) {
     try {
-      const module = await loadModule<{
-        config: QueueConfig;
-        default?: QueueHandler;
-      }>(filename);
+      const module = await loadModule<QueueExports>(filename);
       invariant(module, "Module not found");
       const handler = module.default;
       if (typeof handler !== "function")
         throw new Error("Expected queue handler to export a function");
+      const { config } = module;
+      invariant(config);
 
       const queueName = queueNameFromFilename(filename);
       const isFifo = queueName.endsWith(".fifo");
@@ -238,7 +232,7 @@ async function loadQueues(): Promise<Services["queues"]> {
         filename,
         isFifo,
         queueName,
-        timeout: getTimeout(module.config, { max: 500, default: 30 }),
+        timeout: getTimeout(config, { max: 500, default: 30 }),
       });
     } catch (error) {
       throw new Error(`Error in "${filename}": ${error}`);
