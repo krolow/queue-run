@@ -131,7 +131,7 @@ export async function handleOneSQSMessage({
     handler?: QueueHandler;
   }>(`queues/${queueName}`);
   if (!module) throw new Error(`No handler for queue ${queueName}`);
-  const handler = module?.handler ?? module?.default;
+  const handler = module?.default;
   invariant(handler, `No handler for queue ${queueName}`);
 
   // When handling FIFO messges, possible we'll run out of time.

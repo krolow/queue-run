@@ -185,23 +185,20 @@ function getMethods(
       );
     return new Set(methodHandlers.map((method) => method.toUpperCase()));
   } else {
-    const handler = module.handler ?? module.default;
+    const handler = module.default;
     if (!handler)
       throw new Error(
         "Module missing request handler (export default function …)"
       );
 
-    const methods = new Set(
-      (Array.isArray(config.methods)
-        ? config.methods
-        : [config.methods ?? "*"]
-      ).map((method) => method.toUpperCase())
-    );
-    if (!Array.from(methods).every((method) => /^[A-Z]+|\*$/.test(method)))
+    const methods = (
+      Array.isArray(config.methods) ? config.methods : [config.methods ?? "*"]
+    ).map((method) => method.toUpperCase());
+    if (!methods.every((method) => /^[A-Z]+|\*$/.test(method)))
       throw new Error(
         `config.methods list acceptable HTTP methods, like "GET" or ["GET", "POST"]`
       );
-    return methods;
+    return new Set(methods);
   }
 }
 
@@ -228,10 +225,9 @@ async function loadQueues(): Promise<Services["queues"]> {
       const module = await loadModule<{
         config: QueueConfig;
         default?: QueueHandler;
-        handler?: QueueHandler;
       }>(filename);
       invariant(module, "Module not found");
-      const handler = module.handler ?? module.default;
+      const handler = module.default;
       if (typeof handler !== "function")
         throw new Error("Expected queue handler to export a function");
 

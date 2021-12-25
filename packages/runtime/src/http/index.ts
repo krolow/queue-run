@@ -32,10 +32,7 @@ export default async function handleHTTPRequest(
 
       checkRequest(request, route);
 
-      const handler =
-        module[request.method.toLowerCase()] ??
-        module.handler ??
-        module.default;
+      const handler = module[request.method.toLowerCase()] ?? module.default;
       if (!handler) throw new Response("Method not allowed", { status: 405 });
 
       return await handleRequest({
