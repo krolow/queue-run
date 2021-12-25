@@ -1,5 +1,6 @@
 import chalk from "chalk";
 import glob from "fast-glob";
+import fs from "fs/promises";
 import path from "path";
 import { Key, match, pathToRegexp } from "path-to-regexp";
 import { QueueExports, RouteExports } from "queue-run";
@@ -25,7 +26,11 @@ export async function loadServices(dirname: string): Promise<Services> {
   }
 }
 
-export function displayServices({ routes, queues }: Services) {
+export async function displayServices({
+  dirname,
+  routes,
+  queues,
+}: { dirname: string } & Services) {
   console.info(
     chalk.bold.blue("λ: %s"),
     routes.size > 0 ? "API:" : "No routes"
@@ -34,8 +39,12 @@ export function displayServices({ routes, queues }: Services) {
     ([path, { filename }]) => [path, filename]
   );
   const width = Math.max(...rows.map(([path]) => path.length));
-  const table = rows.map(([path, filename]) =>
-    [path.padEnd(width), filename].join("  →  ")
+  const table = await Promise.all(
+    rows.map(async ([path, filename]) =>
+      [path.padEnd(width), await getOriginalFilename(dirname, filename)].join(
+        "  →  "
+      )
+    )
   );
   console.info(
     "%s",
@@ -58,11 +67,20 @@ export function displayServices({ routes, queues }: Services) {
   );
 }
 
+async function getOriginalFilename(dirname: string, filename: string) {
+  const sourceMap = await fs.readFile(
+    path.join(dirname, `${filename}.map`),
+    "utf8"
+  );
+  const { sources } = JSON.parse(sourceMap);
+  return sources[0];
+}
+
 async function loadRoutes(): Promise<Services["routes"]> {
   const routes = new Map<string, HTTPRoute>();
   const dupes = new Set<string>();
 
-  const filenames = await glob("api/**/[!_]*.{js,ts}");
+  const filenames = await glob("api/**/[!_]*.{js,jsx,ts,tsx}");
   for (const filename of filenames) {
     try {
       const module = await loadModule<RouteExports>(filename);

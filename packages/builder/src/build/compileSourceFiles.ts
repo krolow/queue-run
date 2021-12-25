@@ -26,7 +26,6 @@ export default async function compileSourceFiles({
     .filter((line) => line.trim().length > 0 && !line.startsWith("#"));
 
   const filenames = glob.sync("**/*", {
-    absolute: true,
     cwd: sourceDir,
     followSymbolicLinks: true,
     ignore: [...ignore, "**/node_modules/**", "index.js", targetDir],
@@ -41,7 +40,7 @@ export default async function compileSourceFiles({
       await fs.mkdir(dest, { recursive: true });
     } else {
       await fs.mkdir(path.dirname(dest), { recursive: true });
-      if (/\.(js|ts)$/.test(filename)) {
+      if (/\.(js|ts)x?$/.test(filename)) {
         await compileSourceFile({ filename, dest, jscTarget });
         compiled++;
       } else {
@@ -69,15 +68,30 @@ async function compileSourceFile({
   filename: string;
   jscTarget: swc.JscTarget;
 }) {
-  const syntax = filename.endsWith(".ts") ? "typescript" : "ecmascript";
-  const { code, map } = await swc.transformFile(filename, {
+  const syntax = /\.tsx?$/.test(filename) ? "typescript" : "ecmascript";
+  const source = await fs.readFile(filename, "utf-8");
+  const { code, map } = await swc.transform(source, {
     envName: process.env.NODE_ENV,
-    jsc: { parser: { syntax }, target: jscTarget },
+    filename,
+    isModule: true,
+    jsc: {
+      baseUrl: process.cwd(),
+      parser: { syntax },
+      target: jscTarget,
+      transform: {
+        react: {
+          pragma: "jsx",
+          pragmaFrag: "jsx",
+          runtime: "classic",
+          throwIfNamespace: false,
+        },
+      },
+    },
     module: { type: "commonjs" },
     sourceMaps: true,
     swcrc: false,
   });
-  await fs.writeFile(dest.replace(/\.ts$/, ".js"), code, "utf-8");
+  await fs.writeFile(dest.replace(/\.tsx?$/, ".js"), code, "utf-8");
   if (map)
-    await fs.writeFile(dest.replace(/\.(js|ts)$/, ".js.map"), map, "utf-8");
+    await fs.writeFile(dest.replace(/\.(js|ts)x?$/, ".js.map"), map, "utf-8");
 }

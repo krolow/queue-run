@@ -54,6 +54,6 @@ export default async function buildProject({
   const zip = full ? await zipLambda(buildDir) : undefined;
   if (signal?.aborted) throw new Error();
 
-  displayServices(services);
+  await displayServices({ dirname: buildDir, ...services });
   return { lambdaRuntime, zip, ...services };
 }
