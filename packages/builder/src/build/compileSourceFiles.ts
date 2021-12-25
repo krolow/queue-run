@@ -68,14 +68,28 @@ async function compileSourceFile({
   filename: string;
   jscTarget: swc.JscTarget;
 }) {
-  const syntax = /\.tsx?$/.test(filename) ? "typescript" : "ecmascript";
   const source = await fs.readFile(filename, "utf-8");
-  const { code, map } = await swc.transform(source, {
+  const { code, map } = compileSource({ filename, jscTarget, source });
+  await fs.writeFile(dest.replace(/\.tsx?$/, ".js"), code, "utf-8");
+  if (map)
+    await fs.writeFile(dest.replace(/\.(js|ts)x?$/, ".js.map"), map, "utf-8");
+}
+
+export function compileSource({
+  filename,
+  jscTarget,
+  source,
+}: {
+  filename: string;
+  jscTarget: swc.JscTarget;
+  source: string;
+}) {
+  const syntax = /\.tsx?$/.test(filename) ? "typescript" : "ecmascript";
+  return swc.transformSync(source, {
     envName: process.env.NODE_ENV,
     filename,
     isModule: true,
     jsc: {
-      baseUrl: process.cwd(),
       parser: { syntax },
       target: jscTarget,
       transform: {
@@ -91,7 +105,4 @@ async function compileSourceFile({
     sourceMaps: true,
     swcrc: false,
   });
-  await fs.writeFile(dest.replace(/\.tsx?$/, ".js"), code, "utf-8");
-  if (map)
-    await fs.writeFile(dest.replace(/\.(js|ts)x?$/, ".js.map"), map, "utf-8");
 }

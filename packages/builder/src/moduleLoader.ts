@@ -1,10 +1,10 @@
-import swc from "@swc/core";
 import chalk from "chalk";
 import fs from "fs";
 import { AbortController } from "node-abort-controller";
 import path from "path";
 import { addHook } from "pirates";
 import sourceMapSupport from "source-map-support";
+import { compileSource } from "./build/compileSourceFiles";
 import getRuntime from "./build/getRuntime";
 
 // Enable hot reloading, TypeScript support, and import/export in JavaScript.
@@ -88,37 +88,21 @@ export default async function moduleLoader({
   function compileSourceFile({
     source,
     filename,
-    syntax,
   }: {
     source: string;
     filename: string;
-    syntax: "ecmascript" | "typescript";
   }) {
-    const { code: compiled, map: sourceMap } = swc.transformSync(source, {
-      filename,
-      envName: process.env.NODE_ENV,
-      jsc: { parser: { syntax }, target: jscTarget },
-      module: { type: "commonjs" },
-      sourceMaps: true,
-      swcrc: false,
-    });
-    if (sourceMap) sourceMaps.set(filename, sourceMap);
-    return compiled;
+    const { code, map } = compileSource({ filename, jscTarget, source });
+    if (map) sourceMaps.set(filename, map);
+    return code;
   }
 
   addHook(
     (source, filename) => {
       watchOver(filename);
-      return compileSourceFile({ source, filename, syntax: "ecmascript" });
+      return compileSourceFile({ source, filename });
     },
-    { extensions: [".js", ".jsx"] }
-  );
-  addHook(
-    (source, filename) => {
-      watchOver(filename);
-      return compileSourceFile({ source, filename, syntax: "typescript" });
-    },
-    { extensions: [".ts", ".tsx"] }
+    { extensions: [".js", ".jsx", ".ts", ".tsx"] }
   );
   addHook(
     (source, filename) => {
