@@ -1,10 +1,10 @@
 import Lambda from "@aws-sdk/client-lambda";
-import { displayServices, loadServices, Services } from "@queue-run/runtime";
 import ora from "ora";
 import compileSourceFiles from "./compileSourceFiles";
 import createBuildDirectory from "./createBuildDirectory";
 import getRuntime from "./getRuntime";
 import installDependencies from "./installDependencies";
+import { displayServices, loadServices, Services } from "./loadServices";
 import zipLambda from "./zipLambda";
 
 // Short build: compile source files to target directory.

@@ -1,11 +1,11 @@
 import { Lambda } from "@aws-sdk/client-lambda";
-import { Services } from "@queue-run/runtime";
 import chalk from "chalk";
 import dotenv from "dotenv";
 import fs from "fs/promises";
 import ow from "ow";
 import invariant from "tiny-invariant";
 import buildProject from "../build";
+import { Services } from "../build/loadServices";
 import { addTriggers, removeTriggers } from "./eventSource";
 import { createQueues, deleteOldQueues } from "./prepareQueues";
 import updateAlias from "./updateAlias";

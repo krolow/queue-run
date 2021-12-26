@@ -1,7 +1,7 @@
 import { SQS } from "@aws-sdk/client-sqs";
-import { Services } from "@queue-run/runtime";
 import ora from "ora";
 import { URL } from "url";
+import { Services } from "../build/loadServices";
 
 export async function createQueues({
   prefix,

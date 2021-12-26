@@ -1,4 +1,4 @@
-import { moduleLoader } from "@queue-run/builder";
+import { loadServices, moduleLoader } from "@queue-run/builder";
 import chalk from "chalk";
 import { createServer, IncomingMessage, ServerResponse } from "http";
 import ora from "ora";
@@ -21,7 +21,7 @@ export default async function devServer({ port }: { port: number }) {
 async function onListening(port: number) {
   const spinner = ora("Reviewing services").start();
   try {
-    // await loadServices(process.cwd());
+    await loadServices(process.cwd());
     spinner.stop();
 
     console.info(
@@ -69,7 +69,7 @@ async function onReload(filename: string) {
   const spinner = ora(`File ${filename} changed, reloading`).start();
   try {
     await Promise.all([
-      // loadServices(process.cwd()),
+      loadServices(process.cwd()),
       new Promise((resolve) => setTimeout(resolve, 500)),
     ]);
     spinner.succeed(`File ${filename} changed, reloaded`);
