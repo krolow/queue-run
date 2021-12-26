@@ -2,6 +2,7 @@ import { moduleLoader } from "@queue-run/builder";
 import chalk from "chalk";
 import { readFile } from "fs/promises";
 import ora from "ora";
+import { loadQueues } from "queue-run";
 import readline from "readline";
 import envVariables from "./envVariables";
 import { newLocalStorage } from "./newLocalStorage";
@@ -12,34 +13,35 @@ export default async function queueMessage(
   { port, group }: { port: number; group?: string }
 ) {
   const payload = parseMessage(await readPayload(message));
-
   const spinner = ora(`Loading queue handler for ${queueName}`).start();
   try {
     envVariables(port);
     await moduleLoader({ dirname: process.cwd() });
-    newLocalStorage().queueJob({
-      groupID: group,
-      payload,
-      queueName,
-    });
+    await loadQueues();
 
     spinner.succeed();
   } catch (error) {
     spinner.stop();
     throw error;
   }
+  await newLocalStorage().queueJob({
+    groupID: group,
+    payload,
+    queueName,
+  });
 }
 
 async function readPayload(message: string): Promise<string> {
   if (!message) {
-    console.info(
-      chalk.bold.blue(
-        "Type your message then Ctrl+D on an empty line (Ctrl+C to exit)"
-      )
-    );
+    if (process.stdin.isTTY) {
+      console.info(
+        chalk.bold.blue(
+          "Type your message then Ctrl+D on an empty line (Ctrl+C to exit)"
+        )
+      );
+    }
     const rl = readline.createInterface({
       input: process.stdin,
-      output: process.stdout,
       prompt: "",
     });
     rl.on("SIGINT", () => process.exit(-1));

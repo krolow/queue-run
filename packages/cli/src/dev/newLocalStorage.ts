@@ -5,6 +5,7 @@ export function newLocalStorage(): LocalStorage {
   return {
     queueJob: async ({ queueName, groupID, payload, params }) => {
       const messageID = crypto.randomBytes(4).toString("hex");
+
       setImmediate(() =>
         handleQueuedJob({
           queueName,
