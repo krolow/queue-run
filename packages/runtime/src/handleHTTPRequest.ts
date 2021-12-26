@@ -36,7 +36,7 @@ export type BackendLambdaRequest = {
   url: string;
 };
 
-export default async function (
+export default async function httpHandler(
   event: BackendLambdaRequest | APIGatewayHTTPEvent,
   newLocalStorage: () => LocalStorage
 ): Promise<APIGatewayResponse> {

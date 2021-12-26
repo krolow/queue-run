@@ -1,5 +1,5 @@
 import { LocalStorage } from "queue-run";
-import { APIGatewayResponse } from "./http";
+import { APIGatewayResponse } from "./handleHTTPRequest";
 
 export default async function handleWebSocketRequest(
   event: APIGatewayWebSocketEvent,

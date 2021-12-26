@@ -1,10 +1,5 @@
 import { SQS } from "@aws-sdk/client-sqs";
-import {
-  getLocalStorage,
-  handleQueuedJob,
-  LocalStorage,
-  QueueHandler,
-} from "queue-run";
+import { handleQueuedJob, LocalStorage, QueueHandler } from "queue-run";
 import { URLSearchParams } from "url";
 
 export type SQSBatchResponse = {
@@ -83,9 +78,12 @@ async function handleStandardMessages({
   const remainingTime = getRemainingTimeInMillis();
   const failedMessageIds = await Promise.all(
     messages.map(async (message) => {
-      const successful = await getLocalStorage().run(newLocalStorage(), () =>
-        handleOneSQSMessage({ message, sqs, remainingTime })
-      );
+      const successful = await handleOneSQSMessage({
+        message,
+        newLocalStorage,
+        sqs,
+        remainingTime,
+      });
       return successful ? null : message.messageId;
     })
   );
@@ -114,9 +112,13 @@ async function handleFifoMessages({
   while ((next = messages.shift())) {
     const message = next;
     const remainingTime = getRemainingTimeInMillis();
-    const successful = await getLocalStorage().run(newLocalStorage(), () =>
-      handleOneSQSMessage({ message, sqs, remainingTime })
-    );
+    const successful = await handleOneSQSMessage({
+      message,
+      newLocalStorage,
+      sqs,
+      remainingTime,
+    });
+
     if (!successful) {
       return {
         batchItemFailures: [next]
@@ -130,10 +132,12 @@ async function handleFifoMessages({
 
 export async function handleOneSQSMessage({
   message,
+  newLocalStorage,
   remainingTime,
   sqs,
 }: {
   message: SQSMessage;
+  newLocalStorage: () => LocalStorage;
   remainingTime: number;
   sqs: SQS;
 }): Promise<boolean> {
@@ -143,6 +147,7 @@ export async function handleOneSQSMessage({
     metadata: getMetadata(message),
     payload: getPayload(message),
     remainingTime,
+    newLocalStorage,
   });
   if (successful && (await sqs.config.region()) !== "localhost") {
     console.info(
