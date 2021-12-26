@@ -15,9 +15,8 @@ export async function loadServices(dirname: string): Promise<Services> {
     const routes = await loadRoutes();
     const queues = await loadQueues();
     return { routes, queues };
-  } catch (error) {
+  } finally {
     process.chdir(cwd);
-    throw error;
   }
 }
 

@@ -42,14 +42,9 @@ export default async function buildProject({
   if (signal?.aborted) throw new Error();
 
   const spinner = ora("Reviewing endpoints …").start();
-  let services;
-  try {
-    services = await loadServices(buildDir);
-    if (services.routes.size + services.queues.size === 0)
-      throw new Error("No API endpoints, queues, or schedules");
-  } finally {
-    spinner.stop();
-  }
+  const services = await loadServices(buildDir);
+  spinner.stop();
+  if (services.routes.size === 0) throw new Error("No API endpoints");
 
   const zip = full ? await zipLambda(buildDir) : undefined;
   if (signal?.aborted) throw new Error();
