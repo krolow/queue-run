@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 import * as nodeFetch from "node-fetch";
 import multipart from "parse-multipart-data";
+import { JSONValue } from "./handlers";
 
 export class RequestFormData {
   private fields: Map<
@@ -43,7 +44,7 @@ export class RequestFormData {
 }
 
 declare module "node-fetch" {
-  interface Request {
+  interface Request<Type = JSONValue> {
     form: () => Promise<RequestFormData>;
   }
 }

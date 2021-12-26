@@ -1,22 +1,30 @@
 /* eslint-disable no-unused-vars */
 import type { AbortSignal } from "node-abort-controller";
-import type { Request, Response } from "node-fetch";
 import { Middleware, OnError } from "./middleware";
 
 export type RouteExports = {
   [key: string]: RequestHandler;
 } & { config?: RouteConfig } & Middleware;
 
-export type RequestHandler = (
-  request: Request,
-  metadata: RequestHandlerMetadata
+export type RequestHandler<
+  JSON = JSONValue,
+  Params = {
+    [key: string]: string | string[];
+  }
+> = (
+  request: Omit<Request, "json"> & { json: () => Promise<JSON> },
+  metadata: RequestHandlerMetadata<Params>
 ) => Promise<Response | JSONValue> | Response | JSONValue;
 
-export type RequestHandlerMetadata = {
+export type RequestHandlerMetadata<
+  Params = {
+    [key: string]: string | string[];
+  }
+> = {
   // Parsed cookies.
   cookies: { [key: string]: string };
   // Parameters from the request URL, eg /project/:projectId will have the parameter `projectId`
-  params: { [key: string]: string };
+  params: Params;
   // Notified when reached timeout, request aborted
   signal: AbortSignal;
   // If authenticted, the user ID and any other properties
@@ -41,13 +49,13 @@ export type RouteConfig = {
 };
 
 type HTTPMethod =
-  | "GET"
-  | "POST"
-  | "PUT"
-  | "PATCH"
   | "DELETE"
+  | "GET"
   | "HEAD"
-  | "OPTIONS";
+  | "OPTIONS"
+  | "PATCH"
+  | "POST"
+  | "PUT";
 
 type JSONObject = { [key: string]: JSONValue };
 type JSONArray = JSONValue[];
@@ -59,9 +67,12 @@ export type JSONValue =
   | JSONArray
   | JSONObject;
 
-export type QueueHandler = (
-  payload: JSONValue | string | Buffer,
-  metadata: QueueHandlerMetadata
+export type QueueHandler<
+  Payload = JSONValue | string | Buffer,
+  Params = { [key: string]: string | string[] }
+> = (
+  payload: Payload,
+  metadata: QueueHandlerMetadata<Params>
 ) => Promise<void> | void;
 
 export type QueueExports = {
@@ -70,7 +81,9 @@ export type QueueExports = {
   onError: OnError;
 };
 
-export type QueueHandlerMetadata = {
+export type QueueHandlerMetadata<
+  Params = { [key: string]: string | string[] }
+> = {
   // Group ID (FIFO queue only)
   groupID?: string;
   // The queue name
@@ -78,7 +91,7 @@ export type QueueHandlerMetadata = {
   // Unique message ID
   messageID: string;
   // Parameters from the request URL, eg /project/:projectId will have the parameter `projectId`
-  params: { [key: string]: string };
+  params: Params;
   // Number of times message was received
   receivedCount: number;
   // Timestamp when message was sent
@@ -89,6 +102,17 @@ export type QueueHandlerMetadata = {
   signal: AbortSignal;
   // If authenticted, the user ID
   user?: { id: string };
+};
+
+// FIFO queue handler, groupID and sequence number always available.
+export type FIFOQueueHandler<Payload, Exports> = QueueHandler<
+  Payload,
+  Exports
+> & {
+  metadata: QueueHandlerMetadata<Exports> & {
+    groupID: string;
+    sequenceNumber: number;
+  };
 };
 
 export type QueueConfig = {
