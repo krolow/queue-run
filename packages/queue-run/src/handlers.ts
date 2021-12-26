@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 import type { AbortSignal } from "node-abort-controller";
-import { Middleware, OnError } from "./middleware";
+import { Middleware, OnError } from "../types/middleware";
 
 export type RouteExports = {
   [key: string]: RequestHandler;

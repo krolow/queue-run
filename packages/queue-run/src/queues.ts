@@ -1,5 +1,5 @@
 import { getLocalStorage } from "./localStorage";
-import { AuthenticatedUser } from "./middleware";
+import { AuthenticatedUser } from "./types/middleware";
 
 // Use this function to create a queue object.
 //
