@@ -1,6 +1,6 @@
 {
   "name": "queue-run",
-  "version": "0.0.3",
+  "version": "0.1.0",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
   "types": "dist/types/index.d.ts",
@@ -17,6 +17,8 @@
     "node-abort-controller": "^3.0.1",
     "node-fetch": "2.6.6",
     "parse-multipart-data": "^1.2.1",
+    "path-to-regexp": "^6.2.0",
+    "tiny-invariant": "^1.2.0",
     "xmlbuilder": "^15.1.1"
   },
   "devDependencies": {

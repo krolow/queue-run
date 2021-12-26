@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import { AbortController } from "node-abort-controller";
-import { getLocalStorage, LocalStorage } from "..";
+import { getLocalStorage, LocalStorage } from "../localStorage";
 import { RequestHandler, RequestHandlerMetadata, RouteExports } from "../types";
 import { RouteMiddleware } from "../types/requestHandler";
 import findRoute, { HTTPRoute } from "./findRoute";

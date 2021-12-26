@@ -1,8 +1,8 @@
 import chalk from "chalk";
 import { AbortController } from "node-abort-controller";
 import invariant from "tiny-invariant";
-import { getLocalStorage, LocalStorage } from "..";
 import loadModule from "../loadModule";
+import { getLocalStorage, LocalStorage } from "../localStorage";
 import { QueueExports, QueueHandlerMetadata, QueueMiddleware } from "../types";
 import loadQueues from "./loadQueues";
 
