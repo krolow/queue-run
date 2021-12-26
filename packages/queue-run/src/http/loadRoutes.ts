@@ -5,6 +5,9 @@ import loadModule from "../loadModule";
 import { RouteExports, RouteMiddleware } from "../types";
 import { HTTPRoute } from "./findRoute";
 
+const maxTimeout = 60;
+const defaultTimeout = 30;
+
 // Loads all routes from the current directory
 export default async function loadRoutes(): Promise<Map<string, HTTPRoute>> {
   const routes = new Map<
@@ -45,7 +48,7 @@ export default async function loadRoutes(): Promise<Map<string, HTTPRoute>> {
         methods: getMethods(module),
         filename,
         match: match(path),
-        timeout: getTimeout(config, { max: 30, default: 30 }),
+        timeout: getTimeout(config),
       });
     } catch (error) {
       throw new Error(`Error in "${filename}": ${error}`);
@@ -168,16 +171,13 @@ function getContentTypes(config: { accepts?: string[] | string }): Set<string> {
   return accepts;
 }
 
-function getTimeout(
-  { timeout }: { timeout?: number },
-  { max, default: def }: { max: number; default: number }
-): number {
-  if (timeout === undefined || timeout === null) return def;
+function getTimeout({ timeout }: { timeout?: number }): number {
+  if (timeout === undefined || timeout === null) return defaultTimeout;
   if (typeof timeout !== "number")
     throw new Error("config.timeout must be a number (seconds)");
   if (timeout < 1) throw new Error("config.timeout must be at least 1 second");
-  if (timeout > max)
-    throw new Error(`config.timeout cannot be more than ${max} seconds`);
+  if (timeout > maxTimeout)
+    throw new Error(`config.timeout cannot be more than ${maxTimeout} seconds`);
   return timeout;
 }
 

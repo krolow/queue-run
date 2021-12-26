@@ -2,12 +2,12 @@ import { AsyncLocalStorage } from "async_hooks";
 
 export type LocalStorage = {
   // eslint-disable-next-line no-unused-vars
-  pushMessage(message: {
-    body: string | Buffer | object;
-    dedupeId?: string;
-    groupId?: string;
+  queueJob(message: {
+    dedupeID?: string;
+    groupID?: string;
+    params?: { [key: string]: string | string[] };
+    payload: string | Buffer | object;
     queueName: string;
-    params?: { [key: string]: string };
     user?: { id: string };
   }): Promise<string>;
 

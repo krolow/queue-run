@@ -21,28 +21,21 @@ import {
 //   // id has type string
 //   . . .
 // }
-export type RequestHandler<
-  JSON = object,
-  Params = { [key: string]: string | string[] }
-> = (
-  request: Omit<Request, "json"> & { json: () => Promise<JSON> },
-  metadata: RequestHandlerMetadata<Params>
-) =>
-  | Promise<Response | string | Buffer | object>
-  | Response
-  | string
-  | Buffer
-  | object;
+export type RequestHandler<T = object, P = Params> = (
+  request: Omit<Request, "json"> & { json: () => Promise<T> },
+  metadata: RequestHandlerMetadata<P>
+) => Promise<Result> | Result;
 
-export type RequestHandlerMetadata<
-  Params = { [key: string]: string | string[] }
-> = {
+type Params = { [key: string]: string | string[] };
+type Result = Response | string | Buffer | object;
+
+export type RequestHandlerMetadata<P = Params> = {
   // Parsed cookies.
   cookies: { [key: string]: string };
   // Parameters from the request URL, eg /project/[projectId] will have the
   // parameter `projectId`.  [name] parameter will be a string, [...name]
   // parameter an array of strings.
-  params: Params;
+  params: P;
   // Notified when request timed out, use this to abort further processing.
   signal: AbortSignal;
   // If authenticted, the user ID and any other properties

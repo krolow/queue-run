@@ -1,3 +1,4 @@
+import { handleHTTPRequest, LocalStorage } from "queue-run";
 import { URL } from "url";
 
 // https://docs.aws.amazon.com/lambda/latest/dg/services-apigateway.html#apigateway-example-event
@@ -35,7 +36,16 @@ export type BackendLambdaRequest = {
   url: string;
 };
 
-export async function asFetchRequest(
+export default async function (
+  event: BackendLambdaRequest | APIGatewayHTTPEvent,
+  newLocalStorage: () => LocalStorage
+): Promise<APIGatewayResponse> {
+  return await asFetchRequest(event, async (request) =>
+    handleHTTPRequest(request, newLocalStorage)
+  );
+}
+
+async function asFetchRequest(
   event: APIGatewayHTTPEvent | BackendLambdaRequest,
   // eslint-disable-next-line no-unused-vars
   handler: (request: Request) => Promise<Response | string | object>

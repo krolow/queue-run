@@ -42,22 +42,3 @@ export type OnError<Reference> = (
   error: Error,
   reference?: Reference
 ) => void | Promise<void>;
-
-export type Middleware = {
-  // This middleware runs first to authenticate the request.
-  //
-  // Use `export const authenticate = null;` if you want to disable
-  // authentication for this route, and ignore any authentication added to the
-  // parent route.
-  authenticate?: AuthenticateMethod | null;
-
-  // This middleware runs for every HTTP request, including when a message is
-  // sent to a queue.
-  onRequest?: OnRequest | null;
-
-  // This middleware runs for every HTTP response.
-  onResponse?: OnResponse | null;
-
-  // This middleware runs if your request or message handler throws an error.
-  onError?: OnError | null;
-};

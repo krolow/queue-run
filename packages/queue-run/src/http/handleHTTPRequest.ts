@@ -2,10 +2,10 @@ import chalk from "chalk";
 import { AbortController } from "node-abort-controller";
 import { getLocalStorage, LocalStorage } from "..";
 import { RequestHandler, RequestHandlerMetadata, RouteExports } from "../types";
-import { RouteMiddleware } from "./../types/requestHandler";
+import { RouteMiddleware } from "../types/requestHandler";
 import findRoute, { HTTPRoute } from "./findRoute";
 
-export default async function handler(
+export default async function handleHTTPRequest(
   request: Request,
   newLocalStorage: () => LocalStorage
 ): Promise<Response> {
@@ -19,7 +19,7 @@ export default async function handler(
     checkRequest(request, route);
 
     const handler = getHandler(module, request.method);
-    return await handleRequest({
+    return await handleRoute({
       corsHeaders,
       filename: route.filename,
       handler,
@@ -84,7 +84,7 @@ function getHandler(module: RouteExports, method: string): RequestHandler {
   else throw new Response("Method Not Allowed", { status: 405 });
 }
 
-async function handleRequest({
+async function handleRoute({
   corsHeaders,
   filename,
   handler,

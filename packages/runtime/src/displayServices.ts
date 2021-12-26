@@ -14,18 +14,6 @@ export type Services = {
   routes: Map<string, HTTPRoute>;
 };
 
-export async function loadServices(dirname: string): Promise<Services> {
-  const cwd = process.cwd();
-  process.chdir(dirname);
-  try {
-    const queues = await loadQueues();
-    const routes = await loadRoutes();
-    return { queues, routes };
-  } finally {
-    process.chdir(cwd);
-  }
-}
-
 export async function displayServices({
   dirname,
   routes,

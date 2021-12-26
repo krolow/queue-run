@@ -1,25 +1,39 @@
 import { SQS } from "@aws-sdk/client-sqs";
-import chalk from "chalk";
-import { AbortController } from "node-abort-controller";
 import {
   getLocalStorage,
-  JSONValue,
+  handleQueuedJob,
   LocalStorage,
-  QueueConfig,
   QueueHandler,
 } from "queue-run";
-import invariant from "tiny-invariant";
 import { URLSearchParams } from "url";
-import loadModule from "../loadModule";
-import type { SQSMessage } from "./index";
-
-const minTimeout = 1;
-const maxTimeout = 30;
-const defaultTimeout = 10;
 
 export type SQSBatchResponse = {
   // https://docs.aws.amazon.com/lambda/latest/dg/with-ddb.html#services-ddb-batchfailurereporting
   batchItemFailures: Array<{ itemIdentifier: string }>;
+};
+
+export declare type SQSMessage = {
+  attributes: {
+    ApproximateFirstReceiveTimestamp: string;
+    ApproximateReceiveCount: string;
+    MessageDeduplicationId?: string;
+    MessageGroupId?: string;
+    SenderId: string;
+    SentTimestamp: string;
+    SequenceNumber?: string;
+  };
+  awsRegion: string;
+  body: string;
+  eventSource: "aws:sqs";
+  eventSourceARN: string;
+  md5OfBody: string;
+  messageAttributes: {
+    [key: string]: {
+      stringValue: string;
+    };
+  };
+  messageId: string;
+  receiptHandle: string;
 };
 
 export default async function handleSQSMessages({
@@ -123,83 +137,25 @@ export async function handleOneSQSMessage({
   remainingTime: number;
   sqs: SQS;
 }): Promise<boolean> {
-  const { messageId } = message;
   const queueName = getQueueName(message);
-  const module = await loadModule<{
-    config?: QueueConfig;
-    default?: QueueHandler;
-    handler?: QueueHandler;
-  }>(`queues/${queueName}`);
-  if (!module) throw new Error(`No handler for queue ${queueName}`);
-  const handler = module?.default;
-  invariant(handler, `No handler for queue ${queueName}`);
-
-  // When handling FIFO messges, possible we'll run out of time.
-  const timeout = Math.min(getTimeout(module.config ?? {}), remainingTime);
-  if (timeout <= 0) return false;
-
-  // Create an abort controller to allow the handler to cancel incomplete work.
-  const controller = new AbortController();
-  const abortTimeout = setTimeout(() => controller.abort(), timeout * 1000);
-
-  const metadata = { ...getMetadata(message), signal: controller.signal };
-  try {
-    console.info("Handling message %s on queue %s", messageId, queueName);
-    const payload = getPayload(message);
-
-    getLocalStorage().getStore()!.user = metadata.user;
-
-    await Promise.race([
-      handler(payload, metadata),
-
-      new Promise((resolve) => {
-        controller.signal.addEventListener("abort", resolve);
-      }),
-    ]);
-
-    if (controller.signal.aborted) {
-      throw new Error(
-        `Timeout: message took longer than ${timeout} to process`
-      );
-    }
-
-    if ((await sqs.config.region()) !== "localhost") {
-      console.info("Deleting message %s from queue %s", messageId, queueName);
-      await sqs.deleteMessage({
-        QueueUrl: getQueueURL(message),
-        ReceiptHandle: message.receiptHandle,
-      });
-    }
-
-    return true;
-  } catch (error) {
-    console.error(
-      chalk.bold.red('Error in queue "%s" message %s:'),
-      queueName,
-      messageId,
-      error
+  const successful = await handleQueuedJob({
+    queueName,
+    metadata: getMetadata(message),
+    payload: getPayload(message),
+    remainingTime,
+  });
+  if (successful && (await sqs.config.region()) !== "localhost") {
+    console.info(
+      "Deleting message %s from queue %s",
+      message.messageId,
+      queueName
     );
-
-    if (module.onError) {
-      try {
-        await module.onError(
-          error instanceof Error ? error : new Error(String(error)),
-          metadata
-        );
-      } catch (error) {
-        console.error(
-          chalk.bold.red('Error in onError handler queue "%s"'),
-          queueName,
-          error
-        );
-      }
-    }
-
-    return false;
-  } finally {
-    clearTimeout(abortTimeout);
-    controller.abort();
+    await sqs.deleteMessage({
+      QueueUrl: getQueueURL(message),
+      ReceiptHandle: message.receiptHandle,
+    });
   }
+  return successful;
 }
 
 // Gets the full queue URL from the ARN.  API needs the URL, not ARN.
@@ -223,7 +179,7 @@ function getQueueName(message: SQSMessage) {
 
 // Gets the payload from the message.  We rely on the content type, otherwise
 // guess by trying to parse as JSON.
-function getPayload(message: SQSMessage): JSONValue | string {
+function getPayload(message: SQSMessage): Buffer | string | object {
   const type = message.messageAttributes["type"]?.stringValue;
   if (type === "application/json") return JSON.parse(message.body);
   if (type) return message.body;
@@ -257,14 +213,4 @@ function getMetadata(
       : undefined,
     user: userId ? { id: userId } : undefined,
   };
-}
-
-// Timeout in seconds.
-function getTimeout(config?: QueueConfig): number {
-  return (
-    Math.min(
-      Math.max(config?.timeout ?? defaultTimeout, minTimeout),
-      maxTimeout
-    ) * 1000
-  );
 }

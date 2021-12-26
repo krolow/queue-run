@@ -1,66 +1,36 @@
 import { moduleLoader } from "@queue-run/builder";
-import { handler, loadModule } from "@queue-run/runtime";
 import chalk from "chalk";
 import { readFile } from "fs/promises";
 import ora from "ora";
 import readline from "readline";
 import envVariables from "./envVariables";
+import { newLocalStorage } from "./newLocalStorage";
 
 export default async function queueMessage(
   queueName: string,
   message: string,
   { port, group }: { port: number; group?: string }
 ) {
+  const payload = parseMessage(await readPayload(message));
+
   const spinner = ora(`Loading queue handler for ${queueName}`).start();
   try {
     envVariables(port);
     await moduleLoader({ dirname: process.cwd() });
-
-    const module = await loadModule(`queues/${queueName}`);
-    if (!module) throw new Error(`Queue ${queueName} not found`);
+    newLocalStorage().queueJob({
+      groupID: group,
+      payload,
+      queueName,
+    });
 
     spinner.succeed();
   } catch (error) {
     spinner.stop();
     throw error;
   }
-
-  handler(
-    {
-      Records: [
-        {
-          messageId: "1",
-          receiptHandle: "1",
-          body: await readMessageBody(message),
-          attributes: {
-            ApproximateReceiveCount: "1",
-            SentTimestamp: String(Date.now()),
-            SenderId: "1",
-            ApproximateFirstReceiveTimestamp: "1",
-            MessageGroupId: group,
-          },
-          messageAttributes: {},
-          md5OfBody: "1",
-          eventSource: "aws:sqs",
-          eventSourceARN: `arn:aws:sqs:localhost:local__${queueName}`,
-          awsRegion: "localhost",
-        },
-      ],
-    },
-    {
-      functionName: "local",
-      functionVersion: "1",
-      invokedFunctionArn: "arn:aws:lambda:localhost:local",
-      memoryLimitInMB: "128MB",
-      awsRequestId: "1",
-      logGroupName: "local",
-      getRemainingTimeInMillis: () => 30 * 1000,
-      callbackWaitsForEmptyEventLoop: true,
-    }
-  );
 }
 
-async function readMessageBody(message: string): Promise<string> {
+async function readPayload(message: string): Promise<string> {
   if (!message) {
     console.info(
       chalk.bold.blue(
@@ -81,4 +51,12 @@ async function readMessageBody(message: string): Promise<string> {
   else if (message.startsWith("@"))
     return await readFile(message.slice(1), "utf-8");
   else return message;
+}
+
+function parseMessage(message: string): string | object {
+  try {
+    return JSON.parse(message);
+  } catch {
+    return message;
+  }
 }

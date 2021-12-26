@@ -1,4 +1,5 @@
 import { MatchFunction } from "path-to-regexp";
+import invariant from "tiny-invariant";
 import { URL } from "url";
 import loadModule from "../loadModule";
 import { RouteExports, RouteMiddleware } from "../types";
@@ -42,7 +43,7 @@ export default async function findRoute(url: string): Promise<{
   const loaded = await loadModule<RouteExports, RouteMiddleware>(
     route.filename
   );
-  if (!loaded) throw new Response("Not Found", { status: 404 });
+  invariant(loaded, "Could not load route module");
   const { module, middleware } = loaded;
 
   return { module, middleware, params, route };
