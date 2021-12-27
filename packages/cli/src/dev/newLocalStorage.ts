@@ -7,8 +7,20 @@ export const events = new EventEmitter();
 
 export function newLocalStorage(port: number): LocalStorage {
   return {
-    queueJob: async ({ queueName, groupID, payload, params }) => {
+    queueJob: async ({ queueName, groupID, payload, params, user }) => {
       const jobID = crypto.randomBytes(4).toString("hex");
+      const serializedPayload =
+        typeof payload === "string" || Buffer.isBuffer(payload)
+          ? payload
+          : JSON.parse(JSON.stringify(payload));
+      const serializedParams = Object.entries(params ?? {}).reduce(
+        (acc, [key, value]) => ({
+          ...acc,
+          [String(key)]: String(value),
+        }),
+        {}
+      );
+      const userId = user?.id ? String(user.id) : undefined;
 
       ++queued;
       setImmediate(async () => {
@@ -18,12 +30,13 @@ export function newLocalStorage(port: number): LocalStorage {
             metadata: {
               groupID,
               jobID,
-              params: params ?? {},
+              params: serializedParams,
               queueName,
               receivedCount: 1,
               sentAt: new Date(),
+              user: userId ? { id: userId } : undefined,
             },
-            payload,
+            payload: serializedPayload,
             newLocalStorage: () => newLocalStorage(port),
             remainingTime: 30 * 1000,
           });

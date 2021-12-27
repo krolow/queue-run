@@ -85,7 +85,6 @@ function newQueue<T extends Payload>(
     if (fifo && !groupID) throw new Error("FIFO queues require a group ID");
 
     const payload = await getPayload(payloadOrRequest);
-
     const user = options?.user ?? context.user ?? undefined;
 
     return await context.queueJob({
