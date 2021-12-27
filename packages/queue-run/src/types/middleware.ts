@@ -1,4 +1,5 @@
 /* eslint-disable no-unused-vars */
+import type { Request, Response } from "../http/fetch";
 
 // Successful authentication returns an object with the user ID.
 //

@@ -1,9 +1,9 @@
 /* eslint-disable no-unused-vars */
 import {
   default as fetch,
-  Headers as Headers,
-  Request as Request,
-  Response as Response,
+  Headers as NodeFetchHeaders,
+  Request as NodeFetchRequest,
+  Response as NodeFetchResponse,
 } from "node-fetch";
 import multipart from "parse-multipart-data";
 
@@ -45,59 +45,55 @@ export class RequestFormData {
   values() {
     return this.fields.values();
   }
-}
 
-declare module "node-fetch" {
-  interface Request {
-    form: () => Promise<RequestFormData>;
+  static async from(request: NodeFetchRequest) {
+    const contentType = request.headers.get("content-type");
+    const mimeType = contentType?.split(";")[0];
+    if (mimeType === "multipart/form-data") {
+      const boundary = contentType?.match(/;\s*boundary=([^;]+)/)?.[1];
+      if (!boundary) throw new Error("multipart/form-data: missing boundary");
+      const inputParts = multipart.parse(await request.buffer(), boundary);
+      const fields = inputParts.reduce((fields, part) => {
+        if (!part.name)
+          throw new NodeFetchResponse("multipart/form-data: missing part name");
+        return {
+          ...fields,
+          [part.name]: {
+            data: part.data,
+            filename: part.filename,
+            contentType: part.type,
+          },
+        };
+      }, {});
+      return new RequestFormData(fields);
+    } else
+      throw new NodeFetchResponse("Unsupported Media Type", { status: 415 });
   }
 }
-
-Request.prototype.form = async function () {
-  const contentType = this.headers.get("content-type");
-  const mimeType = contentType?.split(";")[0];
-  if (mimeType === "multipart/form-data") {
-    const boundary = contentType?.match(/;\s*boundary=([^;]+)/)?.[1];
-    if (!boundary) throw new Error("multipart/form-data: missing boundary");
-    const inputParts = multipart.parse(await this.buffer(), boundary);
-    const fields = inputParts.reduce((fields, part) => {
-      if (!part.name)
-        throw new Response("multipart/form-data: missing part name");
-      return {
-        ...fields,
-        [part.name]: {
-          data: part.data,
-          filename: part.filename,
-          contentType: part.type,
-        },
-      };
-    }, {});
-    return new RequestFormData(fields);
-  } else throw new Response("Unsupported Media Type", { status: 415 });
-};
 
 declare global {
-  interface Request {
-    form: () => Promise<RequestFormData>;
-  }
-
   namespace NodeJS {
     interface Global {
-      Headers: typeof Headers;
-      Request: typeof Request;
-      Response: typeof Response;
+      Headers: typeof NodeFetchHeaders;
+      Request: typeof NodeFetchRequest;
+      Response: typeof NodeFetchResponse;
       fetch: typeof fetch;
     }
   }
 }
 
 // @ts-ignore
-global.Request = Request;
+global.Request = NodeFetchRequest;
 // @ts-ignore
-global.Response = Response;
+global.Response = NodeFetchResponse;
 // @ts-ignore
-global.Headers = Headers;
+global.Headers = NodeFetchHeaders;
 // @ts-ignore
 global.fetch = fetch;
 
-export { Request, Response, Headers, fetch };
+export {
+  NodeFetchRequest as Request,
+  NodeFetchResponse as Response,
+  NodeFetchHeaders as Headers,
+  fetch,
+};

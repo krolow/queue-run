@@ -3,6 +3,7 @@ import invariant from "tiny-invariant";
 import { URL } from "url";
 import loadModule from "../loadModule";
 import { RouteExports, RouteMiddleware } from "../types";
+import { Response } from "./fetch";
 import loadRoutes from "./loadRoutes";
 
 // Runtime definition for an HTTP route

@@ -1,6 +1,8 @@
 import { URLSearchParams } from "url";
+import { Request, RequestFormData, Response } from "./http/fetch";
 import { getLocalStorage } from "./localStorage";
 import loadQueues from "./queue/loadQueues";
+import selfPath from "./selfPath";
 import { RequestHandler } from "./types";
 
 type Payload = Buffer | string | object;
@@ -15,11 +17,34 @@ type Params = { [key: string]: string | string[] };
 //
 // With TypeScript you can also apply a type to the payload:
 //   await queues<{ id: string }>('my-queue').push({ id: '123' });
-export default function queues<T extends Payload>(
-  name: string
-): QueueFunction<T> {
-  return newQueue(name);
+interface QueuesFunction<T extends Payload> {
+  // eslint-disable-next-line no-unused-vars
+  (name: string): QueueFunction<T>;
+
+  // Returns the current queue. You can export this to a route handler.
+  //
+  // For example:
+  //
+  //   export const queue = queues.self;
+  self: QueueFunction<T>;
 }
+
+const queues: QueuesFunction<Payload> = (name) => newQueue(name);
+
+queues.self = newQueue("self");
+
+Object.defineProperty(queues, "self", {
+  get: () => {
+    const pathname = selfPath();
+    console.log(pathname);
+    if (!pathname.startsWith("queues/"))
+      throw new Error("You can only use self from a queue handler");
+    return queues(pathname.slice(7));
+  },
+  enumerable: false,
+});
+
+export default queues;
 
 // A function that can be used to push a job to a queue. Returns the job ID.
 //
@@ -195,8 +220,10 @@ async function payloadFromRequest(request: Request): Promise<object | string> {
   }
 }
 
-async function formDataToObject(request: Request) {
-  const form = await request.form();
+async function formDataToObject(
+  request: Request
+): Promise<{ [key: string]: string }> {
+  const form = await RequestFormData.from(request);
   return Array.from(form.entries()).reduce(
     (fields, [name, { contentType, data, filename }]) => {
       if (filename) throw new Error("multipart/form-data: files not supported");

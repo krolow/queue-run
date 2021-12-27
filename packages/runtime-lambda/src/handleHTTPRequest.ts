@@ -1,4 +1,10 @@
-import { handleHTTPRequest, LocalStorage } from "queue-run";
+import {
+  handleHTTPRequest,
+  Headers,
+  LocalStorage,
+  Request,
+  Response,
+} from "queue-run";
 import { URL } from "url";
 
 // https://docs.aws.amazon.com/lambda/latest/dg/services-apigateway.html#apigateway-example-event

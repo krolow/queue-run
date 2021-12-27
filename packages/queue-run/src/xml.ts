@@ -1,4 +1,5 @@
 import xmlbuilder, { CreateOptions, XMLToStringOptions } from "xmlbuilder";
+import { Response } from "./http/fetch";
 
 // Use this with JSX to respond with an XML document:
 //

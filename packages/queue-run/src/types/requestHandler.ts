@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-vars */
 import type { AbortSignal } from "node-abort-controller";
+import type { Request, Response } from "../http/fetch";
 import {
   AuthenticateMethod,
   OnError,
@@ -22,7 +23,7 @@ import {
 //   . . .
 // }
 export type RequestHandler<T = object, P = Params> = (
-  request: Omit<Request, "json"> & { json: () => Promise<T> },
+  request: Request,
   metadata: RequestHandlerMetadata<P>
 ) => Promise<Result> | Result;
 

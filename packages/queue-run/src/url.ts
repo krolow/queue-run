@@ -1,7 +1,7 @@
-import path from "path";
 import { compile } from "path-to-regexp";
 import { URL } from "url";
 import { getLocalStorage } from "./localStorage";
+import selfPath from "./selfPath";
 
 /* eslint-disable no-unused-vars */
 interface URLFunction {
@@ -80,30 +80,19 @@ const url: URLFunction = (
 };
 
 url.for = (path: string) => (params, query) => url(path, params, query);
-url.self = (params, query) => url("", params, query);
+url.self = () => {
+  throw new Error();
+};
 
 Object.defineProperty(url, "self", {
   get: () => {
-    const pathname = path
-      .relative("api", getCallerFilename())
-      .replace(/\.(js|ts)x?$/, "");
-    return url.bind(null, pathname);
+    const pathname = selfPath();
+    if (!pathname.startsWith("api/"))
+      throw new Error("You can only use self from an api route");
+    return url.bind(null, pathname.slice(4));
   },
+  enumerable: false,
 });
-
-function getCallerFilename(depth: number = 2): string {
-  const prepare = Error.prepareStackTrace;
-  let filename: string | null = null;
-  Error.prepareStackTrace = (_, callSites) => {
-    filename = callSites[depth].getFileName();
-  };
-  const error = new Error();
-  Error.captureStackTrace(error);
-  error.stack?.trim();
-  Error.prepareStackTrace = prepare;
-  if (!filename) throw new Error("Could not determine filename");
-  return filename;
-}
 
 export default url;
 

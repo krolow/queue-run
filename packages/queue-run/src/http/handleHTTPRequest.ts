@@ -9,6 +9,7 @@ import {
   RouteExports,
 } from "../types";
 import { RouteMiddleware } from "../types/requestHandler";
+import { Headers, Request, Response } from "./fetch";
 import findRoute, { HTTPRoute } from "./findRoute";
 
 export default async function handleHTTPRequest(
