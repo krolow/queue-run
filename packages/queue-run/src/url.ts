@@ -3,26 +3,19 @@ import { URL } from "url";
 import { getLocalStorage } from "./localStorage";
 import selfPath from "./selfPath";
 
+type Params = {
+  [key: string]: string | number | boolean | (string | number | boolean)[];
+};
+
 /* eslint-disable no-unused-vars */
-interface URLFunction {
-  (
-    path: string,
-    params?: { [key: string]: unknown | unknown[] },
-    query?: { [key: string]: unknown | unknown[] }
-  ): string;
+interface URLFunction<P extends Params, Q extends Params> {
+  (path: string, params?: P, query?: Q): string;
 
-  for(
-    path: string
-  ): (
-    params?: { [key: string]: unknown | unknown[] },
-    query?: { [key: string]: unknown | unknown[] }
-  ) => string;
+  for<P = Params, Q = Params>(path: string): (params?: P, query?: Q) => string;
 
-  self: (
-    params?: { [key: string]: unknown | unknown[] },
-    query?: { [key: string]: unknown | unknown[] }
-  ) => string;
+  self: <P = Params, Q = Params>() => (params?: P, query?: Q) => string;
 }
+
 /* eslint-enable no-unused-vars */
 
 // Use URL template and parameters to create a URL.
@@ -58,7 +51,7 @@ interface URLFunction {
 //
 //   // In api/items.ts
 //   import { urlForItem } from "./[id]";
-const url: URLFunction = (
+const url: URLFunction<{}, {}> = (
   path: string,
   params?: { [key: string]: unknown | unknown[] },
   query?: { [key: string]: unknown | unknown[] }
@@ -80,19 +73,12 @@ const url: URLFunction = (
 };
 
 url.for = (path: string) => (params, query) => url(path, params, query);
-url.self = () => {
-  throw new Error();
+url.self = <P, Q>() => {
+  const pathname = selfPath();
+  if (!pathname.startsWith("api/"))
+    throw new Error("You can only use self from an api route");
+  return url.for<P, Q>(pathname.slice(4));
 };
-
-Object.defineProperty(url, "self", {
-  get: () => {
-    const pathname = selfPath();
-    if (!pathname.startsWith("api/"))
-      throw new Error("You can only use self from an api route");
-    return url.bind(null, pathname.slice(4));
-  },
-  enumerable: false,
-});
 
 export default url;
 

@@ -8,6 +8,7 @@ import { RequestHandler } from "./types";
 type Payload = Buffer | string | object;
 type Params = { [key: string]: string | string[] };
 
+/* eslint-disable no-unused-vars */
 // Use this function to create a queue object.
 //
 // For example:
@@ -18,7 +19,6 @@ type Params = { [key: string]: string | string[] };
 // With TypeScript you can also apply a type to the payload:
 //   await queues<{ id: string }>('my-queue').push({ id: '123' });
 interface QueuesFunction<T extends Payload> {
-  // eslint-disable-next-line no-unused-vars
   (name: string): QueueFunction<T>;
 
   // Returns the current queue. You can export this to a route handler.
@@ -26,26 +26,27 @@ interface QueuesFunction<T extends Payload> {
   // For example:
   //
   //   export const queue = queues.self;
-  self: QueueFunction<T>;
+  self: <T = Payload>() => QueueFunction<T>;
+
+  // Returns a new queue with the given name.
+  get: <T = Payload>(name: string) => QueueFunction<T>;
 }
+/* eslint-enable no-unused-vars */
 
-const queues: QueuesFunction<Payload> = (name) => newQueue(name);
+const queues: QueuesFunction<Payload> = (name) => newQueue<Payload>(name);
 
-queues.self = newQueue("self");
+queues.get = <T>(name: string) => newQueue<T>(name);
 
-Object.defineProperty(queues, "self", {
-  get: () => {
-    const pathname = selfPath();
-    console.log(pathname);
-    if (!pathname.startsWith("queues/"))
-      throw new Error("You can only use self from a queue handler");
-    return queues(pathname.slice(7));
-  },
-  enumerable: false,
-});
+queues.self = <T>() => {
+  const pathname = selfPath();
+  if (!pathname.startsWith("queues/"))
+    throw new Error("You can only use self from a queue handler");
+  return queues.get<T>(pathname.slice(7));
+};
 
 export default queues;
 
+/* eslint-disable no-unused-vars */
 // A function that can be used to push a job to a queue. Returns the job ID.
 //
 // You can push an object, Buffer, string.
@@ -57,7 +58,6 @@ export default queues;
 // You can also expose a queue as an HTTP endpoint.  For example:
 //
 //   export const post = queues('my-queue').http;
-/* eslint-disable no-unused-vars */
 interface QueueFunction<T = Payload> {
   (payload: T, params?: Params): Promise<string>;
 
