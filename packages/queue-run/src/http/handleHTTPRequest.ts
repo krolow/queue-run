@@ -16,15 +16,19 @@ export default async function handleHTTPRequest(
   newLocalStorage: () => LocalStorage
 ): Promise<Response> {
   try {
+    // Throws 404 Not Found
     const { middleware, module, params, route } = await findRoute(request.url);
 
+    // If we handle CORS than OPTIONS is always available, so this comes first
     const corsHeaders = getCorsHeaders(route);
     if (route.cors && request.method === "OPTIONS")
-      throw new Response(undefined, { headers: corsHeaders, status: 204 });
+      return new Response(undefined, { headers: corsHeaders, status: 204 });
 
+    // Throws 405 Method Not Allowed
+    const handler = getHandler(module, request.method);
+    // Throws 405 Method Not Allowed and 415 Unsupported Media Type
     checkRequest(request, route);
 
-    const handler = getHandler(module, request.method);
     return await handleRoute({
       config: module.config ?? {},
       corsHeaders,
@@ -37,6 +41,9 @@ export default async function handleHTTPRequest(
       timeout: route.timeout,
     });
   } catch (error) {
+    // checkRequest and getHandler.  These are client errors (4xx) and we don't
+    // log them.
+    if (error instanceof Response) return error;
     console.error(
       chalk.bold.red("Internal processing error %s %s"),
       request.method,
