@@ -36,25 +36,36 @@ async function copyFiles(buildDir: string) {
 
   const runtime = path.dirname(require.resolve("@queue-run/runtime-lambda"));
 
-  const filenames = await fs.readdir(runtime);
-  for (const filename of filenames)
+  const filenames = await glob("**/*", { cwd: runtime });
+  for (const filename of filenames) {
+    await fs.mkdir(path.dirname(path.join(nodeDir, filename)), {
+      recursive: true,
+    });
     await fs.copyFile(
       path.join(runtime, filename),
       path.join(nodeDir, filename)
     );
-  await fs.copyFile(
-    path.join(runtime, "../package.json"),
-    path.join(nodeDir, "package.json")
-  );
+  }
   spinner.succeed("Copied runtime");
 }
 
 async function installDependencies(buildDir: string) {
   const spinner = ora("Installing dependencies ...").start();
+
+  const runtime = path.dirname(require.resolve("@queue-run/runtime-lambda"));
+  await fs.copyFile(
+    path.join(runtime, "../package.json"),
+    path.join(buildDir, "package.json")
+  );
+
   try {
     await promisify(exec)("npm install --only=production", {
-      cwd: path.join(buildDir, "nodejs"),
+      cwd: path.join(buildDir),
     });
+    await fs.rename(
+      path.join(buildDir, "node_modules"),
+      path.join(buildDir, "nodejs/node_modules")
+    );
   } catch (error) {
     spinner.fail();
     const { stdout } = error as { stdout: string; stderr: string };
@@ -68,6 +79,7 @@ async function createArchive(buildDir: string): Promise<Buffer> {
   const spinner = ora("Creating archive ...").start();
   const zip = new JSZip();
   const filenames = glob.sync("**/*", {
+    ignore: ["package.json", "package-lock.json"],
     cwd: buildDir,
   });
   await Promise.all(
@@ -78,7 +90,7 @@ async function createArchive(buildDir: string): Promise<Buffer> {
     })
   );
   const buffer = await zip.generateAsync({ type: "nodebuffer" });
-  await fs.writeFile(path.join(buildDir, "layer.zip"), buffer);
+  await fs.writeFile(path.join(buildDir, "runtime.zip"), buffer);
   spinner.succeed(`Created archive (${filesize(buffer.byteLength)})`);
   return buffer;
 }
