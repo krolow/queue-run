@@ -60,6 +60,13 @@ export type RouteConfig = {
   // True if this route supports CORS (default: true).
   cors?: boolean;
 
+  // True if you want the response to include an ETag based on the content of the
+  // document, or use a function to generate the ETag based on the result returned
+  // from the request handler.
+  //
+  // Default to true.
+  etag?: boolean | ((result: unknown) => string);
+
   // Only accepts requests with specific HTTP method(s).
   //
   // This is only useful if you export a default route handler. If you export method

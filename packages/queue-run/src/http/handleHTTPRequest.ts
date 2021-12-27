@@ -1,7 +1,13 @@
 import chalk from "chalk";
+import crypto from "crypto";
 import { AbortController } from "node-abort-controller";
 import { getLocalStorage, LocalStorage } from "../localStorage";
-import { RequestHandler, RequestHandlerMetadata, RouteExports } from "../types";
+import {
+  RequestHandler,
+  RequestHandlerMetadata,
+  RouteConfig,
+  RouteExports,
+} from "../types";
 import { RouteMiddleware } from "../types/requestHandler";
 import findRoute, { HTTPRoute } from "./findRoute";
 
@@ -20,6 +26,7 @@ export default async function handleHTTPRequest(
 
     const handler = getHandler(module, request.method);
     return await handleRoute({
+      config: module.config ?? {},
       corsHeaders,
       filename: route.filename,
       handler,
@@ -85,6 +92,7 @@ function getHandler(module: RouteExports, method: string): RequestHandler {
 }
 
 async function handleRoute({
+  config,
   corsHeaders,
   filename,
   handler,
@@ -94,6 +102,7 @@ async function handleRoute({
   request,
   timeout,
 }: {
+  config: RouteConfig;
   corsHeaders?: Headers;
   filename: string;
   handler: RequestHandler;
@@ -111,6 +120,7 @@ async function handleRoute({
     const response = await Promise.race([
       getLocalStorage().run(newLocalStorage(), () =>
         runWithMiddleware({
+          config,
           corsHeaders,
           handler,
           middleware,
@@ -143,6 +153,7 @@ function getCookies(request: Request): { [key: string]: string } {
 }
 
 async function runWithMiddleware({
+  config,
   corsHeaders,
   filename,
   handler,
@@ -150,6 +161,7 @@ async function runWithMiddleware({
   metadata,
   request,
 }: {
+  config: RouteConfig;
   corsHeaders?: Headers;
   filename: string;
   handler: RequestHandler;
@@ -174,7 +186,16 @@ async function runWithMiddleware({
     getLocalStorage().getStore()!.user = user;
 
     const result = await handler(request, { ...metadata, user });
-    const response = resultToResponse({ corsHeaders, filename, result });
+    const etag =
+      typeof config.etag === "function"
+        ? config.etag(result)
+        : config.etag ?? true;
+    const response = await resultToResponse({
+      corsHeaders,
+      etag,
+      filename,
+      result,
+    });
     return await handleOnResponse({ filename, middleware, request, response });
   } catch (error) {
     return await handleOnError({ filename, middleware, request, error });
@@ -182,30 +203,37 @@ async function runWithMiddleware({
 }
 
 // Convert whatever the request handler returns to a proper Response object
-function resultToResponse({
+async function resultToResponse({
   corsHeaders,
+  etag,
   filename,
   result,
 }: {
   corsHeaders?: Headers;
+  etag: string | boolean;
   filename: string;
   result?: ReturnType<RequestHandler>;
-}): Response {
+}): Promise<Response> {
   if (result instanceof Response) {
+    const status = result.status ?? 200;
     const headers = new Headers({
       ...(corsHeaders ? Object.fromEntries(corsHeaders.entries()) : undefined),
       ...Object.fromEntries(result.headers.entries()),
     });
-    const status = result.status ?? 200;
+    if (status === 200) addETag(headers, await result.clone().buffer(), etag);
+
     return new Response(result.body, { headers, status });
   } else if (typeof result === "string" || Buffer.isBuffer(result)) {
     const body = typeof result === "string" ? result : result.toString("utf-8");
     const headers = new Headers(corsHeaders);
     headers.set("Content-Type", "text/plain; charset=utf-8");
+    addETag(headers, body, etag);
     return new Response(body, { headers, status: 200 });
   } else if (result) {
     const headers = new Headers(corsHeaders);
     headers.set("Content-Type", "application/json");
+    const body = JSON.stringify(result);
+    addETag(headers, body, etag);
     return new Response(JSON.stringify(result), { headers, status: 200 });
   } else {
     console.warn(
@@ -216,6 +244,17 @@ function resultToResponse({
     );
     return new Response(undefined, { headers: corsHeaders, status: 204 });
   }
+}
+
+function addETag(
+  headers: Headers,
+  content: string | Buffer,
+  etag?: string | boolean
+) {
+  if (headers.has("ETag") || !etag) return;
+  if (typeof etag === "string") headers.set("ETag", etag);
+  else
+    headers.set("ETag", crypto.createHash("md5").update(content).digest("hex"));
 }
 
 // Call onResponse and return the final response, handling any errors.  This
