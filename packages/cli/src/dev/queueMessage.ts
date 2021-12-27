@@ -5,7 +5,7 @@ import ora from "ora";
 import { loadQueues } from "queue-run";
 import readline from "readline";
 import envVariables from "./envVariables";
-import { newLocalStorage } from "./newLocalStorage";
+import { events, newLocalStorage } from "./newLocalStorage";
 
 export default async function queueMessage(
   queueName: string,
@@ -29,6 +29,7 @@ export default async function queueMessage(
     payload,
     queueName,
   });
+  await new Promise((resolve) => events.once("idle", resolve));
 }
 
 async function readPayload(message: string): Promise<string> {

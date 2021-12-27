@@ -207,7 +207,7 @@ function getMetadata(
   ).reduce((all, [name, value]) => ({ ...all, [name]: value }), {});
 
   return {
-    messageID: message.messageId,
+    jobID: message.messageId,
     groupID: attributes.MessageGroupId,
     params,
     queueName: getQueueName(message),

@@ -37,7 +37,7 @@ export default async function handleQueuedJob({
   const abortTimeout = setTimeout(() => controller.abort(), timeout * 1000);
 
   try {
-    console.info("Handling job %s on queue %s", metadata.messageID, queueName);
+    console.info("Handling job %s on queue %s", metadata.jobID, queueName);
     await Promise.race([
       getLocalStorage().run(newLocalStorage(), () => {
         getLocalStorage().getStore()!.user = metadata.user;
@@ -59,7 +59,7 @@ export default async function handleQueuedJob({
     console.error(
       chalk.bold.red('Error in queue "%s" job %s:'),
       queueName,
-      metadata.messageID,
+      metadata.jobID,
       error
     );
 

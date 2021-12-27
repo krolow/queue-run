@@ -36,8 +36,8 @@ export type QueueHandlerMetadata<P = Params> = {
   groupID?: string;
   // The queue name
   queueName: string;
-  // Unique message ID
-  messageID: string;
+  // Unique job ID
+  jobID: string;
   // Parameters from the request URL, eg /project/:projectId will have the parameter `projectId`
   params: P;
   // Number of times message was received
