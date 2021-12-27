@@ -2,52 +2,66 @@ import { URLSearchParams } from "url";
 import { getLocalStorage } from "./localStorage";
 
 type Payload = Request | Buffer | string | object;
+type Options = {
+  params?: { [key: string]: string | string[] };
+  user?: { id: string };
+};
 
 // Use this function to create a queue object.
 //
 // For example:
-//   import { queue } from "queue-run";
+//   import { queues } from "queue-run";
 //
-//   queue('my-queue').push('Hello, world!');
-export function queue<T extends Payload>(name: string): QueueFunction<T> {
+//   await queues('my-queue').push('Hello, world!');
+//
+// With TypeScript you can also apply a type to the payload:
+//   await queues<{ id: string }>('my-queue').push({ id: '123' });
+export function queues<T extends Payload>(name: string): QueueFunction<T> {
   return newQueue(name);
 }
 
+// A function that can be used to push a job to a queue. Returns the job ID.
+//
+// You can push an object, Buffer, string, or HTTP Request.
+//
+// If you push an object, it will be serialized to JSON.  For example,
+// Date objects will be converted to ISO 8601 strings, and you can't have
+// circular references.
+/* eslint-disable no-unused-vars */
 interface QueueFunction<T extends Payload> {
-  // eslint-disable-next-line no-unused-vars
-  (payload: T): Promise<string>;
+  (payload: T, options?: Options): Promise<string>;
 
-  // Returns a new queue object with this group ID. Required for FIFO queues.
+  // Returns a new queue function with this group ID. Required for FIFO queues.
   //
   // When using FIFO queues, messages are processed in order within the same
   // group.  To avoid processing delays, use the most specific group ID. For
   // example, if you're updating the user's account, use the user ID as the
   // group ID.
-  // eslint-disable-next-line no-unused-vars
   group: (id: string) => QueueFunction<T>;
 
-  // Returns a new queue object with this deduplication ID. Optional for FIFO queues.
+  // Returns a new queue function with this deduplication ID. Optional for FIFO queues.
   //
   // When using FIFO queues, duplicate messages are discarded.  If you don't set
   // a duplication ID, then two messages with the same content will be treated
   // as duplicates. For example, if you're processing a payment, you might want
   // to use the unique transaction ID as the duplication ID.
-  // eslint-disable-next-line no-unused-vars
   dedupe: (id: string) => QueueFunction<T>;
 
   // True if this queue is FIFO.
   fifo: boolean;
 
-  // Push a message to the queue. Returns the message id.
+  // The queue name.
+  queueName: string;
+
+  // Push a message to the queue. This is the same as the queue function,
+  // available here for convenience.
   //
-  // The payload can be a string, a Buffer, or a JSON object.
-  //
-  // Objects are serialized to JSON, so for example, Date objects will
-  // be converted to strings, undefined keys do not exist, and you can't have
-  // circular references.
-  // eslint-disable-next-line no-unused-vars
-  push(payload: T | Request): Promise<string>;
+  // These two are the same:
+  //   await queues('my-queue').push('Hello, world!');
+  //   await queues('my-queue')('Hello, world!');
+  push(payload: T, options?: Options): Promise<string>;
 }
+/* eslint-enable no-unused-vars */
 
 // eslint-disable-next-line sonarjs/cognitive-complexity
 function newQueue<T extends Payload>(
@@ -59,43 +73,43 @@ function newQueue<T extends Payload>(
     throw new Error("Invalid queue name");
   const fifo = queueName.endsWith(".fifo");
 
-  const push: QueueFunction<T> = async (
-    payloadOrRequest: T,
-    metadata?: {
-      params?: { [key: string]: string | string[] };
-      user?: { id: string };
-    }
-  ) => {
+  const queueFn: QueueFunction<T> = async (payloadOrRequest, options) => {
     const context = getLocalStorage().getStore();
     if (!context) throw new Error("Runtime not available");
 
-    const groupID = metadata?.params?.group.toString() ?? group;
-    const dedupeID = metadata?.params?.dedupe.toString() ?? dedupe;
+    const params = options?.params ?? {};
+    const groupID = params.group.toString() ?? group;
+    const dedupeID = params.dedupe.toString() ?? dedupe;
     if (fifo && !groupID) throw new Error("FIFO queues require a group ID");
+
+    const payload = await getPayload(payloadOrRequest);
+
+    const user = options?.user ?? context.user ?? undefined;
 
     return await context.queueJob({
       dedupeID,
       groupID,
-      params: metadata?.params,
-      payload: getPayload(payloadOrRequest),
+      params,
+      payload,
       queueName,
-      user: metadata?.user ?? context.user ?? undefined,
+      user,
     });
   };
 
-  push.group = (id) => {
+  queueFn.group = (id) => {
     if (fifo) return newQueue(queueName, id, dedupe);
     else throw new Error("Only FIFO queues support group ID");
   };
 
-  push.dedupe = (id) => {
+  queueFn.dedupe = (id) => {
     if (fifo) return newQueue(queueName, group, id);
     else throw new Error("Only FIFO queues support deduplication ID");
   };
 
-  push.fifo = fifo;
-  push.push = push;
-  return push;
+  queueFn.queueName = queueName;
+  queueFn.fifo = fifo;
+  queueFn.push = queueFn;
+  return queueFn;
 }
 
 async function getPayload(payloadOrRequest: Payload): Promise<object | string> {
