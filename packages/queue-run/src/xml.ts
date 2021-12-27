@@ -23,7 +23,7 @@ import xmlbuilder, { CreateOptions, XMLToStringOptions } from "xmlbuilder";
 // a constant:
 //
 //   const MyElement = "MyElement";
-export function xml(
+export default function xml(
   xml: string | { [key: string]: any },
   options: CreateOptions & XMLToStringOptions & { contentType: string } = {
     contentType: "application/xml",

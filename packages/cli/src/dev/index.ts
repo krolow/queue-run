@@ -8,7 +8,7 @@ export default command;
 
 const port = new Option("-p, --port <port>", "Port to run the server on")
   .env("PORT")
-  .default(8001)
+  .default(8000)
   .makeOptionMandatory();
 
 command

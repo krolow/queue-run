@@ -24,7 +24,7 @@ export default async function queueMessage(
     spinner.stop();
     throw error;
   }
-  await newLocalStorage().queueJob({
+  await newLocalStorage(port).queueJob({
     groupID: group,
     payload,
     queueName,

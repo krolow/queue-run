@@ -5,7 +5,7 @@ import { handleQueuedJob, LocalStorage } from "queue-run";
 let queued = 0;
 export const events = new EventEmitter();
 
-export function newLocalStorage(): LocalStorage {
+export function newLocalStorage(port: number): LocalStorage {
   return {
     queueJob: async ({ queueName, groupID, payload, params }) => {
       const jobID = crypto.randomBytes(4).toString("hex");
@@ -24,7 +24,7 @@ export function newLocalStorage(): LocalStorage {
               sentAt: new Date(),
             },
             payload,
-            newLocalStorage,
+            newLocalStorage: () => newLocalStorage(port),
             remainingTime: 30 * 1000,
           });
         } finally {
@@ -36,5 +36,10 @@ export function newLocalStorage(): LocalStorage {
     },
 
     sendWebSocketMessage: async () => undefined,
+
+    urls: {
+      http: `http://localhost:${port}`,
+      ws: `ws://localhost:${port + 1}`,
+    },
   };
 }

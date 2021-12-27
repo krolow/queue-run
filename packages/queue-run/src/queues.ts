@@ -16,7 +16,9 @@ type Options = {
 //
 // With TypeScript you can also apply a type to the payload:
 //   await queues<{ id: string }>('my-queue').push({ id: '123' });
-export function queues<T extends Payload>(name: string): QueueFunction<T> {
+export default function queues<T extends Payload>(
+  name: string
+): QueueFunction<T> {
   return newQueue(name);
 }
 

@@ -18,6 +18,11 @@ export type LocalStorage = {
   }): Promise<void>;
 
   user?: { id: string } | null;
+
+  urls: {
+    http: string;
+    ws: string;
+  };
 };
 
 const symbol = Symbol.for("qr-local-storage");

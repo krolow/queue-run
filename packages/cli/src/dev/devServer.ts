@@ -2,7 +2,7 @@ import { loadServices, moduleLoader } from "@queue-run/builder";
 import chalk from "chalk";
 import { createServer, IncomingMessage, ServerResponse } from "http";
 import ora from "ora";
-import { handleHTTPRequest } from "queue-run";
+import { handleHTTPRequest, LocalStorage } from "queue-run";
 import { URL } from "url";
 import envVariables from "./envVariables";
 import { newLocalStorage } from "./newLocalStorage";
@@ -11,7 +11,9 @@ export default async function devServer({ port }: { port: number }) {
   envVariables(port);
   await moduleLoader({ dirname: process.cwd(), onReload });
 
-  const server = createServer(onRequest);
+  const server = createServer((req, res) =>
+    onRequest(req, res, newLocalStorage(port))
+  );
   server.listen(port, () => onListening(port));
   await new Promise((resolve, reject) =>
     server.on("close", resolve).on("error", reject)
@@ -32,11 +34,16 @@ async function onListening(port: number) {
     console.info(chalk.gray("   Watching for changes …"));
   } catch (error) {
     spinner.fail(String(error));
+    if (error instanceof Error) console.error(error.stack);
     process.exit(1);
   }
 }
 
-async function onRequest(req: IncomingMessage, res: ServerResponse) {
+async function onRequest(
+  req: IncomingMessage,
+  res: ServerResponse,
+  localStorage: LocalStorage
+) {
   const method = req.method?.toLocaleUpperCase() ?? "GET";
   const headers = Object.fromEntries(
     Object.entries(req.headers).map(([name, value]) => [name, String(value)])
@@ -48,7 +55,7 @@ async function onRequest(req: IncomingMessage, res: ServerResponse) {
     headers,
     body,
   });
-  const response = await handleHTTPRequest(request, newLocalStorage);
+  const response = await handleHTTPRequest(request, () => localStorage);
   console.info("%s %s => %s", method, req.url, response.status);
   res.writeHead(
     response.status,
