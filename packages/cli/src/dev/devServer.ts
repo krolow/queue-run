@@ -57,10 +57,7 @@ async function onRequest(
   });
   const response = await handleHTTPRequest(request, () => localStorage);
   console.info("%s %s => %s", method, req.url, response.status);
-  res.writeHead(
-    response.status,
-    Object.fromEntries(response.headers.entries())
-  );
+  res.writeHead(response.status, Array.from(response.headers.entries()));
   res.end(response.body, "base64");
 }
 

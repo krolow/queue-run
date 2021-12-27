@@ -1,11 +1,10 @@
 import { URLSearchParams } from "url";
 import { getLocalStorage } from "./localStorage";
+import loadQueues from "./queue/loadQueues";
+import { RequestHandler } from "./types";
 
-type Payload = Request | Buffer | string | object;
-type Options = {
-  params?: { [key: string]: string | string[] };
-  user?: { id: string };
-};
+type Payload = Buffer | string | object;
+type Params = { [key: string]: string | string[] };
 
 // Use this function to create a queue object.
 //
@@ -24,14 +23,18 @@ export default function queues<T extends Payload>(
 
 // A function that can be used to push a job to a queue. Returns the job ID.
 //
-// You can push an object, Buffer, string, or HTTP Request.
+// You can push an object, Buffer, string.
 //
 // If you push an object, it will be serialized to JSON.  For example,
 // Date objects will be converted to ISO 8601 strings, and you can't have
 // circular references.
+//
+// You can also expose a queue as an HTTP endpoint.  For example:
+//
+//   export const post = queues('my-queue').http;
 /* eslint-disable no-unused-vars */
-interface QueueFunction<T extends Payload> {
-  (payload: T, options?: Options): Promise<string>;
+interface QueueFunction<T = Payload> {
+  (payload: T, params?: Params): Promise<string>;
 
   // Returns a new queue function with this group ID. Required for FIFO queues.
   //
@@ -61,12 +64,25 @@ interface QueueFunction<T extends Payload> {
   // These two are the same:
   //   await queues('my-queue').push('Hello, world!');
   //   await queues('my-queue')('Hello, world!');
-  push(payload: T, options?: Options): Promise<string>;
+  push(payload: T, params?: Params): Promise<string>;
+
+  // Expose queue as an HTTP endpoint.
+  //
+  // For example:
+  //   export const post = queues('my-queue').http;
+  //   export config = { accepts: ["application/json"] };
+  //
+  // The queue can accept JSON documents and HTML forms (URL encoded and
+  // multipart) Both are processed as objects. It can also accept text/plain,
+  // processed as a string, and application/octet-stream, processed as a Buffer.
+  //
+  // The response is 202 Accepted, with a header X-Job-ID containing the job ID.
+  http: RequestHandler;
 }
 /* eslint-enable no-unused-vars */
 
 // eslint-disable-next-line sonarjs/cognitive-complexity
-function newQueue<T extends Payload>(
+function newQueue<T = Payload>(
   queueName: string,
   group?: string,
   dedupe?: string
@@ -75,25 +91,40 @@ function newQueue<T extends Payload>(
     throw new Error("Invalid queue name");
   const fifo = queueName.endsWith(".fifo");
 
-  const queueFn: QueueFunction<T> = async (payloadOrRequest, options) => {
+  const queueFn: QueueFunction<T> = async (payload, params) => {
     const context = getLocalStorage().getStore();
     if (!context) throw new Error("Runtime not available");
 
-    const params = options?.params ?? {};
-    const groupID = params.group.toString() ?? group;
-    const dedupeID = params.dedupe.toString() ?? dedupe;
-    if (fifo && !groupID) throw new Error("FIFO queues require a group ID");
+    const queues = await loadQueues();
+    if (!queues.has(queueName))
+      throw new Error(`No queue with the name "${queueName}"`);
 
-    const payload = await getPayload(payloadOrRequest);
-    const user = options?.user ?? context.user ?? undefined;
+    if (fifo && !group) throw new Error("FIFO queue requires a group ID");
 
     return await context.queueJob({
-      dedupeID,
-      groupID,
+      dedupeID: dedupe,
+      groupID: group,
       params,
-      payload,
+      payload: payload as unknown as object,
       queueName,
-      user,
+      user: context.user ?? undefined,
+    });
+  };
+
+  queueFn.http = async (request, { params }) => {
+    const payload = await payloadFromRequest(request);
+    const fifo = queueName.endsWith(".fifo");
+    if (fifo && !params.group)
+      throw new Error("FIFO queue requires a group ID");
+
+    const grouped = fifo ? queueFn.group(String(params.group)) : queueFn;
+    const deduped =
+      fifo && params.dedupe ? grouped.dedupe(String(params.dedupe)) : grouped;
+
+    const jobID = await deduped.push(payload as unknown as T, params);
+    return new Response("Accepted", {
+      headers: { "X-Job-ID": jobID },
+      status: 202,
     });
   };
 
@@ -111,12 +142,6 @@ function newQueue<T extends Payload>(
   queueFn.fifo = fifo;
   queueFn.push = queueFn;
   return queueFn;
-}
-
-async function getPayload(payloadOrRequest: Payload): Promise<object | string> {
-  return payloadOrRequest instanceof Request
-    ? await payloadFromRequest(payloadOrRequest)
-    : payloadOrRequest;
 }
 
 async function payloadFromRequest(request: Request): Promise<object | string> {
