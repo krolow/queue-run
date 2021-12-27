@@ -186,11 +186,14 @@ async function runWithMiddleware({
     getLocalStorage().getStore()!.user = user;
 
     const result = await handler(request, { ...metadata, user });
+    const cache =
+      typeof config.cache === "function" ? config.cache(result) : config.cache;
     const etag =
       typeof config.etag === "function"
         ? config.etag(result)
         : config.etag ?? true;
     const response = await resultToResponse({
+      cache,
       corsHeaders,
       etag,
       filename,
@@ -204,11 +207,13 @@ async function runWithMiddleware({
 
 // Convert whatever the request handler returns to a proper Response object
 async function resultToResponse({
+  cache,
   corsHeaders,
   etag,
   filename,
   result,
 }: {
+  cache?: number;
   corsHeaders?: Headers;
   etag: string | boolean;
   filename: string;
@@ -220,20 +225,24 @@ async function resultToResponse({
       ...(corsHeaders ? Object.fromEntries(corsHeaders.entries()) : undefined),
       ...Object.fromEntries(result.headers.entries()),
     });
-    if (status === 200) addETag(headers, await result.clone().buffer(), etag);
-
+    if (status === 200) {
+      addETag(headers, await result.clone().buffer(), etag);
+      addCacheControl(headers, cache);
+    }
     return new Response(result.body, { headers, status });
   } else if (typeof result === "string" || Buffer.isBuffer(result)) {
     const body = typeof result === "string" ? result : result.toString("utf-8");
     const headers = new Headers(corsHeaders);
     headers.set("Content-Type", "text/plain; charset=utf-8");
     addETag(headers, body, etag);
+    addCacheControl(headers, cache);
     return new Response(body, { headers, status: 200 });
   } else if (result) {
     const headers = new Headers(corsHeaders);
     headers.set("Content-Type", "application/json");
     const body = JSON.stringify(result);
     addETag(headers, body, etag);
+    addCacheControl(headers, cache);
     return new Response(JSON.stringify(result), { headers, status: 200 });
   } else {
     console.warn(
@@ -249,12 +258,20 @@ async function resultToResponse({
 function addETag(
   headers: Headers,
   content: string | Buffer,
-  etag?: string | boolean
+  etag: string | boolean
 ) {
   if (headers.has("ETag") || !etag) return;
-  if (typeof etag === "string") headers.set("ETag", etag);
-  else
-    headers.set("ETag", crypto.createHash("md5").update(content).digest("hex"));
+  headers.set(
+    "ETag",
+    typeof etag === "string"
+      ? etag
+      : crypto.createHash("md5").update(content).digest("hex")
+  );
+}
+
+function addCacheControl(headers: Headers, cache?: number) {
+  if (headers.has("Cache-Control") || !cache) return;
+  headers.set("Cache-Control", `private, max-age=${cache}, must-revalidate`);
 }
 
 // Call onResponse and return the final response, handling any errors.  This

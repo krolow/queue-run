@@ -57,6 +57,10 @@ export type RouteConfig = {
   // Default to '*/*' (any content types).
   accepts?: string[] | string;
 
+  // Number of seconds the client can cache the response, or use a function to
+  // calculate the cache duration based on the result returned by the handler.
+  cache?: number | ((result: unknown) => number);
+
   // True if this route supports CORS (default: true).
   cors?: boolean;
 
