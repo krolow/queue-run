@@ -7,20 +7,20 @@ import { getLocalStorage } from "./localStorage";
 interface URLFunction {
   (
     path: string,
-    params?: { [key: string]: string | string[] },
-    query?: { [key: string]: string | string[] }
+    params?: { [key: string]: unknown | unknown[] },
+    query?: { [key: string]: unknown | unknown[] }
   ): string;
 
   for(
     path: string
   ): (
-    params?: { [key: string]: string | string[] },
-    query?: { [key: string]: string | string[] }
+    params?: { [key: string]: unknown | unknown[] },
+    query?: { [key: string]: unknown | unknown[] }
   ) => string;
 
   self: (
-    params?: { [key: string]: string | string[] },
-    query?: { [key: string]: string | string[] }
+    params?: { [key: string]: unknown | unknown[] },
+    query?: { [key: string]: unknown | unknown[] }
   ) => string;
 }
 /* eslint-enable no-unused-vars */
