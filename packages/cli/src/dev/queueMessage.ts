@@ -17,7 +17,8 @@ export default async function queueMessage(
   try {
     envVariables(port);
     await moduleLoader({ dirname: process.cwd() });
-    await loadQueues();
+    const queues = await loadQueues();
+    if (!queues.has(queueName)) throw new Error(`No queue named ${queueName}`);
 
     spinner.succeed();
   } catch (error) {
