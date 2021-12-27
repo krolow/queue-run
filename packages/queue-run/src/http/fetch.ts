@@ -1,5 +1,10 @@
 /* eslint-disable no-unused-vars */
-import * as nodeFetch from "node-fetch";
+import {
+  default as fetch,
+  Headers as Headers,
+  Request as Request,
+  Response as Response,
+} from "node-fetch";
 import multipart from "parse-multipart-data";
 
 export class RequestFormData {
@@ -48,7 +53,7 @@ declare module "node-fetch" {
   }
 }
 
-nodeFetch.Request.prototype.form = async function () {
+Request.prototype.form = async function () {
   const contentType = this.headers.get("content-type");
   const mimeType = contentType?.split(";")[0];
   if (mimeType === "multipart/form-data") {
@@ -68,22 +73,31 @@ nodeFetch.Request.prototype.form = async function () {
       };
     }, {});
     return new RequestFormData(fields);
-  } else throw new Error("Unsupported media type");
+  } else throw new Response("Unsupported Media Type", { status: 415 });
 };
 
 declare global {
-  var $queueRun: {};
-  var fetch: typeof nodeFetch.default;
-  var Response: typeof nodeFetch.Response;
-  var Headers: typeof nodeFetch.Headers;
-  var Request: typeof nodeFetch.Request;
+  interface Request {
+    form: () => Promise<RequestFormData>;
+  }
 
-  export type Response = nodeFetch.Response;
-  export type Headers = nodeFetch.Headers;
-  export type Request = nodeFetch.Request;
+  namespace NodeJS {
+    interface Global {
+      Headers: typeof Headers;
+      Request: typeof Request;
+      Response: typeof Response;
+      fetch: typeof fetch;
+    }
+  }
 }
 
-global.Request = nodeFetch.Request;
-global.Response = nodeFetch.Response;
-global.Headers = nodeFetch.Headers;
-global.fetch = nodeFetch.default;
+// @ts-ignore
+global.Request = Request;
+// @ts-ignore
+global.Response = Response;
+// @ts-ignore
+global.Headers = Headers;
+// @ts-ignore
+global.fetch = fetch;
+
+export { Request, Response, Headers, fetch };

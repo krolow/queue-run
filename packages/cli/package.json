@@ -24,7 +24,8 @@
     "ms": "^2.1.3",
     "node-abort-controller": "^3.0.1",
     "node-fetch": "2.6.6",
-    "ora": "5.4.1"
+    "ora": "5.4.1",
+    "queue-run": "../queue-run"
   },
   "devDependencies": {
     "@types/node": "^17.0.5",
