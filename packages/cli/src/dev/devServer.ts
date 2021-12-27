@@ -69,7 +69,7 @@ async function getRequestBody(req: IncomingMessage) {
   if (!hasBody) return undefined;
   let data: Buffer[] = [];
   for await (const chunk of req) data.push(chunk);
-  return Buffer.concat(data).toString("base64");
+  return Buffer.concat(data).toString();
 }
 
 async function onReload(filename: string) {
