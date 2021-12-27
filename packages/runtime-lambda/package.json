@@ -1,5 +1,5 @@
 {
-  "name": "@queue-run/runtime",
+  "name": "@queue-run/runtime-lambda",
   "version": "0.0.0",
   "main": "dist/index.js",
   "types": "dist/types/index.d.ts",

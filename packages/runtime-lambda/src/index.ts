@@ -25,7 +25,10 @@ export async function handler(
   console.info({ event, context });
 
   const sqs = new SQS({ ...clientConfig, region });
-  const newLocalStorage = bindNewLocalStorage({ sqs });
+  const newLocalStorage = bindNewLocalStorage({
+    sqs,
+    urls: { http: process.env.QUEUE_RUN_URL!, ws: process.env.QUEUE_RUN_WS! },
+  });
 
   if ("requestContext" in event) {
     if ("connectionId" in event.requestContext) {
@@ -47,7 +50,6 @@ export async function handler(
       (record) => record.eventSource === "aws:sqs"
     );
 
-    const sqs = new SQS({ ...clientConfig, region });
     return await handleSQSMessages({
       getRemainingTimeInMillis,
       messages,
@@ -57,7 +59,16 @@ export async function handler(
   } else throw new Error("Unknown event type");
 }
 
-function bindNewLocalStorage({ sqs }: { sqs: SQS }) {
+function bindNewLocalStorage({
+  sqs,
+  urls,
+}: {
+  sqs: SQS;
+  urls: {
+    http: string;
+    ws: string;
+  };
+}) {
   return function (): LocalStorage {
     let user: { id: string } | null;
     return {
@@ -78,6 +89,8 @@ function bindNewLocalStorage({ sqs }: { sqs: SQS }) {
           throw new Error("User already set");
         user = newUser ?? null;
       },
+
+      urls,
     };
   };
 }

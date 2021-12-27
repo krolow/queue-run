@@ -34,7 +34,7 @@ async function copyFiles(buildDir: string) {
   const nodeDir = path.join(buildDir, "nodejs");
   await fs.mkdir(nodeDir, { recursive: true });
 
-  const runtime = path.dirname(require.resolve("@queue-run/runtime"));
+  const runtime = path.dirname(require.resolve("@queue-run/runtime-lambda"));
 
   const filenames = await fs.readdir(runtime);
   for (const filename of filenames)
