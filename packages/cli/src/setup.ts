@@ -7,7 +7,7 @@ import {
 import chalk from "chalk";
 import { Command } from "commander";
 import fs from "fs/promises";
-import { createInterface, Interface } from "readline";
+import inquirer from "inquirer";
 
 const configFilename = ".qr-config.json";
 
@@ -28,30 +28,21 @@ command
   });
 
 async function firstDeploy() {
-  const rl = createInterface({
-    input: process.stdin,
-    output: process.stdout,
-    terminal: true,
+  const project = await getProjectName();
+  const { http, ws } = await setupAPIGateway(project);
+  await deployLambda({
+    buildDir: ".build",
+    sourceDir: process.cwd(),
+    config: { env: "production", slug: project, url: http, ws },
   });
-  try {
-    const project = await getProjectName(rl);
-    const { http, ws } = await setupAPIGateway(project);
-    await deployLambda({
-      buildDir: ".build",
-      sourceDir: process.cwd(),
-      config: { env: "production", slug: project, url: http, ws },
-    });
-    await setupGatewayIntegrations({
-      project,
-      lambdaARN:
-        "arn:aws:lambda:us-east-1:122210178198:function:qr-grumpy-sunshine",
-    });
+  await setupGatewayIntegrations({
+    project,
+    lambdaARN:
+      "arn:aws:lambda:us-east-1:122210178198:function:qr-grumpy-sunshine",
+  });
 
-    console.info(chalk.bold.green(`Your API is available at: %s`), http);
-    console.info(`Try:\n  curl ${http}`);
-  } finally {
-    rl.close();
-  }
+  console.info(chalk.bold.green(`Your API is available at: %s`), http);
+  console.info(`Try:\n  curl ${http}`);
 }
 
 async function loadConfig() {
@@ -67,36 +58,27 @@ async function saveConfig(config: any) {
   await fs.writeFile(configFilename, JSON.stringify(config, null, 2));
 }
 
-async function getProjectName(rl: Interface): Promise<string> {
+async function getProjectName(): Promise<string> {
   const config = await loadConfig();
-  if (config.name) return config.name;
-
   const suggested = await fs
     .readFile("package.json", "utf8")
     .then(JSON.parse)
     .then((pkg) => pkg.name)
     .catch(() => null);
 
-  const prompt = chalk.bold.blue(
-    suggested
-      ? `Project name (enter to use: "${suggested}"): `
-      : `Project name: `
-  );
-  const name =
-    (await new Promise<string>((resolve) => rl.question(prompt, resolve))) ||
-    suggested;
-  if (!name) {
-    rl.write("Ctrl+C to exit\n");
-    return await getProjectName(rl);
-  }
-  if (!/^[a-zA-Z0-9-]{1,40}$/.test(name.trim())) {
-    console.error(
-      chalk.bold.red(
-        "Project name must be 1-40 characters long and can only contain letters, numbers and dashes"
-      )
-    );
-    return await getProjectName(rl);
-  }
+  const answers = await inquirer.prompt([
+    {
+      default: config.name ?? suggested,
+      message: "Project name (alphanumeric + dashes)",
+      name: "name",
+      type: "input",
+      validate: (input: string) =>
+        /^[a-zA-Z0-9-]{1,40}$/.test(input)
+          ? true
+          : "Project name must be 1-40 characters long and can only contain letters, numbers, and dashes",
+    },
+  ]);
+  const { name } = answers;
   await saveConfig({ ...config, name });
   return name;
 }
