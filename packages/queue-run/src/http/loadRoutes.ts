@@ -126,9 +126,16 @@ function getMethods(module: RouteExports): Set<string> {
   const { config } = module;
 
   const methodHandlers = (
-    ["get", "post", "put", "del", "patch", "options", "head"] as Array<
-      keyof RouteExports
-    >
+    [
+      "get",
+      "post",
+      "put",
+      "del",
+      "delete",
+      "patch",
+      "options",
+      "head",
+    ] as Array<keyof RouteExports>
   ).filter((method) => typeof module[method] === "function");
   if (methodHandlers.length > 0) {
     if (config?.methods)
@@ -136,9 +143,9 @@ function getMethods(module: RouteExports): Set<string> {
         "config.methods: cannot use this together with explicit method handlers"
       );
     return new Set(
-      methodHandlers.map((method) =>
-        method.toUpperCase().replace("DEL", "DELETE")
-      )
+      methodHandlers
+        .map((method) => method.toUpperCase())
+        .map((method) => (method === "DEL" ? "DELETE" : method))
     );
   } else {
     const handler = module.default;
