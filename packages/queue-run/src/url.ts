@@ -11,9 +11,15 @@ type Params = {
 interface URLFunction<P extends Params, Q extends Params> {
   (path: string, params?: P, query?: Q): string;
 
-  for<P = Params, Q = Params>(path: string): (params?: P, query?: Q) => string;
+  for<P extends Params, Q extends Params>(path: string): URLConstructor<P, Q>;
 
-  self: <P = Params, Q = Params>() => (params?: P, query?: Q) => string;
+  self<P extends Params, Q extends Params>(): URLConstructor<P, Q>;
+}
+
+interface URLConstructor<P extends Params, Q extends Params> {
+  (params?: P, query?: Q): string;
+
+  toString(): string;
 }
 
 /* eslint-enable no-unused-vars */
@@ -72,8 +78,15 @@ const url: URLFunction<{}, {}> = (
   return url.href;
 };
 
-url.for = (path: string) => (params, query) => url(path, params, query);
-url.self = <P, Q>() => {
+url.for = (path: string) => {
+  const constructor: URLConstructor<Params, Params> = (params, query) =>
+    url(path, params, query);
+
+  constructor.toString = () => url(path);
+  constructor.valueOf = () => url(path);
+  return constructor as URLConstructor<{}, {}>;
+};
+url.self = <P extends Params, Q extends Params>() => {
   const pathname = selfPath();
   if (!pathname.startsWith("api/"))
     throw new Error("You can only use self from an api route");
