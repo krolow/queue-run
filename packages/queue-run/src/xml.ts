@@ -26,7 +26,7 @@ import { Response } from "./http/fetch";
 //   const MyElement = "MyElement";
 export default function xml(
   xml: string | { [key: string]: any },
-  options: CreateOptions & XMLToStringOptions & { contentType: string } = {
+  options: CreateOptions & XMLToStringOptions & { contentType?: string } = {
     contentType: "application/xml",
     encoding: "utf-8",
     headless: false,
