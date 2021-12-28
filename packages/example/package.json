@@ -1,0 +1,15 @@
+{
+  "name": "example",
+  "scripts": {
+    "dev": "queue-run dev"
+  },
+  "dependencies": {
+    "queue-run": "^0.1.4"
+  },
+  "devDependencies": {
+    "@queue-run/cli": "../cli"
+  },
+  "engines": {
+    "node": "14.x"
+  }
+}
