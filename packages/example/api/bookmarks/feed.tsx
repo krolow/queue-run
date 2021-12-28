@@ -21,3 +21,5 @@ export async function get() {
     { pretty: true }
   );
 }
+
+export const authenticate = false;

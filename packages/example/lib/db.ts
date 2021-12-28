@@ -70,3 +70,9 @@ export async function update({
 export async function save(bookmarks: { [id: string]: Bookmark }) {
   await fs.writeFile("./db.json", JSON.stringify(bookmarks));
 }
+
+export async function authenticate(
+  token
+): Promise<{ id: string; name: string } | null> {
+  return token === "secret" ? { id: "1", name: "Alice" } : null;
+}
