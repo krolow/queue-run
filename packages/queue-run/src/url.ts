@@ -47,7 +47,7 @@ interface URLFunction<P extends Params, Q extends Params> {
 // As a convenience, you can also do this from any route:
 //
 //   // In api/item/[id].ts
-//   export const urlForItem = url.self;
+//   export const urlForItem = url.self();
 //
 //   // In api/items.ts
 //   import { urlForItem } from "./[id]";

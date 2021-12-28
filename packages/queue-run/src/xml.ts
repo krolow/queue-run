@@ -26,8 +26,8 @@ import { Response } from "./http/fetch";
 //   const MyElement = "MyElement";
 export default function xml(
   xml: string | { [key: string]: any },
-  options: CreateOptions & XMLToStringOptions & { contentType?: string } = {
-    contentType: "application/xml",
+  options: CreateOptions & XMLToStringOptions & { mimeType?: string } = {
+    mimeType: "application/xml",
     encoding: "utf-8",
     headless: false,
     pretty: false,
@@ -37,7 +37,7 @@ export default function xml(
   const body = xmlbuilder
     .create(xml, { ...options, separateArrayItems: true })
     .end(options);
-  const contentType = `${options.contentType ?? "application/xml"}; charset=${
+  const contentType = `${options.mimeType ?? "application/xml"}; charset=${
     options.encoding ?? "utf-8"
   }`;
   return new Response(body, {
