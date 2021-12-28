@@ -195,16 +195,10 @@ async function runWithMiddleware({
     getLocalStorage().getStore()!.user = user;
 
     const result = await handler(request, { ...metadata, user });
-    const cache =
-      typeof config.cache === "function" ? config.cache(result) : config.cache;
-    const etag =
-      typeof config.etag === "function"
-        ? config.etag(result)
-        : config.etag ?? true;
+
     const response = await resultToResponse({
-      cache,
+      addCacheControl: withCacheControl(request, config),
       corsHeaders,
-      etag,
       filename,
       result,
     });
@@ -216,15 +210,13 @@ async function runWithMiddleware({
 
 // Convert whatever the request handler returns to a proper Response object
 async function resultToResponse({
-  cache,
+  addCacheControl,
   corsHeaders,
-  etag,
   filename,
   result,
 }: {
-  cache?: number;
+  addCacheControl: ReturnType<typeof withCacheControl>;
   corsHeaders?: Headers;
-  etag: string | boolean;
   filename: string;
   result?: ReturnType<RequestHandler>;
 }): Promise<Response> {
@@ -234,24 +226,20 @@ async function resultToResponse({
       ...(corsHeaders ? Object.fromEntries(corsHeaders.entries()) : undefined),
       ...Object.fromEntries(result.headers.entries()),
     });
-    if (status === 200) {
-      addETag(headers, await result.clone().buffer(), etag);
-      addCacheControl(headers, cache);
-    }
+    if (status === 200)
+      addCacheControl(headers, result, await result.clone().buffer());
     return new Response(result.body, { headers, status });
   } else if (typeof result === "string" || Buffer.isBuffer(result)) {
     const body = typeof result === "string" ? result : result.toString("utf-8");
     const headers = new Headers(corsHeaders);
     headers.set("Content-Type", "text/plain; charset=utf-8");
-    addETag(headers, body, etag);
-    addCacheControl(headers, cache);
+    addCacheControl(headers, result, body);
     return new Response(body, { headers, status: 200 });
   } else if (result) {
     const headers = new Headers(corsHeaders);
     headers.set("Content-Type", "application/json");
     const body = JSON.stringify(result);
-    addETag(headers, body, etag);
-    addCacheControl(headers, cache);
+    addCacheControl(headers, result, body);
     return new Response(JSON.stringify(result), { headers, status: 200 });
   } else {
     console.warn(
@@ -264,23 +252,45 @@ async function resultToResponse({
   }
 }
 
-function addETag(
-  headers: Headers,
-  content: string | Buffer,
-  etag: string | boolean
-) {
-  if (headers.has("ETag") || !etag) return;
-  headers.set(
-    "ETag",
-    typeof etag === "string"
-      ? etag
-      : crypto.createHash("md5").update(content).digest("hex")
-  );
-}
+// Add Cache-Control and ETag headers to the response
+//
+// Only if the request is GET/HEAD/PUT/PATCH
+// Caller makes sure only if the request is cacheable (eg 200)
+function withCacheControl(request: Request, config: RouteConfig) {
+  // eslint-disable-next-line sonarjs/cognitive-complexity
+  return function (
+    headers: Headers,
+    result: Awaited<ReturnType<RequestHandler>>,
+    body: string | Buffer
+  ) {
+    const caching = ["GET", "HEAD", "PUT", "PATCH"].includes(request.method);
+    if (!caching) return;
 
-function addCacheControl(headers: Headers, cache?: number) {
-  if (headers.has("Cache-Control") || !cache) return;
-  headers.set("Cache-Control", `private, max-age=${cache}, must-revalidate`);
+    if (!headers.has("Cache-Control")) {
+      const cache =
+        typeof config.cache === "function"
+          ? config.cache(result)
+          : config.cache;
+
+      const header =
+        typeof cache === "number"
+          ? `private, max-age=${cache.toFixed()}, must-revalidate`
+          : typeof cache === "string"
+          ? cache
+          : undefined;
+      if (header) headers.set("Cache-Control", header);
+    }
+
+    if (!headers.has("ETag")) {
+      const etag =
+        typeof config.etag === "function"
+          ? config.etag(result)
+          : config.etag === false
+          ? undefined
+          : crypto.createHash("md5").update(body).digest("hex");
+      if (etag) headers.set("ETag", etag);
+    }
+  };
 }
 
 // Call onResponse and return the final response, handling any errors.  This

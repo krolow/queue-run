@@ -58,19 +58,21 @@ export type RouteConfig = {
   // Default to '*/*' (any content types).
   accepts?: string[] | string;
 
-  // Number of seconds the client can cache the response, or use a function to
-  // calculate the cache duration based on the result returned by the handler.
-  cache?: number | ((result: unknown) => number);
+  // Add Cache-Control headers to responses.
+  //
+  // string - Use this as Cache-Control header, eg "no-cache"
+  // number - Use this as the max-age value, eg 60 (seconds)
+  // function - Called with the result of the request handler, returns string or number
+  cache?: string | number | ((result: Result) => string | number);
 
   // True if this route supports CORS (default: true).
   cors?: boolean;
 
-  // True if you want the response to include an ETag based on the content of the
-  // document, or use a function to generate the ETag based on the result returned
-  // from the request handler.
+  // Add ETag headers to responses.
   //
-  // Default to true.
-  etag?: boolean | ((result: unknown) => string);
+  // true - Add ETag header based on the content of the response (default)
+  // function - Called with the result of the request handler, returns the ETag
+  etag?: boolean | ((result: Result) => string);
 
   // Only accepts requests with specific HTTP method(s).
   //
