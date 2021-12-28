@@ -117,7 +117,8 @@ export type RouteMiddleware = {
 export type RouteExports = {
   config?: RouteConfig;
   default?: RequestHandler;
-  delete?: RequestHandler;
+  // In JavaScript delete is a reserved keyword, so have to use del instead
+  del?: RequestHandler;
   get?: RequestHandler;
   head?: RequestHandler;
   options?: RequestHandler;

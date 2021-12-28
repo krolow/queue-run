@@ -93,6 +93,7 @@ function checkRequest(request: Request, route: HTTPRoute) {
 function getHandler(module: RouteExports, method: string): RequestHandler {
   const handler =
     module[method.toLowerCase() as keyof RouteExports] ??
+    (method === "DELETE" ? module.del : undefined) ??
     (method === "HEAD" ? module.get : undefined) ??
     module.default;
   if (handler) return handler as RequestHandler;
