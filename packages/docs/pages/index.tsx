@@ -5,7 +5,7 @@ import index from "../content/index.mdx";
 
 export default function Page({ html }) {
   return (
-    <article>
+    <article className="prose">
       <Head>
         <title>QueueRun</title>
       </Head>

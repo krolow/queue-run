@@ -4,7 +4,7 @@ import { renderToString } from "react-dom/server";
 
 export default function Page({ html, title }) {
   return (
-    <article>
+    <article className="prose">
       <Head>
         <title>{title}</title>
       </Head>
