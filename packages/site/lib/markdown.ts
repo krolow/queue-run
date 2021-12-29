@@ -7,17 +7,16 @@ import rehypeToc, { HtmlElementNode } from "rehype-toc";
 import rehypeUrls from "rehype-urls";
 import remarkParse from "remark-parse";
 import remarkRehype from "remark-rehype";
-import * as Shiki from "shiki";
-import { getHighlighter, Theme } from "shiki";
+import { getHighlighter, Highlighter, Theme } from "shiki";
 import { unified } from "unified";
 
-const docsDir = path.join(__dirname, "../../../../../docs");
+const docsDir = path.join(__dirname, "../../../docs");
 const theme: Theme = "dark-plus";
 
 export default async function markdown(slug: string) {
   const filename = path.join(docsDir, slug + ".md");
   const markdown = await fs.readFile(filename, "utf-8");
-  const highlighter: Shiki.Highlighter = await getHighlighter({ theme });
+  const highlighter: Highlighter = await getHighlighter({ theme });
   const output = await unified()
     .use(remarkParse)
     .use(remarkRehype)

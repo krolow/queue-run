@@ -3,7 +3,7 @@ import Head from "next/head";
 import path from "path";
 import markdown from "../lib/markdown";
 
-const docsDir = path.join(__dirname, "../../../../../docs");
+const docsDir = path.join(__dirname, "../../../docs");
 
 export default function Page({ html, title }) {
   return (
