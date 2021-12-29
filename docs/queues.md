@@ -127,6 +127,9 @@ export async function post(request) {
 ```
 
 
+## Failure and Retries
+
+
 ## Middleware
 
 Queues support the following middleware functions:

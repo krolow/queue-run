@@ -4,6 +4,7 @@ import path from "path";
 import rehypeSlug from "rehype-slug";
 import rehypeStringify from "rehype-stringify";
 import rehypeToc, { HtmlElementNode } from "rehype-toc";
+import rehypeUrls from "rehype-urls";
 import remarkParse from "remark-parse";
 import remarkRehype from "remark-rehype";
 import * as Shiki from "shiki";
@@ -24,6 +25,7 @@ export default async function markdown(slug: string) {
     .use(rehypeSlug)
     .use(rehypeShiki, { highlighter, throwOnUnsupportedLanguage: true })
     .use(rehypeToc, { nav: false, headings: ["h2"], customizeTOC })
+    .use(rehypeUrls, removeMDXExtension)
     .process(markdown);
 
   const { messages } = output;
@@ -58,4 +60,9 @@ function customizeTOC(toc: HtmlElementNode) {
       toc,
     ],
   };
+}
+
+function removeMDXExtension(url: URL) {
+  url.pathname = url.pathname?.replace(/\.md$/, "");
+  return url;
 }
