@@ -9,27 +9,10 @@ type Payload = Buffer | string | object;
 type Params = { [key: string]: string | string[] };
 
 /* eslint-disable no-unused-vars */
-// Use this function to create a queue object.
-//
-// For example:
-//   import { queues } from "queue-run";
-//
-//   await queues('my-queue').push('Hello, world!');
-//
-// With TypeScript you can also apply a type to the payload:
-//   await queues<{ id: string }>('my-queue').push({ id: '123' });
 interface QueuesFunction<T extends Payload> {
   (name: string): QueueFunction<T>;
-
-  // Returns the current queue. You can export this to a route handler.
-  //
-  // For example:
-  //
-  //   export const queue = queues.self;
-  self: <T = Payload>() => QueueFunction<T>;
-
-  // Returns a new queue with the given name.
   get: <T = Payload>(name: string) => QueueFunction<T>;
+  self: <T = Payload>() => QueueFunction<T>;
 }
 /* eslint-enable no-unused-vars */
 
@@ -47,62 +30,14 @@ queues.self = <T>() => {
 export default queues;
 
 /* eslint-disable no-unused-vars */
-// A function that can be used to push a job to a queue. Returns the job ID.
-//
-// You can push an object, Buffer, string.
-//
-// If you push an object, it will be serialized to JSON.  For example,
-// Date objects will be converted to ISO 8601 strings, and you can't have
-// circular references.
-//
-// You can also expose a queue as an HTTP endpoint.  For example:
-//
-//   export const post = queues('my-queue').http;
 interface QueueFunction<T = Payload> {
   (payload: T, params?: Params): Promise<string>;
-
-  // Returns a new queue function with this group ID. Required for FIFO queues.
-  //
-  // When using FIFO queues, messages are processed in order within the same
-  // group.  To avoid processing delays, use the most specific group ID. For
-  // example, if you're updating the user's account, use the user ID as the
-  // group ID.
-  group: (id: string) => QueueFunction<T>;
-
-  // Returns a new queue function with this deduplication ID. Optional for FIFO queues.
-  //
-  // When using FIFO queues, duplicate messages are discarded.  If you don't set
-  // a duplication ID, then two messages with the same content will be treated
-  // as duplicates. For example, if you're processing a payment, you might want
-  // to use the unique transaction ID as the duplication ID.
   dedupe: (id: string) => QueueFunction<T>;
-
-  // True if this queue is FIFO.
   fifo: boolean;
-
-  // The queue name.
-  queueName: string;
-
-  // Push a message to the queue. This is the same as the queue function,
-  // available here for convenience.
-  //
-  // These two are the same:
-  //   await queues('my-queue').push('Hello, world!');
-  //   await queues('my-queue')('Hello, world!');
-  push(payload: T, params?: Params): Promise<string>;
-
-  // Expose queue as an HTTP endpoint.
-  //
-  // For example:
-  //   export const post = queues('my-queue').http;
-  //   export config = { accepts: ["application/json"] };
-  //
-  // The queue can accept JSON documents and HTML forms (URL encoded and
-  // multipart) Both are processed as objects. It can also accept text/plain,
-  // processed as a string, and application/octet-stream, processed as a Buffer.
-  //
-  // The response is 202 Accepted, with a header X-Job-ID containing the job ID.
+  group: (id: string) => QueueFunction<T>;
   http: RequestHandler;
+  push(payload: T, params?: Params): Promise<string>;
+  queueName: string;
 }
 /* eslint-enable no-unused-vars */
 
@@ -162,6 +97,9 @@ function newQueue<T = Payload>(
     if (fifo) return newQueue(queueName, group, id);
     else throw new Error("Only FIFO queues support deduplication ID");
   };
+
+  queueFn.toString = () => queueName;
+  queueFn.valueOf = () => queueName;
 
   queueFn.queueName = queueName;
   queueFn.fifo = fifo;
