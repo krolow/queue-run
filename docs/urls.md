@@ -1,4 +1,4 @@
-export const title = "Working with URLs";
+# Working with URLs
 
 If you want to return a URL as part of the response, you can use the `url` helper.
 

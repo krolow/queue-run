@@ -1,4 +1,4 @@
-export const title = "Generating XML";
+# Generating XML
 
 Yes, we support XML. There are some use cases. Most feed readers expect XML
 (Atom and RSS). Search engines like their sitemap in XML as well.

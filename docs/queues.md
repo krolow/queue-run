@@ -1,4 +1,4 @@
-export const title = "Working With Queues";
+# Working With Queues
 
 ## Standard Queues
 
@@ -32,6 +32,7 @@ const job3 = await queues('payment.fifo')
   .push(amount);
 ```
 
+
 ## queues.self()
 
 You can use the `queues.self()` function to get a reference to the current queue.
@@ -59,6 +60,7 @@ export async function post(request) {
   return new Response(null, { status: 202 });
 }
 ```
+
 
 ## queue.http
 
@@ -121,5 +123,46 @@ export async function post(request) {
   // This checks the type of the payload.
   await queue.push(task);
   return new Response(null, { status: 202 });
+}
+```
+
+
+## Middleware
+
+Queues support the following middleware functions:
+
+- `onJobStarted(metadata)` — Called each time the job runs
+- `onJobFinished(metadata)` — Called when the job finishes successfully
+- `onError(error, metadata)` — Called when the job fails with an error
+
+The default middleware logs the job starting and finishing and any errors.
+
+You can export different middleware for all queues from `queues/_middleware.js`, or for a specific queue from the module itself. You can disable the default middleware by exporting `undefined`.
+
+Your middleware can wrap the default middleware, available as `logJobStarted`, `logJobFinished`, and `logError` respectively.
+
+For example, to count running jobs and errors:
+
+```js
+// This is queues/_middleware.js
+import {
+  logJobStarted,
+  logJobFinished,
+  logError
+} from 'queue-run';
+
+export async function onJobStarted(metadata) {
+  await logJobStarted(metadata);
+  await metrics.increment(`jobs.${metadata.queueName}`);
+}
+
+export async function onJobFinished(metadata) {
+  await logJobFinished(metadata);
+  await metrics.decrement(`jobs.${metadata.queueName}`);
+}
+
+export async function onError(error, metadata) {
+  await logError(error, metadata);
+  await metrics.increment(`errors.${metadata.queueName}`);
 }
 ```

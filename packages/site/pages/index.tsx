@@ -1,7 +1,6 @@
 import Head from "next/head";
 import * as React from "react";
-import { renderToString } from "react-dom/server";
-import index from "../content/index.mdx";
+import markdown from "../lib/markdown";
 
 export default function Page({ html }) {
   return (
@@ -17,6 +16,6 @@ export default function Page({ html }) {
 }
 
 export async function getStaticProps() {
-  const html = renderToString(index());
+  const { html } = await markdown("index");
   return { props: { html } };
 }
