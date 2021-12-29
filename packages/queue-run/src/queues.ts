@@ -1,5 +1,6 @@
 import { URLSearchParams } from "url";
-import { Request, RequestFormData, Response } from "./http/fetch";
+import form from "./form";
+import { Request, Response } from "./http/fetch";
 import { getLocalStorage } from "./localStorage";
 import loadQueues from "./queue/loadQueues";
 import selfPath from "./selfPath";
@@ -139,7 +140,14 @@ async function payloadFromRequest(request: Request): Promise<object | string> {
 
     case "multipart/form-data": {
       try {
-        return await formDataToObject(request);
+        const fields = await form(request);
+        if (
+          Object.values(fields).some(
+            (field) => Buffer.isBuffer(field) && field.filename
+          )
+        )
+          throw new Error("multipart/form-data: files not supported");
+        return fields;
       } catch (error) {
         throw new Response(String(error), { status: 422 });
       }
@@ -156,23 +164,4 @@ async function payloadFromRequest(request: Request): Promise<object | string> {
       throw new Response("Unsupported media type", { status: 415 });
     }
   }
-}
-
-async function formDataToObject(
-  request: Request
-): Promise<{ [key: string]: string }> {
-  const form = await RequestFormData.from(request);
-  return Array.from(form.entries()).reduce(
-    (fields, [name, { contentType, data, filename }]) => {
-      if (filename) throw new Error("multipart/form-data: files not supported");
-      if (!name) throw new Error("multipart/form-data: part without name");
-      const encoding = contentType?.match(/;\s*charset=([^;]+)/)?.[1];
-      return {
-        ...fields,
-        // @ts-ignore
-        [name]: data.toString(encoding ?? "utf-8"),
-      };
-    },
-    {}
-  );
 }

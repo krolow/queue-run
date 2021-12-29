@@ -1,3 +1,4 @@
+export { default as form } from "./form";
 export * from "./http/fetch";
 export { default as handleHTTPRequest } from "./http/handleHTTPRequest";
 export { default as loadRoutes } from "./http/loadRoutes";
