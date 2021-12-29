@@ -7,8 +7,14 @@ export default function App({ Component, pageProps }: AppProps) {
     <>
       <Head>
         <link
+          href="https://fonts.googleapis.com/css?family=Inter"
           rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/styles/github-dark.min.css"
+          type="text/css"
+        />
+        <link
+          href="https://fonts.googleapis.com/css?family=Fira+Code"
+          rel="stylesheet"
+          type="text/css"
         />
         <title>🐇 QueueRun</title>
       </Head>

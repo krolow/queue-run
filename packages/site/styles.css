@@ -2,12 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+.toc {
+  @apply my-8;
+}
 .toc ol {
-  @apply list-none p-0 m-0;
+  @apply list-none p-0;
 }
 .toc li {
   @apply p-0;
 }
 .toc .toc-link {
+  @apply text-blue-500 no-underline;
+}
+
+.prose a {
   @apply text-blue-500 no-underline;
 }

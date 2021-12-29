@@ -1,3 +1,4 @@
+import rehypeShiki from "@leafac/rehype-shiki";
 import fs from "fs/promises";
 import path from "path";
 import rehypeSlug from "rehype-slug";
@@ -5,9 +6,11 @@ import rehypeStringify from "rehype-stringify";
 import rehypeToc, { HtmlElementNode } from "rehype-toc";
 import remarkParse from "remark-parse";
 import remarkRehype from "remark-rehype";
+import { getHighlighter, Theme } from "shiki";
 import { unified } from "unified";
 
 const docsDir = path.join(__dirname, "../../../../../docs");
+const theme: Theme = "dark-plus";
 
 export default async function markdown(slug: string) {
   const filename = path.join(docsDir, slug + ".md");
@@ -17,11 +20,12 @@ export default async function markdown(slug: string) {
     .use(remarkRehype)
     .use(rehypeStringify)
     .use(rehypeSlug)
-    .use(rehypeToc, { headings: ["h2"], customizeTOC })
+    .use(rehypeShiki, { highlighter: await getHighlighter({ theme }) })
+    .use(rehypeToc, { nav: false, headings: ["h2"], customizeTOC })
     .process(markdown);
 
-  const { message } = output;
-  if (message.length) console.warn(message);
+  const { messages } = output;
+  if (messages.length) console.warn(messages);
 
   let html = output.toString();
   let title;
@@ -33,6 +37,7 @@ export default async function markdown(slug: string) {
 }
 
 function customizeTOC(toc: HtmlElementNode) {
+  if (toc.children.length === 0) return null;
   return {
     type: "element",
     tagName: "details",
@@ -48,7 +53,7 @@ function customizeTOC(toc: HtmlElementNode) {
           },
         ],
       },
-      ...toc.children,
+      toc,
     ],
   };
 }
