@@ -10,6 +10,7 @@ export default function App({ Component, pageProps }: AppProps) {
           rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/styles/github-dark.min.css"
         />
+        <title>🐇 QueueRun</title>
       </Head>
       <div className="content max-w-3xl mx-auto my-10">
         <nav className="flex flex-row gap-8 items-center mb-10">

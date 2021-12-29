@@ -8,7 +8,7 @@ export default function Page({ html, title }) {
       <Head>
         <title>{title}</title>
       </Head>
-      <h1>{title}</h1>
+      <h1 className="border-b-gray-100 border-b-2 pb-4">{title}</h1>
       <section dangerouslySetInnerHTML={{ __html: html }} />
     </article>
   );
