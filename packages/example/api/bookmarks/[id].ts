@@ -1,30 +1,29 @@
-import { RouteConfig, url } from "queue-run";
+import { Request, RouteConfig, url } from "queue-run";
 import * as db from "../../lib/db";
 import { input } from "./_middleware";
 
-type Params = { id: string };
+type ID = { id: string };
 
-export async function get(_request, { params }: { params: Params }) {
+export async function get(_request, { params }: { params: ID }) {
   const bookmark = await db.find(params.id);
   if (!bookmark) throw new Response(null, { status: 404 });
   return bookmark;
 }
 
-export async function del(_request, { params }: { params: Params }) {
+export async function del(_request, { params }: { params: ID }) {
   await db.del(params.id);
   return new Response(null, { status: 204 });
 }
 
-export async function put(request: Request, { params }: { params: Params }) {
-  const { title, url } = await input(request);
-  const bookmark = await db.update({ id: params.id, title, url });
+export async function put(request: Request, { params }: { params: ID }) {
+  const bookmark = await db.find(params.id);
   if (!bookmark) throw new Response(null, { status: 404 });
-  return bookmark;
+  const { title, url } = await input(request);
+  return await db.update({ id: params.id, title, url });
 }
 
-export const urlForBookmark = url.self<Params>();
+export const urlForBookmark = url.self<ID, never>();
 
 export const config: RouteConfig = {
-  accepts: "application/json",
   cache: 60,
 };

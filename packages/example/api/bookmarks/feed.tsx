@@ -6,6 +6,7 @@ export async function get() {
   const bookmarks = await db.load();
   return xml(
     <feed xmlns="http://www.w3.org/2005/Atom">
+      <url>{String(url.self())}</url>
       <title>Bookmarks</title>
       <link rel="self" href={url.self()()} />
       {Object.entries(bookmarks).map(([id, bookmark]) => (
