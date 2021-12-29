@@ -9,14 +9,14 @@ type Payload = Buffer | string | object;
 type Params = { [key: string]: string | string[] };
 
 /* eslint-disable no-unused-vars */
-interface QueuesFunction<T extends Payload> {
+interface QueuesFunction<T = Payload> {
   (name: string): QueueFunction<T>;
-  get: <T = Payload>(name: string) => QueueFunction<T>;
-  self: <T = Payload>() => QueueFunction<T>;
+  get: <T>(name: string) => QueueFunction<T>;
+  self: <T>() => QueueFunction<T>;
 }
 /* eslint-enable no-unused-vars */
 
-const queues: QueuesFunction<Payload> = (name) => newQueue<Payload>(name);
+const queues: QueuesFunction = (name) => newQueue(name);
 
 queues.get = <T>(name: string) => newQueue<T>(name);
 
