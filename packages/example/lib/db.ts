@@ -9,7 +9,7 @@ export type Bookmark = {
   updated: string;
 };
 
-export async function load(): Promise<{ [id: string]: Bookmark }> {
+export async function findAll(): Promise<{ [id: string]: Bookmark }> {
   try {
     return JSON.parse(await fs.readFile("./db.json", "utf-8"));
   } catch (e) {
@@ -26,25 +26,25 @@ export async function create({
 }): Promise<Bookmark> {
   const id = crypto.randomBytes(4).toString("hex");
   const created = new Date().toISOString();
-  const bookmarks = await load();
+  const bookmarks = await findAll();
   const bookmark = { title, url, id, created, updated: created };
   bookmarks[id] = bookmark;
   await save(bookmarks);
   return bookmark;
 }
 
-export async function find(id: string): Promise<Bookmark | null> {
-  const db = await load();
+export async function findOne(id: string): Promise<Bookmark | null> {
+  const db = await findAll();
   return db[id];
 }
 
-export async function del(id: string): Promise<void> {
-  const bookmarks = await load();
+export async function deleteOne(id: string): Promise<void> {
+  const bookmarks = await findAll();
   delete bookmarks[id];
   await save(bookmarks);
 }
 
-export async function update({
+export async function updateOne({
   id,
   title,
   url,
@@ -53,7 +53,7 @@ export async function update({
   title: string;
   url: string;
 }): Promise<Bookmark | null> {
-  const bookmarks = await load();
+  const bookmarks = await findAll();
   const bookmark = bookmarks[id];
   if (!bookmark) return null;
   bookmarks[id] = {

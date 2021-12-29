@@ -1,7 +1,6 @@
 # Generating XML
 
-Yes, we support XML. There are some use cases. Most feed readers expect XML
-(Atom and RSS). Search engines like their sitemap in XML as well.
+Yes, we support XML because XML will outlive us all. There are some use cases: feed readers (Atom and RSS), Sitemap for search engines, etc.
 
 You can use JSX to generate XML documents:
 
@@ -57,5 +56,21 @@ return xml(
     <Name>{item.name}</Name>
     <NSPrefix>name:</NSPrefix>
   </Record>
+);
+```
+
+You can also generate HTML:
+
+```js
+return xml(
+  <html>
+    <head>
+      <title>Hello world!</title>
+    <head>
+    <body>
+      👋 I may look like React, but I'm static HTML.
+    </body>
+  </html>,
+  { mimeType: "text/html" }}
 );
 ```

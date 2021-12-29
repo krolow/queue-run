@@ -4,7 +4,7 @@ import { urlForBookmark } from "./[id]";
 import { input } from "./_middleware";
 
 export async function get() {
-  return await db.load();
+  return await db.findAll();
 }
 
 export async function post(request: Request) {

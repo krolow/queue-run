@@ -39,8 +39,8 @@ You can use the `queues.self()` function to get a reference to the current queue
 
 For example:
 
+#### queues/tasks.js
 ```js
-// This is queues/tasks.js
 import { queues } from 'queue-run';
 
 export default async function(task) {
@@ -50,8 +50,8 @@ export default async function(task) {
 export const queue = queues.self();
 ```
 
+#### api/tasks.js
 ```js
-// This is api/tasks.js
 import { queue } from '../queues/tasks';
 
 export async function post(request) {
@@ -76,8 +76,8 @@ If the API is authenticated, the queue handler will receive the user ID in the s
 
 For example:
 
+#### api/tasks.js
 ```js
-// This is api/tasks.js
 import { queues } from 'queue-run';
 
 export const post = queues.get('tasks').http;
@@ -94,8 +94,8 @@ When using TypeScript, you can apply a type to the queue payload:
 
 For example:
 
+#### queues/tasks.ts
 ```ts
-// This is queues/tasks.ts
 import { queues } from 'queue-run';
 
 export type Task = {
@@ -111,8 +111,8 @@ export default async function(task: Task) {
 export const queue = queues.self<Task>();
 ```
 
+#### api/tasks.ts
 ```ts
-// This is api/tasks.ts
 import { queue, Task } from '../queues/tasks';
 
 export async function post(request) {
@@ -146,8 +146,8 @@ Your middleware can wrap the default middleware, available as `logJobStarted`, `
 
 For example, to count running jobs and errors:
 
+#### queues/_middleware.js
 ```js
-// This is queues/_middleware.js
 import {
   logJobStarted,
   logJobFinished,

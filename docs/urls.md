@@ -1,9 +1,11 @@
 # Working with URLs
 
+## Simple Example
+
 If you want to return a URL as part of the response, you can use the `url` helper.
 
-```ts filename="api/items[id].ts"
-// This is api/items/[id].ts
+#### api/items/[id].ts
+```ts
 import { url } from 'queue-run';
 
 export const urlForItem = url.self<{ id: string >}();
@@ -15,8 +17,8 @@ export async function get() {
 }
 ```
 
+#### api/items/index.ts
 ```ts
-// This is api/items/index.ts
 const { urlForItem } = require('./[id]');
 
 // Respond with a list of all items
@@ -103,8 +105,8 @@ The `url.self()` function is a shortcut for `url.for(path)` that uses the path o
 
 These two are equivalent:
 
+#### api/items/[id].ts
 ```js
-// This is api/items/[id].ts
 export const urlForItem = url.self<{ id: string }>();
 export const urlForItem = url.url<{ id: string }>('/items/[id]');
 ```

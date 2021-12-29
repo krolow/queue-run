@@ -3,7 +3,7 @@ import * as db from "../../lib/db";
 import { urlForBookmark } from "./[id]";
 
 export async function get() {
-  const bookmarks = await db.load();
+  const bookmarks = await db.findAll();
   return xml(
     <feed xmlns="http://www.w3.org/2005/Atom">
       <url>{String(url.self())}</url>
