@@ -6,6 +6,7 @@ import rehypeStringify from "rehype-stringify";
 import rehypeToc, { HtmlElementNode } from "rehype-toc";
 import remarkParse from "remark-parse";
 import remarkRehype from "remark-rehype";
+import * as Shiki from "shiki";
 import { getHighlighter, Theme } from "shiki";
 import { unified } from "unified";
 
@@ -15,12 +16,13 @@ const theme: Theme = "dark-plus";
 export default async function markdown(slug: string) {
   const filename = path.join(docsDir, slug + ".md");
   const markdown = await fs.readFile(filename, "utf-8");
+  const highlighter: Shiki.Highlighter = await getHighlighter({ theme });
   const output = await unified()
     .use(remarkParse)
     .use(remarkRehype)
     .use(rehypeStringify)
     .use(rehypeSlug)
-    .use(rehypeShiki, { highlighter: await getHighlighter({ theme }) })
+    .use(rehypeShiki, { highlighter, throwOnUnsupportedLanguage: true })
     .use(rehypeToc, { nav: false, headings: ["h2"], customizeTOC })
     .process(markdown);
 

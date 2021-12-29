@@ -1,5 +1,4 @@
 import Head from "next/head";
-import * as React from "react";
 import markdown from "../lib/markdown";
 
 export default function Page({ html }) {

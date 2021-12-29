@@ -1,10 +1,5 @@
-import fs from "fs/promises";
 import Head from "next/head";
-import path from "path";
-import * as React from "react";
 import markdown from "../lib/markdown";
-
-const docsDir = path.join(__dirname, "../../../../../docs");
 
 export default function Page({ html, title }) {
   return (
@@ -19,12 +14,7 @@ export default function Page({ html, title }) {
 }
 
 export async function getStaticPaths() {
-  const filenames = await fs.readdir(docsDir);
-  const paths = filenames
-    .map((filename) => filename.replace(/\.md$/, ""))
-    .filter((path) => path !== "index")
-    .map((path) => `/${path}`);
-  return { paths: paths, fallback: true };
+  return { paths: [], fallback: true };
 }
 
 export async function getStaticProps({ params }) {
