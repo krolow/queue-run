@@ -2,6 +2,7 @@ import { url, xml } from "queue-run";
 
 export async function get() {
   const token = "secret";
+  const bookmarksURL = url("/bookmarks");
 
   return xml(
     <html>
@@ -15,7 +16,7 @@ export async function get() {
             <p>Create a bookmark:</p>
             <pre>
               {`
-curl ${url("/bookmarks")} -X POST \\
+curl ${bookmarksURL} -X POST \\
    -F "title=My bookmark" -F "url=http://example.com" \\
    -H "Authorization: Bearer ${token}"
               `}
@@ -25,7 +26,7 @@ curl ${url("/bookmarks")} -X POST \\
             <p>List all bookmarks:</p>
             <pre>
               {`
-curl ${url("/bookmarks")} -H "Authorization: Bearer ${token}"
+curl ${bookmarksURL} -H "Authorization: Bearer ${token}"
 curl ${url("/bookmarks/feed")}`}
             </pre>
           </li>
@@ -34,7 +35,7 @@ curl ${url("/bookmarks/feed")}`}
             <pre>
               {`
 export new_url=$(\\
-  curl ${url("/bookmarks")} -X POST \\
+  curl ${bookmarksURL} -X POST \\
     -F "title=Going to delete this" -F "url=http://example.com" \\
     -H "Authorization: Bearer ${token}" \\
   )
