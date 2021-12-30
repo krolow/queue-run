@@ -1,7 +1,7 @@
 import { compile } from "path-to-regexp";
 import { URL } from "url";
-import { getLocalStorage } from "./localStorage";
-import selfPath from "./selfPath";
+import { getLocalStorage } from "../shared/localStorage";
+import selfPath from "../shared/selfPath";
 
 type Params = {
   [key: string]: string | number | boolean | (string | number | boolean)[];

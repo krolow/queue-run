@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 import type { AbortSignal } from "node-abort-controller";
-import { OnError } from "../types";
+import { OnError } from "../shared/logError";
 
 // Queue job handler.
 //
@@ -62,11 +62,14 @@ export type QueueConfig = {
   timeout?: number;
 };
 
+export type OnJobStarted = (job: QueueHandlerMetadata) => Promise<void> | void;
+export type OnJobFinished = (job: QueueHandlerMetadata) => Promise<void> | void;
+
 // Queue middleware.
 export type QueueMiddleware = {
-  onError?: OnError<QueueHandlerMetadata> | null;
-  onJobStarted?: (job: QueueHandlerMetadata) => Promise<void> | void;
-  onJobFinished?: (job: QueueHandlerMetadata) => Promise<void> | void;
+  onError?: OnError | null;
+  onJobFinished?: OnJobFinished;
+  onJobStarted?: OnJobStarted | null;
 };
 
 // All of these can be exported from the module.  The default export is required.

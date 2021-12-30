@@ -1,7 +1,7 @@
 import glob from "fast-glob";
 import path from "path";
-import loadModule from "../loadModule";
-import { QueueExports, QueueMiddleware } from "../types";
+import loadModule from "../shared/loadModule";
+import { QueueExports, QueueMiddleware } from "./exports";
 
 const maxTimeout = 500;
 const defaultTimeout = 30;

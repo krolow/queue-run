@@ -1,7 +1,7 @@
 import type { TranscodeEncoding } from "buffer";
 import multipart from "parse-multipart-data";
 import { URLSearchParams } from "url";
-import { Request, Response } from "./http/fetch";
+import { Request, Response } from "./fetch";
 
 export default async function form(request: Request): Promise<{
   [key: string]: FormField;

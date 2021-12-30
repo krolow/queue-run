@@ -1,10 +1,8 @@
 import { URLSearchParams } from "url";
-import form from "./form";
-import { Request, Response } from "./http/fetch";
-import { getLocalStorage } from "./localStorage";
-import loadQueues from "./queue/loadQueues";
-import selfPath from "./selfPath";
-import { RequestHandler } from "./types";
+import { form, Request, RequestHandler, Response } from "../http";
+import { getLocalStorage } from "../shared/localStorage";
+import selfPath from "../shared/selfPath";
+import loadQueues from "./loadQueues";
 
 type Payload = Buffer | string | object;
 type Params = { [key: string]: string | string[] };

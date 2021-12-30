@@ -1,10 +1,12 @@
 import chalk from "chalk";
 import { AbortController } from "node-abort-controller";
 import invariant from "tiny-invariant";
-import loadModule from "../loadModule";
-import { getLocalStorage, LocalStorage } from "../localStorage";
-import { QueueExports, QueueHandlerMetadata, QueueMiddleware } from "../types";
+import loadModule from "../shared/loadModule";
+import { getLocalStorage, LocalStorage } from "../shared/localStorage";
+import { logError } from "../shared/logError";
+import { QueueExports, QueueHandlerMetadata, QueueMiddleware } from "./exports";
 import loadQueues from "./loadQueues";
+import { logJobFinished, logJobStarted } from "./middleware";
 
 export default async function handleQueuedJob({
   metadata,
@@ -22,7 +24,12 @@ export default async function handleQueuedJob({
   const queue = (await loadQueues()).get(queueName);
   if (!queue) throw new Error(`No handler for queue ${queueName}`);
   const loaded = await loadModule<QueueExports, QueueMiddleware>(
-    `queues/${queueName}`
+    `queues/${queueName}`,
+    {
+      onJobStarted: logJobStarted,
+      onJobFinished: logJobFinished,
+      onError: logError,
+    }
   );
   invariant(loaded, "Could not load queue module");
 

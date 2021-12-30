@@ -1,11 +1,12 @@
 import { MatchFunction } from "path-to-regexp";
 import invariant from "tiny-invariant";
 import { URL } from "url";
-import loadModule from "../loadModule";
-import { RouteExports, RouteMiddleware } from "../types";
+import loadModule from "../shared/loadModule";
+import { logError } from "../shared/logError";
+import { RouteExports, RouteMiddleware } from "./exports";
 import { Response } from "./fetch";
 import loadRoutes from "./loadRoutes";
-import { logError, logResponse } from "./middleware";
+import { logResponse } from "./middleware";
 
 // Runtime definition for an HTTP route
 export type HTTPRoute = {
