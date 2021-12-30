@@ -1,8 +1,9 @@
 
 ## Documentation TOC
 
-- [Working with URLs](urls.md) 
+- [Building HTTP APIs](http.md) 
 - [Working with Queues](queues.md)
+- [Working with URLs](urls.md) 
 - [Generating XML](xml.md)
 
 
@@ -96,12 +97,11 @@ import ow from "ow";
 
 // This is used by two route files, so put it here
 export async function input(request: Request) {
-  // If not a JSON document than maybe an HTML form?
-  // If neither, this throws 415 Unsupported Media Type
-  const { title, url } = await request
-    .clone()
-    .json()
-    .catch(() => form(request));
+  // We accept HTML forms and JSON documents
+  const { title, url } = await form(request.clone()).catch(() =>
+    request.json()
+  );
+
   // Validate inputs early and validate inputs often
   try {
     ow(url, ow.string.url.matches(/^https?:/));
@@ -117,7 +117,7 @@ export async function input(request: Request) {
 ```js
 import { queues } from "queue-run";
 import * as db from "../lib/db";
-import capture from "../lib/screenshot";
+import capture from "../lib/capture";
 
 type Payload = { id: string };
 
