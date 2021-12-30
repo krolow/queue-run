@@ -2,7 +2,7 @@ import { loadServices, moduleLoader } from "@queue-run/builder";
 import chalk from "chalk";
 import { createServer, IncomingMessage, ServerResponse } from "http";
 import ora from "ora";
-import { handleHTTPRequest, LocalStorage } from "queue-run";
+import { handleHTTPRequest, LocalStorage, Request } from "queue-run";
 import { URL } from "url";
 import envVariables from "./envVariables";
 import { newLocalStorage } from "./newLocalStorage";
@@ -56,7 +56,6 @@ async function onRequest(
     body,
   });
   const response = await handleHTTPRequest(request, () => localStorage);
-  console.info("%s %s => %s", method, req.url, response.status);
   res.writeHead(response.status, Array.from(response.headers.entries()));
   res.end(response.body, "base64");
 }

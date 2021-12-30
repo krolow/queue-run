@@ -10,7 +10,8 @@ import { install } from "source-map-support";
 export default async function loadModule<ModuleExports, Middleware>(
   // The module name as route (not filename), eg "/api/project/[id]",
   // "/queues/update_profile.fifo"
-  name: string
+  name: string,
+  defaultMiddleware?: Middleware
 ): Promise<Readonly<{
   module: ModuleExports;
   middleware: Middleware;
@@ -29,7 +30,11 @@ export default async function loadModule<ModuleExports, Middleware>(
   const middleware = await loadMiddleware<Middleware>(fromProjectRoot);
   return {
     // Route takes precendece over _middleware
-    middleware: combine(module as unknown as Middleware, ...middleware),
+    middleware: combine(
+      module as unknown as Middleware,
+      ...middleware,
+      defaultMiddleware ?? ({} as Middleware)
+    ),
     module,
   };
 }

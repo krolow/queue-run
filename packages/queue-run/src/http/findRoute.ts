@@ -5,6 +5,7 @@ import loadModule from "../loadModule";
 import { RouteExports, RouteMiddleware } from "../types";
 import { Response } from "./fetch";
 import loadRoutes from "./loadRoutes";
+import { logError, logResponse } from "./middleware";
 
 // Runtime definition for an HTTP route
 export type HTTPRoute = {
@@ -42,7 +43,8 @@ export default async function findRoute(url: string): Promise<{
   const { route, params } = mostSpecific;
 
   const loaded = await loadModule<RouteExports, RouteMiddleware>(
-    route.filename
+    route.filename,
+    { onResponse: logResponse, onError: logError }
   );
   invariant(loaded, "Could not load route module");
   const { module, middleware } = loaded;
