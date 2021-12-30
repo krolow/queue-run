@@ -1,46 +1,56 @@
 
-## Why Queue Run?
+## Documentation TOC
 
-Lambda has all the right building blocks — HTTP, WS, SQS, CloudWatch — but you drown in YAML trying to set everything up, and the APIs are not for JavaScript developers.
+- [Working with URLs](urls.md) 
+- [Working with Queues](queues.md)
+- [Generating XML](xml.md)
 
-Next, Remix, Nuxt, et al are a joy to use — and source of influence — but they're designed for front-end applications and don't pay enough attention to the back-end.
+
+## Why QueueRun?
+
+* Unapologitecally Web 2.0 framework for buildng services and APIs
+* Designed for serverless deployments (you can, but you don't have to manage Node servers)
+* Convention over configuration, life's too short to deal with CloudFormation
+* Of the web: HTTP and WebSockets, REST resources, Fetch API, console.log, HTML forms
+* For the backend: routing, standard and FIFO job queues, scheduled jobs
+* Batteries included, with middleware for logging, authentication, multipart/form-data, etc
+* TypeScript and JSX if you feel like it
+
+Lambda has all the right building blocks — HTTP, WS, SQS, CloudWatch — but you drown in YAML trying to set it up. And the AWS APIs were not designed for JavaScript developers.
+
+Next, Remix, Nuxt, et al are a joy to use — and a source of influence — but they're designed for front-end applications and don't pay enough attention to backend tasks.
 
 QueueRun is for building the back-end of the application, from the HTTP/WS API to the queued and scheduled jobs that run in the background.
 
-* Unapologitecally Web 2.0 framework for buildng services and APIs
-* Designed for serverless deployments, you can but you don't have to manage Node servers
-* Convention over configuration, life's too short to be dealing with CloudFormation
-* Of the web: HTTP and WebSockets, REST resources, Fetch API, console.log, HTML forms
-* For the backend: routing, standard and FIFO job queues, scheduled jobs
-* Batteries included: with common middleware for logging, authentication, multipart/form-data
-* TypeScript and JSX if you feel like it
+QueueRun is designed for building APIs or backends, and deploying to serverless environments. AWS Lambda by default, but GPC, CloudFlare Workers, Fly.io are all options.
 
-QueueRun is designed for serverless deployment. With the proper runtime, it can run on AWS Lambda, GPC Functions, CloudFlare Workers, Fly.io, etc. It can also run anywhere you run a Node server: Heroku, EC2, K8N.
+Your code is the configuration. You don't need to write boilerplate YAML, we can figure out the URL path for the file `api/todo/[id].ts`, and the queue name from `queues/update.fifo.ts`. Forget about CloudFormation, ot don't learn it to begin with.
 
-Your code acts as configuration. If we can figure out that `api/todo/[id].js` is an HTTP endpoint with the path parameter `id`, then we can figure out that `queues/update.fifo.ts` is FIFO queue. Forget about CloudFormation, or don't learn it to begin with.
-
-All the stuff you need in every single project — logging, authentication, form handling, etc — included by default. Use what you like, or replace with your own implementation. As simple as `export function authenticate()`.
+Stuff you need in every single project — logging, authentication, form handling, etc — included by default. Use what you like, or replace with your own implementation. No dependency injection either, just export from the module.
 
 
-[Working with URLs](urls.md)
+## See An Example
 
-[Working with Queues](queues.md)
-
-[Generating XML](xml.md)
-
-### api/bookmarks/index.js
+### api/bookmarks/index.ts
 ```js
-import { Request } from "queue-run";
-import * as db from "lib/db";
-import { urlForBookmark } from "./[id]";
 import { input } from "./_middleware";
+import { queue as screenshots } from "../../queues/screenshots";
+import { urlForBookmark } from "./[id]";
+import * as db from "lib/db";
 
+// HTTP GET /bookmarks
 export async function get() {
+  // object -> JSON
   return await db.findAll();
 }
 
-export async function post({ request }) {
+// And this is an HTTP post
+export async function post({ request }: { request: Request }) {
   const bookmark = await db.create(await input(request));
+  await screenshots.push({ id: bookmark.id });
+
+  // This will generate a URL like
+  // https://example.com/bookmarks/c675e615%
   const url = urlForBookmark(bookmark);
   return new Response(url, { status: 303, headers: { Location: url } });
 }
@@ -48,17 +58,21 @@ export async function post({ request }) {
 
 ### api/bookmarks/[id].js
 ```js
-import { Request, url } from "queue-run";
-import * as db from "lib/db";
 import { input } from "./_middleware";
+import { url } from "queue-run";
+import * as db from "lib/db";
 
-export async function get({ params }) {
+type Resource = { request: Request, params: { id: string } };
+
+// In Express this would be get('/bookmarks/:id')
+export async function get({ params }: Resource) {
   const bookmark = await db.findOne(params.id);
+  // Throw a response to exit request handling early
   if (!bookmark) throw new Response(null, { status: 404 });
   return bookmark;
 }
 
-export async function put({ request, params }) {
+export async function put({ request, params }: Resource) {
   const bookmark = await db.findOne(params.id);
   if (!bookmark) throw new Response(null, { status: 404 });
 
@@ -66,35 +80,58 @@ export async function put({ request, params }) {
   return await db.updateOne({ id: params.id, title, url });
 }
 
-export async function del({ params }) {
+export async function del({ params }: Resource) {
   await db.deleteOne(params.id);
   return new Response(null, { status: 204 });
 }
 
-export const urlForBookmark = url.self();
+// So this is how api/bookmarks/index.ts creates URLs
+export const urlForBookmark = url.self<Resource['params']>();
 ```
 
-### api/bookmarks/_middleware.js
+### api/bookmarks/_middleware.ts
 ```js
+import { form } from "queue-run";
 import ow from "ow";
-import { form, jwt } from "queue-run";
 
-export const authenticate = jwt(process.env.JWT_SECRET);
-
-export async function input(request) {
-  // If not a JSON document than maybe HTML form, and if neither,
-  // browser receives 415 Unsupported Media Type
+// This is used by two route files, so put it here
+export async function input(request: Request) {
+  // If not a JSON document than maybe an HTML form?
+  // If neither, this throws 415 Unsupported Media Type
   const { title, url } = await request
     .clone()
     .json()
     .catch(() => form(request));
-  // Validate inputs often and validate early
+  // Validate inputs early and validate inputs often
   try {
-    ow(url, ow.string.url.matches(/^https?:/).message("HTTP/S URL required"));
+    ow(url, ow.string.url.matches(/^https?:/));
     ow(title, ow.string.nonEmpty.message("Title is required"));
     return { title, url };
   } catch (error) {
     throw new Response(String(error), { status: 422 });
   }
 }
+```
+
+### queues/screenshots.ts
+```js
+import { queues } from "queue-run";
+import * as db from "../lib/db";
+import capture from "../lib/screenshot";
+
+type Payload = { id: string };
+
+export default async function ({ id }: Payload) {
+  const bookmark = await db.findOne(id);
+  if (!bookmark) return;
+
+  // This could easily take several seconds,
+  // so we're doing this in a background job
+  const screenshot = await capture(bookmark.url);
+  await db.updateOne({ id, screenshot });
+}
+
+// api/bookmarks/index.ts doesn't need to guess the queue name
+// IDE can show you type information for push(payload)
+export const queue = queues.self<Payload>();
 ```

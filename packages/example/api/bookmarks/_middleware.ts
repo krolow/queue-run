@@ -20,13 +20,13 @@ export async function input(request: Request): Promise<{
   title: string;
   url: string;
 }> {
-  // If not a JSON document than maybe HTML form, and if neither,
-  // browser receives 415 Unsupported Media Type
+  // If not a JSON document than maybe an HTML form?
+  // If neither, this throws 415 Unsupported Media Type
   const { title, url } = await request
     .clone()
     .json()
     .catch(() => form(request));
-  // Validate inputs often and validate early
+  // Validate inputs early and validate inputs often
   try {
     ow(url, ow.string.url.matches(/^https?:/).message("HTTP/S URL required"));
     ow(title, ow.string.nonEmpty.message("Title is required"));
