@@ -204,3 +204,40 @@ export aync function post({ request }) {
 ```
 
 
+## export const config
+
+You can control some aspect of the request handler by exporting `config` object with the following properties, all optional:
+
+- `accepts` — Accepted content types, eg `config.accepts = ["application/json"];` (default "*/*")
+- `cache` — Add this `Cache-Control` header to the response (string), or cache the response for this many seconds (number), or function called with the response value
+- `cors` — True if this route supports CORS and should return apporpriate headers (default: true)
+- `etag` — If true adds `ETag` header based on the content of the response (default: true)
+- `methods` — Supported HTTP methods, when exporting the default request handler (default: "*")
+- `timeout` — Timeout for processing the request, in seconds (default: 30 seconds)
+
+For example:
+
+```ts
+export const config =  {
+  // This resource only accepts JSON documents
+  accepts: "application/json",
+  // Cache responses for 60 seconds
+  cache: 60
+};
+```
+
+More complicated:
+
+```ts
+export async function get({ params }) {
+  const task = await db.findOne(params.id);
+  if (!task) throw new Response(null, { status: 400 });
+  return task;
+}
+
+export const config =  {
+  // Status of completed task doesn't change
+  cache: (task) => task.completed ? 86400 : false,
+  etag: (task) => task.version
+};
+```
