@@ -3,17 +3,15 @@ import type { AbortSignal } from "node-abort-controller";
 import { OnError } from "../shared/logError";
 import type { Request, Response } from "./fetch";
 
-export type RequestHandler<P = { [key: string]: string | string[] }> = (args: {
-  request: Request;
-  // Parsed cookies.
+export type RequestHandler<
+  P = { [key: string]: string | string[] },
+  Q = { [key: string]: string | string[] }
+> = (args: {
   cookies: { [key: string]: string };
-  // Parameters from the request URL, eg /project/[projectId] will have the
-  // parameter `projectId`.  [name] parameter will be a string, [...name]
-  // parameter an array of strings.
+  query: Q;
   params: P;
-  // Notified when request timed out, use this to abort further processing.
+  request: Request;
   signal: AbortSignal;
-  // If authenticted, the user ID and any other properties
   user?: { id: string; [key: string]: unknown };
 }) => Promise<Result> | Result;
 

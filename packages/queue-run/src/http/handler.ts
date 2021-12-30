@@ -1,6 +1,7 @@
 import chalk from "chalk";
 import crypto from "crypto";
 import { AbortController } from "node-abort-controller";
+import { URL } from "url";
 import { getLocalStorage, LocalStorage } from "../shared/localStorage";
 import {
   RequestHandler,
@@ -66,7 +67,7 @@ function getCorsHeaders({
   return new Headers({
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": methods
-      ? Array.from(methods).join(", ")
+      ? Array.from(methods).join(",")
       : "*",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
   });
@@ -122,7 +123,13 @@ async function handleRoute({
 }): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout * 1000);
-  const cookies = getCookies(request);
+
+  const metadata = {
+    cookies: getCookies(request),
+    params,
+    query: getQuery(request),
+    signal: controller.signal,
+  };
 
   try {
     const response = await Promise.race([
@@ -134,7 +141,7 @@ async function handleRoute({
           middleware,
           request,
           filename,
-          metadata: { cookies, params, signal: controller.signal },
+          metadata,
         })
       ),
 
@@ -158,6 +165,20 @@ function getCookies(request: Request): { [key: string]: string } {
     .map((cookie) => cookie.trim())
     .map((cookie) => cookie.match(/^([^=]+?)=(.*)$/)?.slice(1)!)
     .reduce((cookies, [key, value]) => ({ ...cookies, [key]: value }), {});
+}
+
+function getQuery(request: Request): { [key: string]: string | string[] } {
+  return Array.from(new URL(request.url).searchParams.entries()).reduce(
+    (query, [key, value]) => {
+      if (query[key]) {
+        const existing = query[key];
+        if (Array.isArray(existing)) existing.push(value);
+        else query[key] = [existing, value];
+      } else query[key] = value;
+      return query;
+    },
+    {} as { [key: string]: string | string[] }
+  );
 }
 
 async function runWithMiddleware({

@@ -16,16 +16,12 @@ export async function authenticate(request: Request) {
   // TODO: example with signed cookies
 }
 
-export async function input(request: Request): Promise<{
-  title: string;
-  url: string;
-}> {
-  // If not a JSON document than maybe an HTML form?
-  // If neither, this throws 415 Unsupported Media Type
-  const { title, url } = await request
-    .clone()
-    .json()
-    .catch(() => form(request));
+export async function input(request: Request) {
+  // HTML form or JSON document we're not particular
+  const { title, url } = await form(request.clone()).catch(() =>
+    request.json()
+  );
+
   // Validate inputs early and validate inputs often
   try {
     ow(url, ow.string.url.matches(/^https?:/).message("HTTP/S URL required"));

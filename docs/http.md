@@ -31,9 +31,23 @@ Request handlers accept the HTTP request and spit out the response.
 
 They take a single argument with named parameters:
 
-- `request` - The HTTP [Request](https://developer.mozilla.org/en-US/docs/Web/API/Request) object
+- `request` - The HTTP [`Request`](https://developer.mozilla.org/en-US/docs/Web/API/Request) object
 - `cookies` - Object with all cookies included in the request (eg `{ session: "1def…" }`)
 - `params` - Object with request parameters from the URL (eg `{ id: "123" }`)
+- `query` — Object with query string parameters (eg `{ first: "5" }`)
+- `signal` — [Signal](https://developer.mozilla.org/en-US/docs/Web/API/AbortController) for aborting long running requests
+- `user` — User object returned from [authenticate](authentication.md) method
+
+Request handler can return:
+
+- Object (not string or buffer), will respond with a JSON document (`application/json`)
+- String or buffer, will respond with content type `text/plain`
+- [`Response`](https://developer.mozilla.org/en-US/docs/Web/API/Response) with whatever body, headers, and status code
+- `null` or `undefined` will respond with 204 No Content, but this is potentially an error, so will be logged as well
+
+The request handler can throw a `Response` object. This is useful for breaking early with a 4xx status code. For example, authentication middleware makes use of this to respond with 401/403.
+
+If the request handler throws any other error, the server responds with 500.
 
 
 ## HTTP methods
