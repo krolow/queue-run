@@ -3,6 +3,7 @@
 
 - [Building HTTP APIs](http.md) 
 - [Working with Queues](queues.md)
+- [Authentication](authenticate.md)
 - [Working with URLs](urls.md) 
 - [Generating XML](xml.md)
 
