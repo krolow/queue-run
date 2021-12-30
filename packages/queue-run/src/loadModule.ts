@@ -29,7 +29,7 @@ export default async function loadModule<ModuleExports, Middleware>(
   const middleware = await loadMiddleware<Middleware>(fromProjectRoot);
   return {
     // Route takes precendece over _middleware
-    middleware: { ...middleware, ...module },
+    middleware: combine(module as unknown as Middleware, ...middleware),
     module,
   };
 }
@@ -38,8 +38,8 @@ export default async function loadModule<ModuleExports, Middleware>(
 // folders. For example, given the module name '/api/project/[id]/index.ts',
 // this will return the combined middleware from 'api/project'/[id]/_middleware.js', 'api/project/_middleware.js',
 // and 'api/_middleware.js'.
-async function loadMiddleware<Middleware>(name: string): Promise<Middleware> {
-  if (name === "/") return {} as Middleware;
+async function loadMiddleware<Middleware>(name: string): Promise<Middleware[]> {
+  if (name === "/") return [];
   const parent = await loadMiddleware<Middleware>(path.dirname(name));
   let filename;
   try {
@@ -49,7 +49,21 @@ async function loadMiddleware<Middleware>(name: string): Promise<Middleware> {
   }
   const exports = await require(filename);
   // This middleware's exports take precendece over parent's
-  return { ...parent, ...exports };
+  return [exports, ...parent];
+}
+
+function combine<T = { [key: string]: Function }>(...middleware: T[]): T {
+  return middleware.reduce((combined, previous) =>
+    Object.entries(previous).reduce(
+      (combined, [key, value]: [string, Function]) =>
+        ({
+          ...combined,
+          // @ts-ignore
+          [key]: key in combined ? combined[key] : value,
+        } as T),
+      combined
+    )
+  );
 }
 
 // Adds source maps for stack traces

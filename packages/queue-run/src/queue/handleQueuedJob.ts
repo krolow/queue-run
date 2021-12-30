@@ -35,23 +35,23 @@ export default async function handleQueuedJob({
   // Create an abort controller to allow the handler to cancel incomplete work.
   const controller = new AbortController();
   const abortTimeout = setTimeout(() => controller.abort(), timeout * 1000);
+  const { signal } = controller;
 
   try {
-    console.info("Handling job %s on queue %s", metadata.jobID, queueName);
     await Promise.race([
-      getLocalStorage().run(newLocalStorage(), () => {
-        getLocalStorage().getStore()!.user = metadata.user;
-        module.default(payload, {
-          ...metadata,
-          signal: controller.signal,
-        });
+      runWithMiddleware({
+        metadata: { ...metadata, signal },
+        middleware,
+        module,
+        newLocalStorage,
+        payload,
       }),
 
       new Promise((resolve) => {
-        controller.signal.addEventListener("abort", resolve);
+        signal.addEventListener("abort", resolve);
       }),
     ]);
-    if (controller.signal.aborted) {
+    if (signal.aborted) {
       throw new Error(`Timeout: job took longer than ${timeout}s to process`);
     }
     return true;
@@ -83,4 +83,31 @@ export default async function handleQueuedJob({
     clearTimeout(abortTimeout);
     controller.abort();
   }
+}
+
+async function runWithMiddleware({
+  metadata,
+  middleware,
+  module,
+  newLocalStorage,
+  payload,
+}: {
+  metadata: QueueHandlerMetadata;
+  middleware: QueueMiddleware;
+  module: QueueExports;
+  newLocalStorage: () => LocalStorage;
+  payload: string | Buffer | object;
+}) {
+  const { signal } = metadata;
+  await getLocalStorage().run(newLocalStorage(), async () => {
+    getLocalStorage().getStore()!.user = metadata.user;
+
+    if (middleware.onJobStarted) await middleware.onJobStarted(metadata);
+    if (signal.aborted) return;
+
+    await module.default(payload, metadata);
+    if (signal.aborted) return;
+
+    if (middleware.onJobFinished) await middleware.onJobFinished(metadata);
+  });
 }

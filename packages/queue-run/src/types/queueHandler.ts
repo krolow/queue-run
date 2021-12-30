@@ -65,11 +65,12 @@ export type QueueConfig = {
 // Queue middleware.
 export type QueueMiddleware = {
   onError?: OnError<QueueHandlerMetadata> | null;
+  onJobStarted?: (job: QueueHandlerMetadata) => Promise<void> | void;
+  onJobFinished?: (job: QueueHandlerMetadata) => Promise<void> | void;
 };
 
 // All of these can be exported from the module.  The default export is required.
 export type QueueExports = {
   default: QueueHandler;
   config?: QueueConfig;
-  onError?: OnError<QueueHandlerMetadata> | null;
-};
+} & QueueMiddleware;
