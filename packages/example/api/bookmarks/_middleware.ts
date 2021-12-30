@@ -18,6 +18,9 @@ export async function authenticate(request: Request) {
 
 export async function input(request: Request) {
   // HTML form or JSON document we're not particular
+
+  console.log(await form(request.clone()));
+
   const { title, url } = await form(request.clone()).catch(() =>
     request.json()
   );

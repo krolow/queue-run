@@ -104,18 +104,15 @@ function formField({
   contentType,
   data,
   filename,
-  name,
 }: {
   contentType?: string;
   data: Buffer | string;
   filename?: string;
-  name?: string;
 }): string | File {
-  if (Buffer.isBuffer(data)) {
-    return new File(
-      data,
-      contentType ?? "application/octet-stream",
-      filename ?? name ?? "file"
-    );
-  } else return data;
+  if (Buffer.isBuffer(data) && filename) {
+    return new File(data, contentType ?? "application/octet-stream", filename);
+  } else {
+    const { encoding } = parseContentType(contentType);
+    return data.toString(encoding ?? "utf8");
+  }
 }
