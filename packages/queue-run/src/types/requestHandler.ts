@@ -8,29 +8,8 @@ import {
   OnResponse,
 } from "./middleware";
 
-// HTTP request handler.
-//
-// The first argument is the request object.  The second argument includes
-// URL parameters, user (if authenticated), cookies, and the abort signal.
-//
-// When using TypeScript, you can type the JSON body of the request:
-//
-// export async function put<Todo, { id: string }>(request, { params }) {
-//   const todo = await request.json();
-//   // todo has type Todo
-//   const id = params.id;
-//   // id has type string
-//   . . .
-// }
-export type RequestHandler<T = object, P = Params> = (
-  request: Request,
-  metadata: RequestHandlerMetadata<P>
-) => Promise<Result> | Result;
-
-type Params = { [key: string]: string | string[] };
-type Result = Response | string | Buffer | object;
-
-export type RequestHandlerMetadata<P = Params> = {
+export type RequestHandler<P = { [key: string]: string | string[] }> = (args: {
+  request: Request;
   // Parsed cookies.
   cookies: { [key: string]: string };
   // Parameters from the request URL, eg /project/[projectId] will have the
@@ -41,7 +20,9 @@ export type RequestHandlerMetadata<P = Params> = {
   signal: AbortSignal;
   // If authenticted, the user ID and any other properties
   user?: { id: string; [key: string]: unknown };
-};
+}) => Promise<Result> | Result;
+
+type Result = Response | string | Buffer | object;
 
 // You can export this to control some aspects of the request handling.
 //

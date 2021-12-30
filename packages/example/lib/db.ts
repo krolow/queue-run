@@ -2,11 +2,12 @@ import crypto from "crypto";
 import fs from "fs/promises";
 
 export type Bookmark = {
-  id: string;
-  title: string;
-  url: string;
   created: string;
+  id: string;
+  screenshot?: string;
+  title: string;
   updated: string;
+  url: string;
 };
 
 export async function findAll(): Promise<{ [id: string]: Bookmark }> {
@@ -46,21 +47,24 @@ export async function deleteOne(id: string): Promise<void> {
 
 export async function updateOne({
   id,
+  screenshot,
   title,
   url,
 }: {
   id: string;
-  title: string;
-  url: string;
+  screenshot?: string;
+  title?: string;
+  url?: string;
 }): Promise<Bookmark | null> {
   const bookmarks = await findAll();
   const bookmark = bookmarks[id];
   if (!bookmark) return null;
   bookmarks[id] = {
+    ...bookmark,
+    id,
+    screenshot,
     title,
     url,
-    id,
-    created: bookmark.created,
     updated: new Date().toISOString(),
   };
   await save(bookmarks);

@@ -2,12 +2,7 @@ import chalk from "chalk";
 import crypto from "crypto";
 import { AbortController } from "node-abort-controller";
 import { getLocalStorage, LocalStorage } from "../localStorage";
-import {
-  RequestHandler,
-  RequestHandlerMetadata,
-  RouteConfig,
-  RouteExports,
-} from "../types";
+import { RequestHandler, RouteConfig, RouteExports } from "../types";
 import { RouteMiddleware } from "../types/requestHandler";
 import { Headers, Request, Response } from "./fetch";
 import findRoute, { HTTPRoute } from "./findRoute";
@@ -174,7 +169,7 @@ async function runWithMiddleware({
   corsHeaders?: Headers;
   filename: string;
   handler: RequestHandler;
-  metadata: RequestHandlerMetadata;
+  metadata: Omit<Parameters<RequestHandler>[0], "request">;
   middleware: RouteMiddleware;
   request: Request;
 }): Promise<Response> {
@@ -194,7 +189,7 @@ async function runWithMiddleware({
     }
     getLocalStorage().getStore()!.user = user;
 
-    const result = await handler(request, { ...metadata, user });
+    const result = await handler({ ...metadata, request, user });
 
     const response = await resultToResponse({
       addCacheControl: withCacheControl(request, config),

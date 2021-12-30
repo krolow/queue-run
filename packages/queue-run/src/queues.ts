@@ -72,7 +72,7 @@ function newQueue<T = Payload>(
     });
   };
 
-  queueFn.http = async (request, { params }) => {
+  queueFn.http = async ({ request, params }) => {
     const payload = await payloadFromRequest(request);
     const fifo = queueName.endsWith(".fifo");
     if (fifo && !params.group)
