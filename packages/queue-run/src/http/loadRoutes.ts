@@ -69,10 +69,8 @@ function pathFromFilename(filename: string): string {
     basename === "index" ? directory : `${directory}/${basename}`;
 
   const renamed = renamePathProperties(withoutIndex);
-  const expanded = expandNestedRoutes(renamed);
-
-  validatePathParameters(expanded);
-  return expanded;
+  validatePathParameters(renamed);
+  return renamed;
 }
 
 function validatePathParameters(path: string) {
@@ -92,11 +90,6 @@ function validatePathParameters(path: string) {
     throw new Error(
       "Path parts may only be alphanumeric, dash, underscore, or dot"
     );
-}
-
-// Support nested routes: foo.bar.js is the same as foo/bar.js
-function expandNestedRoutes(filename: string): string {
-  return filename.replace(/\./g, "/").replace(/\/+/g, "/");
 }
 
 // foo/[bar].js -> foo/:bar
