@@ -1,6 +1,6 @@
 import { Request, RouteConfig } from "queue-run";
-import * as db from "../../lib/db";
-import { queue as screenshots } from "../../queues/screenshots";
+import * as db from "~/lib/db";
+import { queue as screenshots } from "~/queues/screenshots";
 import { urlForBookmark } from "./[id]";
 import { input } from "./_middleware";
 

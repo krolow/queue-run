@@ -1,5 +1,5 @@
 import { url, xml } from "queue-run";
-import * as db from "../../lib/db";
+import * as db from "~/lib/db";
 import { urlForBookmark } from "./[id]";
 
 export async function get() {

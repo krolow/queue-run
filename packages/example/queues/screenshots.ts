@@ -1,6 +1,6 @@
 import { QueueConfig, queues } from "queue-run";
-import capture from "../lib/capture";
-import * as db from "../lib/db";
+import capture from "~/lib/capture";
+import * as db from "~/lib/db";
 
 type Payload = { id: string };
 

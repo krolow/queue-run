@@ -1,0 +1,13 @@
+{
+  "include": ["queuerun.env.d.ts", "**/*.ts", "**/*.tsx"],
+  "compilerOptions": {
+    "esModuleInterop": true,
+    "lib": ["ES2019"],
+    "moduleResolution": "node",
+    "noEmit": true,
+    "paths": { "~/*": ["./*"] },
+    "resolveJsonModule": true,
+    "strict": true,
+    "target": "ES2019"
+  }
+}
