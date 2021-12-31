@@ -4,9 +4,11 @@
   "scripts": {
     "dev": "queue-run dev"
   },
-  "dependencies": {
-    "ow": "^0.28.1",
+  "peerDependencies": {
     "queue-run": "^0.1.4"
+  },
+  "dependencies": {
+    "ow": "^0.28.1"
   },
   "engines": {
     "node": "14.x"
