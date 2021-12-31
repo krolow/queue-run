@@ -111,7 +111,7 @@ async function runWithMiddleware({
 }) {
   const { signal } = metadata;
   await withLocalStorage(newLocalStorage(), async () => {
-    getLocalStorage().user = metadata.user;
+    getLocalStorage().user = metadata.user ?? null;
 
     if (middleware.onJobStarted) await middleware.onJobStarted(metadata);
     if (signal.aborted) return;

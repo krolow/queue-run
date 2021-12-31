@@ -1,7 +1,17 @@
 import { AsyncLocalStorage } from "async_hooks";
 
-export type LocalStorage = {
-  // eslint-disable-next-line no-unused-vars
+/* eslint-disable no-unused-vars */
+export abstract class LocalStorage {
+  public urls: { http: string; ws: string };
+
+  private _user: { id: string; [key: string]: any } | null;
+  private _userSet = false;
+
+  constructor({ urls }: { urls: { http: string; ws: string } }) {
+    this.urls = urls;
+    this._user = null;
+  }
+
   queueJob(message: {
     dedupeID?: string;
     groupID?: string;
@@ -9,23 +19,33 @@ export type LocalStorage = {
     payload: string | Buffer | object;
     queueName: string;
     user?: { id: string };
-  }): Promise<string>;
+  }): Promise<string> {
+    throw new Error("Job queues not available in this environment.");
+  }
 
-  // eslint-disable-next-line no-unused-vars
   sendWebSocketMessage(message: {
     body: string | Buffer | object;
     user: { id: string };
-  }): Promise<void>;
+  }): Promise<void> {
+    throw new Error("WebSocket not available in this environment.");
+  }
 
-  user?: { id: string } | null;
+  get user(): { id: string; [key: string]: any } | null {
+    return this._user;
+  }
 
-  urls: {
-    http: string;
-    ws: string;
-  };
-};
+  set user(user: { id: string } | null | undefined) {
+    if (this._userSet) throw new Error("Local context user already set");
+    if (user && !user.id) throw new TypeError("User ID is required");
+    this._user = user ?? null;
+    this._userSet = true;
+  }
+}
+/* eslint-enable no-unused-vars */
 
-const symbol = Symbol.for("qr-local-storage");
+// This supposed to fail if you're using two different versions of queue-run.
+// Let's see if this helps or not.
+const symbol = Symbol("qr-local-storage");
 
 // This is used internally to allow handlers to queue jobs, send WS messages, etc.
 export function getLocalStorage(): LocalStorage {

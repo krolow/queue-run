@@ -25,10 +25,11 @@ export async function handler(
   console.info({ event, context });
 
   const sqs = new SQS({ ...clientConfig, region });
-  const newLocalStorage = bindNewLocalStorage({
-    sqs,
-    urls: { http: process.env.QUEUE_RUN_URL!, ws: process.env.QUEUE_RUN_WS! },
-  });
+  const urls = {
+    http: process.env.QUEUE_RUN_URL!,
+    ws: process.env.QUEUE_RUN_WS!,
+  };
+  const newLocalStorage = () => new LambdaLocalStorage({ sqs, urls });
 
   if ("requestContext" in event) {
     if ("connectionId" in event.requestContext) {
@@ -59,40 +60,22 @@ export async function handler(
   } else throw new Error("Unknown event type");
 }
 
-function bindNewLocalStorage({
-  sqs,
-  urls,
-}: {
-  sqs: SQS;
-  urls: {
-    http: string;
-    ws: string;
-  };
-}) {
-  return function (): LocalStorage {
-    let user: { id: string } | null;
-    return {
-      queueJob: (args) =>
-        queueJob({
-          ...args,
-          sqs,
-          slug,
-          user: args.user === undefined ? user : args.user,
-        }),
+class LambdaLocalStorage extends LocalStorage {
+  private sqs: SQS;
 
-      sendWebSocketMessage() {
-        throw new Error("Not implemented");
-      },
+  constructor({ sqs, urls }: { sqs: SQS; urls: { http: string; ws: string } }) {
+    super({ urls });
+    this.sqs = sqs;
+  }
 
-      set user(newUser: { id: string } | null | undefined) {
-        if (user !== undefined && user?.id !== newUser?.id)
-          throw new Error("User already set");
-        user = newUser ?? null;
-      },
-
-      urls,
-    };
-  };
+  queueJob(args: Parameters<LocalStorage["queueJob"]>[0]) {
+    return queueJob({
+      ...args,
+      sqs: this.sqs,
+      slug,
+      user: args.user === undefined ? this.user : args.user,
+    });
+  }
 }
 
 type LambdaEvent =
