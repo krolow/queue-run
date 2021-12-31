@@ -1,4 +1,4 @@
-# Intro
+# Introduction
 
 ## Why QueueRun?
 
