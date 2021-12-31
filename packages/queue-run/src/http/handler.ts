@@ -2,7 +2,11 @@ import chalk from "chalk";
 import crypto from "crypto";
 import { AbortController } from "node-abort-controller";
 import { URL } from "url";
-import { getLocalStorage, LocalStorage } from "../shared/localStorage";
+import {
+  getLocalStorage,
+  LocalStorage,
+  withLocalStorage,
+} from "../shared/localStorage";
 import {
   RequestHandler,
   RouteConfig,
@@ -133,7 +137,7 @@ async function handleRoute({
 
   try {
     const response = await Promise.race([
-      getLocalStorage().run(newLocalStorage(), () =>
+      withLocalStorage(newLocalStorage(), () =>
         runWithMiddleware({
           config,
           corsHeaders,
@@ -212,7 +216,7 @@ async function runWithMiddleware({
       );
       throw new Response("Forbidden", { status: 403 });
     }
-    getLocalStorage().getStore()!.user = user;
+    getLocalStorage().user = user;
 
     const result = await handler({ ...metadata, request, user });
 

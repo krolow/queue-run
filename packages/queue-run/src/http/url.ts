@@ -24,7 +24,7 @@ const url: URLFunction<{}, {}> = (
   params?: { [key: string]: unknown | unknown[] },
   query?: { [key: string]: unknown | unknown[] }
 ): string => {
-  const urls = getLocalStorage().getStore()?.urls;
+  const urls = getLocalStorage().urls;
   if (!urls) throw new Error("No runtime available");
 
   const pathname = compile(replaceBracket(path))(params);

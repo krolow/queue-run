@@ -51,8 +51,7 @@ function newQueue<T = Payload>(
   const fifo = queueName.endsWith(".fifo");
 
   const queueFn: QueueFunction<T> = async (payload, params) => {
-    const context = getLocalStorage().getStore();
-    if (!context) throw new Error("Runtime not available");
+    const { queueJob, user } = getLocalStorage();
 
     const queues = await loadQueues();
     if (!queues.has(queueName))
@@ -60,13 +59,13 @@ function newQueue<T = Payload>(
 
     if (fifo && !group) throw new Error("FIFO queue requires a group ID");
 
-    return await context.queueJob({
+    return await queueJob({
       dedupeID: dedupe,
       groupID: group,
       params,
       payload: payload as unknown as object,
       queueName,
-      user: context.user ?? undefined,
+      user: user ?? undefined,
     });
   };
 
@@ -140,9 +139,9 @@ async function payloadFromRequest(request: Request): Promise<object | string> {
       try {
         const fields = await form(request);
         if (
-          Object.values(fields).some(
-            (field) => Buffer.isBuffer(field) && field.filename
-          )
+          Object.values(fields)
+            .flat()
+            .some((field) => typeof field !== "string" && "name" in field)
         )
           throw new Error("multipart/form-data: files not supported");
         return fields;

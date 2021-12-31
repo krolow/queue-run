@@ -2,7 +2,11 @@ import chalk from "chalk";
 import { AbortController } from "node-abort-controller";
 import invariant from "tiny-invariant";
 import loadModule from "../shared/loadModule";
-import { getLocalStorage, LocalStorage } from "../shared/localStorage";
+import {
+  getLocalStorage,
+  LocalStorage,
+  withLocalStorage,
+} from "../shared/localStorage";
 import { logError } from "../shared/logError";
 import { QueueExports, QueueHandlerMetadata, QueueMiddleware } from "./exports";
 import loadQueues from "./loadQueues";
@@ -106,8 +110,8 @@ async function runWithMiddleware({
   payload: string | Buffer | object;
 }) {
   const { signal } = metadata;
-  await getLocalStorage().run(newLocalStorage(), async () => {
-    getLocalStorage().getStore()!.user = metadata.user;
+  await withLocalStorage(newLocalStorage(), async () => {
+    getLocalStorage().user = metadata.user;
 
     if (middleware.onJobStarted) await middleware.onJobStarted(metadata);
     if (signal.aborted) return;

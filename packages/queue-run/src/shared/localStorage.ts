@@ -28,7 +28,19 @@ export type LocalStorage = {
 const symbol = Symbol.for("qr-local-storage");
 
 // This is used internally to allow handlers to queue jobs, send WS messages, etc.
-export function getLocalStorage(): AsyncLocalStorage<LocalStorage> {
+export function getLocalStorage(): LocalStorage {
   // @ts-ignore
-  return (global[symbol] ||= new AsyncLocalStorage<LocalStorage>());
+  const asyncLocal = global[symbol];
+  if (!asyncLocal) throw new Error("Runtime not available");
+  return asyncLocal.getStore();
+}
+
+export function withLocalStorage<T>(
+  localStorage: LocalStorage,
+  fn: () => T
+): T {
+  // @ts-ignore
+  const asyncLocal = (global[symbol] ||= new AsyncLocalStorage<LocalStorage>());
+  if (asyncLocal.getStore()) throw new Error("Can't nest runtimes");
+  return asyncLocal.run(localStorage, fn);
 }
