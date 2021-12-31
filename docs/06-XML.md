@@ -4,9 +4,7 @@ Yes, we support XML because XML will outlive us all. There are some use cases: f
 
 You can use JSX to generate XML documents. Don't forget file extension should be "jsx" or "tsx".
 
-#### api/items/feed.tsx
-
-```tsx
+```tsx title=api/items/feed.tsx
 import { url, xml } from "queue-run";
 import { urlForItem } from "./[id]";
 

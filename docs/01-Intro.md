@@ -1,10 +1,4 @@
-## Documentation TOC
-
-- [Building HTTP APIs](http.md) 
-- [Working with Queues](queues.md)
-- [Authentication](authenticate.md)
-- [Working with URLs](urls.md) 
-- [Generating XML](xml.md)
+# Intro
 
 ## Why QueueRun?
 
@@ -28,11 +22,10 @@ Your code is the configuration. You don't need to write boilerplate YAML, we can
 
 Stuff you need in every single project — logging, authentication, form handling, etc — included by default. Use what you like, or replace with your own implementation. No dependency injection either, just export from the module.
 
+
 ## See An Example
 
-### api/bookmarks/index.ts
-
-```js
+```js title=api/bookmarks/index.ts
 import { input } from "./_middleware";
 import { queue as screenshots } from "../../queues/screenshots";
 import { urlForBookmark } from "./[id]";
@@ -55,9 +48,7 @@ export async function post({ request }: { request: Request }) {
 }
 ```
 
-### api/bookmarks/[id].js
-
-```ts
+```ts title=api/bookmarks/[id].js
 import { input } from "./_middleware";
 import { url } from "queue-run";
 import * as db from "lib/db";
@@ -89,9 +80,7 @@ export async function del({ params }: Resource) {
 export const urlForBookmark = url.self<Resource['params']>();
 ```
 
-### api/bookmarks/_middleware.ts
-
-```ts
+```ts title=api/bookmarks/_middleware.ts
 import { form } from "queue-run";
 import ow from "ow";
 
@@ -117,9 +106,7 @@ export async function input(request: Request): Promise<Fields> {
 }
 ```
 
-### queues/screenshots.ts
-
-```ts
+```ts title=queues/screenshots.ts
 import { queues } from "queue-run";
 import * as db from "../lib/db";
 import capture from "../lib/capture";
