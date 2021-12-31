@@ -2,6 +2,14 @@
 
 ## Why QueueRun?
 
+* Unapologitecally Web 2.0 framework for buildng services and APIs
+* Designed for serverless deployments (you can, but you don't have to manage Node servers)
+* Convention over configuration, life's too short to deal with CloudFormation
+* Of the web: HTTP and WebSockets, REST resources, Fetch API, console.log, HTML forms
+* For the backend: routing, standard and FIFO job queues, scheduled jobs
+* Batteries included, with middleware for logging, authentication, multipart/form-data, etc
+* TypeScript and JSX if you feel like it
+
 Lambda has all the right building blocks — HTTP, WS, SQS, CloudWatch — but you drown in YAML trying to set it up. And the AWS APIs were not designed for JavaScript developers.
 
 Next, Remix, Nuxt, et al are a joy to use — and a source of influence — but they're designed for front-end applications and don't pay enough attention to backend tasks.
