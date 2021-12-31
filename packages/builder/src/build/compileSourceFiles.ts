@@ -90,6 +90,7 @@ export function compileSource({
     filename,
     isModule: true,
     jsc: {
+      paths: { "~/*": [path.join(process.cwd(), "*")] },
       parser: { syntax },
       target: jscTarget,
       transform: {
