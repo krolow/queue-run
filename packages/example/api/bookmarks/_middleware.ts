@@ -1,5 +1,5 @@
 import ow from "ow";
-import { form, Request } from "queue-run";
+import { form, Request, Response } from "queue-run";
 import * as db from "~/lib/db";
 
 export async function authenticate(request: Request) {

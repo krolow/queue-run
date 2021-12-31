@@ -1,3 +1,4 @@
+/** @jsx __jsx */
 import { url, xml } from "queue-run";
 import * as db from "~/lib/db";
 import { urlForBookmark } from "./[id]";

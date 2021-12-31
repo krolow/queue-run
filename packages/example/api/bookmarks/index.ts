@@ -1,4 +1,4 @@
-import { Request, RouteConfig } from "queue-run";
+import { Request, Response, RouteConfig } from "queue-run";
 import * as db from "~/lib/db";
 import { queue as screenshots } from "~/queues/screenshots";
 import { urlForBookmark } from "./[id]";
