@@ -2,10 +2,7 @@
 
 ## Standard Queues
 
-
 ## FIFO Queues
-
-
 
 ## Queuing a job
 
@@ -32,7 +29,6 @@ const job3 = await queues('payment.fifo')
   .push(amount);
 ```
 
-
 ## queues.self()
 
 You can use the `queues.self()` function to get a reference to the current queue.
@@ -40,6 +36,7 @@ You can use the `queues.self()` function to get a reference to the current queue
 For example:
 
 #### queues/tasks.js
+
 ```js
 import { queues } from 'queue-run';
 
@@ -51,6 +48,7 @@ export const queue = queues.self();
 ```
 
 #### api/tasks.js
+
 ```js
 import { queue } from '../queues/tasks';
 
@@ -60,7 +58,6 @@ export async function post(request) {
   return new Response(null, { status: 202 });
 }
 ```
-
 
 ## queue.http
 
@@ -77,6 +74,7 @@ If the API is authenticated, the queue handler will receive the user ID in the s
 For example:
 
 #### api/tasks.js
+
 ```js
 import { queues } from 'queue-run';
 
@@ -87,7 +85,6 @@ export const config = {
 }
 ```
 
-
 ## Using TypeScript
 
 When using TypeScript, you can apply a type to the queue payload:
@@ -95,6 +92,7 @@ When using TypeScript, you can apply a type to the queue payload:
 For example:
 
 #### queues/tasks.ts
+
 ```ts
 import { queues } from 'queue-run';
 
@@ -112,6 +110,7 @@ export const queue = queues.self<Task>();
 ```
 
 #### api/tasks.ts
+
 ```ts
 import { queue, Task } from '../queues/tasks';
 
@@ -126,9 +125,7 @@ export async function post(request) {
 }
 ```
 
-
 ## Failure and Retries
-
 
 ## Middleware
 
@@ -147,7 +144,8 @@ Your middleware can wrap the default middleware, available as `logJobStarted`, `
 For example, to count running jobs and errors:
 
 #### queues/_middleware.js
-```js
+
+```ts
 import {
   logJobStarted,
   logJobFinished,

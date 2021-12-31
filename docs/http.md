@@ -24,7 +24,6 @@ Here are some examples:
 - `api/post/[...slug].ts` will respond to `/post/damn-interesting` and `/post/2022/01/new-year`
 - `api/feed.xml` will response to `/feed.xml`
 
-
 ## Request handlers
 
 Request handlers accept the HTTP request and spit out the response.
@@ -49,14 +48,13 @@ The request handler can throw a `Response` object. This is useful for breaking e
 
 If the request handler throws any other error, the server responds with 500.
 
-
 ## HTTP methods
 
 You can response to HTTP methods in one of two ways. By exporting a function for each method the route supports, or by exporting a default request handler.
 
 For example:
 
-```js
+```ts
 // HTTP GET responds with JSON document or 404
 export async function get({ params }) {
   const item = await db.findOne(params.id);
@@ -92,7 +90,7 @@ You should know:
 
 You can handle all methods from the default export:
 
-```js
+```ts
 export default async function({ params, request }) {
   switch (request.method) {
     case 'GET': {
@@ -114,7 +112,7 @@ export default async function({ params, request }) {
 
 You can also limit which methods are accepted:
 
-```js
+```ts
 export const config = {
   methods: ['GET', 'PUT', 'DELETE']
 };
@@ -128,7 +126,7 @@ The [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) make
 
 So the common use case is as simple as:
 
-```js
+```ts
 export async function post({ request }) {
   const { message } = await request.json();
   return { message };
@@ -141,7 +139,6 @@ export async function post({ request }) {
 If the response is any other media type, you can get it as raw buffer (`response.buffer()`) or plain text (`response.text()`).
 
 There's a convenience method for [working with HTML forms](#the-form-function). And for generating [XML and HTML documents](/xml.md).
-
 
 ## The form() function
 
@@ -203,7 +200,6 @@ export aync function post({ request }) {
 // Photo: avatar.png of type image/png size 1.4 MB
 ```
 
-
 ## Route middleware
 
 There are common middleware patterns in HTTP APIs. This middleware is supported through named exports:
@@ -230,6 +226,7 @@ Logging is such a common use case that it's enabled by default. You can disable 
 You can also augment the default logging with your own. For example:
 
 #### api/_middleware.ts
+
 ```ts
 import { logResponse, logError } from 'queue-run';
 
@@ -248,7 +245,6 @@ export async function onError(error, request) {
   await metrics.increment(`error`);
 }
 ```
-
 
 ## export const config
 

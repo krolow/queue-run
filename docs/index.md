@@ -1,4 +1,3 @@
-
 ## Documentation TOC
 
 - [Building HTTP APIs](http.md) 
@@ -6,7 +5,6 @@
 - [Authentication](authenticate.md)
 - [Working with URLs](urls.md) 
 - [Generating XML](xml.md)
-
 
 ## Why QueueRun?
 
@@ -30,23 +28,22 @@ Your code is the configuration. You don't need to write boilerplate YAML, we can
 
 Stuff you need in every single project — logging, authentication, form handling, etc — included by default. Use what you like, or replace with your own implementation. No dependency injection either, just export from the module.
 
-
 ## See An Example
 
 ### api/bookmarks/index.ts
+
 ```js
 import { input } from "./_middleware";
 import { queue as screenshots } from "../../queues/screenshots";
 import { urlForBookmark } from "./[id]";
 import * as db from "lib/db";
 
-// HTTP GET /bookmarks
+// HTTP GET /bookmarks -> JSON
 export async function get() {
-  // object -> JSON
   return await db.findAll();
 }
 
-// And this is an HTTP post
+// And this is HTTP POST -> 303 See Other
 export async function post({ request }: { request: Request }) {
   const bookmark = await db.create(await input(request));
   await screenshots.push({ id: bookmark.id });
@@ -59,7 +56,8 @@ export async function post({ request }: { request: Request }) {
 ```
 
 ### api/bookmarks/[id].js
-```js
+
+```ts
 import { input } from "./_middleware";
 import { url } from "queue-run";
 import * as db from "lib/db";
@@ -92,16 +90,21 @@ export const urlForBookmark = url.self<Resource['params']>();
 ```
 
 ### api/bookmarks/_middleware.ts
-```js
+
+```ts
 import { form } from "queue-run";
 import ow from "ow";
 
+type Fields = {
+  title: string;
+  url: string;
+}
+
 // This is used by two route files, so put it here
-export async function input(request: Request) {
+export async function input(request: Request): Promise<Fields> {
   // We accept HTML forms and JSON documents
-  const { title, url } = await form(request.clone()).catch(() =>
-    request.json()
-  );
+  const { title, url } = await form<Fields>(request.clone()).
+    catch(() => request.json());
 
   // Validate inputs early and validate inputs often
   try {
@@ -115,7 +118,8 @@ export async function input(request: Request) {
 ```
 
 ### queues/screenshots.ts
-```js
+
+```ts
 import { queues } from "queue-run";
 import * as db from "../lib/db";
 import capture from "../lib/capture";

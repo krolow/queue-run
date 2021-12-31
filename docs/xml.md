@@ -2,9 +2,11 @@
 
 Yes, we support XML because XML will outlive us all. There are some use cases: feed readers (Atom and RSS), Sitemap for search engines, etc.
 
-You can use JSX to generate XML documents:
+You can use JSX to generate XML documents. Don't forget file extension should be "jsx" or "tsx".
 
-```jsx
+#### api/items/feed.tsx
+
+```tsx
 import { url, xml } from "queue-run";
 import { urlForItem } from "./[id]";
 
@@ -45,7 +47,7 @@ This being JSX, you can use any lower-case element names with careless disregard
 But if you need to use CamelCase, or namespace prefixes, then you have to
 declare these elements as constant first.
 
-```js
+```tsx
 // Make Name available as JSX element
 const Name = "Name";
 // The XML element is "ns:prefix", the JSX name must be CamelCase
@@ -59,9 +61,13 @@ return xml(
 );
 ```
 
+
+
+## HTML
+
 You can also generate HTML:
 
-```js
+```tsx
 return xml(
   <html>
     <head>

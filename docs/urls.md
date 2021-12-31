@@ -5,6 +5,7 @@
 If you want to return a URL as part of the response, you can use the `url` helper.
 
 #### api/items/[id].ts
+
 ```ts
 import { url } from 'queue-run';
 
@@ -18,6 +19,7 @@ export async function get() {
 ```
 
 #### api/items/index.ts
+
 ```ts
 const { urlForItem } = require('./[id]');
 
@@ -54,7 +56,7 @@ The `url()` function returns an absolute URL.
 
 Here are some examples:
 
-```js
+```ts
 url('/tasks/[id]', { id: 123 })
 // https://example.queue.run/tasks/123
 
@@ -74,7 +76,7 @@ You can use `url.for(path)` to create a URL construction function.
 
 The same examples using a URL construction function:
 
-```js
+```ts
 const urlForTask = url.for<{ id: string }>('/tasks/[id]');
 urlForTask({ id: 123 })
 // https://example.queue.run/tasks/123
@@ -106,7 +108,8 @@ The `url.self()` function is a shortcut for `url.for(path)` that uses the path o
 These two are equivalent:
 
 #### api/items/[id].ts
-```js
+
+```ts
 export const urlForItem = url.self<{ id: string }>();
 export const urlForItem = url.url<{ id: string }>('/items/[id]');
 ```
