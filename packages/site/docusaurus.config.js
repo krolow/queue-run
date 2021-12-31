@@ -10,6 +10,9 @@ module.exports = {
       {
         blog: false,
         docs: { path: "../../docs", routeBasePath: "/" },
+        theme: {
+          customCss: [require.resolve("./src/css/custom.css")],
+        },
       },
     ],
   ],
@@ -19,7 +22,7 @@ module.exports = {
       title: "🐇 QueueRun",
       hideOnScroll: true,
       items: [
-        { to: "intro", label: "Guides", position: "left" },
+        { to: "intro", label: "Docs", position: "left" },
         {
           href: "https://github.com/assaf/queue-run",
           label: "GitHub",
