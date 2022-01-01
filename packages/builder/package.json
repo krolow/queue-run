@@ -4,6 +4,11 @@
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
   "types": "dist/types/index.d.ts",
+  "directories": {
+    "lib": "dist",
+    "esm": "dist",
+    "types": "dist/types"
+  },
   "scripts": {
     "build": "dts build",
     "lint": "dts lint src",

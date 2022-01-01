@@ -1,7 +1,7 @@
 {
   "name": "queue-run",
   "version": "0.2.0",
-  "description": "👋 APIs and back-end functions for JAMstack apps (queues, pub/sub, cron, etc)",
+  "description": "👋 Backends for JAMstack apps: APIs, job queues, scheduled jobs, WebSocket notifications, and more …",
   "main": "src/index.js",
   "types": "types/index.d.ts",
   "scripts": {
@@ -13,7 +13,7 @@
     "lint": "lerna run lint"
   },
   "author": "Assaf Arkin <assaf@labnotes.org> (https://labnotes.org/)",
-  "homepage": "",
+  "homepage": "https://queue.run",
   "license": "MIT",
   "repository": "github:assaf/queue-run.git",
   "private": true,
@@ -29,6 +29,7 @@
     "eslint-plugin-promise": "^6.0.0",
     "eslint-plugin-sonarjs": "^0.11.0",
     "eslint-plugin-typescript": "^0.14.0",
+    "lerna-changelog": "^2.2.0",
     "prettier": "^2.5.1",
     "typescript": "^4.5.4"
   },

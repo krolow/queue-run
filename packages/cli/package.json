@@ -6,6 +6,9 @@
   "bin": {
     "queue-run": "dist/index.js"
   },
+  "directories": {
+    "bin": "dist"
+  },
   "scripts": {
     "build": "dts build",
     "lint": "dts lint src",

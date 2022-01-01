@@ -2,7 +2,9 @@
   "name": "@queue-run/runtime-lambda",
   "version": "0.2.0",
   "main": "dist/index.js",
-  "types": "dist/types/index.d.ts",
+  "directories": {
+    "lib": "dist"
+  },
   "scripts": {
     "build": "dts build",
     "lint": "dts lint src",
