@@ -12,7 +12,7 @@ export type RequestHandler<
   params: P;
   request: Request;
   signal: AbortSignal;
-  user?: { id: string; [key: string]: unknown };
+  user: { id: string; [key: string]: unknown } | null;
 }) => Promise<Result> | Result;
 
 type Result = Response | string | Buffer | object;
@@ -52,9 +52,9 @@ export type OnResponse = (
 // Route middleware runs before and after the request.
 export type RouteMiddleware = {
   authenticate?: AuthenticateMethod | null;
-  onError?: OnError;
-  onRequest?: OnRequest;
-  onResponse?: OnResponse;
+  onError?: OnError | null;
+  onRequest?: OnRequest | null;
+  onResponse?: OnResponse | null;
 };
 
 // All of these can be exported from the route itself.
@@ -62,8 +62,8 @@ export type RouteExports = {
   config?: RouteConfig;
   default?: RequestHandler;
   // In JavaScript delete is a reserved keyword, so have to use del instead
-  del?: RequestHandler;
   get?: RequestHandler;
+  del?: RequestHandler;
   head?: RequestHandler;
   options?: RequestHandler;
   patch?: RequestHandler;

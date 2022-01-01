@@ -29,7 +29,7 @@ export default async function buildProject({
 }): Promise<
   {
     lambdaRuntime: Lambda.Runtime;
-    zip?: Uint8Array;
+    zip: Uint8Array | undefined;
   } & Services
 > {
   const { lambdaRuntime } = await getRuntime(sourceDir);

@@ -33,7 +33,7 @@ type Params = { [key: string]: string | string[] };
 
 export type QueueHandlerMetadata<P = Params> = {
   // Group ID (FIFO queue only)
-  groupID?: string;
+  groupID: string | undefined;
   // The queue name
   queueName: string;
   // Unique job ID
@@ -45,11 +45,11 @@ export type QueueHandlerMetadata<P = Params> = {
   // Timestamp when message was sent
   sentAt: Date;
   // Sequence number (FIFO queue only)
-  sequenceNumber?: number;
+  sequenceNumber: number | undefined;
   // Notified when reached timeout, message will be rejected
   signal: AbortSignal;
   // If authenticted, the user ID
-  user?: { id: string };
+  user: { id: string } | null;
 };
 
 // You can export this to control some aspects of the processing.
@@ -68,7 +68,7 @@ export type OnJobFinished = (job: QueueHandlerMetadata) => Promise<void> | void;
 // Queue middleware.
 export type QueueMiddleware = {
   onError?: OnError | null;
-  onJobFinished?: OnJobFinished;
+  onJobFinished?: OnJobFinished | null;
   onJobStarted?: OnJobStarted | null;
 };
 

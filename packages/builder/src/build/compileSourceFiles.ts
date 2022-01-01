@@ -86,7 +86,6 @@ export function compileSource({
 }) {
   const syntax = /\.tsx?$/.test(filename) ? "typescript" : "ecmascript";
   return swc.transformSync(source, {
-    envName: process.env.NODE_ENV,
     filename,
     isModule: true,
     jsc: {

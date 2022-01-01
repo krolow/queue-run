@@ -1,5 +1,6 @@
 import { SQS } from "@aws-sdk/client-sqs";
 import ora from "ora";
+import invariant from "tiny-invariant";
 import { URL } from "url";
 import { Services } from "../build/loadServices";
 
@@ -91,5 +92,7 @@ function arnFromQueueURL(queueURL: string): string {
 function nameFromQueueURL(queueURL: string): string {
   // Looks like https://sqs.{region}.amazonaws.com/{accountId}/{queueName}
   const { pathname } = new URL(queueURL);
-  return pathname.split("/")[2];
+  const queueName = pathname.split("/")[2];
+  invariant(queueName, "Incorrectly formatted queue URL");
+  return queueName;
 }

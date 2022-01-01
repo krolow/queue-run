@@ -2,9 +2,10 @@ import { Lambda } from "@aws-sdk/client-lambda";
 import chalk from "chalk";
 import dotenv from "dotenv";
 import fs from "fs/promises";
+import { AbortSignal } from "node-abort-controller";
 import ow from "ow";
 import invariant from "tiny-invariant";
-import buildProject from "../build";
+import buildProject from "../build/index";
 import { Services } from "../build/loadServices";
 import { addTriggers, removeTriggers } from "./eventSource";
 import { createQueues, deleteOldQueues } from "./prepareQueues";
@@ -52,7 +53,7 @@ type BuildConfig = {
 export default async function deployLambda({
   buildDir,
   config,
-  signal,
+  signal = new AbortSignal(),
   sourceDir,
 }: {
   buildDir: string;
@@ -95,7 +96,7 @@ export default async function deployLambda({
   console.info(chalk.bold.blue("λ: Deploying Lambda function and queues"));
 
   const envVars = await loadEnvVars({
-    envVars: config.envVars,
+    envVars: config.envVars ?? {},
     environment: config.env,
     url,
     ws,
@@ -111,7 +112,7 @@ export default async function deployLambda({
     lambdaName,
     lambdaTimeout: getLambdaTimeout(services),
     lambdaRuntime,
-    layerARNs: config.layerARNs,
+    layerARNs: config.layerARNs ?? [],
     zip,
   });
 

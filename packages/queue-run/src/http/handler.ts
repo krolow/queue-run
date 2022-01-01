@@ -116,7 +116,7 @@ async function handleRoute({
   timeout,
 }: {
   config: RouteConfig;
-  corsHeaders?: Headers;
+  corsHeaders: Headers | undefined;
   filename: string;
   handler: RequestHandler;
   middleware: RouteMiddleware;
@@ -164,18 +164,23 @@ async function handleRoute({
 function getCookies(request: Request): { [key: string]: string } {
   const header = request.headers.get("cookie");
   if (!header) return {};
-  return header
+  const cookies = header
     .split(";")
     .map((cookie) => cookie.trim())
     .map((cookie) => cookie.match(/^([^=]+?)=(.*)$/)?.slice(1)!)
-    .reduce((cookies, [key, value]) => ({ ...cookies, [key]: value }), {});
+    .filter(([name]) => name) as [string, string][];
+
+  return cookies.reduce(
+    (cookies, [key, value]) => ({ ...cookies, [key]: value }),
+    {}
+  );
 }
 
 function getQuery(request: Request): { [key: string]: string | string[] } {
   return Array.from(new URL(request.url).searchParams.entries()).reduce(
     (query, [key, value]) => {
-      if (query[key]) {
-        const existing = query[key];
+      const existing = query[key];
+      if (existing) {
         if (Array.isArray(existing)) existing.push(value);
         else query[key] = [existing, value];
       } else query[key] = value;
@@ -195,10 +200,10 @@ async function runWithMiddleware({
   request,
 }: {
   config: RouteConfig;
-  corsHeaders?: Headers;
+  corsHeaders: Headers | undefined;
   filename: string;
   handler: RequestHandler;
-  metadata: Omit<Parameters<RequestHandler>[0], "request">;
+  metadata: Omit<Parameters<RequestHandler>[0], "request" | "user">;
   middleware: RouteMiddleware;
   request: Request;
 }): Promise<Response> {
@@ -208,7 +213,7 @@ async function runWithMiddleware({
 
     const user = authenticate
       ? await authenticate(request, metadata.cookies)
-      : undefined;
+      : null;
     if (authenticate && !user?.id) {
       console.error(
         chalk.bold.red("Authenticate function returned an invalid user object"),
@@ -240,7 +245,7 @@ async function resultToResponse({
   result,
 }: {
   addCacheControl: ReturnType<typeof withCacheControl>;
-  corsHeaders?: Headers;
+  corsHeaders: Headers | undefined;
   filename: string;
   result?: ReturnType<RequestHandler>;
 }): Promise<Response> {

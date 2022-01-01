@@ -20,7 +20,7 @@ export default async function uploadLambda({
   lambdaName: string;
   lambdaTimeout: number;
   lambdaRuntime: Runtime;
-  layerARNs?: string[];
+  layerARNs: string[];
   zip: Uint8Array;
 }): Promise<string> {
   const lambda = new Lambda({});
@@ -39,6 +39,7 @@ export default async function uploadLambda({
 
   const existing = await getFunction({ lambda, lambdaName });
   if (existing) {
+    invariant(existing.RevisionId);
     // Change configuration first, here we determine runtime, and only then
     // load code and publish.
     const updatedConfig = await lambda.updateFunctionConfiguration({
@@ -47,11 +48,12 @@ export default async function uploadLambda({
     });
     invariant(updatedConfig.RevisionId);
 
-    const { RevisionId: updatedConfigRevisionId } = await waitForNewRevision({
+    const updatedConfigRevisionId = await waitForNewRevision({
       lambda,
       lambdaName,
       revisionId: updatedConfig.RevisionId,
     });
+    invariant(updatedConfigRevisionId);
 
     const updatedCode = await lambda.updateFunctionCode({
       FunctionName: lambdaName,
@@ -107,7 +109,7 @@ async function waitForNewRevision({
   lambda: Lambda;
   lambdaName: string;
   revisionId: string;
-}): Promise<FunctionConfiguration> {
+}): Promise<string> {
   const { Configuration } = await lambda.getFunction({
     FunctionName: lambdaName,
   });
@@ -118,7 +120,7 @@ async function waitForNewRevision({
     await new Promise((resolve) => setTimeout(resolve, 500));
     return await waitForNewRevision({ lambda, lambdaName, revisionId });
   } else {
-    return Configuration;
+    return Configuration.RevisionId;
   }
 }
 
@@ -142,11 +144,11 @@ async function addRuntimeLayerARN(layerARNs: string[] = []): Promise<string[]> {
   const { LayerVersions: versions } = await lambda.listLayerVersions({
     LayerName: layerName,
   });
-  if (!versions)
+  const runtimeARN = versions?.[0]?.LayerVersionArn;
+  if (!runtimeARN)
     throw new Error(
       `Could not find recent version of the QueueRun Runtime layer (${layerName}): did you deploy it to this account?`
     );
-  const runtimeARN = versions[0].LayerVersionArn;
   invariant(runtimeARN);
   return [runtimeARN, ...layerARNs];
 }

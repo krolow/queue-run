@@ -90,8 +90,8 @@ function combine(
 }
 
 function parseContentType(contentType?: string | null): {
-  mime?: string;
-  encoding?: TranscodeEncoding;
+  mime: string | undefined;
+  encoding: TranscodeEncoding | undefined;
 } {
   const mime = contentType?.split(";")[0];
   const encoding = contentType?.match(/;\s*charset=([^;]+)/)?.[1] as

@@ -13,12 +13,12 @@ export abstract class LocalStorage {
   }
 
   queueJob(message: {
-    dedupeID?: string;
-    groupID?: string;
-    params?: { [key: string]: string | string[] };
+    dedupeID?: string | undefined;
+    groupID?: string | undefined;
+    params?: { [key: string]: string | string[] } | undefined;
     payload: string | Buffer | object;
     queueName: string;
-    user?: { id: string };
+    user?: { id: string } | null | undefined;
   }): Promise<string> {
     throw new Error("Job queues not available in this environment.");
   }

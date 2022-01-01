@@ -5,8 +5,8 @@ import { URLSearchParams } from "url";
 
 export default async function queueJob({
   payload,
-  dedupeId,
-  groupId,
+  dedupeID,
+  groupID,
   params,
   queueName,
   slug,
@@ -14,9 +14,9 @@ export default async function queueJob({
   user,
 }: {
   payload: Buffer | string | object;
-  dedupeId?: string;
-  groupId?: string;
-  params?: { [key: string]: string | string[] };
+  dedupeID: string | undefined;
+  groupID: string | undefined;
+  params: { [key: string]: string | string[] } | undefined;
   queueName: string;
   slug: string;
   sqs: SQS;
@@ -46,8 +46,8 @@ export default async function queueJob({
       },
       ...(user && { userId: { DataType: "String", StringValue: user.id } }),
     },
-    MessageGroupId: groupId,
-    MessageDeduplicationId: dedupeId,
+    ...(groupID && { MessageGroupId: groupID }),
+    ...(dedupeID && { MessageDeduplicationId: dedupeID }),
   };
 
   const { MessageId: messageId } = await sqs.sendMessage(message);

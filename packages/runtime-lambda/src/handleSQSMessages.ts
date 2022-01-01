@@ -42,7 +42,7 @@ export default async function handleSQSMessages({
   newLocalStorage: () => LocalStorage;
   sqs: SQS;
 }): Promise<SQSBatchResponse> {
-  return isFifoQueue(messages[0])
+  return isFifoQueue(messages[0]!)
     ? await handleFifoMessages({
         getRemainingTimeInMillis,
         messages,
@@ -216,6 +216,6 @@ function getMetadata(
     sequenceNumber: attributes.SequenceNumber
       ? +attributes.SequenceNumber
       : undefined,
-    user: userId ? { id: userId } : undefined,
+    user: userId ? { id: userId } : null,
   };
 }

@@ -4,7 +4,7 @@ export default function selfPath(depth: number = 2): string {
   const prepare = Error.prepareStackTrace;
   let filename: string | null = null;
   Error.prepareStackTrace = (_, callSites) => {
-    filename = callSites[depth].getFileName();
+    filename = callSites[depth]?.getFileName() ?? null;
   };
   const error = new Error();
   Error.captureStackTrace(error);

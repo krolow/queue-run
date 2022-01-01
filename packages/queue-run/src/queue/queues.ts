@@ -62,7 +62,7 @@ function newQueue<T = Payload>(
     return await queueJob({
       dedupeID: dedupe,
       groupID: group,
-      params,
+      params: params ?? {},
       payload: payload as unknown as object,
       queueName,
       user: user ?? undefined,

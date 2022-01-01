@@ -60,4 +60,4 @@ const runtimes: Array<{
   },
 ];
 
-const defaultRuntime = runtimes[0];
+const defaultRuntime = runtimes[0]!;

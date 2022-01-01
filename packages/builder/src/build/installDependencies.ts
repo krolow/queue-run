@@ -4,6 +4,7 @@ import { R_OK } from "constants";
 import fs from "fs/promises";
 import ms from "ms";
 import path from "path";
+import invariant from "tiny-invariant";
 
 const installFiles = [
   ".npmrc",
@@ -78,6 +79,7 @@ async function runCommand({
   command: string;
 }) {
   const [executable, ...args] = command.split(" ");
+  invariant(executable);
   const install = await spawn(executable, args, {
     cwd: dirname,
     env: {

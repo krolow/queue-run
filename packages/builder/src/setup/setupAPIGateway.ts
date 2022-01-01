@@ -6,7 +6,8 @@ import {
   CreateRouteRequest,
   IntegrationType,
   ProtocolType,
-  UpdateStageRequest,
+  UpdateIntegrationRequest,
+  UpdateRouteRequest,
 } from "@aws-sdk/client-apigatewayv2";
 import { Lambda } from "@aws-sdk/client-lambda";
 import ora from "ora";
@@ -45,16 +46,16 @@ async function createApi(
     project,
     protocol: args.ProtocolType,
   });
-  const options: CreateApiRequest = {
+  const options = {
     ...args,
     Description: `QueueRun API gateway for project ${project} (${args.ProtocolType})`,
     Name: `qr-${project}`,
     Tags: { "qr-project": project },
   };
 
-  const api = existing
-    ? await apiGateway.updateApi({ ApiId: existing.ApiId, ...options })
-    : await apiGateway.createApi(options);
+  const api = await (existing
+    ? apiGateway.updateApi({ ApiId: existing.ApiId, ...options })
+    : apiGateway.createApi(options));
   invariant(api.ApiEndpoint);
   return api.ApiEndpoint;
 }
@@ -148,12 +149,13 @@ async function createIntegration(
   const integration = items?.find(
     ({ IntegrationUri }) => IntegrationUri === args.IntegrationUri
   );
-  if (integration?.IntegrationId) {
+  const id = integration?.IntegrationId;
+  if (id) {
     await apiGateway.updateIntegration({
-      ...args,
-      IntegrationId: integration.IntegrationId,
+      ...(args as UpdateIntegrationRequest),
+      IntegrationId: id,
     });
-    return integration.IntegrationId;
+    return id;
   } else {
     const { IntegrationId: id } = await apiGateway.createIntegration(args);
     invariant(id);
@@ -164,9 +166,13 @@ async function createIntegration(
 async function createRoute(args: CreateRouteRequest): Promise<string> {
   const { Items: routes } = await apiGateway.getRoutes({ ApiId: args.ApiId });
   const route = routes?.find(({ RouteKey }) => RouteKey === args.RouteKey);
-  if (route?.RouteId) {
-    await apiGateway.updateRoute({ ...args, RouteId: route.RouteId });
-    return route.RouteId;
+  const id = route?.RouteId;
+  if (id) {
+    await apiGateway.updateRoute({
+      ...(args as UpdateRouteRequest),
+      RouteId: id,
+    });
+    return id;
   } else {
     const { RouteId: id } = await apiGateway.createRoute(args);
     invariant(id);
@@ -218,8 +224,9 @@ async function deployAPI(api: Api, stageName: string): Promise<void> {
   });
   if (DeploymentStatus !== "DEPLOYED")
     throw new Error("Failed to deploy API Gateway");
+  invariant(DeploymentId);
 
-  const stage: UpdateStageRequest = {
+  const stage = {
     ApiId: api.ApiId,
     DeploymentId,
     StageName: stageName,
@@ -256,7 +263,7 @@ async function findGatewayAPI({
   protocol: ProtocolType;
 }): Promise<Api | null> {
   const result = await apiGateway.getApis({
-    NextToken: nextToken,
+    ...(nextToken && { NextToken: nextToken }),
   });
   const api = result.Items?.find(
     (api) =>
