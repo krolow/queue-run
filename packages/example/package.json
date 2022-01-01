@@ -2,7 +2,9 @@
   "name": "example",
   "version": "0.0.0",
   "scripts": {
-    "dev": "queue-run dev"
+    "build": "queue-run build",
+    "dev": "queue-run dev",
+    "lint": "eslint **/*.{ts,tsx}"
   },
   "peerDependencies": {
     "queue-run": "^0.1.4"

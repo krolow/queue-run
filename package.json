@@ -1,12 +1,16 @@
 {
   "name": "queue-run",
-  "version": "1.0.0",
+  "version": "0.2.0",
   "description": "👋 APIs and back-end functions for JAMstack apps (queues, pub/sub, cron, etc)",
   "main": "src/index.js",
   "types": "types/index.d.ts",
   "scripts": {
-    "lint": "lerna run lint",
-    "watch": "lerna run --parallel watch"
+    "build": "yarn build:queue-run && yarn build:runtime && yarn build:builder && yarn build:cli",
+    "build:queue-run": "yarn workspace queue-run build",
+    "build:runtime": "yarn workspace @queue-run/runtime-lambda build",
+    "build:builder": "yarn workspace @queue-run/builder build",
+    "build:cli": "yarn workspace @queue-run/cli build",
+    "lint": "lerna run lint"
   },
   "author": "Assaf Arkin <assaf@labnotes.org> (https://labnotes.org/)",
   "homepage": "",
