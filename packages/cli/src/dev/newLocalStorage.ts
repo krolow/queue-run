@@ -46,29 +46,30 @@ class DevLocalStorage extends LocalStorage {
     const userId = user?.id ? String(user.id) : undefined;
 
     ++queued;
-    const port = this.port;
-    setImmediate(async () => {
-      try {
-        await handleQueuedJob({
-          queueName,
-          metadata: {
-            groupID,
-            jobID,
-            params: serializedParams,
+    setImmediate(() => {
+      this.exit(async () => {
+        try {
+          await handleQueuedJob({
             queueName,
-            receivedCount: 1,
-            sentAt: new Date(),
-            sequenceNumber: 1,
-            user: userId ? { id: userId } : null,
-          },
-          payload: serializedPayload,
-          newLocalStorage: () => newLocalStorage(port),
-          remainingTime: 30 * 1000,
-        });
-      } finally {
-        --queued;
-        if (queued === 0) events.emit("idle");
-      }
+            metadata: {
+              groupID,
+              jobID,
+              params: serializedParams,
+              queueName,
+              receivedCount: 1,
+              sentAt: new Date(),
+              sequenceNumber: 1,
+              user: userId ? { id: userId } : null,
+            },
+            payload: serializedPayload,
+            newLocalStorage: () => newLocalStorage(this.port),
+            remainingTime: 30 * 1000,
+          });
+        } finally {
+          --queued;
+          if (queued === 0) events.emit("idle");
+        }
+      });
     });
     return jobID;
   }

@@ -40,27 +40,28 @@ export abstract class LocalStorage {
     this._user = user ?? null;
     this._userSet = true;
   }
+
+  // withLocalStorage will complain if you try to next contexts by mistake,
+  // but if you need to break out (eg dev server does), use this method.
+  exit(callback: () => unknown): void {
+    asyncLocal.exit(callback);
+  }
 }
 /* eslint-enable no-unused-vars */
 
-// This supposed to fail if you're using two different versions of queue-run.
-// Let's see if this helps or not.
-const symbol = Symbol("qr-local-storage");
+const asyncLocal = new AsyncLocalStorage<LocalStorage>();
 
 // This is used internally to allow handlers to queue jobs, send WS messages, etc.
 export function getLocalStorage(): LocalStorage {
-  // @ts-ignore
-  const asyncLocal = global[symbol];
-  if (!asyncLocal) throw new Error("Runtime not available");
-  return asyncLocal.getStore();
+  const local = asyncLocal.getStore();
+  if (!local) throw new Error("Runtime not available");
+  return local;
 }
 
 export function withLocalStorage<T>(
   localStorage: LocalStorage,
   fn: () => T
 ): T {
-  // @ts-ignore
-  const asyncLocal = (global[symbol] ||= new AsyncLocalStorage<LocalStorage>());
   if (asyncLocal.getStore()) throw new Error("Can't nest runtimes");
   return asyncLocal.run(localStorage, fn);
 }
