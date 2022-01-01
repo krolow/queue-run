@@ -1,6 +1,6 @@
 {
   "name": "queue-run-builder",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
   "types": "dist/types/index.d.ts",
@@ -35,7 +35,7 @@
     "node-abort-controller": "^3.0.1",
     "ow": "^0.28.1",
     "pirates": "^4.0.4",
-    "queue-run": "^0.2.0",
+    "queue-run": "^0.2.1",
     "tiny-invariant": "^1.2.0"
   },
   "devDependencies": {
