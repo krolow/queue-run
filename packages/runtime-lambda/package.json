@@ -1,5 +1,5 @@
 {
-  "name": "@queue-run/runtime-lambda",
+  "name": "queue-run-lambda",
   "version": "0.2.0",
   "main": "dist/index.js",
   "directories": {
@@ -26,5 +26,6 @@
   },
   "engines": {
     "node": "14.x"
-  }
+  },
+  "gitHead": "cb2455561449ed3629e679e3656bb72e746096e3"
 }

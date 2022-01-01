@@ -1,13 +1,13 @@
+import chalk from "chalk";
+import { Command } from "commander";
+import fs from "fs/promises";
+import inquirer from "inquirer";
 import {
   deployLambda,
   deployRuntimeLayer,
   setupAPIGateway,
   setupIntegrations as setupGatewayIntegrations,
-} from "@queue-run/builder";
-import chalk from "chalk";
-import { Command } from "commander";
-import fs from "fs/promises";
-import inquirer from "inquirer";
+} from "queue-run-builder";
 
 const configFilename = ".qr-config.json";
 

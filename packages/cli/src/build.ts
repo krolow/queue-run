@@ -1,5 +1,5 @@
-import { buildProject } from "@queue-run/builder";
 import { Command } from "commander";
+import { buildProject } from "queue-run-builder";
 
 const command = new Command("build")
   .description("Build the backend")

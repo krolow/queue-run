@@ -1,5 +1,5 @@
-import { deployLambda } from "@queue-run/builder";
 import { Command } from "commander";
+import { deployLambda } from "queue-run-builder";
 
 const command = new Command("deploy").description("Deploy your project");
 

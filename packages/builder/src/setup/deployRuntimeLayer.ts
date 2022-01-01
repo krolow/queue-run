@@ -34,7 +34,7 @@ async function copyFiles(buildDir: string) {
   const nodeDir = path.join(buildDir, "nodejs");
   await fs.mkdir(nodeDir, { recursive: true });
 
-  const runtime = path.dirname(require.resolve("@queue-run/runtime-lambda"));
+  const runtime = path.dirname(require.resolve("queue-run-lambda"));
 
   const filenames = await glob("**/*", { cwd: runtime });
   for (const filename of filenames) {
@@ -52,7 +52,7 @@ async function copyFiles(buildDir: string) {
 async function installDependencies(buildDir: string) {
   const spinner = ora("Installing dependencies ...").start();
 
-  const runtime = path.dirname(require.resolve("@queue-run/runtime-lambda"));
+  const runtime = path.dirname(require.resolve("queue-run-lambda"));
   await fs.copyFile(
     path.join(runtime, "../package.json"),
     path.join(buildDir, "package.json")

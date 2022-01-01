@@ -17,13 +17,14 @@
   },
   "command": {
     "publish": {
-      "ignoreChanges": [
-        "*.md"
-      ],
+      "ignoreChanges": ["*.md"],
       "message": ":house: publish"
     }
   },
   "packages": [
-    "packages/*"
+    "packages/builder",
+    "packages/cli",
+    "packages/queue-run",
+    "packages/runtime-lambda"
   ]
 }

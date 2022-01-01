@@ -1,8 +1,8 @@
-import { loadServices, moduleLoader } from "@queue-run/builder";
 import chalk from "chalk";
 import { createServer, IncomingMessage, ServerResponse } from "http";
 import ora from "ora";
 import { handleHTTPRequest, LocalStorage, Request } from "queue-run";
+import { loadServices, moduleLoader } from "queue-run-builder";
 import { URL } from "url";
 import envVariables from "./envVariables";
 import { newLocalStorage } from "./newLocalStorage";

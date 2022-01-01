@@ -1,8 +1,8 @@
-import { moduleLoader } from "@queue-run/builder";
 import chalk from "chalk";
 import { readFile } from "fs/promises";
 import ora from "ora";
 import { loadQueues } from "queue-run";
+import { moduleLoader } from "queue-run-builder";
 import readline from "readline";
 import envVariables from "./envVariables";
 import { events, newLocalStorage } from "./newLocalStorage";
