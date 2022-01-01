@@ -51,7 +51,7 @@ function newQueue<T = Payload>(
   const fifo = queueName.endsWith(".fifo");
 
   const queueFn: QueueFunction<T> = async (payload, params) => {
-    const { queueJob, user } = getLocalStorage();
+    const local = getLocalStorage();
 
     const queues = await loadQueues();
     if (!queues.has(queueName))
@@ -59,13 +59,13 @@ function newQueue<T = Payload>(
 
     if (fifo && !group) throw new Error("FIFO queue requires a group ID");
 
-    return await queueJob({
+    return await local.queueJob({
       dedupeID: dedupe,
       groupID: group,
       params: params ?? {},
       payload: payload as unknown as object,
       queueName,
-      user: user ?? undefined,
+      user: local.user ?? undefined,
     });
   };
 

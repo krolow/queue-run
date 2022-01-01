@@ -46,6 +46,7 @@ class DevLocalStorage extends LocalStorage {
     const userId = user?.id ? String(user.id) : undefined;
 
     ++queued;
+    const port = this.port;
     setImmediate(async () => {
       try {
         await handleQueuedJob({
@@ -61,7 +62,7 @@ class DevLocalStorage extends LocalStorage {
             user: userId ? { id: userId } : null,
           },
           payload: serializedPayload,
-          newLocalStorage: () => newLocalStorage(this.port),
+          newLocalStorage: () => newLocalStorage(port),
           remainingTime: 30 * 1000,
         });
       } finally {
