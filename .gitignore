@@ -1,4 +1,5 @@
 packages/*/dist
+packages/site/build
 .docusaurus
 .cache-loader
 .build
