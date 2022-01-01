@@ -1,7 +1,9 @@
 import type { TranscodeEncoding } from "buffer";
+import Blob from "fetch-blob";
 import multipart from "parse-multipart-data";
 import { URLSearchParams } from "url";
 import { Request, Response } from "./fetch";
+export { Blob, File };
 
 export default async function form<
   T extends {
@@ -28,44 +30,25 @@ export default async function form<
   } else throw new Response("Unsupported Media Type", { status: 415 });
 }
 
-export class Blob {
-  private _buffer: Buffer;
-  public size: number;
-  public type: string;
-
-  constructor(buffer: Buffer, type: string) {
-    this._buffer = buffer;
-    this.size = buffer.byteLength;
-    this.type = type;
-  }
-
-  stream() {
-    throw new Error("Not implemented");
-  }
-
-  buffer(): Buffer {
-    return this._buffer;
-  }
-
-  arrayBuffer(): ArrayBuffer {
-    return this._buffer;
-  }
-
-  text(): string {
-    return this._buffer.toString();
-  }
-
-  slice(start?: number, end?: number, contentType?: string): Blob {
-    return new Blob(this._buffer.slice(start, end), contentType ?? this.type);
-  }
-}
-
-export class File extends Blob {
+class File extends Blob {
   public name: string;
+  public lastModified = 0;
 
-  constructor(buffer: Buffer, type: string, name: string) {
-    super(buffer, type);
-    this.name = name;
+  constructor(
+    blobParts: (ArrayBufferLike | ArrayBufferView | Blob | Buffer | string)[],
+    options: { type?: string; name: string; lastModified?: number }
+  ) {
+    super(blobParts, options);
+    this.name = String(options.name);
+    const lastModified =
+      options.lastModified === undefined
+        ? Date.now()
+        : Number(options.lastModified);
+    if (!Number.isNaN(lastModified)) this.lastModified = lastModified;
+  }
+
+  get [Symbol.toStringTag]() {
+    return "File";
   }
 }
 
@@ -110,7 +93,10 @@ function formField({
   filename?: string;
 }): string | File {
   if (Buffer.isBuffer(data) && filename) {
-    return new File(data, contentType ?? "application/octet-stream", filename);
+    return new File([data], {
+      type: contentType ?? "application/octet-stream",
+      name: filename,
+    });
   } else {
     const { encoding } = parseContentType(contentType);
     return data.toString(encoding ?? "utf8");

@@ -27,6 +27,7 @@
   "dependencies": {
     "chalk": "4.1.2",
     "fast-glob": "^3.2.7",
+    "fetch-blob": "^2.1.2",
     "jsx-xml": "^0.2.3",
     "node-abort-controller": "^3.0.1",
     "node-fetch": "2.6.6",
