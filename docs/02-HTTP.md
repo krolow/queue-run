@@ -35,7 +35,7 @@ They take a single argument with named parameters:
 - `params` - Object with request parameters from the URL (eg `{ id: "123" }`)
 - `query` — Object with query string parameters (eg `{ first: "5" }`)
 - `signal` — [Signal](https://developer.mozilla.org/en-US/docs/Web/API/AbortController) for aborting long running requests
-- `user` — User object returned from [authenticate](authenticate.md) method
+- `user` — User object returned from [authenticate](05-Authenticate.md) method
 
 Request handler can return:
 
@@ -138,7 +138,7 @@ export async function post({ request }) {
 
 If the response is any other media type, you can get it as raw buffer (`response.buffer()`) or plain text (`response.text()`).
 
-There's a convenience method for [working with HTML forms](#the-form-function). And for generating [XML and HTML documents](/xml.md).
+There's a convenience method for [working with HTML forms](#the-form-function). And for generating [XML and HTML documents](/06-XML.md).
 
 ## The form() function
 
@@ -204,7 +204,7 @@ export aync function post({ request }) {
 
 There are common middleware patterns in HTTP APIs. This middleware is supported through named exports:
 
-- `authenticate(request)` - Used to authenticate the request, see [Authentication](authenticate.md)
+- `authenticate(request)` - Used to authenticate the request, see [Authentication](05-Authenticate.md)
 - `onError(error, request)` — You can use this to log processing errors
 - `onRequest(request)` - You can use this to log the request, also block a request by throwing a Response object
 - `onResponse(request, response)` — You can use this to log the response, or change the response by throwing a Response object
