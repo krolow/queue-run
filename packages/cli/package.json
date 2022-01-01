@@ -1,6 +1,6 @@
 {
   "name": "queue-run-cli",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
   "bin": {
@@ -28,8 +28,8 @@
     "node-abort-controller": "^3.0.1",
     "node-fetch": "2.6.6",
     "ora": "5.4.1",
-    "queue-run": "^0.2.1",
-    "queue-run-builder": "^0.2.1"
+    "queue-run": "^0.2.2",
+    "queue-run-builder": "^0.2.2"
   },
   "devDependencies": {
     "@types/inquirer": "^8.1.3",
