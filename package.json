@@ -10,6 +10,7 @@
     "build:runtime": "yarn workspace queue-run-lambda build",
     "build:builder": "yarn workspace queue-run-builder build",
     "build:cli": "yarn workspace queue-run-cli build",
+    "docs": "yarn workspace site dev",
     "lint": "lerna run lint"
   },
   "author": "Assaf Arkin <assaf@labnotes.org> (https://labnotes.org/)",
@@ -34,9 +35,6 @@
     "typescript": "^4.5.4"
   },
   "workspaces": [
-    "packages/builder",
-    "packages/cli",
-    "packages/queue-run",
-    "packages/runtime-lambda"
+    "packages/*"
   ]
 }

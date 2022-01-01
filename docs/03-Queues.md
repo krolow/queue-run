@@ -2,7 +2,11 @@
 
 ## Standard Queues
 
+**TBD**
+
 ## FIFO Queues
+
+**TBD**
 
 ## Queuing a job
 
@@ -21,8 +25,10 @@ calculated from the payload.
 import { queues } from 'queue-run';
 
 const job1 = await queues('tasks').push(task);
+
 const job2 = await queues('profile.fifo')
   .group(userID).push(profile);
+
 const job3 = await queues('payment.fifo')
   .group(accountID)
   .dedupe(transactionID)
@@ -35,9 +41,7 @@ You can use the `queues.self()` function to get a reference to the current queue
 
 For example:
 
-#### queues/tasks.js
-
-```js
+```js title="queues/tasks.js"
 import { queues } from 'queue-run';
 
 export default async function(task) {
@@ -47,9 +51,7 @@ export default async function(task) {
 export const queue = queues.self();
 ```
 
-#### api/tasks.js
-
-```js
+```js title="api/tasks.js"
 import { queue } from '../queues/tasks';
 
 export async function post(request) {
@@ -73,9 +75,7 @@ If the API is authenticated, the queue handler will receive the user ID in the s
 
 For example:
 
-#### api/tasks.js
-
-```js
+```js title="api/tasks.js"
 import { queues } from 'queue-run';
 
 export const post = queues.get('tasks').http;
@@ -91,9 +91,7 @@ When using TypeScript, you can apply a type to the queue payload:
 
 For example:
 
-#### queues/tasks.ts
-
-```ts
+```ts title="queues/tasks.ts"
 import { queues } from 'queue-run';
 
 export type Task = {
@@ -109,9 +107,7 @@ export default async function(task: Task) {
 export const queue = queues.self<Task>();
 ```
 
-#### api/tasks.ts
-
-```ts
+```ts title="api/tasks.ts"
 import { queue, Task } from '../queues/tasks';
 
 export async function post(request) {
@@ -127,43 +123,4 @@ export async function post(request) {
 
 ## Failure and Retries
 
-## Middleware
-
-Queues support the following middleware functions:
-
-- `onJobStarted(metadata)` — Called each time the job runs
-- `onJobFinished(metadata)` — Called when the job finishes successfully
-- `onError(error, metadata)` — Called when the job fails with an error
-
-The default middleware logs the job starting and finishing and any errors.
-
-You can export different middleware for all queues from `queues/_middleware.js`, or for a specific queue from the module itself. You can disable the default middleware by exporting `undefined`.
-
-Your middleware can wrap the default middleware, available as `logJobStarted`, `logJobFinished`, and `logError` respectively.
-
-For example, to count running jobs and errors:
-
-#### queues/_middleware.js
-
-```ts
-import {
-  logJobStarted,
-  logJobFinished,
-  logError
-} from 'queue-run';
-
-export async function onJobStarted(metadata) {
-  await logJobStarted(metadata);
-  await metrics.increment(`jobs.${metadata.queueName}`);
-}
-
-export async function onJobFinished(metadata) {
-  await logJobFinished(metadata);
-  await metrics.decrement(`jobs.${metadata.queueName}`);
-}
-
-export async function onError(error, metadata) {
-  await logError(error, metadata);
-  await metrics.increment(`errors.${metadata.queueName}`);
-}
-```
+**TBD**

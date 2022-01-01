@@ -4,9 +4,7 @@
 
 If you want to return a URL as part of the response, you can use the `url` helper.
 
-#### api/items/[id].ts
-
-```ts
+```ts title="api/items/[id].ts"
 import { url } from 'queue-run';
 
 export const urlForItem = url.self<{ id: string >}();
@@ -18,9 +16,7 @@ export async function get() {
 }
 ```
 
-#### api/items/index.ts
-
-```ts
+```ts title="api/items/index.ts"
 const { urlForItem } = require('./[id]');
 
 // Respond with a list of all items
@@ -93,8 +89,10 @@ If you're using TypeScript, you can apply types to the URL construction function
 
 ```ts
 const urlForTask = url.for<{ id: string }>('/tasks/[id]');
+
 // No path parameters, but type-checking for query parameters
 const urlForList = url.for<never, { page: number }>('/list');
+
 const urlForPost = url.for<
   { slug: string[] },
   { theme: 'light' | 'dark' }
@@ -107,9 +105,7 @@ The `url.self()` function is a shortcut for `url.for(path)` that uses the path o
 
 These two are equivalent:
 
-#### api/items/[id].ts
-
-```ts
+```ts title="api/items/[id].ts"
 export const urlForItem = url.self<{ id: string }>();
 export const urlForItem = url.url<{ id: string }>('/items/[id]');
 ```

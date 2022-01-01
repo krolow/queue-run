@@ -14,77 +14,102 @@ Your code is the configuration. You don't need to write boilerplate YAML, we can
 
 Stuff you need in every single project — logging, authentication, form handling, etc — included by default. Use what you like, or replace with your own implementation. No dependency injection either, just export from the module.
 
-
 ## See An Example
 
-```js title=api/bookmarks/index.ts
-import { input } from "./_middleware";
-import { queue as screenshots } from "../../queues/screenshots";
+Let's install queue-run. We need the command line tool, and types library, so we'll install as dev dependency:
+
+```bash
+npm install -D queue-run
+# or
+yarn add --dev queue-run
+```
+
+Next we'll write a simple backend. Start with a resource for listing all bookmarks (GET) and creating a new bookmark (POST):
+
+```ts title="api/bookmarks.ts"
+import { inputs } from "./_middleware";
+import { queue as screenshots } from "~/queues/screenshots";
 import { urlForBookmark } from "./[id]";
-import * as db from "lib/db";
+import * as db from "~/lib/db";
+import { Response } from "queue-run";
 
 // HTTP GET /bookmarks -> JSON
-export async function get() {
-  return await db.findAll();
+export async function get({ user }) {
+  return await db.findAll({ userId: user.id });
 }
 
 // And this is HTTP POST -> 303 See Other
-export async function post({ request }: { request: Request }) {
-  const bookmark = await db.create(await input(request));
+export async function post({ request, user }) {
+  const { title, url } = await inputs(request);
+  const bookmark = await db.create({ title, url, user });
+
   await screenshots.push({ id: bookmark.id });
 
   // This will generate a URL like
   // https://example.com/bookmarks/c675e615%
-  const url = urlForBookmark(bookmark);
-  return new Response(url, { status: 303, headers: { Location: url } });
+  const newURL = urlForBookmark(bookmark);
+  return new Response(newURL, {
+    status: 303,
+    headers: { Location: newURL }
+  });
 }
 ```
 
-```ts title=api/bookmarks/[id].js
-import { input } from "./_middleware";
-import { url } from "queue-run";
+You can also fetch (GET), update (PUT), and delete (DELETE) an individual resource:
+
+```ts title="api/bookmarks/[id].ts"
+import { inputs } from "./_middleware";
+import { url, Response } from "queue-run";
 import * as db from "lib/db";
 
-type Resource = { request: Request, params: { id: string } };
-
 // In Express this would be get('/bookmarks/:id')
-export async function get({ params }: Resource) {
-  const bookmark = await db.findOne(params.id);
+export async function get({ params, user }) {
+  const bookmark = await db.findOne({
+    id: params.id,
+    userId: user.id
+  });
   // Throw a response to exit request handling early
   if (!bookmark) throw new Response(null, { status: 404 });
   return bookmark;
 }
 
-export async function put({ request, params }: Resource) {
-  const bookmark = await db.findOne(params.id);
+export async function put({ request, params, user }) {
+  const bookmark = await db.findOne({
+    id: params.id,
+    userId: user.id
+  });
   if (!bookmark) throw new Response(null, { status: 404 });
 
-  const { title, url } = await input(request);
+  const { title, url } = await inputs(request);
   return await db.updateOne({ id: params.id, title, url });
 }
 
-export async function del({ params }: Resource) {
-  await db.deleteOne(params.id);
+export async function del({ params, user}) {
+  await db.deleteOne({
+    id: params.id,
+    userId: user.id
+  });
   return new Response(null, { status: 204 });
 }
 
-// So this is how api/bookmarks/index.ts creates URLs
-export const urlForBookmark = url.self<Resource['params']>();
+// index.ts uses this to create URLs
+export const urlForBookmark = url.self<{ id: string }>();
 ```
 
-```ts title=api/bookmarks/_middleware.ts
-import { form } from "queue-run";
+We'll need some common middleware to authenticate requests, so we can tie them to a user, and to validate inputs for POST + PUT:
+
+```ts title="api/bookmarks/_middleware.ts"
+import { form, Response } from "queue-run";
 import ow from "ow";
 
-type Fields = {
-  title: string;
-  url: string;
+export async function authenticate(request) {
+  ... TBD
 }
 
 // This is used by two route files, so put it here
-export async function input(request: Request): Promise<Fields> {
+export async function inputs(request) {
   // We accept HTML forms and JSON documents
-  const { title, url } = await form<Fields>(request.clone()).
+  const { title, url } = await form(request.clone()).
     catch(() => request.json());
 
   // Validate inputs early and validate inputs often
@@ -98,24 +123,42 @@ export async function input(request: Request): Promise<Fields> {
 }
 ```
 
-```ts title=queues/screenshots.ts
+Our bookmarks service takes screenshots, and these could take several seconds, and even fail intermittently. We'll use a queue for that:
+
+```ts title="queues/screenshots.ts"
 import { queues } from "queue-run";
-import * as db from "../lib/db";
-import capture from "../lib/capture";
+import * as db from "~/lib/db";
+import capture from "~/lib/capture";
 
-type Payload = { id: string };
-
-export default async function ({ id }: Payload) {
-  const bookmark = await db.findOne(id);
+export default async function ({ id }, { user }) {
+  const bookmark = await db.findOne({ id, userId: user.id });
   if (!bookmark) return;
 
   // This could easily take several seconds,
   // so we're doing this in a background job
+  console.info('Taking screenshot of "%s"', bookmark.url)
   const screenshot = await capture(bookmark.url);
-  await db.updateOne({ id, screenshot });
+  await db.updateOne({ id, userId: user.id,  screenshot });
 }
 
 // api/bookmarks/index.ts doesn't need to guess the queue name
-// IDE can show you type information for push(payload)
-export const queue = queues.self<Payload>();
+//
+// Type information for your IDE
+export const queue = queues.self<{ id: string }>();
+```
+
+Let's run this backend using the development server:
+
+```bash
+npx queue-run dev
+👋 Dev server listening on http://localhost:8000
+```
+
+In another terminal window we're going to create a new bookmark, retrieve that bookmark, and list all the bookmarks:
+
+```bash
+curl http://localhost:8000/bookmarks -X POST \
+  -F "title=My bookmark" -F "url=http://example.com"
+curl http://localhost:8000/bookmarks/74e83d43
+curl http://localhost:8000/bookmarks
 ```
