@@ -1,6 +1,6 @@
 {
   "name": "@queue-run/runtime-lambda",
-  "version": "0.0.0",
+  "version": "0.2.0",
   "main": "dist/index.js",
   "types": "dist/types/index.d.ts",
   "scripts": {
@@ -16,7 +16,7 @@
   ],
   "dependencies": {
     "@aws-sdk/client-sqs": "^3.45.0",
-    "queue-run": "^0.1.3",
+    "queue-run": "^0.2.0",
     "tiny-invariant": "^1.2.0"
   },
   "devDependencies": {
