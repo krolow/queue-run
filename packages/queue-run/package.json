@@ -10,7 +10,7 @@
     "types": "dist/types"
   },
   "bin": {
-    "queue-run": "./cli.sh"
+    "queue-run": "./bin/cli.js"
   },
   "scripts": {
     "build": "dts build",
