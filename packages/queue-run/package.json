@@ -38,7 +38,7 @@
     "xmlbuilder": "^15.1.1"
   },
   "devDependencies": {
-    "@types/node-fetch": "^2.5.12",
+    "@types/node-fetch": "^3.0.3",
     "@types/source-map-support": "^0.5.4",
     "dts-cli": "^1.1.4",
     "eslint": "8.6.0"
