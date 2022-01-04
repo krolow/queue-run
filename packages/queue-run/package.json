@@ -4,11 +4,6 @@
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
   "types": "dist/types/index.d.ts",
-  "directories": {
-    "lib": "dist",
-    "esm": "dist",
-    "types": "dist/types"
-  },
   "bin": {
     "queue-run": "./bin/cli.js"
   },
@@ -38,7 +33,7 @@
     "xmlbuilder": "^15.1.1"
   },
   "devDependencies": {
-    "@types/node-fetch": "^3.0.3",
+    "@types/node-fetch": "2.5.12",
     "@types/source-map-support": "^0.5.4",
     "dts-cli": "^1.1.4",
     "eslint": "8.6.0"
