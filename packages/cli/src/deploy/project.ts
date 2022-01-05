@@ -2,7 +2,7 @@ import glob from "fast-glob";
 import fs from "fs/promises";
 import inquirer from "inquirer";
 
-const filename = ".queuerun.json";
+const filename = ".queue-run.json";
 
 type Project = {
   name?: string;
