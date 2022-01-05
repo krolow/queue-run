@@ -29,25 +29,31 @@ export default async function queueJob({
     : typeof payload === "string"
     ? "text/plain"
     : "application/json";
-  const messageBody = Buffer.isBuffer(payload)
+  const serializedBody = Buffer.isBuffer(payload)
     ? payload.toString("base64")
     : typeof payload === "string"
     ? payload
     : JSON.stringify(payload);
 
+  const serializedParams = new URLSearchParams(params).toString();
+  const serializedUserID = user?.id ? String(user.id) : undefined;
+
   const message: SendMessageCommandInput = {
     QueueUrl: queueURL,
-    MessageBody: messageBody,
+    MessageBody: serializedBody,
     MessageAttributes: {
       "Content-Type": { DataType: "String", StringValue: contentType },
-      params: {
-        DataType: "String",
-        StringValue: new URLSearchParams(params).toString(),
-      },
-      ...(user?.id && { userID: { DataType: "String", StringValue: user.id } }),
+      // SQS complains if the attribute value is an empty string,
+      // so we need to serialize the value and check for truthiness.
+      ...(serializedParams
+        ? { params: { DataType: "String", StringValue: serializedParams } }
+        : undefined),
+      ...(serializedUserID
+        ? { userID: { DataType: "String", StringValue: serializedUserID } }
+        : undefined),
     },
-    ...(groupID && { MessageGroupId: groupID }),
-    ...(dedupeID && { MessageDeduplicationId: dedupeID }),
+    ...(groupID ? { MessageGroupId: groupID } : undefined),
+    ...(dedupeID ? { MessageDeduplicationId: dedupeID } : undefined),
   };
 
   const { MessageId: messageId } = await sqs.sendMessage(message);
