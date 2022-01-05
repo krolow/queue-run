@@ -35,7 +35,7 @@ import { Response } from "queue-run";
 
 // HTTP GET /bookmarks -> JSON
 export async function get({ user }) {
-  return await db.findAll({ userId: user.id });
+  return await db.findAll({ userID: user.id });
 }
 
 // And this is HTTP POST -> 303 See Other
@@ -66,7 +66,7 @@ import * as db from "lib/db";
 export async function get({ params, user }) {
   const bookmark = await db.findOne({
     id: params.id,
-    userId: user.id
+    userID: user.id
   });
   // Throw a response to exit request handling early
   if (!bookmark) throw new Response(null, { status: 404 });
@@ -76,7 +76,7 @@ export async function get({ params, user }) {
 export async function put({ request, params, user }) {
   const bookmark = await db.findOne({
     id: params.id,
-    userId: user.id
+    userID: user.id
   });
   if (!bookmark) throw new Response(null, { status: 404 });
 
@@ -87,7 +87,7 @@ export async function put({ request, params, user }) {
 export async function del({ params, user}) {
   await db.deleteOne({
     id: params.id,
-    userId: user.id
+    userID: user.id
   });
   return new Response(null, { status: 204 });
 }
@@ -131,14 +131,14 @@ import * as db from "~/lib/db";
 import capture from "~/lib/capture";
 
 export default async function ({ id }, { user }) {
-  const bookmark = await db.findOne({ id, userId: user.id });
+  const bookmark = await db.findOne({ id, userID: user.id });
   if (!bookmark) return;
 
   // This could easily take several seconds,
   // so we're doing this in a background job
   console.info('Taking screenshot of "%s"', bookmark.url)
   const screenshot = await capture(bookmark.url);
-  await db.updateOne({ id, userId: user.id,  screenshot });
+  await db.updateOne({ id, userID: user.id,  screenshot });
 }
 
 // api/bookmarks/index.ts doesn't need to guess the queue name

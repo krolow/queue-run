@@ -199,7 +199,7 @@ function getMetadata(
   message: SQSMessage
 ): Omit<Parameters<QueueHandler>[1], "signal"> {
   const { attributes } = message;
-  const userId = message.messageAttributes["userId"]?.stringValue;
+  const userID = message.messageAttributes["userID"]?.stringValue;
   const params = Array.from(
     new URLSearchParams(
       message.messageAttributes["params"]?.stringValue
@@ -216,6 +216,6 @@ function getMetadata(
     sequenceNumber: attributes.SequenceNumber
       ? +attributes.SequenceNumber
       : undefined,
-    user: userId ? { id: userId } : null,
+    user: userID ? { id: userID } : null,
   };
 }

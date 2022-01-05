@@ -43,7 +43,7 @@ class DevLocalStorage extends LocalStorage {
       }),
       {}
     );
-    const userId = user?.id ? String(user.id) : undefined;
+    const userID = user?.id ? String(user.id) : undefined;
 
     ++queued;
     setImmediate(() => {
@@ -59,7 +59,7 @@ class DevLocalStorage extends LocalStorage {
               receivedCount: 1,
               sentAt: new Date(),
               sequenceNumber: 1,
-              user: userId ? { id: userId } : null,
+              user: userID ? { id: userID } : null,
             },
             payload: serializedPayload,
             newLocalStorage: () => newLocalStorage(this.port),

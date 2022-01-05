@@ -44,7 +44,7 @@ export default async function queueJob({
         DataType: "String",
         StringValue: new URLSearchParams(params).toString(),
       },
-      ...(user && { userId: { DataType: "String", StringValue: user.id } }),
+      ...(user?.id && { userID: { DataType: "String", StringValue: user.id } }),
     },
     ...(groupID && { MessageGroupId: groupID }),
     ...(dedupeID && { MessageDeduplicationId: dedupeID }),
