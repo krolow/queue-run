@@ -80,7 +80,7 @@ async function runCommand({
 }) {
   const [executable, ...args] = command.split(" ");
   invariant(executable);
-  const install = await spawn(executable, args, {
+  const install = spawn(executable, args, {
     cwd: dirname,
     env: {
       PATH: process.env.PATH,
