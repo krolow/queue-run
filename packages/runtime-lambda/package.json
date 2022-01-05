@@ -1,6 +1,6 @@
 {
   "name": "queue-run-lambda",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "main": "dist/index.js",
   "directories": {
     "lib": "dist"
@@ -18,7 +18,7 @@
   ],
   "dependencies": {
     "@aws-sdk/client-sqs": "^3.45.0",
-    "queue-run": "^0.2.2",
+    "queue-run": "^0.3.0",
     "tiny-invariant": "^1.2.0"
   },
   "engines": {
