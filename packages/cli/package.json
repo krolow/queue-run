@@ -17,9 +17,11 @@
   },
   "files": [
     "dist",
-    "src"
+    "src",
+    "templates"
   ],
   "dependencies": {
+    "fast-glob": "^3.2.7",
     "@swc/core": "^1.2.126",
     "chalk": "4.1.2",
     "commander": "^8.3.0",

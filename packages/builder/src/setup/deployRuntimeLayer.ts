@@ -14,7 +14,8 @@ export const layerName = "qr-runtime";
 
 // Deploy runtime layer to Lambda.  The most recent layer will be used when
 // deploying your project.
-export default async function deployRuntimeLayer() {
+export default async function deployRuntimeLayer(force = false) {
+  if ((await hasRecentLayer()) && !force) return;
   console.info(
     chalk.bold.green(`Building Lambda runtime layer (${layerName}) ...`)
   );
@@ -27,6 +28,25 @@ export default async function deployRuntimeLayer() {
   await deletingOldLayers(version);
 }
 
+function getRuntimePath() {
+  return path.dirname(require.resolve("queue-run-lambda"));
+}
+
+async function hasRecentLayer(): Promise<boolean> {
+  // eslint-disable-next-line sonarjs/no-duplicate-string
+  const stat = await fs.stat(path.join(getRuntimePath(), "..", "package.json"));
+  const lambda = new Lambda({});
+  const { LayerVersions: versions } = await lambda.listLayerVersions({
+    LayerName: layerName,
+  });
+  const latest = versions?.[0];
+  if (!latest) return false;
+
+  const createdAt = latest.CreatedDate;
+  invariant(createdAt);
+  return Date.parse(createdAt!) > stat.ctime.getTime();
+}
+
 async function copyFiles(buildDir: string) {
   const spinner = ora("Copying runtime ...").start();
 
@@ -34,15 +54,15 @@ async function copyFiles(buildDir: string) {
   const nodeDir = path.join(buildDir, "nodejs");
   await fs.mkdir(nodeDir, { recursive: true });
 
-  const runtime = path.dirname(require.resolve("queue-run-lambda"));
+  const runtimePath = getRuntimePath();
 
-  const filenames = await glob("**/*", { cwd: runtime });
+  const filenames = await glob("**/*", { cwd: runtimePath });
   for (const filename of filenames) {
     await fs.mkdir(path.dirname(path.join(nodeDir, filename)), {
       recursive: true,
     });
     await fs.copyFile(
-      path.join(runtime, filename),
+      path.join(runtimePath, filename),
       path.join(nodeDir, filename)
     );
   }
@@ -52,9 +72,9 @@ async function copyFiles(buildDir: string) {
 async function installDependencies(buildDir: string) {
   const spinner = ora("Installing dependencies ...").start();
 
-  const runtime = path.dirname(require.resolve("queue-run-lambda"));
+  const runtimePath = getRuntimePath();
   await fs.copyFile(
-    path.join(runtime, "../package.json"),
+    path.join(runtimePath, "../package.json"),
     path.join(buildDir, "package.json")
   );
 
@@ -102,7 +122,7 @@ async function uploadLayer(archive: Buffer): Promise<number> {
     const { LayerVersionArn: versionARN, Version: version } =
       await lambda.publishLayerVersion({
         LayerName: layerName,
-        Description: "Runtime layer for QueueRun (Node)",
+        Description: "Runtime layer for QueueRun",
         CompatibleRuntimes: ["nodejs12.x", "nodejs14.x"],
         Content: { ZipFile: archive },
       });

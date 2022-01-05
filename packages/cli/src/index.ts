@@ -4,14 +4,14 @@ import ms from "ms";
 import buildCommand from "./build";
 import deployCommand from "./deploy";
 import devCommand from "./dev";
-import setupCommand from "./setup";
+import initCommand from "./init";
 
 const program = new Command().version(require("../package.json").version);
 
 program.addCommand(devCommand);
 program.addCommand(deployCommand);
 program.addCommand(buildCommand);
-program.addCommand(setupCommand);
+program.addCommand(initCommand);
 
 program.showSuggestionAfterError();
 program.addHelpCommand();

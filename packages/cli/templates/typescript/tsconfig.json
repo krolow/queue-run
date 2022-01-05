@@ -1,0 +1,14 @@
+{
+  "include": ["queue-run.env.d.ts", "**/*.ts", "**/*.tsx"],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "esModuleInterop": true,
+    "lib": ["ES2020", "ES2021"],
+    "moduleResolution": "node",
+    "noEmit": true,
+    "paths": { "~/*": ["./*"] },
+    "resolveJsonModule": true,
+    "strict": true,
+    "target": "ES2020"
+  }
+}
