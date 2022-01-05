@@ -144,8 +144,9 @@ async function loadEnvVars({
       () => undefined
     );
   debug(
-    "Loaded %d env vars from .env file",
-    Object.keys(fromFile ?? {}).length
+    'Loaded %d env vars from file "%s"',
+    Object.keys(fromFile ?? {}).length,
+    ".env"
   );
 
   return {

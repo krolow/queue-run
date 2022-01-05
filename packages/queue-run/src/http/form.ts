@@ -1,6 +1,6 @@
 import type { TranscodeEncoding } from "buffer";
 import Blob from "fetch-blob";
-import multipart from "parse-multipart-data";
+import * as multipart from "parse-multipart-data";
 import { URLSearchParams } from "url";
 import { Request, Response } from "./fetch";
 export { Blob, File };

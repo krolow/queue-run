@@ -101,13 +101,13 @@ export function compileSource({
         optimizer: {
           globals: {
             vars: {
-              __JSX: 'require("jsx-xml")',
+              __QR: 'require("queue-run")',
             },
           },
         },
         react: {
-          pragma: "__JSX.JSXXML",
-          pragmaFrag: "__JSX.Fragment",
+          pragma: "__QR.JSXXML",
+          pragmaFrag: "__QR.Fragment",
           runtime: "classic",
           throwIfNamespace: false,
         },

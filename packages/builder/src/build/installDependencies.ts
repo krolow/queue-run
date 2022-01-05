@@ -48,12 +48,14 @@ async function copyFile(
   }
 }
 
-async function hasYarnLockFile(dirname: string) {
+async function hasYarnLockFile(dirname: string): Promise<boolean> {
   try {
-    await fs.access(path.resolve(dirname, "yarn.lock"), R_OK);
+    await fs.access(path.resolve(dirname, "yarn.lock"));
     return true;
   } catch {
-    return false;
+    const parent = path.dirname(dirname);
+    if (parent === dirname) return false;
+    return await hasYarnLockFile(parent);
   }
 }
 

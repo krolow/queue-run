@@ -1,11 +1,20 @@
+import { Command } from "commander";
 import glob from "fast-glob";
 import fs from "fs/promises";
 import ora from "ora";
 import path from "path";
+import { initProject } from "./project";
 
-export default async function copyTemplates(
-  language: "javascript" | "typescript"
-) {
+const command = new Command("init")
+  .description("Setup a new project in the current directory")
+  .action(async () => {
+    const { language } = await initProject();
+    await copyTemplates(language);
+  });
+
+export default command;
+
+async function copyTemplates(language: "javascript" | "typescript") {
   await createBaseDirectories();
 
   if (language === "typescript") await prepareForTypeScript();
@@ -24,11 +33,25 @@ async function createBaseDirectories() {
 
 async function prepareForTypeScript() {
   await replaceFile(
-    path.join(__dirname, "..", "templates", "typescript", "queue-run.env.d.ts"),
+    path.join(
+      __dirname,
+      "..",
+      "..",
+      "templates",
+      "typescript",
+      "queue-run.env.d.ts"
+    ),
     "queue-run.env.d.ts"
   );
   await replaceFile(
-    path.join(__dirname, "..", "templates", "typescript", "tsconfig.json"),
+    path.join(
+      __dirname,
+      "..",
+      "..",
+      "templates",
+      "typescript",
+      "tsconfig.json"
+    ),
     "tsconfig.json"
   );
 }

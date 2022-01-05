@@ -2,9 +2,9 @@ import chalk from "chalk";
 import { Command } from "commander";
 import ms from "ms";
 import buildCommand from "./build";
-import deployCommand from "./deploy";
 import devCommand from "./dev";
-import initCommand from "./init";
+import deployCommand from "./project/deploy";
+import initCommand from "./project/init";
 
 const program = new Command().version(require("../package.json").version);
 

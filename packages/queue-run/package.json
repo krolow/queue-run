@@ -12,7 +12,7 @@
     "build:types": "yarn tsc -p tsconfig.json --emitDeclarationOnly",
     "lint": "yarn eslint src/**/*.ts",
     "prepare": "yarn build",
-    "watch": "yarn tsc -p tsconfig.json --watch"
+    "watch": "concurrently \"yarn build:bundle --watch\" \"yarn build:types --watch\""
   },
   "files": [
     "bin",
@@ -35,7 +35,8 @@
   },
   "devDependencies": {
     "@types/node-fetch": "2.5.12",
-    "@types/source-map-support": "^0.5.4"
+    "@types/source-map-support": "^0.5.4",
+    "concurrently": "^7.0.0"
   },
   "engines": {
     "node": "14.x"

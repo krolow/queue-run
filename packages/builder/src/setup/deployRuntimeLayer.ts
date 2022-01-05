@@ -28,13 +28,15 @@ export default async function deployRuntimeLayer(force = false) {
   await deletingOldLayers(version);
 }
 
-function getRuntimePath() {
-  return path.dirname(require.resolve("queue-run-lambda"));
-}
-
 async function hasRecentLayer(): Promise<boolean> {
   // eslint-disable-next-line sonarjs/no-duplicate-string
-  const stat = await fs.stat(path.join(getRuntimePath(), "..", "package.json"));
+  const stat = await fs.stat(
+    path.join(
+      path.dirname(require.resolve("queue-run-lambda")),
+      "..",
+      "package.json"
+    )
+  );
   const lambda = new Lambda({});
   const { LayerVersions: versions } = await lambda.listLayerVersions({
     LayerName: layerName,
@@ -61,24 +63,27 @@ async function copyFiles(buildDir: string) {
 
   debug('Clearing out and creating "%s"', buildDir);
   await fs.rm(buildDir, { recursive: true, force: true });
-  const nodeDir = path.join(buildDir, "nodejs");
-  await fs.mkdir(nodeDir, { recursive: true });
 
-  const runtimePath = getRuntimePath();
-  debug('Runtime found at "%s"', runtimePath);
+  await copyDirectory(
+    path.dirname(require.resolve("queue-run")),
+    path.join(buildDir, "nodejs", "node_modules", "queue-run")
+  );
+  await copyDirectory(
+    path.dirname(require.resolve("queue-run-lambda")),
+    path.join(buildDir, "nodejs")
+  );
+  spinner.succeed("Copied runtime");
+}
 
-  const filenames = await glob("**/*", { cwd: runtimePath });
+async function copyDirectory(src: string, dest: string) {
+  debug('Copying "%s" to "%s"', src, dest);
+  const filenames = await glob("**/*.{js,json}", { cwd: src });
   for (const filename of filenames) {
-    debug('Copying "%s"', filename);
-    await fs.mkdir(path.dirname(path.join(nodeDir, filename)), {
+    await fs.mkdir(path.dirname(path.join(dest, filename)), {
       recursive: true,
     });
-    await fs.copyFile(
-      path.join(runtimePath, filename),
-      path.join(nodeDir, filename)
-    );
+    await fs.copyFile(path.join(src, filename), path.join(dest, filename));
   }
-  spinner.succeed("Copied runtime");
 }
 
 async function createArchive(buildDir: string): Promise<Buffer> {

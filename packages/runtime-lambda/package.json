@@ -7,7 +7,7 @@
   },
   "scripts": {
     "build": "rm -rf dist && yarn build:bundle",
-    "build:bundle": "yarn esbuild src/index.ts --bundle --platform=node --target=node14 --outfile=dist/index.js",
+    "build:bundle": "yarn esbuild src/index.ts --bundle --platform=node --target=node14 --outfile=dist/index.js --external:queue-run",
     "lint": "yarn eslint src/**/*.ts",
     "prepare": "yarn build",
     "watch": "yarn build:bundle --watch"
