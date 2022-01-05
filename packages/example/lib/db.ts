@@ -1,5 +1,7 @@
 import crypto from "crypto";
 import fs from "fs/promises";
+import os from "os";
+import path from "path";
 
 export type Bookmark = {
   created: string;
@@ -10,9 +12,11 @@ export type Bookmark = {
   url: string;
 };
 
+const filename = path.join(os.tmpdir(), "bookmarks.json");
+
 export async function findAll(): Promise<{ [id: string]: Bookmark }> {
   try {
-    return JSON.parse(await fs.readFile("./db.json", "utf-8"));
+    return JSON.parse(await fs.readFile(filename, "utf-8"));
   } catch (e) {
     return {};
   }
@@ -63,8 +67,8 @@ export async function updateOne({
     ...bookmark,
     id,
     screenshot,
-    title,
-    url,
+    ...(title && { title }),
+    ...(url && { url }),
     updated: new Date().toISOString(),
   };
   await save(bookmarks);
@@ -72,11 +76,11 @@ export async function updateOne({
 }
 
 export async function save(bookmarks: { [id: string]: Bookmark }) {
-  await fs.writeFile("./db.json", JSON.stringify(bookmarks));
+  await fs.writeFile(filename, JSON.stringify(bookmarks));
 }
 
 export async function authenticate(
-  token
+  token: string
 ): Promise<{ id: string; name: string } | null> {
   return token === "secret" ? { id: "1", name: "Alice" } : null;
 }
