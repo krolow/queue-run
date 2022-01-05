@@ -1,4 +1,3 @@
-import Lambda from "@aws-sdk/client-lambda";
 import ora from "ora";
 import compileSourceFiles from "./compileSourceFiles";
 import createBuildDirectory from "./createBuildDirectory";
@@ -28,7 +27,7 @@ export default async function buildProject({
   sourceDir: string;
 }): Promise<
   {
-    lambdaRuntime: Lambda.Runtime;
+    lambdaRuntime: string;
     zip: Uint8Array | undefined;
   } & Services
 > {

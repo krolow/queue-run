@@ -2,16 +2,17 @@
   "name": "queue-run",
   "version": "0.2.2",
   "main": "dist/index.js",
-  "module": "dist/index.esm.js",
-  "types": "dist/types/index.d.ts",
+  "types": "dist/index.d.ts",
   "bin": {
     "queue-run": "./bin/cli.js"
   },
   "scripts": {
-    "build": "dts build",
-    "lint": "dts lint src",
+    "build": "rm -rf dist && yarn build:bundle && yarn build:types",
+    "build:bundle": "yarn esbuild src/index.ts --bundle --platform=node --target=node14 --outfile=dist/index.js",
+    "build:types": "yarn tsc -p tsconfig.json --emitDeclarationOnly",
+    "lint": "yarn eslint src/**/*.ts",
     "prepare": "yarn build",
-    "watch": "dts watch"
+    "watch": "yarn tsc -p tsconfig.json --watch"
   },
   "files": [
     "bin",
@@ -34,9 +35,7 @@
   },
   "devDependencies": {
     "@types/node-fetch": "2.5.12",
-    "@types/source-map-support": "^0.5.4",
-    "dts-cli": "^1.1.4",
-    "eslint": "8.6.0"
+    "@types/source-map-support": "^0.5.4"
   },
   "engines": {
     "node": "14.x"

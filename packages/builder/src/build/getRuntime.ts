@@ -1,15 +1,13 @@
-import Lambda from "@aws-sdk/client-lambda";
 import swc from "@swc/core";
-import { R_OK } from "constants";
 import fs from "fs/promises";
 import path from "path";
 import semver from "semver";
 
 type RuntimeVersion = {
-  // Primary Node version (12, 14, 16, etc)
-  nodeVersion: "12" | "14";
+  // Primary Node version (14, 16, etc)
+  nodeVersion: "14";
   // Lambda runtime version, eg nodejs14.x
-  lambdaRuntime: Lambda.Runtime;
+  lambdaRuntime: string;
   // Tell SWC which Node version to compile for
   jscTarget: swc.JscTarget;
 };
@@ -24,7 +22,7 @@ export default async function getRuntime(
   const filename = path.join(dirname, "package.json");
 
   try {
-    await fs.access(filename, R_OK);
+    await fs.access(filename);
   } catch {
     return defaultRuntime;
   }
@@ -43,20 +41,11 @@ export default async function getRuntime(
   );
 }
 
-const runtimes: Array<{
-  nodeVersion: "12" | "14";
-  lambdaRuntime: Lambda.Runtime;
-  jscTarget: swc.JscTarget;
-}> = [
+const runtimes: Array<RuntimeVersion> = [
   {
     nodeVersion: "14",
     jscTarget: "es2020",
-    lambdaRuntime: Lambda.Runtime.nodejs14x,
-  },
-  {
-    nodeVersion: "12",
-    jscTarget: "es3",
-    lambdaRuntime: Lambda.Runtime.nodejs12x,
+    lambdaRuntime: "nodejs14.x",
   },
 ];
 

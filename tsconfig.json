@@ -2,10 +2,14 @@
   "$schema": "https://json.schemastore.org/tsconfig",
   "extends": "@tsconfig/node14/tsconfig.json",
   "compilerOptions": {
+    "declaration": true,
     "exactOptionalPropertyTypes": true,
-    "module": "ESNext",
+    "incremental": true,
+    "module": "commonjs",
     "moduleResolution": "node",
     "noUncheckedIndexedAccess": true,
-    "noUnusedLocals": true
-  }
+    "noUnusedLocals": true,
+    "sourceMap": true
+  },
+  "exclude": ["**/node_modules", ".*"]
 }

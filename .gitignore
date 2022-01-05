@@ -6,6 +6,7 @@ yarn.lock
 
 packages/*/dist
 packages/*/.build
+packages/*/tsconfig.tsbuildinfo
 packages/site/build
 packages/site/.docusaurus
 

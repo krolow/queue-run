@@ -1,10 +1,13 @@
-import swc from "@swc/core";
+import * as swc from "@swc/core";
 import chalk from "chalk";
 import glob from "fast-glob";
 import fs from "fs/promises";
 import ora from "ora";
 import path from "path";
+import { debuglog } from "util";
 import getRuntimeVersion from "./getRuntime";
+
+const debug = debuglog("queue-run:compile");
 
 export default async function compileSourceFiles({
   sourceDir,
@@ -85,6 +88,8 @@ export function compileSource({
   source: string;
 }) {
   const syntax = /\.tsx?$/.test(filename) ? "typescript" : "ecmascript";
+  debug('Compiling "%s" (%s)', filename, syntax);
+
   return swc.transformSync(source, {
     filename,
     isModule: true,

@@ -6,23 +6,20 @@
     "lib": "dist"
   },
   "scripts": {
-    "build": "dts build",
-    "lint": "dts lint src",
+    "build": "rm -rf dist && yarn build:bundle",
+    "build:bundle": "yarn esbuild src/index.ts --bundle --platform=node --target=node14 --outfile=dist/index.js",
+    "lint": "yarn eslint src/**/*.ts",
     "prepare": "yarn build",
-    "watch": "dts watch"
+    "watch": "yarn build:bundle --watch"
   },
   "files": [
     "dist",
-    "src",
-    "types"
+    "src"
   ],
   "dependencies": {
     "@aws-sdk/client-sqs": "^3.45.0",
     "queue-run": "^0.2.2",
     "tiny-invariant": "^1.2.0"
-  },
-  "devDependencies": {
-    "dts-cli": "^1.1.4"
   },
   "engines": {
     "node": "14.x"

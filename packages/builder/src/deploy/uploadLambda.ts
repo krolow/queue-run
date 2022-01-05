@@ -1,4 +1,4 @@
-import { FunctionConfiguration, Lambda, Runtime } from "@aws-sdk/client-lambda";
+import { FunctionConfiguration, Lambda } from "@aws-sdk/client-lambda";
 import ora from "ora";
 import invariant from "tiny-invariant";
 import { layerName } from "../setup/deployRuntimeLayer";
@@ -19,7 +19,7 @@ export default async function uploadLambda({
   envVars: Record<string, string>;
   lambdaName: string;
   lambdaTimeout: number;
-  lambdaRuntime: Runtime;
+  lambdaRuntime: string;
   layerARNs: string[];
   zip: Uint8Array;
 }): Promise<string> {

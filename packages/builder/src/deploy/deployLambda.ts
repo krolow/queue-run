@@ -5,6 +5,7 @@ import fs from "fs/promises";
 import { AbortSignal } from "node-abort-controller";
 import ow from "ow";
 import invariant from "tiny-invariant";
+import { debuglog } from "util";
 import buildProject from "../build/index";
 import { Services } from "../build/loadServices";
 import { addTriggers, removeTriggers } from "./eventSource";
@@ -42,13 +43,7 @@ type BuildConfig = {
   layerARNs?: string[];
 };
 
-// This prefix is used in Lambda names, IAM roles, SQS queues, DynamoDB tables,
-// etc to distinguish from other resources in your AWS account.
-//
-// Use the same prefix for all projects in the same AWS account. Use slugs to
-// distinguish between projects/branches.
-//
-// Limited to 10 characters and must end with a dash. Defaults to 'qr-.
+const debug = debuglog("queue-run:deploy");
 
 export default async function deployLambda({
   buildDir,
@@ -80,7 +75,9 @@ export default async function deployLambda({
   ow(ws, ow.string.url.startsWith("wss://"));
 
   const lambdaName = `qr-${slug}`;
+  debug('Lamba name: "%s"', lambdaName);
   const queuePrefix = `${lambdaName}__`;
+  debug('Queue prefix: "%s"', queuePrefix);
 
   console.info(chalk.bold.green("🐇 Deploying %s to %s"), slug, url);
 
@@ -107,6 +104,8 @@ export default async function deployLambda({
   // Upload new Lambda function and publish a new version.
   // This doesn't make any difference yet: event sources are tied to an alias,
   // and the alias points to an earlier version (or no version on first deploy).
+  const lambdaTimeout = getLambdaTimeout(services);
+  debug("Lambda timeout %d seconds", lambdaTimeout);
   const versionARN = await uploadLambda({
     envVars,
     lambdaName,
@@ -144,6 +143,10 @@ async function loadEnvVars({
       (file) => dotenv.parse(file),
       () => undefined
     );
+  debug(
+    "Loaded %d env vars from .env file",
+    Object.keys(fromFile ?? {}).length
+  );
 
   return {
     ...fromFile,
@@ -218,6 +221,9 @@ async function deleteOldVersions(versionARN: string) {
     .filter(({ FunctionArn }) => FunctionArn !== versionARN)
     .map(({ FunctionArn }) => FunctionArn);
   await Promise.all(
-    obsolete.map((arn) => lambda.deleteFunction({ FunctionName: arn }))
+    obsolete.map((arn) => {
+      debug('Deleting old version "%s"', arn);
+      lambda.deleteFunction({ FunctionName: arn });
+    })
   );
 }

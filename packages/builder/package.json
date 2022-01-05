@@ -2,21 +2,14 @@
   "name": "queue-run-builder",
   "version": "0.2.2",
   "main": "dist/index.js",
-  "module": "dist/index.esm.js",
-  "types": "dist/types/index.d.ts",
-  "directories": {
-    "lib": "dist",
-    "esm": "dist",
-    "types": "dist/types"
-  },
+  "types": "dist/index.d.ts",
   "scripts": {
-    "build": "dts build",
-    "lint": "dts lint src",
+    "build": "rm -rf dist && yarn tsc -p tsconfig.json",
+    "lint": "yarn eslint src/**/*.ts",
     "prepare": "yarn build",
-    "watch": "dts watch"
+    "watch": "yarn tsc -p tsconfig.json --watch"
   },
   "files": [
-    "bin",
     "dist",
     "src",
     "types"
@@ -40,7 +33,7 @@
   },
   "devDependencies": {
     "@types/ms": "^0.7.31",
-    "dts-cli": "^1.1.4"
+    "@types/semver": "^7.3.9"
   },
   "engines": {
     "node": "14.x"

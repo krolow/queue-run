@@ -1,6 +1,5 @@
 import { Lambda } from "@aws-sdk/client-lambda";
 import chalk from "chalk";
-import { spawn } from "child_process";
 import glob from "fast-glob";
 import filesize from "filesize";
 import fs from "fs/promises";
@@ -12,7 +11,7 @@ import { debuglog } from "util";
 
 export const layerName = "qr-runtime";
 
-const debug = debuglog("queue-run");
+const debug = debuglog("queue-run:deploy");
 
 // Deploy runtime layer to Lambda.  The most recent layer will be used when
 // deploying your project.
@@ -24,7 +23,6 @@ export default async function deployRuntimeLayer(force = false) {
 
   const buildDir = ".build";
   await copyFiles(buildDir);
-  await installDependencies(buildDir);
   const archive = await createArchive(buildDir);
   const version = await uploadLayer(archive);
   await deletingOldLayers(version);
@@ -83,44 +81,10 @@ async function copyFiles(buildDir: string) {
   spinner.succeed("Copied runtime");
 }
 
-async function installDependencies(buildDir: string) {
-  const spinner = ora("Installing dependencies ...").start();
-
-  const runtimePath = getRuntimePath();
-  debug("Copying package.json");
-  await fs.copyFile(
-    path.join(runtimePath, "../package.json"),
-    path.join(buildDir, "package.json")
-  );
-
-  const install = spawn("npm", ["install", "--production"], {
-    cwd: path.join(buildDir),
-    stdio: "inherit",
-  });
-  await new Promise((resolve, reject) =>
-    install
-      .on("exit", (code) => {
-        if (code === 0) resolve(undefined);
-        else reject(new Error(`npm exited with code ${code}`));
-      })
-      .on("error", reject)
-  );
-
-  debug("Moving node_modules under nodejs");
-  await fs.rename(
-    path.join(buildDir, "node_modules"),
-    path.join(buildDir, "nodejs/node_modules")
-  );
-  spinner.succeed("Installed dependencies");
-}
-
 async function createArchive(buildDir: string): Promise<Buffer> {
   const spinner = ora("Creating archive ...").start();
   const zip = new JSZip();
-  const filenames = glob.sync("**/*", {
-    ignore: ["package.json", "package-lock.json"],
-    cwd: buildDir,
-  });
+  const filenames = glob.sync("**/*", { cwd: buildDir });
 
   debug("Archiving %d files", filenames.length);
   await Promise.all(
