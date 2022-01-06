@@ -58,19 +58,7 @@ async function createManifest(dirname: string) {
     process.chdir(dirname);
     const routes = await loadRoutes();
     const queues = await loadQueues();
-    const manifest: Manifest = {
-      queues: Array.from(queues.values()),
-      routes: Array.from(routes.entries()).map(
-        ([route, { accepts, cors, methods, filename, timeout }]) => ({
-          path: route,
-          accepts: Array.from(accepts.keys()),
-          cors,
-          methods: Array.from(methods.keys()),
-          filename,
-          timeout,
-        })
-      ),
-    };
+    const manifest: Manifest = { queues, routes };
     await fs.writeFile("manifest.json", JSON.stringify(manifest), "utf-8");
     return manifest;
   } finally {

@@ -2,7 +2,7 @@ import chalk from "chalk";
 import fs from "fs/promises";
 import ora from "ora";
 import path from "path";
-import { loadQueues } from "queue-run";
+import { loadManifest } from "queue-run";
 import { buildProject } from "queue-run-builder";
 import readline from "readline";
 import envVariables from "./envVariables";
@@ -25,7 +25,7 @@ export default async function queueMessage(
     await buildProject({ buildDir, sourceDir });
     process.chdir(buildDir);
 
-    const queues = await loadQueues();
+    const { queues } = await loadManifest();
     if (!queues.has(queueName)) throw new Error(`No queue named ${queueName}`);
 
     spinner.succeed();

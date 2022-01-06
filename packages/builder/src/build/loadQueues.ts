@@ -1,46 +1,45 @@
 import glob from "fast-glob";
+import fs from "fs/promises";
 import path from "path";
-import {
-  loadModule,
-  QueueExports,
-  QueueMiddleware,
-  QueueService,
-} from "queue-run";
+import { loadModule, Manifest, QueueExports, QueueMiddleware } from "queue-run";
 
 const maxTimeout = 500;
 const defaultTimeout = 30;
 
-export default async function loadQueues(): Promise<Map<string, QueueService>> {
-  const queues = new Map<string, QueueService>();
+export default async function loadQueues(): Promise<Manifest["queues"]> {
   const filenames = await glob("queues/[!_]*.{js,ts}");
-  for (const filename of filenames) {
-    try {
-      const loaded = await loadModule<QueueExports, QueueMiddleware>(filename);
-      if (!loaded) throw new Error(`Could not load module ${filename}`);
-      const { module, middleware } = loaded;
+  return await Promise.all(
+    filenames.map(async (filename) => {
+      try {
+        const loaded = await loadModule<QueueExports, QueueMiddleware>(
+          filename
+        );
+        if (!loaded) throw new Error(`Could not load module ${filename}`);
+        const { module, middleware } = loaded;
 
-      const handler = module.default;
-      if (typeof handler !== "function")
-        throw new Error("Expected queue handler to export a function");
+        const handler = module.default;
+        if (typeof handler !== "function")
+          throw new Error("Expected queue handler to export a function");
 
-      if (middleware.onError && typeof middleware.onError !== "function")
-        throw new Error("Expected onError export to be a function");
+        if (middleware.onError && typeof middleware.onError !== "function")
+          throw new Error("Expected onError export to be a function");
 
-      const queueName = queueNameFromFilename(filename);
-      const isFifo = queueName.endsWith(".fifo");
+        const queueName = queueNameFromFilename(filename);
+        const isFifo = queueName.endsWith(".fifo");
 
-      const config = module.config ?? {};
-      queues.set(queueName, {
-        filename,
-        isFifo,
-        queueName,
-        timeout: getTimeout(config),
-      });
-    } catch (error) {
-      throw new Error(`Error in "${filename}": ${error}`);
-    }
-  }
-  return queues;
+        const config = module.config ?? {};
+        return {
+          queueName,
+          filename,
+          isFifo,
+          original: await getOriginalFilename(filename),
+          timeout: getTimeout(config),
+        };
+      } catch (error) {
+        throw new Error(`Error in "${filename}": ${error}`);
+      }
+    })
+  );
 }
 
 // queue/foo.fifo.js => foo.fifo
@@ -63,4 +62,9 @@ function getTimeout({ timeout }: { timeout?: number }): number {
   if (timeout > maxTimeout)
     throw new Error(`config.timeout cannot be more than ${maxTimeout} seconds`);
   return timeout;
+}
+
+async function getOriginalFilename(filename: string) {
+  const { sources } = JSON.parse(await fs.readFile(`${filename}.map`, "utf8"));
+  return sources[0];
 }

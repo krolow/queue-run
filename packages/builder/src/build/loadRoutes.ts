@@ -1,23 +1,14 @@
 import glob from "fast-glob";
+import fs from "fs/promises";
 import path from "path";
 import { Key, match, pathToRegexp } from "path-to-regexp";
-import {
-  HTTPRoute,
-  loadModule,
-  RouteExports,
-  RouteMiddleware,
-} from "queue-run";
+import { loadModule, Manifest, RouteExports, RouteMiddleware } from "queue-run";
 
 const maxTimeout = 60;
 const defaultTimeout = 30;
 
 // Loads all routes from the current directory
-export default async function loadRoutes(): Promise<Map<string, HTTPRoute>> {
-  const routes = new Map<
-    // URL path eg /project/:projectId
-    string,
-    HTTPRoute
-  >();
+export default async function loadRoutes(): Promise<Manifest["routes"]> {
   const dupes = new Map<
     // URL path without parameter names eg /project/:
     string,
@@ -26,38 +17,43 @@ export default async function loadRoutes(): Promise<Map<string, HTTPRoute>> {
   >();
 
   const filenames = await glob("api/**/[!_]*.{js,jsx,ts,tsx}");
-  for (const filename of filenames) {
-    try {
-      const loaded = await loadModule<RouteExports, RouteMiddleware>(filename);
-      if (!loaded) throw new Error(`Could not load module ${filename}`);
-      const { module, middleware } = loaded;
-
-      const path = pathFromFilename(filename.replace(/^api\//, "/"));
-
-      const signature = path.replace(/:(.*?)(\/|$)/g, ":$2");
-      const identical = dupes.get(signature);
-      if (identical)
-        throw new Error(
-          `Found two identical routes: "${identical}" and "${filename}"`
+  return Promise.all(
+    filenames.map(async (filename) => {
+      try {
+        const loaded = await loadModule<RouteExports, RouteMiddleware>(
+          filename
         );
-      dupes.set(signature, filename);
+        if (!loaded) throw new Error(`Could not load module ${filename}`);
+        const { module, middleware } = loaded;
 
-      validateMiddleware({ ...middleware, ...module });
+        const path = pathFromFilename(filename.replace(/^api\//, "/"));
 
-      const config = module.config ?? {};
-      routes.set(path, {
-        accepts: getContentTypes(config),
-        cors: config.cors ?? true,
-        methods: getMethods(module),
-        filename,
-        match: match(path),
-        timeout: getTimeout(config),
-      });
-    } catch (error) {
-      throw new Error(`Error in "${filename}": ${error}`);
-    }
-  }
-  return routes;
+        const signature = path.replace(/:(.*?)(\/|$)/g, ":$2");
+        const identical = dupes.get(signature);
+        if (identical)
+          throw new Error(
+            `Found two identical routes: "${identical}" and "${filename}"`
+          );
+        dupes.set(signature, filename);
+
+        validateMiddleware({ ...middleware, ...module });
+
+        const config = module.config ?? {};
+        return {
+          path,
+          accepts: getContentTypes(config),
+          cors: config.cors ?? true,
+          methods: getMethods(module),
+          filename,
+          match: match(path),
+          original: await getOriginalFilename(filename),
+          timeout: getTimeout(config),
+        };
+      } catch (error) {
+        throw new Error(`Error in "${filename}": ${error}`);
+      }
+    })
+  );
 }
 
 // foo/[bar]/index.js -> foo/:bar
@@ -118,7 +114,7 @@ function isValidPathPart(part: string): boolean {
   return /^([a-z0-9_-]+)|(:[a-z0-9_-]+\*?)$/i.test(part);
 }
 
-function getMethods(module: RouteExports): Set<string> {
+function getMethods(module: RouteExports): string[] {
   const { config } = module;
 
   const methodHandlers = (
@@ -138,11 +134,9 @@ function getMethods(module: RouteExports): Set<string> {
       throw new Error(
         "config.methods: cannot use this together with explicit method handlers"
       );
-    return new Set(
-      methodHandlers
-        .map((method) => method.toUpperCase())
-        .map((method) => (method === "DEL" ? "DELETE" : method))
-    );
+    return methodHandlers
+      .map((method) => method.toUpperCase())
+      .map((method) => (method === "DEL" ? "DELETE" : method));
   } else {
     const handler = module.default;
     if (!handler)
@@ -159,19 +153,15 @@ function getMethods(module: RouteExports): Set<string> {
       throw new Error(
         `config.methods list acceptable HTTP methods, like "GET" or ["GET", "POST"]`
       );
-    return new Set(methods);
+    return methods;
   }
 }
 
-function getContentTypes(config: { accepts?: string[] | string }): Set<string> {
-  const accepts = new Set(
-    Array.isArray(config?.accepts) ? config.accepts : [config?.accepts ?? "*/*"]
-  );
-  if (
-    !Array.from(accepts).every((accepts) =>
-      /^([a-z]+|\*)\/([a-z]+|\*)$/i.test(accepts)
-    )
-  )
+function getContentTypes(config: { accepts?: string[] | string }): string[] {
+  const accepts = Array.isArray(config?.accepts)
+    ? config.accepts
+    : [config?.accepts ?? "*/*"];
+  if (!accepts.every((accepts) => /^([a-z]+|\*)\/([a-z]+|\*)$/i.test(accepts)))
     throw new Error(
       `config.accepts lists acceptable MIME types, like "application/json" or "text/*"`
     );
@@ -197,4 +187,9 @@ function validateMiddleware(middleware: RouteMiddleware): void {
     if (middleware[key] && typeof middleware[key] !== "function")
       throw new Error(`Exported ${key} must be a function`);
   });
+}
+
+async function getOriginalFilename(filename: string) {
+  const { sources } = JSON.parse(await fs.readFile(`${filename}.map`, "utf8"));
+  return sources[0];
 }

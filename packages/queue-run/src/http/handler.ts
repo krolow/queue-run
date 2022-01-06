@@ -4,9 +4,10 @@ import { AbortController } from "node-abort-controller";
 import { URL } from "url";
 import {
   getLocalStorage,
+  HTTPRoute,
   LocalStorage,
   withLocalStorage,
-} from "../shared/localStorage";
+} from "../shared";
 import {
   RequestHandler,
   RouteConfig,
@@ -14,7 +15,7 @@ import {
   RouteMiddleware,
 } from "./exports";
 import { Headers, Request, Response } from "./fetch";
-import findRoute, { HTTPRoute } from "./findRoute";
+import findRoute from "./findRoute";
 
 export default async function handleHTTPRequest(
   request: Request,

@@ -35,6 +35,7 @@ export type Manifest = {
   queues: Array<{
     filename: string;
     isFifo: boolean;
+    original: string;
     queueName: string;
     timeout: number;
   }>;
@@ -43,6 +44,7 @@ export type Manifest = {
     cors: boolean;
     filename: string;
     methods: string[];
+    original: string;
     path: string;
     timeout: number;
   }>;
