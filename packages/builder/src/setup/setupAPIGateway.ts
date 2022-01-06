@@ -31,7 +31,7 @@ export async function setupAPIGateway(project: string): Promise<{
   spinner.succeed(`Created API Gateway HTTP endpoint: ${http}`);
   const ws = await createApi(project, {
     ProtocolType: ProtocolType.WEBSOCKET,
-    RouteSelectionExpression: "\\$default",
+    RouteSelectionExpression: "*",
   });
   spinner.succeed(`Created API Gateway WS endpoint: ${ws}`);
 
@@ -137,7 +137,9 @@ async function setupWSIntegrations(project: string, lambdaARN: string) {
   });
   await createRouteResponse(api, ws, defaultRouteId);
 
-  await deployAPI(api, "$default");
+  // API Gateway insists on WS having a non-empty stage name, and that stage
+  // name is used in the URL, so the URL would end with _ws.
+  await deployAPI(api, "_ws");
 }
 
 async function createIntegration(
