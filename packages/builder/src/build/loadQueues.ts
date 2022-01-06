@@ -1,22 +1,14 @@
 import glob from "fast-glob";
 import path from "path";
-import loadModule from "../shared/loadModule";
-import { QueueExports, QueueMiddleware } from "./exports";
+import {
+  loadModule,
+  QueueExports,
+  QueueMiddleware,
+  QueueService,
+} from "queue-run";
 
 const maxTimeout = 500;
 const defaultTimeout = 30;
-
-// Runtime definition for a queue handler
-export type QueueService = {
-  // Filename of the module
-  filename: string;
-  // True if this is a FIFO queue
-  isFifo: boolean;
-  // The queue name (not fully qualified)
-  queueName: string;
-  // Timeout in seconds
-  timeout: number;
-};
 
 export default async function loadQueues(): Promise<Map<string, QueueService>> {
   const queues = new Map<string, QueueService>();

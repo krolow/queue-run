@@ -1,28 +1,11 @@
-import { MatchFunction } from "path-to-regexp";
 import invariant from "tiny-invariant";
 import { URL } from "url";
 import loadModule from "../shared/loadModule";
 import { logError } from "../shared/logError";
+import { HTTPRoute, loadManifest } from "../shared/manifest";
 import { RouteExports, RouteMiddleware } from "./exports";
 import { Response } from "./fetch";
-import loadRoutes from "./loadRoutes";
 import { logResponse } from "./middleware";
-
-// Runtime definition for an HTTP route
-export type HTTPRoute = {
-  // Accepted content types, eg application/json, text/*, */*
-  accepts: Set<string>;
-  // True if QueueRun should handle CORS
-  cors: boolean;
-  // Filename of the module
-  filename: string;
-  // Match the request URL and return named parameters
-  match: MatchFunction<{ [key: string]: string }>;
-  // Allowed HTTP methods, eg ["GET", "POST"] or "*"
-  methods: Set<string>;
-  // Timeout in seconds
-  timeout: number;
-};
 
 export default async function findRoute(url: string): Promise<{
   module: RouteExports;
@@ -32,7 +15,7 @@ export default async function findRoute(url: string): Promise<{
   params: { [key: string]: string | string[] };
   route: HTTPRoute;
 }> {
-  const routes = await loadRoutes();
+  const { routes } = await loadManifest();
   const pathname = new URL(url).pathname;
   const matches = Array.from(routes.values())
     .map((route) => ({ route, match: route.match(pathname) }))
@@ -54,8 +37,8 @@ export default async function findRoute(url: string): Promise<{
 }
 
 function moreSpecificRoute(
-  a: { [key: string]: string },
-  b: { [key: string]: string }
+  a: { [key: string]: string | string[] },
+  b: { [key: string]: string | string[] }
 ) {
   return Object.keys(a).length - Object.keys(b).length;
 }

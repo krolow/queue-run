@@ -45,7 +45,6 @@ export default async function compileSourceFiles({
     if (/\.(js|ts)x?$/.test(filename)) {
       const source = await fs.readFile(src, "utf-8");
       const { code, map } = compileSource({
-        dirname: sourceDir,
         filename,
         jscTarget,
         source,
@@ -66,13 +65,11 @@ export default async function compileSourceFiles({
   );
 }
 
-export function compileSource({
-  dirname,
+function compileSource({
   filename,
   jscTarget,
   source,
 }: {
-  dirname: string;
   filename: string;
   jscTarget: swc.JscTarget;
   source: string;

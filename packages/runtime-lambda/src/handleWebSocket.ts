@@ -5,6 +5,8 @@ export default async function handleWebSocketRequest(
   event: APIGatewayWebSocketEvent,
   newLocalStorage: () => LocalStorage
 ): Promise<APIGatewayResponse> {
+  console.log(event);
+  newLocalStorage();
   return {
     statusCode: 200,
     body: "OK",

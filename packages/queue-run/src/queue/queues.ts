@@ -1,8 +1,8 @@
 import { URLSearchParams } from "url";
 import { form, Request, RequestHandler, Response } from "../http";
 import { getLocalStorage } from "../shared/localStorage";
+import { loadManifest } from "../shared/manifest";
 import selfPath from "../shared/selfPath";
-import loadQueues from "./loadQueues";
 
 type Payload = Buffer | string | object;
 type Params = { [key: string]: string | string[] };
@@ -53,7 +53,7 @@ function newQueue<T = Payload>(
   const queueFn: QueueFunction<T> = async (payload, params) => {
     const local = getLocalStorage();
 
-    const queues = await loadQueues();
+    const { queues } = await loadManifest();
     if (!queues.has(queueName))
       throw new Error(`No queue with the name "${queueName}"`);
 

@@ -8,8 +8,8 @@ import {
   withLocalStorage,
 } from "../shared/localStorage";
 import { logError } from "../shared/logError";
+import { loadManifest } from "../shared/manifest";
 import { QueueExports, QueueHandlerMetadata, QueueMiddleware } from "./exports";
-import loadQueues from "./loadQueues";
 import { logJobFinished, logJobStarted } from "./middleware";
 
 export default async function handleQueuedJob({
@@ -25,8 +25,10 @@ export default async function handleQueuedJob({
   queueName: string;
   remainingTime: number;
 }): Promise<boolean> {
-  const queue = (await loadQueues()).get(queueName);
+  const { queues } = await loadManifest();
+  const queue = queues.get(queueName);
   if (!queue) throw new Error(`No handler for queue ${queueName}`);
+
   const loaded = await loadModule<QueueExports, QueueMiddleware>(
     `queues/${queueName}`,
     {

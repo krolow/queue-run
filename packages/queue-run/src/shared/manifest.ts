@@ -48,7 +48,7 @@ export type Manifest = {
   }>;
 };
 
-export async function loadManifest(dirname: string): Promise<{
+export async function loadManifest(dirname = process.cwd()): Promise<{
   queues: Map<string, QueueService>;
   routes: Map<string, HTTPRoute>;
 }> {
