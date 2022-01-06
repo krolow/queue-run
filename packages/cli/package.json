@@ -17,7 +17,7 @@
     "templates"
   ],
   "dependencies": {
-    "@swc/core": "^1.2.126",
+    "@swc/core": "^1.2.127",
     "chalk": "4.1.2",
     "commander": "^8.3.0",
     "fast-glob": "^3.2.7",
