@@ -1,9 +1,10 @@
+import fs from "fs/promises";
 import ora from "ora";
+import { loadQueues, loadRoutes, Manifest } from "queue-run";
 import compileSourceFiles from "./compileSourceFiles";
 import createBuildDirectory from "./createBuildDirectory";
 import getRuntime from "./getRuntime";
 import installDependencies from "./installDependencies";
-import { loadServices, Services } from "./loadServices";
 import zipLambda from "./zipLambda";
 
 // Short build: compile source files to target directory.
@@ -25,12 +26,11 @@ export default async function buildProject({
   full?: boolean;
   signal?: AbortSignal;
   sourceDir: string;
-}): Promise<
-  {
-    lambdaRuntime: string;
-    zip: Uint8Array | undefined;
-  } & Services
-> {
+}): Promise<{
+  lambdaRuntime: string;
+  manifest: Manifest;
+  zip: Uint8Array | undefined;
+}> {
   const { lambdaRuntime } = await getRuntime(sourceDir);
   await createBuildDirectory(buildDir);
 
@@ -40,13 +40,38 @@ export default async function buildProject({
   if (full) await installDependencies({ sourceDir, targetDir: buildDir });
   if (signal?.aborted) throw new Error();
 
-  const spinner = ora("Reviewing endpoints …").start();
-  const services = await loadServices(buildDir);
+  const spinner = ora("Creating manifest …").start();
+  const manifest = await createManifest(buildDir);
   spinner.stop();
-  if (services.routes.size === 0) throw new Error("No API endpoints");
 
   const zip = full ? await zipLambda(buildDir) : undefined;
   if (signal?.aborted) throw new Error();
 
-  return { lambdaRuntime, zip, ...services };
+  return { lambdaRuntime, manifest, zip };
+}
+
+async function createManifest(dirname: string) {
+  const cwd = process.cwd();
+  try {
+    process.chdir(dirname);
+    const routes = await loadRoutes();
+    const queues = await loadQueues();
+    const manifest: Manifest = {
+      queues: Array.from(queues.values()),
+      routes: Array.from(routes.entries()).map(
+        ([route, { accepts, cors, methods, filename, timeout }]) => ({
+          path: route,
+          accepts: Array.from(accepts.keys()),
+          cors,
+          methods: Array.from(methods.keys()),
+          filename,
+          timeout,
+        })
+      ),
+    };
+    await fs.writeFile("manifest.json", JSON.stringify(manifest), "utf-8");
+    return manifest;
+  } finally {
+    process.chdir(cwd);
+  }
 }

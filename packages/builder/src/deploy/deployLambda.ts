@@ -4,10 +4,11 @@ import dotenv from "dotenv";
 import fs from "fs/promises";
 import { AbortSignal } from "node-abort-controller";
 import ow from "ow";
+import { Manifest } from "queue-run";
 import invariant from "tiny-invariant";
 import { debuglog } from "util";
+import displayManifest from "../build/displayManifest";
 import { buildProject } from "../build/index";
-import { displayServices, Services } from "../build/loadServices";
 import { addTriggers, removeTriggers } from "./eventSource";
 import { createQueues, deleteOldQueues } from "./prepareQueues";
 import updateAlias from "./updateAlias";
@@ -81,7 +82,7 @@ export default async function deployLambda({
 
   console.info(chalk.bold.green("🐇 Deploying %s to %s"), slug, url);
 
-  const { lambdaRuntime, zip, ...services } = await buildProject({
+  const { lambdaRuntime, zip, manifest } = await buildProject({
     buildDir,
     full: true,
     signal,
@@ -89,7 +90,7 @@ export default async function deployLambda({
   });
   invariant(zip);
   if (signal?.aborted) throw new Error("Timeout");
-  await displayServices({ dirname: buildDir, ...services });
+  await displayManifest(buildDir);
 
   console.info(chalk.bold.blue("λ: Deploying Lambda function and queues"));
 
@@ -105,12 +106,12 @@ export default async function deployLambda({
   // Upload new Lambda function and publish a new version.
   // This doesn't make any difference yet: event sources are tied to an alias,
   // and the alias points to an earlier version (or no version on first deploy).
-  const lambdaTimeout = getLambdaTimeout(services);
+  const lambdaTimeout = getLambdaTimeout(manifest);
   debug("Lambda timeout %d seconds", lambdaTimeout);
   const versionARN = await uploadLambda({
     envVars,
     lambdaName,
-    lambdaTimeout: getLambdaTimeout(services),
+    lambdaTimeout,
     lambdaRuntime,
     layerARNs: config.layerARNs ?? [],
     zip,
@@ -120,7 +121,7 @@ export default async function deployLambda({
 
   // From this point on, we hope to complete successfully and so ignore abort signal
   return await switchOver({
-    queues: services.queues,
+    queues: manifest.queues,
     queuePrefix,
     versionARN,
   });
@@ -160,10 +161,10 @@ async function loadEnvVars({
   };
 }
 
-function getLambdaTimeout(services: Services) {
+function getLambdaTimeout(manifest: Manifest) {
   return Math.max(
-    ...Array.from(services.queues.values()).map((queue) => queue.timeout),
-    ...Array.from(services.routes.values()).map((route) => route.timeout)
+    ...Array.from(manifest.queues.values()).map((queue) => queue.timeout),
+    ...Array.from(manifest.routes.values()).map((route) => route.timeout)
   );
 }
 
@@ -173,7 +174,7 @@ async function switchOver({
   versionARN,
 }: {
   queuePrefix: string;
-  queues: Services["queues"];
+  queues: Manifest["queues"];
   versionARN: string;
 }): Promise<string> {
   const aliasARN = versionARN.replace(/(\d+)$/, "latest");

@@ -1,30 +1,11 @@
 import chalk from "chalk";
 import fs from "fs/promises";
 import path from "path";
-import { loadQueues, loadRoutes } from "queue-run";
+import { loadManifest } from "queue-run";
 
-export type Services = {
-  routes: Awaited<ReturnType<typeof loadRoutes>>;
-  queues: Awaited<ReturnType<typeof loadQueues>>;
-};
+export default async function displayManifest(dirname: string) {
+  const { routes, queues } = await loadManifest(dirname);
 
-export async function loadServices(dirname: string): Promise<Services> {
-  const cwd = process.cwd();
-  try {
-    process.chdir(dirname);
-    const routes = await loadRoutes();
-    const queues = await loadQueues();
-    return { routes, queues };
-  } finally {
-    process.chdir(cwd);
-  }
-}
-
-export async function displayServices({
-  dirname,
-  queues,
-  routes,
-}: { dirname: string } & Services) {
   console.info(
     chalk.bold.blue("λ: %s"),
     routes.size > 0 ? "API:" : "No routes"

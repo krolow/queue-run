@@ -1,17 +1,17 @@
 import { SQS } from "@aws-sdk/client-sqs";
 import ora from "ora";
+import { Manifest } from "queue-run";
 import invariant from "tiny-invariant";
 import { URL } from "url";
-import { Services } from "../build/loadServices";
 
 export async function createQueues({
   prefix,
   queues,
 }: {
   prefix: string;
-  queues: Services["queues"];
+  queues: Manifest["queues"];
 }): Promise<string[]> {
-  if (queues.size === 0) return [];
+  if (queues.length === 0) return [];
 
   const sqs = new SQS({});
   const queueTimeout = Math.max(
@@ -23,14 +23,14 @@ export async function createQueues({
   ).start();
 
   const arns = await Promise.all(
-    Array.from(queues.keys()).map(async (name) => {
+    queues.map(async ({ queueName }) => {
       // createQueue is idempotent so we can safely call it on each deploy.
       // However, createQueue fails if the queue already exists, but with
       // different attributes, so we split createQueue and setQueueAttributes
       // into two separate calls.
-      const isFifo = name.endsWith(".fifo");
+      const isFifo = queueName.endsWith(".fifo");
       const { QueueUrl: queueURL } = await sqs.createQueue({
-        QueueName: `${prefix}${name}`,
+        QueueName: `${prefix}${queueName}`,
         Attributes: {
           ...(isFifo
             ? {
@@ -42,7 +42,7 @@ export async function createQueues({
             : undefined),
         },
       });
-      if (!queueURL) throw new Error(`Could not create queue ${name}`);
+      if (!queueURL) throw new Error(`Could not create queue ${queueName}`);
 
       await sqs.setQueueAttributes({
         QueueUrl: queueURL,

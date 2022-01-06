@@ -1,5 +1,5 @@
 import { Command } from "commander";
-import { buildProject, displayServices } from "queue-run-builder";
+import { buildProject, displayManifest } from "queue-run-builder";
 
 const command = new Command("build")
   .description("Build the backend")
@@ -11,12 +11,12 @@ const command = new Command("build")
       source: string,
       { output, full }: { output: string; full: boolean }
     ) => {
-      const services = await buildProject({
+      await buildProject({
         buildDir: output,
         sourceDir: source,
         full,
       });
-      await displayServices({ dirname: output, ...services });
+      await displayManifest(output);
     }
   );
 
