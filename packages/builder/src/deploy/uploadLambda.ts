@@ -24,7 +24,7 @@ export default async function uploadLambda({
   zip: Uint8Array;
 }): Promise<string> {
   const lambda = new Lambda({});
-  const spinner = ora(`Uploading Lambda ${lambdaName}`).start();
+  const spinner = ora(`Uploading Lambda "${lambdaName}"`).start();
 
   const configuration = {
     Environment: { Variables: aliasAWSEnvVars(envVars) },
@@ -64,7 +64,7 @@ export default async function uploadLambda({
     // FunctionArn includes version number
     invariant(updatedCode.FunctionArn && updatedCode.RevisionId);
 
-    spinner.succeed(`Updated Lambda ${lambdaName}`);
+    spinner.succeed();
     return updatedCode.FunctionArn;
   } else {
     const newLambda = await lambda.createFunction({
@@ -75,9 +75,7 @@ export default async function uploadLambda({
     });
     // FunctionArn does not include version number
     const arn = `${newLambda.FunctionArn}:${newLambda.Version}`;
-    spinner.succeed(
-      `Created Lambda ${lambdaName} in ${await lambda.config.region()}`
-    );
+    spinner.succeed();
     return arn;
   }
 }

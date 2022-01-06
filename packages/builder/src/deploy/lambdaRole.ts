@@ -60,7 +60,7 @@ export async function getLambdaRole({
   const role = await upsertRole(iam, roleName);
   invariant(role.Arn, "Role has no ARN");
   await updatePolicy(iam, role);
-  spinner.succeed(`Update role ${roleName}`);
+  spinner.succeed(`Update role "${roleName}"`);
   return role.Arn;
 }
 

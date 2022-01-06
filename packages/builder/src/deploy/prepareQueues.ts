@@ -18,9 +18,8 @@ export async function createQueues({
     ...Array.from(queues.values()).map((queue) => queue.timeout * 6)
   );
 
-  const spinner = ora(
-    `Using queues ${Array.from(queues.keys()).join(", ")}`
-  ).start();
+  const queueNames = queues.map(({ queueName }) => `"${queueName}"`).join(", ");
+  const spinner = ora(`Using queues ${queueNames}`).start();
 
   const arns = await Promise.all(
     queues.map(async ({ queueName }) => {

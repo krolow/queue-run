@@ -69,14 +69,14 @@ export async function setupIntegrations({
   project: string;
   lambdaARN: string;
 }) {
-  const spinner = ora("Setting up API Gateway integrations ...").start();
+  const spinner = ora("Updating API Gateway").start();
   await addInvokePermission(lambdaARN);
   await Promise.all([
     setupHTTPIntegrations(project, lambdaARN),
     setupWSIntegrations(project, lambdaARN),
   ]);
 
-  spinner.succeed("Finished with API Gateway integrations");
+  spinner.succeed();
 }
 
 async function setupHTTPIntegrations(project: string, lambdaARN: string) {
