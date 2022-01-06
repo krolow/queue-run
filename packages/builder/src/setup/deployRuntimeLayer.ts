@@ -89,7 +89,7 @@ async function copyDirectory(src: string, dest: string) {
 async function createArchive(buildDir: string): Promise<Buffer> {
   const spinner = ora("Creating archive ...").start();
   const zip = new JSZip();
-  const filenames = glob.sync("**/*", { cwd: buildDir });
+  const filenames = await glob("**/*", { cwd: buildDir });
 
   debug("Archiving %d files", filenames.length);
   await Promise.all(

@@ -9,7 +9,7 @@ import path from "path";
 export default async function zipLambda(dirname: string): Promise<Uint8Array> {
   const spinner = ora(`Creating zip archive for ${dirname} …`).start();
 
-  const filenames = glob.sync("**/*", {
+  const filenames = await glob("**/*", {
     cwd: dirname,
     dot: true,
     followSymbolicLinks: true,

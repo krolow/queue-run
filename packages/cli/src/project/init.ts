@@ -19,7 +19,7 @@ async function copyTemplates(language: "javascript" | "typescript") {
 
   if (language === "typescript") await prepareForTypeScript();
 
-  const sourceFiles = await glob.sync("{api,queues}/**/*.{js,jsx,ts,tsx}");
+  const sourceFiles = await glob("{api,queues}/**/*.{js,jsx,ts,tsx}");
   const isEmpty = sourceFiles.length === 0;
   if (isEmpty) {
     await copySample(path.join(__dirname, "..", "templates", language));

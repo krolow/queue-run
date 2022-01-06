@@ -1,16 +1,24 @@
+import { Sema } from "async-sema";
 import chalk from "chalk";
+import chokidar from "chokidar";
+import fs from "fs/promises";
 import { createServer, IncomingMessage, ServerResponse } from "http";
-import ora from "ora";
+import path from "path";
 import { handleHTTPRequest, LocalStorage, Request } from "queue-run";
-import { loadServices, moduleLoader } from "queue-run-builder";
+import { buildProject } from "queue-run-builder";
 import { URL } from "url";
 import envVariables from "./envVariables";
 import { newLocalStorage } from "./newLocalStorage";
 
+const semaphore = new Sema(1);
+
+const sourceDir = process.cwd();
+const buildDir = path.resolve(".queue-run");
+
 export default async function devServer({ port }: { port: number }) {
   envVariables(port);
-  await moduleLoader({ dirname: process.cwd(), onReload });
 
+  await fs.mkdir(buildDir, { recursive: true });
   const server = createServer((req, res) =>
     onRequest(req, res, newLocalStorage(port))
   );
@@ -21,10 +29,9 @@ export default async function devServer({ port }: { port: number }) {
 }
 
 async function onListening(port: number) {
-  const spinner = ora("Reviewing services").start();
   try {
-    await loadServices(process.cwd());
-    spinner.stop();
+    await semaphore.acquire();
+    await buildProject({ buildDir, sourceDir });
 
     console.info(
       chalk.bold.green("👋 Dev server listening on http://localhost:%d"),
@@ -32,10 +39,17 @@ async function onListening(port: number) {
     );
 
     console.info(chalk.gray("   Watching for changes …"));
+    chokidar
+      .watch(sourceDir, {
+        ignored: ["**/node_modules/**", buildDir, "*.d.ts", ".*"],
+        ignoreInitial: true,
+      })
+      .on("all", onReload);
   } catch (error) {
-    spinner.fail(String(error));
     if (error instanceof Error) console.error(error.stack);
     process.exit(1);
+  } finally {
+    semaphore.release();
   }
 }
 
@@ -44,20 +58,27 @@ async function onRequest(
   res: ServerResponse,
   localStorage: LocalStorage
 ) {
-  const method = req.method?.toLocaleUpperCase() ?? "GET";
-  const headers = Object.fromEntries(
-    Object.entries(req.headers).map(([name, value]) => [name, String(value)])
-  );
-  const url = new URL(req.url ?? "/", `http://${headers.host}`);
-  const body = await getRequestBody(req);
-  const request = new Request(url, {
-    method,
-    headers,
-    body,
-  });
-  const response = await handleHTTPRequest(request, () => localStorage);
-  res.writeHead(response.status, Array.from(response.headers.entries()));
-  res.end(response.body, "base64");
+  await semaphore.acquire();
+  process.chdir(buildDir);
+  try {
+    const method = req.method?.toLocaleUpperCase() ?? "GET";
+    const headers = Object.fromEntries(
+      Object.entries(req.headers).map(([name, value]) => [name, String(value)])
+    );
+    const url = new URL(req.url ?? "/", `http://${headers.host}`);
+    const body = await getRequestBody(req);
+    const request = new Request(url, {
+      method,
+      headers,
+      body,
+    });
+    const response = await handleHTTPRequest(request, () => localStorage);
+    res.writeHead(response.status, Array.from(response.headers.entries()));
+    res.end(response.body, "base64");
+  } finally {
+    process.chdir(sourceDir);
+    semaphore.release();
+  }
 }
 
 async function getRequestBody(req: IncomingMessage) {
@@ -68,15 +89,22 @@ async function getRequestBody(req: IncomingMessage) {
   return Buffer.concat(data).toString();
 }
 
-async function onReload(filename: string) {
-  const spinner = ora(`File ${filename} changed, reloading`).start();
-  try {
-    await Promise.all([
-      loadServices(process.cwd()),
-      new Promise((resolve) => setTimeout(resolve, 500)),
-    ]);
-    spinner.succeed(`File ${filename} changed, reloaded`);
-  } catch (error) {
-    spinner.fail(String(error));
+async function onReload(event: string, filename: string) {
+  if (event === "add" || event === "change") {
+    await semaphore.acquire();
+    try {
+      console.info(
+        chalk.gray(`   %s %s …`),
+        event === "add" ? "New file" : "Changed",
+        filename
+      );
+      await buildProject({ buildDir, sourceDir });
+      const filenames = Object.keys(require.cache).filter((filename) =>
+        filename.startsWith(sourceDir)
+      );
+      for (const filename of filenames) delete require.cache[filename];
+    } finally {
+      semaphore.release();
+    }
   }
 }

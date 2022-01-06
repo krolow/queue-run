@@ -28,28 +28,34 @@ export default async function compileSourceFiles({
     .split("\n")
     .filter((line) => line.trim().length > 0 && !line.startsWith("#"));
 
-  const filenames = glob.sync("**/*", {
+  const filenames = await glob("**/*", {
     cwd: sourceDir,
+    onlyFiles: true,
     followSymbolicLinks: true,
-    ignore: [...ignore, "**/node_modules/**", "index.js", targetDir],
+    ignore: [...ignore, "**/node_modules/**", "index.js", targetDir, "*.d.ts"],
     markDirectories: true,
     unique: true,
   });
   let compiled = 0;
   let copied = 0;
   for (const filename of filenames) {
-    const dest = path.join(targetDir, path.relative(sourceDir, filename));
-    if (filename.endsWith("/")) {
-      await fs.mkdir(dest, { recursive: true });
+    const src = path.join(sourceDir, filename);
+    const dest = path.join(targetDir, filename).replace(/\.tsx?$/, ".js");
+    await fs.mkdir(path.dirname(dest), { recursive: true });
+    if (/\.(js|ts)x?$/.test(filename)) {
+      const source = await fs.readFile(src, "utf-8");
+      const { code, map } = compileSource({
+        dirname: sourceDir,
+        filename,
+        jscTarget,
+        source,
+      });
+      await fs.writeFile(dest, code, "utf-8");
+      if (map) await fs.writeFile(dest + ".map", map, "utf-8");
+      compiled++;
     } else {
-      await fs.mkdir(path.dirname(dest), { recursive: true });
-      if (/\.(js|ts)x?$/.test(filename)) {
-        await compileSourceFile({ filename, dest, jscTarget });
-        compiled++;
-      } else {
-        await fs.copyFile(filename, dest);
-        copied++;
-      }
+      await fs.copyFile(src, dest);
+      copied++;
     }
   }
   spinner.stop();
@@ -60,41 +66,26 @@ export default async function compileSourceFiles({
   );
 }
 
-// We compile TypeScript to JavaScript, but also compile latest ECMAScript to
-// whatever version is supported by the runtime.
-async function compileSourceFile({
-  dest,
-  filename,
-  jscTarget,
-}: {
-  dest: string;
-  filename: string;
-  jscTarget: swc.JscTarget;
-}) {
-  const source = await fs.readFile(filename, "utf-8");
-  const { code, map } = compileSource({ filename, jscTarget, source });
-  await fs.writeFile(dest.replace(/\.tsx?$/, ".js"), code, "utf-8");
-  if (map)
-    await fs.writeFile(dest.replace(/\.(js|ts)x?$/, ".js.map"), map, "utf-8");
-}
-
 export function compileSource({
+  dirname,
   filename,
   jscTarget,
   source,
 }: {
+  dirname: string;
   filename: string;
   jscTarget: swc.JscTarget;
   source: string;
-}) {
+}): { code: string; map?: string } {
   const syntax = /\.tsx?$/.test(filename) ? "typescript" : "ecmascript";
   debug('Compiling "%s" (%s)', filename, syntax);
 
+  const rootDir = path.relative(filename, ".").replace("../", "");
   return swc.transformSync(source, {
     filename,
     isModule: true,
     jsc: {
-      paths: { "~/*": [path.join(process.cwd(), "*")] },
+      paths: { "~/*": [path.join(rootDir, "*")] },
       parser: { syntax },
       target: jscTarget,
       transform: {

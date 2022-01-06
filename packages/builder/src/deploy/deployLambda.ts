@@ -6,8 +6,8 @@ import { AbortSignal } from "node-abort-controller";
 import ow from "ow";
 import invariant from "tiny-invariant";
 import { debuglog } from "util";
-import buildProject from "../build/index";
-import { Services } from "../build/loadServices";
+import { buildProject } from "../build/index";
+import { displayServices, Services } from "../build/loadServices";
 import { addTriggers, removeTriggers } from "./eventSource";
 import { createQueues, deleteOldQueues } from "./prepareQueues";
 import updateAlias from "./updateAlias";
@@ -89,6 +89,7 @@ export default async function deployLambda({
   });
   invariant(zip);
   if (signal?.aborted) throw new Error("Timeout");
+  await displayServices({ dirname: buildDir, ...services });
 
   console.info(chalk.bold.blue("λ: Deploying Lambda function and queues"));
 

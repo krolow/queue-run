@@ -39,7 +39,7 @@ export async function initProject() {
       .then((pkg) => pkg.name)
       .catch(() => null));
 
-  const isTypescript = (await glob.sync("**/*.{ts,tsx}")).length > 0;
+  const isTypescript = (await glob("**/*.{ts,tsx}")).length > 0;
 
   const answers = await inquirer.prompt([
     {
