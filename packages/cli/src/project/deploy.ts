@@ -32,7 +32,7 @@ async function deployRuntimeLambda({ name }: { name: string }) {
   await deployRuntimeLayer();
   const { http, ws } = await setupAPIGateway(name);
   const lambdaARN = await deployLambda({
-    buildDir: ".build",
+    buildDir: ".queue-run",
     sourceDir: process.cwd(),
     config: { env: "production", slug: name, url: http, ws },
   });

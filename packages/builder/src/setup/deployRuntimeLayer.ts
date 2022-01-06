@@ -21,7 +21,7 @@ export default async function deployRuntimeLayer(force = false) {
     chalk.bold.green(`Building Lambda runtime layer (${layerName}) ...`)
   );
 
-  const buildDir = ".build";
+  const buildDir = ".queue-run";
   await copyFiles(buildDir);
   const archive = await createArchive(buildDir);
   const version = await uploadLayer(archive);
