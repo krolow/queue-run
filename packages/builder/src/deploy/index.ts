@@ -1,1 +1,1 @@
-export { default as deployLambda } from "./deployLambda";
+export { default as deployLambda } from "./deployLambda.js";

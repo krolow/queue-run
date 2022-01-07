@@ -5,7 +5,7 @@ import fs from "fs/promises";
 import ora from "ora";
 import path from "path";
 import { debuglog } from "util";
-import getRuntimeVersion from "./getRuntime";
+import getRuntimeVersion from "./getRuntime.js";
 
 const debug = debuglog("queue-run:compile");
 

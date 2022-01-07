@@ -1,13 +1,13 @@
 import fs from "fs/promises";
 import ora from "ora";
 import { Manifest } from "queue-run";
-import compileSourceFiles from "./compileSourceFiles";
-import createBuildDirectory from "./createBuildDirectory";
-import getRuntime from "./getRuntime";
-import installDependencies from "./installDependencies";
-import loadQueues from "./loadQueues";
-import loadRoutes from "./loadRoutes";
-import zipLambda from "./zipLambda";
+import compileSourceFiles from "./compileSourceFiles.js";
+import createBuildDirectory from "./createBuildDirectory.js";
+import getRuntime from "./getRuntime.js";
+import installDependencies from "./installDependencies.js";
+import loadQueues from "./loadQueues.js";
+import loadRoutes from "./loadRoutes.js";
+import zipLambda from "./zipLambda.js";
 
 // Short build: compile source files to target directory.
 //

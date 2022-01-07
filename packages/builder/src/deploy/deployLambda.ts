@@ -7,12 +7,11 @@ import ow from "ow";
 import { Manifest } from "queue-run";
 import invariant from "tiny-invariant";
 import { debuglog } from "util";
-import displayManifest from "../build/displayManifest";
-import { buildProject } from "../build/index";
-import { addTriggers, removeTriggers } from "./eventSource";
-import { createQueues, deleteOldQueues } from "./prepareQueues";
-import updateAlias from "./updateAlias";
-import uploadLambda from "./uploadLambda";
+import { buildProject, displayManifest } from "../build/index.js";
+import { addTriggers, removeTriggers } from "./eventSource.js";
+import { createQueues, deleteOldQueues } from "./prepareQueues.js";
+import updateAlias from "./updateAlias.js";
+import uploadLambda from "./uploadLambda.js";
 
 type BuildConfig = {
   env: "production" | "preview";

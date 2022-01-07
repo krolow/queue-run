@@ -1,2 +1,2 @@
-export { default as deployRuntimeLayer } from "./deployRuntimeLayer";
-export * from "./setupAPIGateway";
+export { default as deployRuntimeLayer } from "./deployRuntimeLayer.js";
+export * from "./setupAPIGateway.js";

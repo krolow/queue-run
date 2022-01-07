@@ -3,6 +3,7 @@
   "version": "0.3.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "type": "module",
   "scripts": {
     "build": "rm -rf dist && yarn tsc -p tsconfig.json",
     "lint": "yarn eslint src/**/*.ts",
@@ -22,7 +23,7 @@
     "@aws-sdk/client-sqs": "^3.45.0",
     "@swc/core": "^1.2.127",
     "dotenv": "^10.0.0",
-    "fast-glob": "^3.2.7",
+    "fast-glob": "^3.2.8",
     "filesize": "^8.0.6",
     "jszip": "^3.7.1",
     "node-abort-controller": "^3.0.1",

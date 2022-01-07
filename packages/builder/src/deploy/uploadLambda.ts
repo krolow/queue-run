@@ -1,8 +1,8 @@
 import { FunctionConfiguration, Lambda } from "@aws-sdk/client-lambda";
 import ora from "ora";
 import invariant from "tiny-invariant";
-import { layerName } from "../setup/deployRuntimeLayer";
-import { deleteLambdaRole, getLambdaRole } from "./lambdaRole";
+import { layerName } from "../setup/deployRuntimeLayer.js";
+import { deleteLambdaRole, getLambdaRole } from "./lambdaRole.js";
 
 export const handler = "/opt/nodejs/index.handler";
 
