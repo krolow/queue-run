@@ -1,16 +1,20 @@
 import chalk from "chalk";
 import { AbortController } from "node-abort-controller";
 import invariant from "tiny-invariant";
-import loadModule from "../shared/loadModule";
 import {
   getLocalStorage,
+  loadManifest,
+  loadModule,
   LocalStorage,
+  logError,
   withLocalStorage,
-} from "../shared/localStorage";
-import { logError } from "../shared/logError";
-import { loadManifest } from "../shared/manifest";
-import { QueueExports, QueueHandlerMetadata, QueueMiddleware } from "./exports";
-import { logJobFinished, logJobStarted } from "./middleware";
+} from "../shared/index.js";
+import {
+  QueueExports,
+  QueueHandlerMetadata,
+  QueueMiddleware,
+} from "./exports.js";
+import { logJobFinished, logJobStarted } from "./middleware.js";
 
 export default async function handleQueuedJob({
   metadata,

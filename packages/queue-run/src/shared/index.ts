@@ -1,4 +1,5 @@
-export { default as loadModule } from "./loadModule";
-export * from "./localStorage";
-export * from "./logError";
-export * from "./manifest";
+export { default as loadModule } from "./loadModule.js";
+export * from "./localStorage.js";
+export * from "./logError.js";
+export * from "./manifest.js";
+export { default as selfPath } from "./selfPath.js";

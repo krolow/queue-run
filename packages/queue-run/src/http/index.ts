@@ -1,7 +1,7 @@
-export * from "./exports";
-export { fetch, Headers, Request, Response } from "./fetch";
-export { Blob, default as form, File } from "./form";
-export { default as handleHTTPRequest } from "./handler";
-export * from "./middleware";
-export { default as url } from "./url";
-export { default as xml } from "./xml";
+export * from "./exports.js";
+export { fetch, Headers, Request, Response } from "./fetch.js";
+export { Blob, default as form, File } from "./form.js";
+export { default as handleHTTPRequest } from "./handler.js";
+export * from "./middleware.js";
+export { default as url } from "./url.js";
+export { default as xml } from "./xml.js";

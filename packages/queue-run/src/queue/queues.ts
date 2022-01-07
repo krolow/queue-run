@@ -1,8 +1,6 @@
 import { URLSearchParams } from "url";
-import { form, Request, RequestHandler, Response } from "../http";
-import { getLocalStorage } from "../shared/localStorage";
-import { loadManifest } from "../shared/manifest";
-import selfPath from "../shared/selfPath";
+import { form, Request, RequestHandler, Response } from "../http/index.js";
+import { getLocalStorage, loadManifest, selfPath } from "../shared/index.js";
 
 type Payload = Buffer | string | object;
 type Params = { [key: string]: string | string[] };

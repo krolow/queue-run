@@ -1,7 +1,7 @@
 import chalk from "chalk";
 import { URL } from "url";
-import { Request } from "../http/fetch"; // don't import from http to avoid circular dependency
-import { QueueHandlerMetadata } from "../queue";
+import { Request } from "../http/fetch.js"; // don't import from http to avoid circular dependency
+import { QueueHandlerMetadata } from "../queue/index.js";
 
 /* eslint-disable no-unused-vars */
 export type OnError = (

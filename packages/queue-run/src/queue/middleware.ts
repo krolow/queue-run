@@ -1,4 +1,4 @@
-import { QueueHandlerMetadata } from "./exports";
+import { QueueHandlerMetadata } from "./exports.js";
 
 export async function logJobStarted(job: QueueHandlerMetadata) {
   console.log(

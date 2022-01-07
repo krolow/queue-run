@@ -1,5 +1,5 @@
 import xmlbuilder, { CreateOptions, XMLToStringOptions } from "xmlbuilder";
-import { Response } from "./fetch";
+import { Response } from "./fetch.js";
 
 export default function xml(
   xml: string | { [key: string]: any },

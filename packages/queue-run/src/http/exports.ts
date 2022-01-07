@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 import type { AbortSignal } from "node-abort-controller";
-import { OnError } from "../shared/logError";
-import type { Request, Response } from "./fetch";
+import { OnError } from "../shared/index.js";
+import type { Request, Response } from "./fetch.js";
 
 export type RequestHandler<
   P = { [key: string]: string | string[] },

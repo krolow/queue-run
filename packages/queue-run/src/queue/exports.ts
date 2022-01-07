@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 import type { AbortSignal } from "node-abort-controller";
-import { OnError } from "../shared/logError";
+import { OnError } from "../shared/index.js";
 
 // Queue job handler.
 //

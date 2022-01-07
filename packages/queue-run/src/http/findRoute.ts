@@ -1,11 +1,14 @@
 import invariant from "tiny-invariant";
 import { URL } from "url";
-import loadModule from "../shared/loadModule";
-import { logError } from "../shared/logError";
-import { HTTPRoute, loadManifest } from "../shared/manifest";
-import { RouteExports, RouteMiddleware } from "./exports";
-import { Response } from "./fetch";
-import { logResponse } from "./middleware";
+import {
+  HTTPRoute,
+  loadManifest,
+  loadModule,
+  logError,
+} from "../shared/index.js";
+import { RouteExports, RouteMiddleware } from "./exports.js";
+import { Response } from "./fetch.js";
+import { logResponse } from "./middleware.js";
 
 export default async function findRoute(url: string): Promise<{
   module: RouteExports;

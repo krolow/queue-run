@@ -7,15 +7,15 @@ import {
   HTTPRoute,
   LocalStorage,
   withLocalStorage,
-} from "../shared";
+} from "../shared/index.js";
 import {
   RequestHandler,
   RouteConfig,
   RouteExports,
   RouteMiddleware,
-} from "./exports";
-import { Headers, Request, Response } from "./fetch";
-import findRoute from "./findRoute";
+} from "./exports.js";
+import { Headers, Request, Response } from "./fetch.js";
+import findRoute from "./findRoute.js";
 
 export default async function handleHTTPRequest(
   request: Request,

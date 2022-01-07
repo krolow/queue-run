@@ -1,5 +1,5 @@
 import { URL } from "url";
-import { Request, Response } from "./fetch";
+import { Request, Response } from "./fetch.js";
 
 export async function logResponse(request: Request, response: Response) {
   console.log(
