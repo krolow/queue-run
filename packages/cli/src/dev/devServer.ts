@@ -29,8 +29,8 @@ export default async function devServer({ port }: { port: number }) {
 }
 
 async function onListening(port: number) {
+  const token = await semaphore.acquire();
   try {
-    await semaphore.acquire();
     await buildProject({ buildDir, sourceDir });
 
     console.info(
@@ -49,7 +49,7 @@ async function onListening(port: number) {
     if (error instanceof Error) console.error(error.stack);
     process.exit(1);
   } finally {
-    semaphore.release();
+    semaphore.release(token);
   }
 }
 
@@ -58,7 +58,7 @@ async function onRequest(
   res: ServerResponse,
   localStorage: LocalStorage
 ) {
-  await semaphore.acquire();
+  const token = await semaphore.acquire();
   process.chdir(buildDir);
   try {
     const method = req.method?.toLocaleUpperCase() ?? "GET";
@@ -77,7 +77,7 @@ async function onRequest(
     res.end(response.body, "base64");
   } finally {
     process.chdir(sourceDir);
-    semaphore.release();
+    semaphore.release(token);
   }
 }
 
@@ -91,7 +91,7 @@ async function getRequestBody(req: IncomingMessage) {
 
 async function onReload(event: string, filename: string) {
   if (event === "add" || event === "change") {
-    await semaphore.acquire();
+    const token = await semaphore.acquire();
     try {
       console.info(
         chalk.gray(`   %s %s …`),
@@ -104,7 +104,7 @@ async function onReload(event: string, filename: string) {
       );
       for (const filename of filenames) delete require.cache[filename];
     } finally {
-      semaphore.release();
+      semaphore.release(token);
     }
   }
 }
