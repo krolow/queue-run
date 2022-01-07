@@ -5,8 +5,8 @@ import path from "path";
 import { loadManifest } from "queue-run";
 import { buildProject } from "queue-run-builder";
 import readline from "readline";
+import DevLocalStorage from "./DevLocalStorage";
 import envVariables from "./envVariables";
-import { events, newLocalStorage } from "./newLocalStorage";
 
 const sourceDir = process.cwd();
 const buildDir = path.resolve(".queue-run");
@@ -33,12 +33,16 @@ export default async function queueMessage(
     spinner.stop();
     throw error;
   }
-  await newLocalStorage(port).queueJob({
+
+  const localStorage = new DevLocalStorage(port);
+  await localStorage.queueJob({
     groupID: group,
     payload,
     queueName,
   });
-  await new Promise((resolve) => events.once("idle", resolve));
+  await new Promise((resolve) =>
+    localStorage.onIdleOnce(() => resolve(undefined))
+  );
 }
 
 async function readPayload(message: string): Promise<string> {

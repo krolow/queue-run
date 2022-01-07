@@ -7,8 +7,9 @@ import path from "path";
 import { handleHTTPRequest, LocalStorage, Request } from "queue-run";
 import { buildProject } from "queue-run-builder";
 import { URL } from "url";
+import { WebSocket, WebSocketServer } from "ws";
+import DevLocalStorage from "./DevLocalStorage";
 import envVariables from "./envVariables";
-import { newLocalStorage } from "./newLocalStorage";
 
 const semaphore = new Sema(1);
 
@@ -17,15 +18,19 @@ const buildDir = path.resolve(".queue-run");
 
 export default async function devServer({ port }: { port: number }) {
   envVariables(port);
-
   await fs.mkdir(buildDir, { recursive: true });
-  const server = createServer((req, res) =>
-    onRequest(req, res, newLocalStorage(port))
-  );
+  const localStorage = new DevLocalStorage(port);
+
+  const server = createServer((req, res) => onRequest(req, res, localStorage));
   server.listen(port, () => onListening(port));
-  await new Promise((resolve, reject) =>
-    server.on("close", resolve).on("error", reject)
-  );
+
+  const wss = new WebSocketServer({ port: port + 1 });
+  wss.on("connection", (ws, req) => onConnection(ws, req, localStorage));
+
+  await new Promise((resolve, reject) => {
+    server.on("close", resolve).on("error", reject);
+    wss.on("close", resolve).on("error", reject);
+  });
 }
 
 async function onListening(port: number) {
@@ -34,8 +39,9 @@ async function onListening(port: number) {
     await buildProject({ buildDir, sourceDir });
 
     console.info(
-      chalk.bold.green("👋 Dev server listening on http://localhost:%d"),
-      port
+      chalk.bold.green("👋 Dev server listening on:\n   %s\n   %s"),
+      `http://localhost:${port}`,
+      `ws://localhost:${port + 1}`
     );
 
     console.info(chalk.gray("   Watching for changes …"));
@@ -79,6 +85,24 @@ async function onRequest(
     process.chdir(sourceDir);
     semaphore.release(token);
   }
+}
+
+async function onConnection(
+  ws: WebSocket,
+  req: IncomingMessage,
+  localStorage: DevLocalStorage
+) {
+  const socketID = "";
+  localStorage.sockets.set(socketID, ws);
+
+  const userID = String(req.headers.authentication);
+  if (userID) localStorage.onWebSocketAccepted({ userID, socketID });
+
+  ws.on("message", (message) => console.log("message %o", message.toString()));
+  ws.on("close", function () {
+    localStorage.onWebSocketClosed(socketID);
+    localStorage.sockets.delete(socketID);
+  });
 }
 
 async function getRequestBody(req: IncomingMessage) {

@@ -23,9 +23,21 @@ export abstract class LocalStorage {
     throw new Error("Job queues not available in this environment.");
   }
 
-  sendWebSocketMessage(message: {
-    body: string | Buffer | object;
-    user: { id: string };
+  onWebSocketAccepted({
+    userID,
+    socketID,
+  }: {
+    userID: string;
+    socketID: string;
+  }) {
+    throw new Error("WebSocket not available in this environment.");
+  }
+
+  onWebSocketClosed(socketID: string) {}
+
+  sendWebSocketMessage(params: {
+    message: string | Buffer | object;
+    userIDs: string[];
   }): Promise<void> {
     throw new Error("WebSocket not available in this environment.");
   }

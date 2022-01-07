@@ -28,7 +28,8 @@
     "node-fetch": "2.6.6",
     "ora": "5.4.1",
     "queue-run": "^0.3.0",
-    "queue-run-builder": "^0.3.0"
+    "queue-run-builder": "^0.3.0",
+    "ws": "^8.4.0"
   },
   "devDependencies": {
     "@types/inquirer": "^8.1.3",
