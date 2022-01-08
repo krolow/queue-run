@@ -4,7 +4,7 @@
   "main": "dist/index.js",
   "type": "module",
   "bin": {
-    "queue-run": "bin/cli.js"
+    "queue-run": "dist/index.js"
   },
   "scripts": {
     "build": "rm -rf dist && yarn tsc -p tsconfig.json",

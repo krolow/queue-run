@@ -18,14 +18,16 @@ export default command;
 async function copyTemplates(language: "javascript" | "typescript") {
   await createBaseDirectories();
 
-  if (language === "typescript") await prepareForTypeScript();
+  const templates = new URL("../../templates", import.meta.url).href.replace(
+    "file://",
+    ""
+  );
+
+  if (language === "typescript") await prepareForTypeScript(templates);
 
   const sourceFiles = await glob("{api,queues}/**/*.{js,jsx,ts,tsx}");
   const isEmpty = sourceFiles.length === 0;
-  if (isEmpty) {
-    const templates = new URL("../templates", import.meta.url).href;
-    await copySample(path.join(templates, language));
-  }
+  if (isEmpty) await copySample(path.join(templates, language));
 }
 
 async function createBaseDirectories() {
@@ -33,8 +35,7 @@ async function createBaseDirectories() {
   await fs.mkdir("queues", { recursive: true });
 }
 
-async function prepareForTypeScript() {
-  const templates = new URL("../templates", import.meta.url).href;
+async function prepareForTypeScript(templates: string) {
   await replaceFile(
     path.join(templates, "typescript", "queue-run.env.d.ts"),
     "queue-run.env.d.ts"
