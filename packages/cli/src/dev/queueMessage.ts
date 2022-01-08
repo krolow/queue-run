@@ -5,8 +5,8 @@ import path from "path";
 import { loadManifest } from "queue-run";
 import { buildProject } from "queue-run-builder";
 import readline from "readline";
-import DevLocalStorage from "./DevLocalStorage";
-import envVariables from "./envVariables";
+import DevLocalStorage from "./DevLocalStorage.js";
+import envVariables from "./envVariables.js";
 
 const sourceDir = process.cwd();
 const buildDir = path.resolve(".queue-run");

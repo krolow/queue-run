@@ -1,5 +1,5 @@
+import fs from "fs/promises";
 import path from "path";
-import { install } from "source-map-support";
 
 // Use this for loading backend functions on demand:
 //
@@ -20,13 +20,8 @@ export default async function loadModule<ModuleExports, Middleware>(
   // "../../foobar" into "/foobar".  Also prevents us from loading
   // node modules.
   const fromProjectRoot = path.join("/", name);
-  let filename;
-  try {
-    filename = require.resolve(path.join(process.cwd(), fromProjectRoot));
-  } catch (error) {
-    return null;
-  }
-  const module = (await require(filename)) as ModuleExports;
+  const filename = path.join(process.cwd(), fromProjectRoot);
+  const module = (await import(filename)) as ModuleExports;
   const middleware = await loadMiddleware<Middleware>(fromProjectRoot);
   return {
     // Route takes precendece over _middleware
@@ -46,13 +41,13 @@ export default async function loadModule<ModuleExports, Middleware>(
 async function loadMiddleware<Middleware>(name: string): Promise<Middleware[]> {
   if (name === "/") return [];
   const parent = await loadMiddleware<Middleware>(path.dirname(name));
-  let filename;
+  const filename = path.join(process.cwd(), name, "_middleware");
   try {
-    filename = require.resolve(path.join(process.cwd(), name, "_middleware"));
+    await fs.access(filename);
   } catch {
     return parent;
   }
-  const exports = await require(filename);
+  const exports = await import(filename);
   // This middleware's exports take precendece over parent's
   return [exports, ...parent];
 }
@@ -70,6 +65,3 @@ function combine<T = { [key: string]: Function }>(...middleware: T[]): T {
     )
   );
 }
-
-// Adds source maps for stack traces
-install({ environment: "node" });

@@ -17,7 +17,7 @@ export async function get() {
 ```
 
 ```ts title="api/items/index.ts"
-const { urlForItem } = require('./[id]');
+import { urlForItem } from './[id]';
 
 // Respond with a list of all items
 export async function get() {

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-const { execFileSync } = require("child_process");
-const chalk = require("chalk");
-const path = require("path");
+import chalk from "chalk";
+import { execFileSync } from "child_process";
+import path from "path";
 
 // CLI is provided by queue-run-cli, separate package, keep queue-run smaller.
 // On first use, we install queue-run-cli. We don't update node_modules, if you

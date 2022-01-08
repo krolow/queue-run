@@ -6,7 +6,7 @@ import { loadModule, Manifest, QueueExports, QueueMiddleware } from "queue-run";
 const maxTimeout = 500;
 const defaultTimeout = 30;
 
-export default async function loadQueues(): Promise<Manifest["queues"]> {
+export default async function mapQueues(): Promise<Manifest["queues"]> {
   const filenames = await glob("queues/[!_]*.{js,ts}");
   return await Promise.all(
     filenames.map(async (filename) => {

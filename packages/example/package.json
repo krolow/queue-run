@@ -2,6 +2,7 @@
   "name": "example",
   "version": "0.3.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "queue-run build",
     "dev": "queue-run dev",

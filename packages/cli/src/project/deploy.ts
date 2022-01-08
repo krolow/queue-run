@@ -6,7 +6,7 @@ import {
   setupAPIGateway,
   setupIntegrations,
 } from "queue-run-builder";
-import { loadProject } from "./project";
+import { loadProject } from "./project.js";
 
 const command = new Command("deploy")
   .description("Deploy your project")

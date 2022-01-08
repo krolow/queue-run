@@ -1,6 +1,6 @@
 import { url, xml } from "queue-run";
-import * as db from "~/lib/db";
-import { urlForBookmark } from "./[id]";
+import * as db from "../../lib/db.js";
+import { urlForBookmark } from "./[id].js";
 
 export async function get() {
   const bookmarks = await db.findAll();

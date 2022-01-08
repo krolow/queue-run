@@ -7,8 +7,8 @@
     "lib": "dist"
   },
   "scripts": {
-    "build": "rm -rf dist && yarn build:bundle",
-    "build:bundle": "yarn esbuild src/index.ts --bundle --platform=node --target=node14 --outfile=dist/index.js --external:queue-run --format=esm",
+    "build": "rm -rf dist && yarn build:bundle --analyze",
+    "build:bundle": "yarn esbuild src/index.ts --bundle --platform=node --target=node14 --outfile=dist/index.js --external:queue-run --format=esm --sourcemap",
     "lint": "yarn eslint src/**/*.ts",
     "prepare": "yarn build",
     "watch": "yarn build:bundle --watch"

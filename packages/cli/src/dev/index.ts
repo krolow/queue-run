@@ -1,6 +1,6 @@
 import { Command, Option } from "commander";
-import devServer from "./devServer";
-import queueMessage from "./queueMessage";
+import devServer from "./devServer.js";
+import queueMessage from "./queueMessage.js";
 
 const command = new Command("dev").description("Run the development server");
 

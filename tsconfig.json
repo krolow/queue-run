@@ -5,11 +5,12 @@
     "declaration": true,
     "exactOptionalPropertyTypes": true,
     "incremental": true,
-    "module": "commonjs",
+    "module": "esnext",
     "moduleResolution": "node",
     "noUncheckedIndexedAccess": true,
     "noUnusedLocals": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "resolveJsonModule": true
   },
   "exclude": ["**/node_modules", ".*"]
 }

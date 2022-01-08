@@ -1,6 +1,6 @@
 import ow from "ow";
 import { form, Request, Response } from "queue-run";
-import * as db from "~/lib/db";
+import * as db from "../../lib/db.js";
 
 export async function authenticate(request: Request) {
   const header = request.headers.get("Authorization");

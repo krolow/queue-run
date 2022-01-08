@@ -77,7 +77,7 @@ function compileSource({
   const syntax = /\.tsx?$/.test(filename) ? "typescript" : "ecmascript";
   debug('Compiling "%s" (%s)', filename, syntax);
 
-  const rootDir = path.relative(filename, ".").replace("../", "");
+  const rootDir = process.cwd();
   return swc.transformSync(source, {
     filename,
     isModule: true,
@@ -101,7 +101,7 @@ function compileSource({
         },
       },
     },
-    module: { type: "commonjs" },
+    module: { type: "es6" },
     sourceMaps: true,
     swcrc: false,
   });

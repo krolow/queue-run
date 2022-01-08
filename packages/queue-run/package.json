@@ -1,7 +1,6 @@
 {
   "name": "queue-run",
   "version": "0.3.0",
-  "main": "./dist/index.js",
   "exports": {
     ".": "./dist/index.js"
   },
@@ -11,8 +10,8 @@
     "queue-run": "./bin/cli.js"
   },
   "scripts": {
-    "build": "rm -rf dist && yarn build:bundle && yarn build:types",
-    "build:bundle": "yarn esbuild src/index.ts --bundle --platform=node --target=node14 --outfile=dist/index.js --format=esm",
+    "build": "rm -rf dist && yarn build:bundle --analyze && yarn build:types",
+    "build:bundle": "yarn esbuild src/index.ts --bundle --platform=node --target=node14 --outfile=dist/index.js --format=esm --sourcemap --inject:./src/require_shim.js",
     "build:types": "yarn tsc -p tsconfig.json --emitDeclarationOnly",
     "lint": "yarn eslint src/**/*.ts",
     "prepare": "yarn build",

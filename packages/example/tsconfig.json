@@ -4,6 +4,7 @@
     "baseUrl": ".",
     "esModuleInterop": true,
     "lib": ["ES2020", "ES2021"],
+    "module": "esnext",
     "moduleResolution": "node",
     "noEmit": true,
     "paths": { "~/*": ["./*"] },

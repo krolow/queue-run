@@ -28,7 +28,10 @@ export default async function handleHTTPRequest(
     // If we handle CORS than OPTIONS is always available, so this comes first
     const corsHeaders = getCorsHeaders(route);
     if (route.cors && request.method === "OPTIONS")
-      return new Response(undefined, { headers: corsHeaders, status: 204 });
+      return new Response(undefined, {
+        headers: corsHeaders ?? {},
+        status: 204,
+      });
 
     // Throws 405 Method Not Allowed
     const handler = getHandler(module, request.method);
@@ -278,7 +281,7 @@ async function resultToResponse({
       ),
       filename
     );
-    return new Response(undefined, { headers: corsHeaders, status: 204 });
+    return new Response(undefined, { headers: corsHeaders ?? {}, status: 204 });
   }
 }
 

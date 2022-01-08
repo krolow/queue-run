@@ -110,7 +110,7 @@ async function payloadFromRequest(request: Request): Promise<object | string> {
   switch (mimeType) {
     case "application/json": {
       try {
-        return await request.json();
+        return (await request.json()) as object;
       } catch (error) {
         throw new Response("application/json: not a valid JSON document", {
           status: 422,

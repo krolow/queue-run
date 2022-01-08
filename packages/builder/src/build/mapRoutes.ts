@@ -8,7 +8,7 @@ const maxTimeout = 60;
 const defaultTimeout = 30;
 
 // Loads all routes from the current directory
-export default async function loadRoutes(): Promise<Manifest["routes"]> {
+export default async function mapRoutes(): Promise<Manifest["routes"]> {
   const dupes = new Map<
     // URL path without parameter names eg /project/:
     string,
@@ -19,39 +19,33 @@ export default async function loadRoutes(): Promise<Manifest["routes"]> {
   const filenames = await glob("api/**/[!_]*.{js,jsx,ts,tsx}");
   return Promise.all(
     filenames.map(async (filename) => {
-      try {
-        const loaded = await loadModule<RouteExports, RouteMiddleware>(
-          filename
+      const loaded = await loadModule<RouteExports, RouteMiddleware>(filename);
+      if (!loaded) throw new Error(`Could not load module ${filename}`);
+      const { module, middleware } = loaded;
+
+      const path = pathFromFilename(filename.replace(/^api\//, "/"));
+
+      const signature = path.replace(/:(.*?)(\/|$)/g, ":$2");
+      const identical = dupes.get(signature);
+      if (identical)
+        throw new Error(
+          `Found two identical routes: "${identical}" and "${filename}"`
         );
-        if (!loaded) throw new Error(`Could not load module ${filename}`);
-        const { module, middleware } = loaded;
+      dupes.set(signature, filename);
 
-        const path = pathFromFilename(filename.replace(/^api\//, "/"));
+      validateMiddleware({ ...middleware, ...module });
 
-        const signature = path.replace(/:(.*?)(\/|$)/g, ":$2");
-        const identical = dupes.get(signature);
-        if (identical)
-          throw new Error(
-            `Found two identical routes: "${identical}" and "${filename}"`
-          );
-        dupes.set(signature, filename);
-
-        validateMiddleware({ ...middleware, ...module });
-
-        const config = module.config ?? {};
-        return {
-          path,
-          accepts: getContentTypes(config),
-          cors: config.cors ?? true,
-          methods: getMethods(module),
-          filename,
-          match: match(path),
-          original: await getOriginalFilename(filename),
-          timeout: getTimeout(config),
-        };
-      } catch (error) {
-        throw new Error(`Error in "${filename}": ${error}`);
-      }
+      const config = module.config ?? {};
+      return {
+        path,
+        accepts: getContentTypes(config),
+        cors: config.cors ?? true,
+        methods: getMethods(module),
+        filename,
+        match: match(path),
+        original: await getOriginalFilename(filename),
+        timeout: getTimeout(config),
+      };
     })
   );
 }

@@ -97,17 +97,16 @@ function toFetchRequest(
     if (event.cookies) headers.set("Cookie", event.cookies.join(";"));
 
     const hasBody = method !== "GET" && method !== "HEAD";
-    const body = hasBody
-      ? event.body && event.isBase64Encoded
+    const body =
+      hasBody && event.body && event.isBase64Encoded
         ? Buffer.from(event.body, "base64")
-        : event.body
-      : undefined;
+        : event.body ?? null;
     return new Request(url, { body, headers, method });
   } else {
     const { headers, method, url } = event;
     const hasBody = method !== "GET" && method !== "HEAD";
     const body =
-      hasBody && event.body ? Buffer.from(event.body, "base64") : undefined;
+      hasBody && event.body ? Buffer.from(event.body, "base64") : null;
     return new Request(url, { body, headers, method });
   }
 }
@@ -154,7 +153,7 @@ async function fromFetchResponse(
     body:
       response.status === 204
         ? ""
-        : (await response.buffer()).toString("base64"),
+        : Buffer.from(await response.arrayBuffer()).toString("base64"),
     isBase64Encoded: true,
     headers: Object.fromEntries(Array.from(response.headers.entries())),
     statusCode: response.status ?? 200,

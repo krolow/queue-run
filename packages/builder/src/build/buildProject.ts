@@ -5,8 +5,8 @@ import compileSourceFiles from "./compileSourceFiles.js";
 import createBuildDirectory from "./createBuildDirectory.js";
 import getRuntime from "./getRuntime.js";
 import installDependencies from "./installDependencies.js";
-import loadQueues from "./loadQueues.js";
-import loadRoutes from "./loadRoutes.js";
+import mapQueues from "./mapQueues.js";
+import mapRoutes from "./mapRoutes.js";
 import zipLambda from "./zipLambda.js";
 
 // Short build: compile source files to target directory.
@@ -56,8 +56,8 @@ async function createManifest(dirname: string) {
   const cwd = process.cwd();
   try {
     process.chdir(dirname);
-    const routes = await loadRoutes();
-    const queues = await loadQueues();
+    const routes = await mapRoutes();
+    const queues = await mapQueues();
     const manifest: Manifest = { queues, routes };
     await fs.writeFile("manifest.json", JSON.stringify(manifest), "utf-8");
     return manifest;

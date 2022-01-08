@@ -3,7 +3,8 @@ import glob from "fast-glob";
 import fs from "fs/promises";
 import ora from "ora";
 import path from "path";
-import { initProject } from "./project";
+import { URL } from "url";
+import { initProject } from "./project.js";
 
 const command = new Command("init")
   .description("Setup a new project in the current directory")
@@ -22,7 +23,8 @@ async function copyTemplates(language: "javascript" | "typescript") {
   const sourceFiles = await glob("{api,queues}/**/*.{js,jsx,ts,tsx}");
   const isEmpty = sourceFiles.length === 0;
   if (isEmpty) {
-    await copySample(path.join(__dirname, "..", "templates", language));
+    const templates = new URL("../templates", import.meta.url).href;
+    await copySample(path.join(templates, language));
   }
 }
 
@@ -32,26 +34,13 @@ async function createBaseDirectories() {
 }
 
 async function prepareForTypeScript() {
+  const templates = new URL("../templates", import.meta.url).href;
   await replaceFile(
-    path.join(
-      __dirname,
-      "..",
-      "..",
-      "templates",
-      "typescript",
-      "queue-run.env.d.ts"
-    ),
+    path.join(templates, "typescript", "queue-run.env.d.ts"),
     "queue-run.env.d.ts"
   );
   await replaceFile(
-    path.join(
-      __dirname,
-      "..",
-      "..",
-      "templates",
-      "typescript",
-      "tsconfig.json"
-    ),
+    path.join(templates, "typescript", "tsconfig.json"),
     "tsconfig.json"
   );
 }

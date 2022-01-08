@@ -1,6 +1,6 @@
 import { Request, Response, RouteConfig, url } from "queue-run";
-import * as db from "~/lib/db";
-import { input } from "./_middleware";
+import * as db from "../../lib/db.js";
+import { input } from "./_middleware.js";
 
 export type Resource = { request: Request; params: { id: string } };
 

@@ -1,15 +1,21 @@
 import { Sema } from "async-sema";
 import chalk from "chalk";
-import chokidar from "chokidar";
+import * as chokidar from "chokidar";
 import fs from "fs/promises";
 import { createServer, IncomingMessage, ServerResponse } from "http";
 import path from "path";
-import { handleHTTPRequest, LocalStorage, Request } from "queue-run";
+import {
+  handleHTTPRequest,
+  LocalStorage,
+  Request,
+  sockets,
+  withLocalStorage,
+} from "queue-run";
 import { buildProject } from "queue-run-builder";
 import { URL } from "url";
 import { WebSocket, WebSocketServer } from "ws";
-import DevLocalStorage from "./DevLocalStorage";
-import envVariables from "./envVariables";
+import DevLocalStorage from "./DevLocalStorage.js";
+import envVariables from "./envVariables.js";
 
 const semaphore = new Sema(1);
 
@@ -73,14 +79,15 @@ async function onRequest(
     );
     const url = new URL(req.url ?? "/", `http://${headers.host}`);
     const body = await getRequestBody(req);
-    const request = new Request(url, {
+    const request = new Request(url.href, {
       method,
       headers,
       body,
     });
     const response = await handleHTTPRequest(request, () => localStorage);
     res.writeHead(response.status, Array.from(response.headers.entries()));
-    res.end(response.body, "base64");
+    const buffer = await response.arrayBuffer();
+    res.end(Buffer.from(buffer));
   } finally {
     process.chdir(sourceDir);
     semaphore.release(token);
@@ -98,19 +105,26 @@ async function onConnection(
   const userID = String(req.headers.authentication);
   if (userID) localStorage.onWebSocketAccepted({ userID, socketID });
 
-  ws.on("message", (message) => console.log("message %o", message.toString()));
+  ws.on("message", (message) => {
+    console.log("message %o", message.toString());
+    localStorage.user = { id: userID };
+    withLocalStorage(localStorage, () => {
+      console.log("responding async");
+      sockets.send("Back at you");
+    });
+  });
   ws.on("close", function () {
     localStorage.onWebSocketClosed(socketID);
     localStorage.sockets.delete(socketID);
   });
 }
 
-async function getRequestBody(req: IncomingMessage) {
+async function getRequestBody(req: IncomingMessage): Promise<Buffer | null> {
   const hasBody = req.method !== "GET" && req.method !== "HEAD";
-  if (!hasBody) return undefined;
+  if (!hasBody) return null;
   let data: Buffer[] = [];
   for await (const chunk of req) data.push(chunk);
-  return Buffer.concat(data).toString();
+  return Buffer.concat(data);
 }
 
 async function onReload(event: string, filename: string) {
