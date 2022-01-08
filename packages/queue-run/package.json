@@ -2,7 +2,8 @@
   "name": "queue-run",
   "version": "0.3.0",
   "exports": {
-    ".": "./dist/index.js"
+    ".": "./dist/index.js",
+    "./jsx-runtime": "./dist/index.js"
   },
   "types": "dist/index.d.ts",
   "type": "module",

@@ -7,7 +7,7 @@ export async function logResponse(request: Request, response: Response) {
     request.method,
     new URL(request.url).pathname,
     response.status,
-    (await response.clone().buffer()).byteLength,
+    (await response.clone().arrayBuffer()).byteLength,
     request.headers.get("Referer") ?? "",
     request.headers.get("User-Agent") ?? ""
   );

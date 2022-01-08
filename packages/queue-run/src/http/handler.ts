@@ -259,8 +259,10 @@ async function resultToResponse({
       ...(corsHeaders ? Object.fromEntries(corsHeaders.entries()) : undefined),
       ...Object.fromEntries(result.headers.entries()),
     });
-    if (status === 200)
-      addCacheControl(headers, result, await result.clone().buffer());
+    if (status === 200) {
+      const body = Buffer.from(await result.clone().arrayBuffer());
+      addCacheControl(headers, result, body);
+    }
     return new Response(result.body, { headers, status });
   } else if (typeof result === "string" || Buffer.isBuffer(result)) {
     const body = typeof result === "string" ? result : result.toString("utf-8");
@@ -294,7 +296,7 @@ function withCacheControl(request: Request, config: RouteConfig) {
   return function (
     headers: Headers,
     result: Awaited<ReturnType<RequestHandler>>,
-    body: string | Buffer
+    body: Buffer | string
   ) {
     const caching = ["GET", "HEAD", "PUT", "PATCH"].includes(request.method);
     if (!caching) return;

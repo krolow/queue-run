@@ -12,7 +12,7 @@ export default async function form<
 >(request: Request): Promise<T> {
   const contentType = request.headers.get("content-type");
   const { mime, encoding } = parseContentType(contentType);
-  const input = await request.buffer();
+  const input = Buffer.from(await request.arrayBuffer());
 
   if (mime === "multipart/form-data") {
     const boundary = contentType?.match(/;\s*boundary=([^;]+)/)?.[1];

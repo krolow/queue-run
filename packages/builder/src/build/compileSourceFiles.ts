@@ -89,14 +89,13 @@ function compileSource({
         optimizer: {
           globals: {
             vars: {
-              __QR: 'require("queue-run")',
+              __QR: 'import("queue-run")',
             },
           },
         },
         react: {
-          pragma: "__QR.JSXXML",
-          pragmaFrag: "__QR.Fragment",
-          runtime: "classic",
+          importSource: "queue-run",
+          runtime: "automatic",
           throwIfNamespace: false,
         },
       },

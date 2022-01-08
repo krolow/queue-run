@@ -119,7 +119,7 @@ async function payloadFromRequest(request: Request): Promise<object | string> {
     }
 
     case "application/octet-stream": {
-      const buffer = await request.buffer();
+      const buffer = await request.arrayBuffer();
       if (!buffer.byteLength)
         throw new Response("application/octet-stream: no message body", {
           status: 422,

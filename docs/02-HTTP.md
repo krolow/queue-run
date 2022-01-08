@@ -136,7 +136,7 @@ export async function post({ request }) {
 // {"messge":"Hi"}
 ```
 
-If the response is any other media type, you can get it as raw buffer (`response.buffer()`) or plain text (`response.text()`).
+If the response is any other media type, you can get it as raw buffer (`response.arrayBuffer()`) or plain text (`response.text()`).
 
 There's a convenience method for [working with HTML forms](#the-form-function). And for generating [XML and HTML documents](/07-XML.md).
 
