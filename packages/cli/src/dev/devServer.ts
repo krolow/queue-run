@@ -25,13 +25,16 @@ const buildDir = path.resolve(".queue-run");
 export default async function devServer({ port }: { port: number }) {
   envVariables(port);
   await fs.mkdir(buildDir, { recursive: true });
-  const localStorage = new DevLocalStorage(port);
 
-  const server = createServer((req, res) => onRequest(req, res, localStorage));
+  const server = createServer((req, res) =>
+    onRequest(req, res, () => new DevLocalStorage(port))
+  );
   server.listen(port, () => onListening(port));
 
   const wss = new WebSocketServer({ port: port + 1 });
-  wss.on("connection", (ws, req) => onConnection(ws, req, localStorage));
+  wss.on("connection", (ws, req) =>
+    onConnection(ws, req, () => new DevLocalStorage(port))
+  );
 
   await new Promise((resolve, reject) => {
     server.on("close", resolve).on("error", reject);
@@ -68,7 +71,7 @@ async function onListening(port: number) {
 async function onRequest(
   req: IncomingMessage,
   res: ServerResponse,
-  localStorage: LocalStorage
+  newLocalStorage: () => LocalStorage
 ) {
   const token = await semaphore.acquire();
   process.chdir(buildDir);
@@ -84,7 +87,7 @@ async function onRequest(
       headers,
       body,
     });
-    const response = await handleHTTPRequest(request, () => localStorage);
+    const response = await handleHTTPRequest(request, newLocalStorage);
     res.writeHead(response.status, Array.from(response.headers.entries()));
     const buffer = await response.arrayBuffer();
     res.end(Buffer.from(buffer));
@@ -97,7 +100,7 @@ async function onRequest(
 async function onConnection(
   ws: WebSocket,
   req: IncomingMessage,
-  localStorage: DevLocalStorage
+  newLocalStorage: () => LocalStorage
 ) {
   const socketID = "";
   localStorage.sockets.set(socketID, ws);
@@ -108,7 +111,7 @@ async function onConnection(
   ws.on("message", (message) => {
     console.log("message %o", message.toString());
     localStorage.user = { id: userID };
-    withLocalStorage(localStorage, () => {
+    withLocalStorage(newLocalStorage(), () => {
       console.log("responding async");
       sockets.send("Back at you");
     });

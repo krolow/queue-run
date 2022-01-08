@@ -18,6 +18,7 @@ export default class DevLocalStorage extends LocalStorage {
   private queued = 0;
   // Emit idle event when queue is empty
   private events = new EventEmitter();
+  private port;
 
   constructor(port: number) {
     super({
@@ -26,6 +27,7 @@ export default class DevLocalStorage extends LocalStorage {
         ws: `ws://localhost:${port + 1}`,
       },
     });
+    this.port = port;
   }
 
   async queueJob({
@@ -72,7 +74,7 @@ export default class DevLocalStorage extends LocalStorage {
               user: userID ? { id: userID } : null,
             },
             payload: serializedPayload,
-            newLocalStorage: () => this,
+            newLocalStorage: () => new DevLocalStorage(this.port),
             remainingTime: 30 * 1000,
           });
         } finally {
