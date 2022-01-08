@@ -5,4 +5,5 @@ export default function envVariables(port: number) {
   process.env.NODE_ENV = "development";
   process.env.QUEUE_RUN_ENV = "development";
   process.env.QUEUE_RUM_URL = `http://localhost:${port}`;
+  process.env.QUEUE_RUN_INDENT = "2";
 }
