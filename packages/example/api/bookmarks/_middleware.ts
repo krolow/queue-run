@@ -1,4 +1,3 @@
-import ow from "ow";
 import { form, Request, Response } from "queue-run";
 import * as db from "../../lib/db.js";
 
@@ -18,17 +17,15 @@ export async function authenticate(request: Request) {
 
 export async function input(request: Request) {
   // HTML form or JSON document we're not particular
-
-  console.log(await form(request.clone()));
-
-  const { title, url } = await form(request.clone()).catch(() =>
+  const { title, url } = (await form(request.clone()).catch(() =>
     request.json()
-  );
+  )) as { title: string; url: string };
 
   // Validate inputs early and validate inputs often
   try {
-    ow(url, ow.string.url.matches(/^https?:/).message("HTTP/S URL required"));
-    ow(title, ow.string.nonEmpty.message("Title is required"));
+    if (!/^https?:\/\//.test(url))
+      throw new Error('"url" must start with "http://" or "https://"');
+    if (!title) throw new Error('"title" is required');
     return { title, url };
   } catch (error) {
     throw new Response(String(error), { status: 422 });

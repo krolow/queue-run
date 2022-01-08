@@ -6,6 +6,8 @@ const command = new Command("dev").description("Run the development server");
 
 export default command;
 
+if (!process.env.QUEUE_RUN_INDENT) process.env.QUEUE_RUN_INDENT = "2";
+
 const port = new Option("-p, --port <port>", "Port to run the server on")
   .env("PORT")
   .default(8000)

@@ -109,10 +109,8 @@ async function onConnection(
   if (userID) localStorage.onWebSocketAccepted({ userID, socketID });
 
   ws.on("message", (message) => {
-    console.log("message %o", message.toString());
     localStorage.user = { id: userID };
     withLocalStorage(newLocalStorage(), () => {
-      console.log("responding async");
       sockets.send("Back at you");
     });
   });

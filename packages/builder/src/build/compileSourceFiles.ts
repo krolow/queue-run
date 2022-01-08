@@ -86,13 +86,6 @@ function compileSource({
       parser: { syntax },
       target: jscTarget,
       transform: {
-        optimizer: {
-          globals: {
-            vars: {
-              __QR: 'import("queue-run")',
-            },
-          },
-        },
         react: {
           importSource: "queue-run",
           runtime: "automatic",

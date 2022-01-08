@@ -1,7 +1,7 @@
 import { QueueHandlerMetadata } from "./exports.js";
 
 export async function logJobStarted(job: QueueHandlerMetadata) {
-  console.log(
+  console.info(
     'Job started: queue="%s" job="%s" received=%d seq=%s',
     job.queueName,
     job.jobID,
@@ -11,5 +11,5 @@ export async function logJobStarted(job: QueueHandlerMetadata) {
 }
 
 export async function logJobFinished(job: QueueHandlerMetadata) {
-  console.log('Job finished: queue="%s" job="%s"', job.queueName, job.jobID);
+  console.info('Job finished: queue="%s" job="%s"', job.queueName, job.jobID);
 }

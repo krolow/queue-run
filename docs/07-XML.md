@@ -5,40 +5,29 @@ Yes, we support XML because XML will outlive us all. There are some use cases: f
 You can use JSX to generate XML documents. Don't forget file extension should be "jsx" or "tsx".
 
 ```tsx title=api/items/feed.tsx
-import { url, xml } from "queue-run";
+import { url } from "queue-run";
 import { urlForItem } from "./[id]";
 
 export async function get() {
   const items = await db.find();
   const feedURL = String(url.self());
-  return xml(
+  return (
     <feed xmlns="http://www.w3.org/2005/Atom">
       <title>My Feed</title>
       <link rel="self" href={feedURL} />
-      {items.map(item => (
-        <entry>
-          <title>{item.title}</title>
-          <link href={urlForItem(item))} />
-          <id>{item.id}</id>
-          <summary>{item.summary}</summary>
-        </entry>
-      ))}
-    </feed>, { 
-      contentType: "application/atom+xml",
-    }
-  );
+      <>
+        {items.map(item => (
+          <entry>
+            <title>{item.title}</title>
+            <link href={urlForItem(item))} />
+            <id>{item.id}</id>
+            <summary>{item.summary}</summary>
+          </entry>
+        ))}
+      </>
+    </feed>);
 }
 ```
-
-The `xml()` function takes two arguments. The first argument is the XML
-document.
-
-The second argument supports various rendering options:
-
-- `encoding` - The document encoding (default is: `utf-8`)
-- `headless` - True to drop the XML header (default: false)
-- `mimeType` - The document body MIME type (default is: `application/xml`)
-- `pretty` - Pretty pring the result (default: false)
 
 This being JSX, you can use any lower-case element names with careless disregard.
 
@@ -59,14 +48,10 @@ return xml(
 );
 ```
 
-
-
-## HTML
-
-You can also generate HTML:
+You can also generate (X)HTML:
 
 ```tsx
-return xml(
+return (
   <html>
     <head>
       <title>Hello world!</title>
@@ -74,7 +59,5 @@ return xml(
     <body>
       👋 I may look like React, but I'm static HTML.
     </body>
-  </html>,
-  { mimeType: "text/html" }}
-);
+  </html>);
 ```

@@ -2,6 +2,7 @@ import chalk from "chalk";
 import crypto from "crypto";
 import { AbortController } from "node-abort-controller";
 import { URL } from "url";
+import { XMLElement } from "xmlbuilder";
 import {
   getLocalStorage,
   HTTPRoute,
@@ -264,16 +265,22 @@ async function resultToResponse({
       addCacheControl(headers, result, body);
     }
     return new Response(result.body, { headers, status });
+  } else if (
+    typeof result === "object" &&
+    result.constructor.name === "XMLElement3"
+  ) {
+    const { body, headers } = xml(result as XMLElement, corsHeaders);
+    addCacheControl(headers, result, body);
+    return new Response(body, { headers, status: 200 });
   } else if (typeof result === "string" || Buffer.isBuffer(result)) {
     const body = typeof result === "string" ? result : result.toString("utf-8");
     const headers = new Headers(corsHeaders);
+    // eslint-disable-next-line sonarjs/no-duplicate-string
     headers.set("Content-Type", "text/plain; charset=utf-8");
     addCacheControl(headers, result, body);
     return new Response(body, { headers, status: 200 });
   } else if (result) {
-    const headers = new Headers(corsHeaders);
-    headers.set("Content-Type", "application/json");
-    const body = JSON.stringify(result);
+    const { body, headers } = json(result, corsHeaders);
     addCacheControl(headers, result, body);
     return new Response(JSON.stringify(result), { headers, status: 200 });
   } else {
@@ -285,6 +292,29 @@ async function resultToResponse({
     );
     return new Response(undefined, { headers: corsHeaders ?? {}, status: 204 });
   }
+}
+
+function json(object: object, corsHeaders?: Headers) {
+  const indent = Number(process.env.QUEUE_RUN_INDENT) || 0;
+  const headers = new Headers(corsHeaders);
+  headers.set("Content-Type", "application/json");
+  const body = JSON.stringify(object, null, indent);
+  return { body, headers };
+}
+
+function xml(xml: XMLElement, corsHeaders?: Headers) {
+  const isHTML = /^html$/i.test(xml.name);
+  const indent = "  ".repeat(Number(process.env.QUEUE_RUN_INDENT) || 0);
+  const pretty = !!indent;
+  const body = isHTML
+    ? xml.dtd().end({ pretty, indent })
+    : xml.dec("1.0", "utf-8").end({ pretty, indent });
+  const headers = new Headers(corsHeaders);
+  headers.set(
+    "Content-Type",
+    isHTML ? "text/html; charset=utf-8" : "application/xml; charset=utf-8"
+  );
+  return { body, headers };
 }
 
 // Add Cache-Control and ETag headers to the response

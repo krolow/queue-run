@@ -123,8 +123,6 @@ export default class DevLocalStorage extends LocalStorage {
       .flat()
       .map((socketID) => this.sockets.get(socketID))
       .filter(Boolean) as WebSocket[];
-    console.log(userIDs);
-    console.log(sockets);
     await Promise.all(
       sockets.map(
         (ws) =>

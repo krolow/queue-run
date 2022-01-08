@@ -2,7 +2,7 @@ import { URL } from "url";
 import { Request, Response } from "./fetch.js";
 
 export async function logResponse(request: Request, response: Response) {
-  console.log(
+  console.info(
     '"%s %s" %s %d "%s" "%s"',
     request.method,
     new URL(request.url).pathname,

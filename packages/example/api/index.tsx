@@ -1,10 +1,10 @@
-import { url, xml } from "queue-run";
+import { url } from "queue-run";
 
 export async function get() {
   const token = "secret";
   const bookmarksURL = url("/bookmarks");
 
-  return xml(
+  return (
     <html>
       <head>
         <title>QueueRun by Example</title>
@@ -44,7 +44,6 @@ curl $new_url -X DELETE -H "Authorization: Bearer ${token}"`}
           </li>
         </ol>
       </body>
-    </html>,
-    { pretty: true, mimeType: "text/html" }
+    </html>
   );
 }
