@@ -64,26 +64,18 @@ async function copyFiles(buildDir: string) {
   debug('Clearing out and creating "%s"', buildDir);
   await fs.rm(buildDir, { recursive: true, force: true });
 
-  await copyDirectory(
-    path.dirname(require.resolve("queue-run")),
-    path.join(buildDir, "nodejs", "node_modules", "queue-run")
-  );
-  await copyDirectory(
-    path.dirname(require.resolve("queue-run-lambda")),
-    path.join(buildDir, "nodejs")
-  );
-  spinner.succeed("Copied runtime");
-}
+  const src = path.dirname(require.resolve("queue-run-lambda"));
+  const dest = path.join(buildDir, "nodejs");
 
-async function copyDirectory(src: string, dest: string) {
   debug('Copying "%s" to "%s"', src, dest);
-  const filenames = await glob("**/*.{js,json}", { cwd: src });
+  const filenames = await glob("**/*.{js,json,map}", { cwd: src });
   for (const filename of filenames) {
     await fs.mkdir(path.dirname(path.join(dest, filename)), {
       recursive: true,
     });
     await fs.copyFile(path.join(src, filename), path.join(dest, filename));
   }
+  spinner.succeed("Copied runtime");
 }
 
 async function createArchive(buildDir: string): Promise<Buffer> {
