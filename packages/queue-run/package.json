@@ -45,5 +45,6 @@
   "homepage": "https://queue.run",
   "license": "MIT",
   "repository": "github:assaf/queue-run.git",
+  "keywords": [ "lambda", "lambda functions", "background jobs", "sqs", "background functions", "backend", "api", "websocket" ],
   "gitHead": "90ca033cb51caf3821e248a99e0857a344b06154"
 }
