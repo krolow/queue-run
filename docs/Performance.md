@@ -16,7 +16,9 @@ Your back-end will have multiple modules for all the routes, channels, queues, e
 
 Any warm-up code is shared across all invocations. You want the warm-up code to take care of any shared resources used by functions that need a fast response time. Typically things like authentication, often used API resources, and WebSockets.
 
-Typically you don't have to worry about the warm up time for queues, as queues are designed to offload work that takes longer than a few seconds. 
+:::info Queues
+Typically you don't have to worry about the warm up time for queues, as queues are designed to offload work that takes longer than a few seconds.
+:::
 
 ## Lambda Concurrency
 
@@ -24,12 +26,17 @@ When it comes to HTTP/WS requests, Lambda will run as many instances as there ar
 
 There are two exception to that. FIFO queues run one job at a time (in the same Node process), but standard queues can run multiple jobs concurrently.
 
-Also, if one request times out, the Lambda may start handling the next request. Timeout means the client receives a 504 status code (Gateway Timeout). The code itself may still keep running if it's unaware of the timeout [^1].
+Also, if one request times out, the Lambda may start handling the next request. Timeout means the client receives a 504 status code (Gateway Timeout). The code itself may still keep running if it's unaware of the timeout.
+
+:::tip Abort Signal
+Use the [abort signal](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal) to detect when your handler ran out of time.
+:::
+
 
 If your backend is mostly handling HTTP/WS requests, it may not benefit much from having a database connection pool, and you may get around with a single connection, or pool size of 1.
 
 OTOH it would open as many database connections as there are concurrent requests [^2]. Many database servers cannot manage multiple open connections, and you need to consider using a database proxy.
 
-[^1] The [abort signal](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal) exists for this very reason
-
-[^2]  [Reserved concurrency](https://docs.aws.amazon.com/lambda/latest/operatorguide/reserved-concurrency.html) can help here
+:::info Reserved Concurrency
+[Reserved concurrency](https://docs.aws.amazon.com/lambda/latest/operatorguide/reserved-concurrency.html) can help limit the number of active instances, but you should still consider a database proxy.
+:::

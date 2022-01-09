@@ -148,7 +148,7 @@ Note that the field value can be string (common), or array, if the form includes
 
 For example:
 
-```html title="In the browser"
+```html
 <form method="post">
   <input name="name"/>
   <input name="email" type="email"/>
@@ -157,7 +157,7 @@ For example:
 </button>
 ```
 
-```ts title="In the backend"
+```ts
 import { form } from 'queue-run';
 
 type Fields = {

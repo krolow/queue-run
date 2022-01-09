@@ -1,8 +1,6 @@
 # Generating XML
 
-Yes, we support XML because XML will outlive us all. There are some use cases: feed readers (Atom and RSS), Sitemap for search engines, etc.
-
-You can use JSX to generate XML documents. Don't forget file extension should be "jsx" or "tsx".
+Yes, we support XML because XML will outlive us all. There are some use cases: feed readers (Atom and RSS), Sitemap for search engines, etc.  You can use JSX to generate XML documents.
 
 ```tsx title=api/items/feed.tsx
 import { url } from "queue-run";
@@ -28,6 +26,10 @@ export async function get() {
     </feed>);
 }
 ```
+
+:::info .jsx/.tsx
+Don't forget file extension should be "jsx" or "tsx".
+:::
 
 This being JSX, you can use any lower-case element names with careless disregard.
 

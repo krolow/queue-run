@@ -38,11 +38,11 @@ yarn add --dev queue-run
 
 Next we'll write a simple backend. Start with a resource for listing all bookmarks (GET) and creating a new bookmark (POST):
 
-:::tip
+:::tip Clone Our Example
 You can also [clone the repo](https://github.com/assaf/queue-run) and look at the [packages/example](https://github.com/assaf/queue-run/tree/main/packages/example) directory.
 :::
 
-```ts title="api/bookmarks.ts"
+```ts
 import { inputs } from "./_middleware";
 import { queue as screenshots } from "~/queues/screenshots";
 import { urlForBookmark } from "./[id]";
@@ -73,7 +73,7 @@ export async function post({ request, user }) {
 
 You can also fetch (GET), update (PUT), and delete (DELETE) an individual resource:
 
-```ts title="api/bookmarks/[id].ts"
+```ts
 import { inputs } from "./_middleware";
 import { url, Response } from "queue-run";
 import * as db from "lib/db";
@@ -114,7 +114,7 @@ export const urlForBookmark = url.self<{ id: string }>();
 
 We'll need some common middleware to authenticate requests, so we can tie them to a user, and to validate inputs for POST + PUT:
 
-```ts title="api/bookmarks/_middleware.ts"
+```ts
 import { form, Response } from "queue-run";
 
 export async function authenticate(request) {
@@ -141,7 +141,7 @@ export async function inputs(request) {
 
 Our bookmarks service takes screenshots, and these could take several seconds, and even fail intermittently. We'll use a queue for that:
 
-```ts title="queues/screenshots.ts"
+```ts
 import { queues } from "queue-run";
 import * as db from "~/lib/db";
 import capture from "~/lib/capture";
@@ -180,7 +180,6 @@ curl http://localhost:8000/bookmarks -X POST \
 curl http://localhost:8000/bookmarks/74e83d43
 curl http://localhost:8000/bookmarks
 ```
-
 
 ## Deploy To Production
 
