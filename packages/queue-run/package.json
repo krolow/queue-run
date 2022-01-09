@@ -11,12 +11,10 @@
     "queue-run": "./bin/cli.js"
   },
   "scripts": {
-    "build": "rm -rf dist && yarn build:bundle --analyze && yarn build:types",
-    "build:bundle": "yarn esbuild src/index.ts --bundle --platform=node --target=node14 --outfile=dist/index.js --format=esm --sourcemap --inject:./src/require_shim.js",
-    "build:types": "yarn tsc -p tsconfig.json --emitDeclarationOnly",
+    "build": "rm -rf dist && yarn tsc -p tsconfig.json",
     "lint": "yarn eslint src/**/*.ts",
     "prepare": "yarn build",
-    "watch": "concurrently \"yarn build:bundle --watch\" \"yarn build:types --watch\""
+    "watch": "yarn tsc -p tsconfig.json --watch"
   },
   "files": [
     "bin",

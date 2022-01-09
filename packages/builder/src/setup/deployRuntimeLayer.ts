@@ -4,6 +4,7 @@ import glob from "fast-glob";
 import filesize from "filesize";
 import fs from "fs/promises";
 import JSZip from "jszip";
+import { createRequire } from "module";
 import ora from "ora";
 import path from "path";
 import invariant from "tiny-invariant";
@@ -16,6 +17,7 @@ const debug = debuglog("queue-run:deploy");
 // Deploy runtime layer to Lambda.  The most recent layer will be used when
 // deploying your project.
 export default async function deployRuntimeLayer(force = false) {
+  const require = createRequire(import.meta.url);
   const runtimePath = path.join(require.resolve("queue-run-lambda"), "../..");
 
   if ((await hasRecentLayer(runtimePath)) && !force) return;

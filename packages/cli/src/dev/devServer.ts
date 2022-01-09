@@ -27,7 +27,7 @@ export default async function devServer({ port }: { port: number }) {
   envVariables(port);
 
   cluster.setupMaster({
-    exec: import.meta.url.replace("file://", ""),
+    exec: new URL(import.meta.url).pathname,
   });
 
   console.info(

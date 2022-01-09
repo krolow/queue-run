@@ -267,7 +267,8 @@ async function resultToResponse({
     return new Response(result.body, { headers, status });
   } else if (
     typeof result === "object" &&
-    result.constructor.name === "XMLElement3"
+    "documentObject" in result &&
+    "parent" in result
   ) {
     const { body, headers } = xml(result as XMLElement, corsHeaders);
     addCacheControl(headers, result, body);

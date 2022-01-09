@@ -18,10 +18,7 @@ export default command;
 async function copyTemplates(language: "javascript" | "typescript") {
   await createBaseDirectories();
 
-  const templates = new URL("../../templates", import.meta.url).href.replace(
-    "file://",
-    ""
-  );
+  const templates = new URL("../../templates", import.meta.url).pathname;
 
   if (language === "typescript") await prepareForTypeScript(templates);
 
