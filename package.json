@@ -1,9 +1,4 @@
 {
-  "name": "queue-run",
-  "version": "0.2.0",
-  "description": "👋 Backends for JAMstack apps: APIs, job queues, scheduled jobs, WebSocket notifications, and more …",
-  "main": "src/index.js",
-  "types": "types/index.d.ts",
   "scripts": {
     "build": "yarn build:queue-run && yarn build:runtime && yarn build:builder && yarn build:cli",
     "build:queue-run": "yarn workspace queue-run build",
@@ -13,10 +8,6 @@
     "docs": "yarn workspace site dev",
     "lint": "lerna run lint"
   },
-  "author": "Assaf Arkin <assaf@labnotes.org> (https://labnotes.org/)",
-  "homepage": "https://queue.run",
-  "license": "MIT",
-  "repository": "github:assaf/queue-run.git",
   "private": true,
   "devDependencies": {
     "@tsconfig/node14": "^1.0.1",

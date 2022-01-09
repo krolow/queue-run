@@ -39,5 +39,6 @@
   "engines": {
     "node": "14.x"
   },
+  "homepage": "https://queue.run",
   "gitHead": "90ca033cb51caf3821e248a99e0857a344b06154"
 }

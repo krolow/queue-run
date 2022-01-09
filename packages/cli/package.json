@@ -38,5 +38,6 @@
     "@types/node": "^17.0.8",
     "@types/node-fetch": "3.0.3"
   },
+  "homepage": "https://queue.run",
   "gitHead": "90ca033cb51caf3821e248a99e0857a344b06154"
 }

@@ -1,5 +1,6 @@
 {
   "name": "queue-run",
+  "description": "👋 Backends for JAMstack apps: APIs, job queues, scheduled jobs, WebSocket notifications, and more …",
   "version": "0.4.1",
   "exports": {
     ".": "./dist/index.js",
@@ -40,5 +41,9 @@
   "engines": {
     "node": "14.x"
   },
+  "author": "Assaf Arkin <assaf@labnotes.org> (https://labnotes.org/)",
+  "homepage": "https://queue.run",
+  "license": "MIT",
+  "repository": "github:assaf/queue-run.git",
   "gitHead": "90ca033cb51caf3821e248a99e0857a344b06154"
 }
