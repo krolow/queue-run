@@ -1,10 +1,9 @@
 import { FunctionConfiguration, Lambda } from "@aws-sdk/client-lambda";
 import ora from "ora";
 import invariant from "tiny-invariant";
-import { layerName } from "../setup/deployRuntimeLayer.js";
 import { deleteLambdaRole, getLambdaRole } from "./lambdaRole.js";
 
-export const handler = "/opt/nodejs/index.handler";
+export const handler = "runtime.handler";
 
 // Creates or updates Lambda function with latest configuration and code.
 // Publishes the new version and returns the published version ARN.
@@ -33,7 +32,7 @@ export default async function uploadLambda({
     Role: await getLambdaRole({ lambdaName }),
     Runtime: lambdaRuntime,
     Timeout: lambdaTimeout,
-    Layers: await addRuntimeLayerARN(layerARNs),
+    Layers: layerARNs,
     TracingConfig: { Mode: "Active" },
   };
 
@@ -132,23 +131,6 @@ function aliasAWSEnvVars(
     else aliased[key] = value;
   }
   return aliased;
-}
-
-async function addRuntimeLayerARN(layerARNs: string[] = []): Promise<string[]> {
-  const searchString = `:layer:${layerName}:`;
-  if (layerARNs.find((arn) => arn.includes(searchString))) return layerARNs;
-
-  const lambda = new Lambda({});
-  const { LayerVersions: versions } = await lambda.listLayerVersions({
-    LayerName: layerName,
-  });
-  const runtimeARN = versions?.[0]?.LayerVersionArn;
-  if (!runtimeARN)
-    throw new Error(
-      `Could not find recent version of the QueueRun Runtime layer (${layerName}): did you deploy it to this account?`
-    );
-  invariant(runtimeARN);
-  return [runtimeARN, ...layerARNs];
 }
 
 export async function deleteLambda({ lambdaName }: { lambdaName: string }) {

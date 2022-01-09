@@ -1,15 +1,11 @@
 {
-  "name": "example",
-  "version": "0.3.0",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "queue-run build",
     "dev": "queue-run dev",
+    "deploy": "queue-run deploy",
     "lint": "eslint **/*.{ts,tsx}"
-  },
-  "peerDependencies": {
-    "queue-run": "^0.1.4"
   },
   "engines": {
     "node": "14.x"

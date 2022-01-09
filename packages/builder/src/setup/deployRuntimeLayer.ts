@@ -1,5 +1,6 @@
 import { Lambda } from "@aws-sdk/client-lambda";
 import chalk from "chalk";
+import { execFile } from "child_process";
 import glob from "fast-glob";
 import filesize from "filesize";
 import fs from "fs/promises";
@@ -8,7 +9,7 @@ import { createRequire } from "module";
 import ora from "ora";
 import path from "path";
 import invariant from "tiny-invariant";
-import { debuglog } from "util";
+import { debuglog, promisify } from "util";
 
 export const layerName = "qr-runtime";
 
@@ -26,7 +27,7 @@ export default async function deployRuntimeLayer(force = false) {
   );
 
   const buildDir = ".queue-run";
-  await copyFiles(buildDir, runtimePath);
+  await installRuntime(buildDir, runtimePath);
   const archive = await createArchive(buildDir);
   const version = await uploadLayer(archive);
   await deletingOldLayers(version);
@@ -56,27 +57,26 @@ async function hasRecentLayer(runtimePath: string): Promise<boolean> {
   return Date.parse(createdAt!) > stat.ctime.getTime();
 }
 
-async function copyFiles(buildDir: string, runtimePath: string) {
-  const spinner = ora("Copying runtime ...").start();
+async function installRuntime(buildDir: string, runtimePath: string) {
+  const spinner = ora("Installing dependencies ...").start();
 
   debug('Clearing out and creating "%s"', buildDir);
   await fs.rm(buildDir, { recursive: true, force: true });
 
-  const src = path.join(runtimePath, "dist");
   const dest = path.join(buildDir, "nodejs");
+  await fs.mkdir(dest, { recursive: true });
 
-  debug('Copying "%s" to "%s"', src, dest);
-  const filenames = await glob("**/*.{js,map}", { cwd: src });
-  for (const filename of filenames) {
-    await fs.mkdir(path.dirname(path.join(dest, filename)), {
-      recursive: true,
-    });
-    await fs.copyFile(
-      path.join(src, filename),
-      path.join(dest, filename).replace(".js", ".mjs")
-    );
-  }
-  spinner.succeed("Copied runtime");
+  const { version } = JSON.parse(
+    await fs.readFile(path.join(runtimePath, "package.json"), "utf8")
+  );
+  const pkg = { dependencies: { "queue-run-lambda": version } };
+  await fs.writeFile(path.join(dest, "package.json"), JSON.stringify(pkg));
+  await promisify(execFile)(
+    "npm",
+    ["install", "--no-package-lock", "--only=production"],
+    { cwd: dest }
+  );
+  spinner.succeed("Installed dependencies");
 }
 
 async function createArchive(buildDir: string): Promise<Buffer> {

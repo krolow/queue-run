@@ -29,6 +29,7 @@
     "node-abort-controller": "^3.0.1",
     "pirates": "^4.0.4",
     "queue-run": "^0.3.0",
+    "queue-run-lambda": "^0.3.0",
     "tiny-invariant": "^1.2.0"
   },
   "devDependencies": {

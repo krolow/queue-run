@@ -1,23 +1,23 @@
 {
   "name": "queue-run-lambda",
   "version": "0.3.0",
-  "main": "dist/index.js",
-  "type": "module",
-  "directories": {
-    "lib": "dist"
+  "module": "dist/index.mjs",
+  "exports": {
+    ".": "./dist/index.mjs"
   },
+  "type": "module",
   "scripts": {
     "build": "rm -rf dist && yarn build:bundle --analyze",
-    "build:bundle": "yarn esbuild src/index.ts --bundle --platform=node --target=node14 --outfile=dist/index.js --format=esm  --inject:./src/require_shim.js --sourcemap",
+    "build:bundle": "yarn esbuild src/index.ts --bundle --platform=node --target=node14 --outfile=dist/index.mjs --format=esm  --inject:./src/require_shim.js --sourcemap --external:queue-run",
     "lint": "yarn eslint src/**/*.ts",
     "prepare": "yarn build",
-    "watch": "yarn build:bundle --watch"
+    "watch": "rm -rf dist && yarn build:bundle --watch"
   },
   "files": [
     "dist",
     "src"
   ],
-  "dependencies": {
+  "devDependencies": {
     "@aws-sdk/client-sqs": "^3.45.0",
     "queue-run": "^0.3.0",
     "tiny-invariant": "^1.2.0"

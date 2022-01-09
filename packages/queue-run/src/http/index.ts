@@ -4,4 +4,3 @@ export { Blob, default as form, File } from "./form.js";
 export { default as handleHTTPRequest } from "./handler.js";
 export * from "./middleware.js";
 export { default as url } from "./url.js";
-export * from "./xml.js";

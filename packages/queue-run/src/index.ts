@@ -3,6 +3,7 @@ import { install } from "source-map-support";
 install({ environment: "node" });
 
 export * from "./http/index.js";
+export * from "./jsx-runtime.js";
 export * from "./queue/index.js";
 export * from "./shared/index.js";
 export * from "./ws/index.js";
