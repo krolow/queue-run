@@ -61,6 +61,7 @@ async function installQueueRun(buildDir: string) {
   const sourceDir = path.join(require.resolve("queue-run"), "../..");
   const targetDir = path.join(buildDir, "node_modules", "queue-run");
   debug('Installing "%s" => "%s"', sourceDir, targetDir);
+  await fs.rm(targetDir, { recursive: true, force: true });
   await fs.mkdir(targetDir, { recursive: true });
   await copyFile("package.json", sourceDir, targetDir);
   const filenames = await glob("dist/**/*", { cwd: sourceDir });
