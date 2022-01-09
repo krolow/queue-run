@@ -3,7 +3,6 @@ import chalk from "chalk";
 import dotenv from "dotenv";
 import fs from "fs/promises";
 import { AbortSignal } from "node-abort-controller";
-import ow from "ow";
 import { Manifest } from "queue-run";
 import invariant from "tiny-invariant";
 import { debuglog } from "util";
@@ -62,17 +61,17 @@ export default async function deployLambda({
   // {qrPrefix}{project}_{branch}__{queueName} we have a total of 27 characters
   // available.
 
-  ow(
-    slug,
-    ow.optional.string
-      .matches(/^[a-zA-Z0-9-]{1,40}$/)
-      .message("Slug must be 40 characters or less, alphanumeric and dashes")
-  );
+  if (!/^[a-zA-Z0-9-]{1,40}$/.test(slug))
+    throw new Error(
+      "Slug must be 40 characters or less, alphanumeric and dashes"
+    );
 
   const url = config.url ?? `https://${slug}.queue.run`;
-  ow(url, ow.string.url.startsWith("https://"));
+  if (!/^https:\/\//.test(url))
+    throw new Error('HTTP URL must start with "https://"');
   const ws = config.ws ?? `wss://ws.queue.run`;
-  ow(ws, ow.string.url.startsWith("wss://"));
+  if (!/^wss:\/\//.test(ws))
+    throw new Error('WS URL must start with "https://"');
 
   const lambdaName = `qr-${slug}`;
   debug('Lamba name: "%s"', lambdaName);

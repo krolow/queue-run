@@ -16,27 +16,23 @@ const debug = debuglog("queue-run:deploy");
 // Deploy runtime layer to Lambda.  The most recent layer will be used when
 // deploying your project.
 export default async function deployRuntimeLayer(force = false) {
-  if ((await hasRecentLayer()) && !force) return;
+  const runtimePath = path.join(require.resolve("queue-run-lambda"), "../..");
+
+  if ((await hasRecentLayer(runtimePath)) && !force) return;
   console.info(
     chalk.bold.green(`Building Lambda runtime layer (${layerName}) ...`)
   );
 
   const buildDir = ".queue-run";
-  await copyFiles(buildDir);
+  await copyFiles(buildDir, runtimePath);
   const archive = await createArchive(buildDir);
   const version = await uploadLayer(archive);
   await deletingOldLayers(version);
 }
 
-async function hasRecentLayer(): Promise<boolean> {
+async function hasRecentLayer(runtimePath: string): Promise<boolean> {
   // eslint-disable-next-line sonarjs/no-duplicate-string
-  const stat = await fs.stat(
-    path.join(
-      path.dirname(require.resolve("queue-run-lambda")),
-      "..",
-      "package.json"
-    )
-  );
+  const stat = await fs.stat(path.join(runtimePath, "package.json"));
   const lambda = new Lambda({});
   const { LayerVersions: versions } = await lambda.listLayerVersions({
     LayerName: layerName,
@@ -58,22 +54,25 @@ async function hasRecentLayer(): Promise<boolean> {
   return Date.parse(createdAt!) > stat.ctime.getTime();
 }
 
-async function copyFiles(buildDir: string) {
+async function copyFiles(buildDir: string, runtimePath: string) {
   const spinner = ora("Copying runtime ...").start();
 
   debug('Clearing out and creating "%s"', buildDir);
   await fs.rm(buildDir, { recursive: true, force: true });
 
-  const src = path.dirname(require.resolve("queue-run-lambda"));
+  const src = path.join(runtimePath, "dist");
   const dest = path.join(buildDir, "nodejs");
 
   debug('Copying "%s" to "%s"', src, dest);
-  const filenames = await glob("**/*.{js,json,map}", { cwd: src });
+  const filenames = await glob("**/*.{js,map}", { cwd: src });
   for (const filename of filenames) {
     await fs.mkdir(path.dirname(path.join(dest, filename)), {
       recursive: true,
     });
-    await fs.copyFile(path.join(src, filename), path.join(dest, filename));
+    await fs.copyFile(
+      path.join(src, filename),
+      path.join(dest, filename).replace(".js", ".mjs")
+    );
   }
   spinner.succeed("Copied runtime");
 }
@@ -109,7 +108,7 @@ async function uploadLayer(archive: Buffer): Promise<number> {
       await lambda.publishLayerVersion({
         LayerName: layerName,
         Description: "Runtime layer for QueueRun",
-        CompatibleRuntimes: ["nodejs12.x", "nodejs14.x"],
+        CompatibleRuntimes: ["nodejs14.x"],
         Content: { ZipFile: archive },
       });
     spinner.succeed(`Published layer: ${versionARN}`);

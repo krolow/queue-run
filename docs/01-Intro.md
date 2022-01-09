@@ -100,7 +100,6 @@ We'll need some common middleware to authenticate requests, so we can tie them t
 
 ```ts title="api/bookmarks/_middleware.ts"
 import { form, Response } from "queue-run";
-import ow from "ow";
 
 export async function authenticate(request) {
   ... TBD
@@ -114,8 +113,9 @@ export async function inputs(request) {
 
   // Validate inputs early and validate inputs often
   try {
-    ow(url, ow.string.url.matches(/^https?:/));
-    ow(title, ow.string.nonEmpty.message("Title is required"));
+    if (!/^https?:\/\//.test(url))
+      throw new Error('"url" must start with "http://" or "https://"');
+    if (!title) throw new Error('"title" is required');
     return { title, url };
   } catch (error) {
     throw new Response(String(error), { status: 422 });
