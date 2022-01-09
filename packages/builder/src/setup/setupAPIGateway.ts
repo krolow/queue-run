@@ -103,7 +103,7 @@ async function setupWSIntegrations(project: string, lambdaARN: string) {
     protocol: ProtocolType.WEBSOCKET,
     project,
   });
-  if (!api) throw new Error("Missing API Gateway for WebSockets");
+  if (!api) throw new Error("Missing API Gateway for WebSocket");
 
   const ws = await createIntegration({
     ApiId: api.ApiId,

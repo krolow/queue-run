@@ -29,7 +29,7 @@ type BuildConfig = {
   // If not specified, uses the template: https://${slug}.queue.run
   url?: string;
 
-  // The full URL for this backend's WebSockets. Available to the backed as the
+  // The full URL for this backend's WebSocket. Available to the backed as the
   // environment variable QUEUE_RUN_WS.
   //
   // If not specified, uses the template: wss://ws.queue.run
