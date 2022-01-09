@@ -1,6 +1,6 @@
 {
   "name": "queue-run-cli",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "main": "dist/index.js",
   "type": "module",
   "bin": {
@@ -29,8 +29,8 @@
     "node-abort-controller": "^3.0.1",
     "node-fetch": "3.1.0",
     "ora": "6.0.1",
-    "queue-run": "^0.4.0",
-    "queue-run-builder": "^0.4.0",
+    "queue-run": "^0.4.1",
+    "queue-run-builder": "^0.4.1",
     "ws": "^8.4.0"
   },
   "devDependencies": {
