@@ -1,4 +1,4 @@
-# Working With Queues
+# Queues
 
 ## Standard Queues
 

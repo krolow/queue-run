@@ -9,7 +9,11 @@ module.exports = {
       "@docusaurus/preset-classic",
       {
         blog: false,
-        docs: { path: "../../docs", routeBasePath: "/" },
+        docs: {
+          path: "../../docs",
+          routeBasePath: "/",
+          sidebarPath: require.resolve("./sidebars.js"),
+        },
         theme: {
           customCss: [require.resolve("./src/css/custom.css")],
         },
@@ -21,15 +25,7 @@ module.exports = {
     navbar: {
       title: "🐇 QueueRun",
       hideOnScroll: true,
-      items: [
-        { to: "intro", label: "Docs", position: "left" },
-        {
-          href: "https://github.com/assaf/queue-run",
-          label: "GitHub",
-          position: "right",
-          target: "_blank",
-        },
-      ],
+      items: [{ to: "/", label: "Docs", position: "left" }],
     },
   },
 };

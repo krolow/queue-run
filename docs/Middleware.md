@@ -4,7 +4,7 @@
 
 There are common middleware patterns in HTTP APIs. This middleware is supported through named exports:
 
-- `authenticate(request)` - Used to authenticate the request, see [Authentication](05-Authenticate.md)
+- `authenticate(request)` - Used to authenticate the request, see [Authentication](Authenticate.md)
 - `onError(error, request)` — You can use this to log processing errors
 - `onRequest(request)` - You can use this to log the request, also block a request by throwing a Response object
 - `onResponse(request, response)` — You can use this to log the response, or change the response by throwing a Response object

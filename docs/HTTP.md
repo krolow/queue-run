@@ -1,4 +1,4 @@
-# Building HTTP APIs
+# HTTP/REST
 
 ## Routes and files
 
@@ -35,7 +35,7 @@ They take a single argument with named parameters:
 - `params` - Object with request parameters from the URL (eg `{ id: "123" }`)
 - `query` — Object with query string parameters (eg `{ first: "5" }`)
 - `signal` — [Signal](https://developer.mozilla.org/en-US/docs/Web/API/AbortController) for aborting long running requests
-- `user` — User object returned from [authenticate](05-Authenticate.md) method
+- `user` — User object returned from [authenticate](Authenticate.md) method
 
 Request handler can return:
 
@@ -138,7 +138,7 @@ export async function post({ request }) {
 
 If the response is any other media type, you can get it as raw buffer (`response.arrayBuffer()`) or plain text (`response.text()`).
 
-There's a convenience method for [working with HTML forms](#the-form-function). And for generating [XML and HTML documents](/07-XML.md).
+There's a convenience method for [working with HTML forms](#the-form-function). And for generating [XML and HTML documents](XML.md).
 
 ## The form() function
 
