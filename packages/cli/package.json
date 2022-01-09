@@ -37,5 +37,5 @@
     "@types/node": "^17.0.8",
     "@types/node-fetch": "3.0.3"
   },
-  "gitHead": "cb2455561449ed3629e679e3656bb72e746096e3"
+  "gitHead": "f8f70f31a621121600a24aeb8f0d86b6d6f23731"
 }
