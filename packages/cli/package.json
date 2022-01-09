@@ -4,7 +4,7 @@
   "main": "dist/index.js",
   "type": "module",
   "bin": {
-    "queue-run": "dist/index.js"
+    "queue-run-cli": "bin/cli.js"
   },
   "scripts": {
     "build": "rm -rf dist && yarn tsc -p tsconfig.json",
@@ -13,6 +13,7 @@
     "watch": "yarn tsc -p tsconfig.json --watch"
   },
   "files": [
+    "bin",
     "dist",
     "src",
     "templates"

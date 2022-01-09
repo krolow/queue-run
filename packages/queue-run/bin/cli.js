@@ -1,22 +1,20 @@
 #!/usr/bin/env node
-import chalk from "chalk";
 import { execFileSync } from "child_process";
-import path from "path";
 
 // CLI is provided by queue-run-cli, separate package, keep queue-run smaller.
-// On first use, we install queue-run-cli. We don't update node_modules, if you
-// nuke it, we'll just install again.
+//
+// On first use, we install queue-run-cli. We don't update package.json, if you
+// nuke node_modules, we'll just install again.
 
 const cliModule = "queue-run-cli";
-const projectPath = path.join(process.cwd(), "node_modules");
 try {
-  require.resolve(cliModule, { paths: [projectPath] });
+  await import(cliModule);
 } catch (error) {
-  console.info(chalk.bold.blue("First run: installing %s ...\n"), cliModule);
-  execFileSync("npm", ["install", "--no-save", cliModule], {
-    stdio: "inherit",
-  });
+  if (error instanceof Error && error.code === "ERR_MODULE_NOT_FOUND") {
+    console.info("First run: installing %s ...\n", cliModule);
+    execFileSync("npm", ["install", "--no-save", cliModule], {
+      stdio: "inherit",
+    });
+    await import(cliModule);
+  } else throw error;
 }
-
-require.cache = {};
-require(require.resolve(cliModule, { paths: [projectPath] }));
