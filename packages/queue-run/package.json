@@ -11,7 +11,7 @@
     "queue-run": "./bin/cli.js"
   },
   "scripts": {
-    "build": "rm -rf dist && yarn build:bundle",
+    "build": "rm -rf dist && yarn build:bundle && yarn build:types",
     "build:bundle": "yarn esbuild src/index.ts --bundle --platform=node --target=node14 --outfile=dist/index.js --format=esm  --inject:./src/require_shim.js --sourcemap",
     "build:types": "tsc -p tsconfig.json --emitDeclarationOnly",
     "lint": "yarn eslint src/**/*.ts",
@@ -40,5 +40,5 @@
   "engines": {
     "node": "14.x"
   },
-  "gitHead": "f8f70f31a621121600a24aeb8f0d86b6d6f23731"
+  "gitHead": "90ca033cb51caf3821e248a99e0857a344b06154"
 }
