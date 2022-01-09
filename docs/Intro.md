@@ -4,6 +4,14 @@ slug: /
 
 # Introduction
 
+* Unapologitecally Web 2.0 framework for buildng back-ends and APIs
+* Designed for serverless deployments
+* You don't have to know any CloudFormation
+* Of the web: HTTP and WebSockets, REST resources, Fetch API, console.log, HTML forms
+* For the backend: routing, standard and FIFO job queues, scheduled jobs
+* Batteries included: logging, authentication, multipart/form-data, etc
+* TypeScript and JSX if you're so inclined
+
 ## Why QueueRun?
 
 Lambda has all the right building blocks — HTTP, WS, SQS, CloudWatch — but you drown in YAML trying to set it up. And the AWS APIs were not designed for JavaScript developers.
@@ -29,6 +37,10 @@ yarn add --dev queue-run
 ```
 
 Next we'll write a simple backend. Start with a resource for listing all bookmarks (GET) and creating a new bookmark (POST):
+
+:::tip
+You can also [clone the repo](https://github.com/assaf/queue-run) and look at the [packages/example](https://github.com/assaf/queue-run/tree/main/packages/example) directory.
+:::
 
 ```ts title="api/bookmarks.ts"
 import { inputs } from "./_middleware";
@@ -155,7 +167,9 @@ Let's run this backend using the development server:
 
 ```bash
 npx queue-run dev
-👋 Dev server listening on http://localhost:8000
+👋 Dev server listening on:
+   http://localhost:8000
+   ws://localhost:8001
 ```
 
 In another terminal window we're going to create a new bookmark, retrieve that bookmark, and list all the bookmarks:
@@ -166,3 +180,23 @@ curl http://localhost:8000/bookmarks -X POST \
 curl http://localhost:8000/bookmarks/74e83d43
 curl http://localhost:8000/bookmarks
 ```
+
+
+## Deploy To Production
+
+We'll start by initializing the project. You only need to do this once, when you start working on a new project (recommended) or before the first deploy.
+
+It will ask you a few question: project name, JavaScript or TypeScript, runtime. Then fill in any missing files.
+
+And then we deploy!
+
+```bash
+npx queue-run init
+npx queue-run deploy
+```
+
+You'll see the URL for your new backend. You can try and make HTTP requests against it, open WebSocket connection, etc.
+
+:::tip
+If you used [our example](https://github.com/assaf/queue-run/tree/main/packages/example), then you can open the URL in your browser, and it will show you `curl` commands for testing your the backend.
+:::

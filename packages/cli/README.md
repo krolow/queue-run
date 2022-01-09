@@ -16,4 +16,6 @@ Commands:
   build [options] [source]  Build the backend
   dev                       Run the development server
   help [command]            display help for command
- ```
+```
+
+When you run `npx queue-run` it installs this module locally. This module is larger, since it contains build and deploy code, runtimes, etc.
