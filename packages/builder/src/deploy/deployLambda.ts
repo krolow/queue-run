@@ -34,12 +34,6 @@ type BuildConfig = {
   //
   // If not specified, uses the template: wss://ws.queue.run
   ws?: string;
-
-  // ARNs for layers you want to include in the Lambda.
-  //
-  // The Runtime is included by default, but you can use this to choose a
-  // different version.
-  layerARNs?: string[];
 };
 
 const debug = debuglog("queue-run:deploy");
@@ -111,7 +105,6 @@ export default async function deployLambda({
     lambdaName,
     lambdaTimeout,
     lambdaRuntime,
-    layerARNs: config.layerARNs ?? [],
     zip,
   });
 

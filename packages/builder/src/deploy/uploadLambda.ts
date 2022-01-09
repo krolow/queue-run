@@ -12,14 +12,12 @@ export default async function uploadLambda({
   lambdaName,
   lambdaRuntime,
   lambdaTimeout,
-  layerARNs,
   zip,
 }: {
   envVars: Record<string, string>;
   lambdaName: string;
   lambdaTimeout: number;
   lambdaRuntime: string;
-  layerARNs: string[];
   zip: Uint8Array;
 }): Promise<string> {
   const lambda = new Lambda({});
@@ -32,7 +30,6 @@ export default async function uploadLambda({
     Role: await getLambdaRole({ lambdaName }),
     Runtime: lambdaRuntime,
     Timeout: lambdaTimeout,
-    Layers: layerARNs,
     TracingConfig: { Mode: "Active" },
   };
 

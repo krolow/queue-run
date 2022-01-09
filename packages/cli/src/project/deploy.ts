@@ -2,7 +2,6 @@ import chalk from "chalk";
 import { Command } from "commander";
 import {
   deployLambda,
-  deployRuntimeLayer,
   setupAPIGateway,
   setupIntegrations,
 } from "queue-run-builder";
@@ -21,15 +20,9 @@ const command = new Command("deploy")
     else throw new Error(`Unsupported runtime: ${runtime}`);
   });
 
-command
-  .command("runtime-lambda", { hidden: true })
-  .description("Deploy the Lambda runtime layer")
-  .action(async () => await deployRuntimeLayer(true));
-
 export default command;
 
 async function deployRuntimeLambda({ name }: { name: string }) {
-  await deployRuntimeLayer();
   const { http, ws } = await setupAPIGateway(name);
   const lambdaARN = await deployLambda({
     buildDir: ".queue-run",
