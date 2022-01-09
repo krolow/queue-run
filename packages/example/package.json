@@ -7,6 +7,9 @@
     "deploy": "queue-run deploy",
     "lint": "eslint **/*.{ts,tsx}"
   },
+  "peerDependencies": {
+    "queue-run": "^3.0.0"
+  },
   "engines": {
     "node": "14.x"
   }
