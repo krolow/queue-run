@@ -24,6 +24,11 @@ function addChildren(element: XMLElement, children: any) {
   } else if (typeof children === "object") {
     const { type, props } = children;
     switch (type) {
+      case 1: {
+        // XMLElement
+        element.children.push(children);
+        break;
+      }
       case Fragment: {
         for (const child of props.children) element.children.push(child);
         break;
