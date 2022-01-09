@@ -1,6 +1,6 @@
 {
   "name": "queue-run-lambda",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "module": "dist/index.mjs",
   "exports": {
     ".": "./dist/index.mjs"
@@ -19,7 +19,7 @@
   ],
   "devDependencies": {
     "@aws-sdk/client-sqs": "^3.46.0",
-    "queue-run": "^0.3.0",
+    "queue-run": "^0.4.0",
     "tiny-invariant": "^1.2.0"
   },
   "engines": {

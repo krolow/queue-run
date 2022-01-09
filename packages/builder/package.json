@@ -1,6 +1,6 @@
 {
   "name": "queue-run-builder",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
@@ -28,8 +28,8 @@
     "jszip": "^3.7.1",
     "node-abort-controller": "^3.0.1",
     "pirates": "^4.0.4",
-    "queue-run": "^0.3.0",
-    "queue-run-lambda": "^0.3.0",
+    "queue-run": "^0.4.0",
+    "queue-run-lambda": "^0.4.0",
     "tiny-invariant": "^1.2.0"
   },
   "devDependencies": {
