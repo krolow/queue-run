@@ -145,6 +145,52 @@ export async function post(request) {
 }
 ```
 
+
+## Logging Middleware
+
+Queues support the following middleware functions:
+
+- `onJobStarted(metadata)` — Called each time a job starts running
+- `onJobFinished(metadata)` — Called each time a job finishes running (except error/timeout)
+- `onError(error, metadata)` — Called when job processing fails with an error (including timeout)
+
+The default middleware logs the job when it starts running, finishes, or any error.
+
+You can change the middleware for a given queue by exporting a function with any of these names, or `null` to disable the middleware.
+
+You can use the same middleware across all queues by exporting it from `queues/_middleware.ts`.
+
+Your middleware can wrap the default middleware.
+
+For example:
+
+```ts title=queues/_middleware.js
+// We're going to use the default middleware for logging
+import {
+  logJobStarted,
+  logJobFinished,
+  logError
+} from 'queue-run';
+// And count running/failed jobs
+import { metrics } from 'metrics';
+
+export async function onJobStarted(metadata) {
+  await logJobStarted(metadata);
+  await metrics.increment(`jobs.${metadata.queueName}`);
+}
+
+export async function onJobFinished(metadata) {
+  await logJobFinished(metadata);
+  await metrics.decrement(`jobs.${metadata.queueName}`);
+}
+
+export async function onError(error, metadata) {
+  await logError(error, metadata);
+  await metrics.increment(`errors.${metadata.queueName}`);
+}
+```
+
+
 ## Failure and Retries
 
 **TBD**
