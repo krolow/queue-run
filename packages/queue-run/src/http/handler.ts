@@ -10,6 +10,7 @@ import {
   withLocalStorage,
 } from "../shared/index.js";
 import {
+  AuthenticatedUser,
   RequestHandler,
   RouteConfig,
   RouteExports,
@@ -212,20 +213,16 @@ async function runWithMiddleware({
   middleware: RouteMiddleware;
   request: Request;
 }): Promise<Response> {
-  const { authenticate, onRequest } = middleware;
   try {
+    const { onRequest } = middleware;
     if (onRequest) await onRequest(request);
 
-    const user = authenticate
-      ? await authenticate(request, metadata.cookies)
-      : null;
-    if (authenticate && !user?.id) {
-      console.error(
-        chalk.bold.red("Authenticate function returned an invalid user object"),
-        filename
-      );
-      throw new Response("Forbidden", { status: 403 });
-    }
+    const user = await getAuthenticatedUser({
+      cookies: metadata.cookies,
+      filename,
+      middleware,
+      request,
+    });
     getLocalStorage().user = user;
 
     const result = await handler({ ...metadata, request, user });
@@ -240,6 +237,30 @@ async function runWithMiddleware({
   } catch (error) {
     return await handleOnError({ filename, middleware, request, error });
   }
+}
+
+async function getAuthenticatedUser({
+  cookies,
+  filename,
+  middleware,
+  request,
+}: {
+  cookies: { [key: string]: string };
+  filename: string;
+  middleware: RouteMiddleware;
+  request: Request;
+}): Promise<AuthenticatedUser | null> {
+  const { authenticate } = middleware;
+  if (!authenticate) return null;
+  const user = await authenticate(request, cookies);
+  if (user === null || user?.id) return user;
+
+  const concern =
+    user === undefined
+      ? 'Authenticate function returned "undefined", was this intentional?'
+      : "Authenticate function returned user object without an ID";
+  console.error(chalk.bold.red(concern), filename);
+  throw new Response("Forbidden", { status: 403 });
 }
 
 // Convert whatever the request handler returns to a proper Response object
