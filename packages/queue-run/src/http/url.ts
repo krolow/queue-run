@@ -13,6 +13,11 @@ interface URLFunction<P = Params, Q = Params> {
    * Returns URL for the given path by expanding path parameters and adding
    * query string parameters.
    *
+   * @param path String or URL object
+   * @param params Path parameters (optional)
+   * @param params Path parameters (optional)
+   * @returns Absolute URL
+   *
    * ```
    * url('/bookmarks/:id', { id: '123' })
    * => https://example.com/bookmarks/123
@@ -21,9 +26,8 @@ interface URLFunction<P = Params, Q = Params> {
    * => https://example.com/bookmarks?sort=date
    * ```
    *
-   * You can call this with a path or URL object. Relative paths are expanded to
-   * absolute paths. file: paths also work so long as they point inside the
-   * project.
+   * @note Relative paths are expanded to absolute paths. `file:` paths
+   * accepted, so long as the file is a request handler.
    */
   (path: string | URL, params?: P, query?: Q): string;
 
@@ -31,6 +35,9 @@ interface URLFunction<P = Params, Q = Params> {
    * Returns URL constructor function for the given path.
    *
    * `url.for(path)(params, query)` is equivalent to `url(path, params, query)`.
+   *
+   * @param path String or URL object
+   * @returns URL constructor function
    */
   for<P = Params, Q = Params>(path: string | URL): URLConstructor<P, Q>;
 
@@ -38,6 +45,9 @@ interface URLFunction<P = Params, Q = Params> {
    * Returns URL constructor function for this module.
    *
    * Shortcut for `url.for(import.meta.url)`.
+   *
+   * @returns URL constructor function
+   * @throws Called not from within a request handler
    */
   self<P = Params, Q = Params>(): URLConstructor<P, Q>;
 }
@@ -45,6 +55,10 @@ interface URLFunction<P = Params, Q = Params> {
 interface URLConstructor<P = Params, Q = Params> {
   /**
    * Returns URL by expanding path parameters and adding
+   *
+   * @param params Path parameters (optional)
+   * @param params Path parameters (optional)
+   * @returns Absolute URL
    *
    * ```
    * myURL({ id: '123' })

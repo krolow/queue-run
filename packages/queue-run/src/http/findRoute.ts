@@ -10,11 +10,18 @@ import { RouteExports, RouteMiddleware } from "./exports.js";
 import { Response } from "./fetch.js";
 import { logResponse } from "./middleware.js";
 
+/**
+ * Load the route handlr for the given URL.
+ *
+ * @param url Request URL
+ * @returns module All exports from the JavaScript module
+ * @returns middleware Combined middleware from module, _middleware.ts, or default middleware
+ * @returns params Named path parameters
+ * @returns route The HTTP route configuration
+ */
 export default async function findRoute(url: string): Promise<{
   module: RouteExports;
-  // Combined middleware for this route (includes exports from module)
   middleware: RouteMiddleware;
-  // Parameters from the URL path
   params: { [key: string]: string | string[] };
   route: HTTPRoute;
 }> {

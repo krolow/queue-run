@@ -5,6 +5,17 @@ import { URLSearchParams } from "url";
 import { Request, Response } from "./fetch.js";
 export { Blob, File };
 
+/**
+ * Handle HTML forms: multipart/form-data and application/x-www-form-urlencoded,
+ *
+ * Form data is name/value pairs. If a name appears multiple times in the form,
+ * the value is an array.
+ *
+ * Regular forms only support strings. Multipart forms can contain files as well.
+ *
+ * @param request The HTTP request
+ * @returns Form data
+ */
 export default async function form<
   T extends {
     [key: string]: string | File | (string | File)[];

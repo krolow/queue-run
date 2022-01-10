@@ -85,7 +85,7 @@ export type JobMetadata<P = Params> = {
  */
 export type QueueConfig = {
   /**
-   * Timeout for processing message in seconds
+   * Timeout for processing the job (in seconds)
    *
    * @default 30 seconds
    */
