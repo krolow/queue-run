@@ -9,12 +9,48 @@ type Params = {
 
 /* eslint-disable no-unused-vars */
 interface URLFunction<P = Params, Q = Params> {
+  /**
+   * Returns URL for the given path by expanding path parameters and adding
+   * query string parameters.
+   *
+   * ```
+   * url('/bookmarks/:id', { id: '123' })
+   * => https://example.com/bookmarks/123
+   *
+   * url('/bookmarks', null, { sort: 'date' })
+   * => https://example.com/bookmarks?sort=date
+   * ```
+   *
+   * You can call this with a path or URL object. Relative paths are expanded to
+   * absolute paths. file: paths also work so long as they point inside the
+   * project.
+   */
   (path: string | URL, params?: P, query?: Q): string;
+
+  /**
+   * Returns URL constructor function for the given path.
+   *
+   * `url.for(path)(params, query)` is equivalent to `url(path, params, query)`.
+   */
   for<P = Params, Q = Params>(path: string | URL): URLConstructor<P, Q>;
+
+  /**
+   * Returns URL constructor function for this module.
+   *
+   * Shortcut for `url.for(import.meta.url)`.
+   */
   self<P = Params, Q = Params>(): URLConstructor<P, Q>;
 }
 
 interface URLConstructor<P = Params, Q = Params> {
+  /**
+   * Returns URL by expanding path parameters and adding
+   *
+   * ```
+   * myURL({ id: '123' })
+   * => https://example.com/bookmarks/123
+   * ```
+   */
   (params?: P, query?: Q): string;
 }
 /* eslint-enable no-unused-vars */

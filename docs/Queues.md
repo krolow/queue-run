@@ -15,8 +15,6 @@ The `queues(name)` function gives you access to the named queue.
 Each queue has a `push(payload)` method for queuing a job. You can queue an
 object, a string, or a Buffer. The payload cannot be an empty string/buffer.
 
-If you queue an object, the object is serialized to JSON. Some values will convert to strings. For example, `Date` objects are stored as the ISO 8601 string. Circular references will cause an error.
-
 If you use a FIFO queue, you must set the group ID before queuing a job. You can
 also set the deduplication ID. If you don't set the deduplication ID, it's
 calculated from the payload.
@@ -27,13 +25,19 @@ import { queues } from 'queue-run';
 const job1 = await queues('tasks').push(task);
 
 const job2 = await queues('profile.fifo')
-  .group(userID).push(profile);
+  .group(userID)
+  .push(profile);
 
 const job3 = await queues('payment.fifo')
   .group(accountID)
   .dedupe(transactionID)
   .push(amount);
 ```
+
+:::info JSON Serialization
+
+If you queue an object, the object is serialized to JSON. Some values will convert to strings. For example, `Date` objects turn into strings. Circular references will cause an error.
+:::
 
 ## queues.self()
 
@@ -48,15 +52,17 @@ export default async function(task) {
   ...
 }
 
+// highlight-next-line
 export const queue = queues.self();
 ```
 
 ```js title="api/tasks.js"
-import { queue } from '../queues/tasks';
+import { queue as tasks } from '~/queues/tasks.js';
 
 export async function post(request) {
-  ...
-  await queue.push(task);
+  const task = await request.json();
+  // highlight-next-line
+  await tasks.push(task);
   return new Response(null, { status: 202 });
 }
 ```
@@ -65,25 +71,42 @@ export async function post(request) {
 
 You can export a queue as an HTTP POST method.
 
-The queue will accept JSON documents (`application/json`), HTML forms (`application/x-www-form-urlencode` or `multipart/form-data`), and plain text (`text/plain`). You can limit accepted content types using `config.accepts`;
+The queue will accept JSON documents (`application/json`), HTML forms (`application/x-www-form-urlencode` or `multipart/form-data`), and plain text (`text/plain`).
 
 It will respond with status code 202 (Accepted) and the header `X-Job-ID` with the job ID.
 
-For FIFO queues, the route must include the `[group]` named parameter, which captures the group ID. It may also include the `[dedupe]` named parameter, if you want to set the deduplication ID. All named parameters will be available to the queue handler in the second argument.
+For FIFO queues, the route must include the `[group]` named parameter, which captures the group ID. It may also include the `[dedupe]` named parameter, if you want to set the deduplication ID.
 
-If the API is authenticated, the queue handler will receive the user ID in the second argument.
+The queue handler will be called with the parsed HTTP request, and in the second argument:
+
+- `params` — any parameters from the URL path
+- `user.id` — user ID, if the request was authenticated
 
 For example:
 
-```js title="api/tasks.js"
+```ts title=api/tasks.ts
+import { queue as updates } from '~/queues/update.js';
 import { queues } from 'queue-run';
 
-export const post = queues.get('tasks').http;
+export const post = updates.http;
 
+// We only care about JSON and HTML forms
 export const config = {
-  accepts: 'application/json'
+  accepts: ['application/json', 'application/x-www-form-urlencode']
 }
 ```
+
+```ts title=queues/update.ts
+import { queues } from 'queue-run';
+
+export default async function(payload: object, { user }) {
+  console.info("Authenticated user ID: %s", user.id)
+  console.info("Payload object: %o", payload);
+}
+
+export const queue = queues.self();
+```
+
 
 ## Using TypeScript
 
@@ -101,9 +124,12 @@ export type Task = {
 };
 
 export default async function(task: Task) {
-  ...
+  // Payload is typed
+  // highlight-next-line
+  console.log("Task id: %s", task.id);
 }
 
+// highlight-next-line
 export const queue = queues.self<Task>();
 ```
 
@@ -112,11 +138,9 @@ import { queue, Task } from '../queues/tasks';
 
 export async function post(request) {
   ...
-  const task : Task = {
-    ...
-  };
   // This checks the type of the payload.
-  await queue.push(task);
+  // highlight-next-line
+  await queue.push({ id, name, description });
   return new Response(null, { status: 202 });
 }
 ```

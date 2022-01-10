@@ -69,7 +69,7 @@ url('/post/[...slug]', { slug: ['2021', '12', '28', 'my-post'] })
 => https://example.queue.run/post/2021/12/28/my-post
 ```
 
-:::info
+:::note
 
 You can also use `url()` with an absolute URL, a [URL](https://developer.mozilla.org/en-US/docs/Web/API/URL) object, and even a `file://` URL.
 :::

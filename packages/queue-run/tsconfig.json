@@ -1,6 +1,9 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
-  "compilerOptions": { "outDir": "dist" },
+  "compilerOptions": {
+    "outDir": "dist",
+    "declarationMap": true
+  },
   "extends": "../../tsconfig.json",
   "include": ["src/**/*.ts"]
 }

@@ -51,4 +51,19 @@ export function jsx(type: string | Function, props: { [key: string]: any }) {
 
 export const Fragment = Symbol("Fragment");
 
+/**
+ * Use this to emit a CDATA section in XML.
+ *
+ * ```
+ * import { CDATA } from "queue-run";
+ *
+ * return (
+ *   <Code>
+ *    <CDATA>{code}</CDATA>
+ *  </Code>
+ * );
+ *
+ * => <Code><![CDATA[my code here]]></Code>
+ * ```
+ */
 export const CDATA = Symbol("CDATA");
