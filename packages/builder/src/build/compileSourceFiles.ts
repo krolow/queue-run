@@ -32,7 +32,7 @@ export default async function compileSourceFiles({
     cwd: sourceDir,
     onlyFiles: true,
     followSymbolicLinks: true,
-    ignore: [...ignore, "**/node_modules/**", "index.js", targetDir, "*.d.ts"],
+    ignore: [...ignore, "**/node_modules/**", targetDir, "*.d.ts"],
     markDirectories: true,
     unique: true,
   });

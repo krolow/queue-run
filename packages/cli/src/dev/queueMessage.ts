@@ -2,7 +2,7 @@ import chalk from "chalk";
 import fs from "fs/promises";
 import ora from "ora";
 import path from "path";
-import { loadManifest } from "queue-run";
+import { loadManifest, warmup } from "queue-run";
 import { buildProject } from "queue-run-builder";
 import readline from "readline";
 import DevLocalStorage from "./DevLocalStorage.js";
@@ -35,6 +35,7 @@ export default async function queueMessage(
   }
 
   const localStorage = new DevLocalStorage(port);
+  await warmup(localStorage);
   await localStorage.queueJob({
     groupID: group,
     payload,

@@ -10,14 +10,43 @@ The most noticeable issue is the warm up time. It needs at least 3 seconds to wa
 
 If you opted into provisioned concurrency, you will want to do warm up work before the request handler gets involved. For things like opening database connections, downloading dynamic resources and data, etc.
 
-You can use [top-level await](https://aws.amazon.com/blogs/compute/using-node-js-es-modules-and-top-level-await-in-aws-lambda/) for that.
+You can write that code in the module `warmup.ts`. For example:
 
-Your back-end will have multiple modules for all the routes, channels, queues, etc. QueueRun loads these modules on-demand, so you don't have to worry about that.
 
-Any warm-up code is shared across all invocations. You want the warm-up code to take care of any shared resources used by functions that need a fast response time. Typically things like authentication, often used API resources, and WebSockets.
+```ts title=warmup.ts
+import { Connection } from 'db';
+
+export const connection = new Connection(process.env.DB_URL);
+```
+
+```ts title=api/index.ts
+import { connection } from '../warmup.js';
+
+export async function get() {
+  const records = await connection.query('SELECT * FROM table');
+  return { records };
+}
+```
+
+This works because QueueRun loads `warmup` once, before handling any requests. This gives time for the database connection object to establish a TCP connection to the database server.
+
+If you want to be more specific, you can export a default function. For example:
+
+```ts title=warmup.ts
+import db from '~/lib/db.js';
+import type { Settings } from '~/lib/types.d.ts';
+
+export default async function() {
+  settings = await db.settings.find();
+}
+
+export let settings : Settings;
+```
 
 :::info Queues
 Typically you don't have to worry about the warm up time for queues, as queues are designed to offload work that takes longer than a few seconds.
+
+Warm up code should only be concerned with resources used by HTTP and WebSocket requests that need a fast response time.
 :::
 
 ## Lambda Concurrency
@@ -32,10 +61,9 @@ Also, if one request times out, the Lambda may start handling the next request. 
 Use the [abort signal](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal) to detect when your handler ran out of time.
 :::
 
-
 If your backend is mostly handling HTTP/WS requests, it may not benefit much from having a database connection pool, and you may get around with a single connection, or pool size of 1.
 
-OTOH it would open as many database connections as there are concurrent requests [^2]. Many database servers cannot manage multiple open connections, and you need to consider using a database proxy.
+OTOH it would open as many database connections as there are concurrent requests. Many database servers cannot manage multiple open connections, and you need to consider using a database proxy.
 
 :::info Reserved Concurrency
 [Reserved concurrency](https://docs.aws.amazon.com/lambda/latest/operatorguide/reserved-concurrency.html) can help limit the number of active instances, but you should still consider a database proxy.

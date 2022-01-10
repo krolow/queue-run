@@ -10,6 +10,7 @@ import {
   LocalStorage,
   Request,
   sockets,
+  warmup,
   withLocalStorage,
 } from "queue-run";
 import { buildProject } from "queue-run-builder";
@@ -85,15 +86,18 @@ function onFileChange(event: string, filename: string, port: number) {
 
 if (cluster.isWorker) {
   const port = Number(process.env.PORT);
+  const http = createServer().listen(port);
+  const ws = new WebSocketServer({ port: port + 1 });
+
   await buildProject({ buildDir, sourceDir });
-  process.send!("ready");
   process.chdir(buildDir);
+  await warmup(new DevLocalStorage(port));
 
-  createServer((req, res) =>
+  process.send!("ready");
+  http.on("request", (req, res) =>
     onRequest(req, res, () => new DevLocalStorage(port))
-  ).listen(port);
-
-  new WebSocketServer({ port: port + 1 }).on("connection", (ws, req) =>
+  );
+  ws.on("connection", (ws, req) =>
     onConnection(ws, req, () => new DevLocalStorage(port))
   );
 }

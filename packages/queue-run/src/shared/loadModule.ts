@@ -8,9 +8,7 @@ import path from "path";
 // - Load middleware and merge into module
 // - Compatible with dev server HMR
 export default async function loadModule<ModuleExports, Middleware>(
-  // The module name as route (not filename), eg "/api/project/[id]",
-  // "/queues/update_profile.fifo"
-  name: string,
+  filename: string,
   defaultMiddleware?: Middleware
 ): Promise<Readonly<{
   module: ModuleExports;
@@ -19,9 +17,14 @@ export default async function loadModule<ModuleExports, Middleware>(
   // Avoid path traversal. This will turn "foobar", "/foobar", and
   // "../../foobar" into "/foobar".  Also prevents us from loading
   // node modules.
-  const fromProjectRoot = path.join("/", name);
-  const filename = path.join(process.cwd(), fromProjectRoot);
-  const module = (await import(filename)) as ModuleExports;
+  const fromProjectRoot = path.join("/", filename);
+  const absolute = path.join(process.cwd(), fromProjectRoot);
+  try {
+    await fs.access(absolute);
+  } catch {
+    return null;
+  }
+  const module = (await import(absolute)) as ModuleExports;
   const middleware = await loadMiddleware<Middleware>(fromProjectRoot);
   return {
     // Route takes precendece over _middleware
@@ -38,16 +41,18 @@ export default async function loadModule<ModuleExports, Middleware>(
 // folders. For example, given the module name '/api/project/[id]/index.ts',
 // this will return the combined middleware from 'api/project'/[id]/_middleware.js', 'api/project/_middleware.js',
 // and 'api/_middleware.js'.
-async function loadMiddleware<Middleware>(name: string): Promise<Middleware[]> {
-  if (name === "/") return [];
-  const parent = await loadMiddleware<Middleware>(path.dirname(name));
-  const filename = path.join(process.cwd(), name, "_middleware");
+async function loadMiddleware<Middleware>(
+  dirname: string
+): Promise<Middleware[]> {
+  if (dirname === "/") return [];
+  const parent = await loadMiddleware<Middleware>(path.dirname(dirname));
+  const absolute = path.join(process.cwd(), dirname, "_middleware.js");
   try {
-    await fs.access(filename);
+    await fs.access(absolute);
   } catch {
     return parent;
   }
-  const exports = await import(filename);
+  const exports = await import(absolute);
   // This middleware's exports take precendece over parent's
   return [exports, ...parent];
 }

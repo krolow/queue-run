@@ -1,5 +1,5 @@
 import { SQS } from "@aws-sdk/client-sqs";
-import { LocalStorage } from "queue-run";
+import { LocalStorage, warmup } from "queue-run";
 import swapAWSEnvVars from "./environment";
 import handleHTTPRequest, {
   APIGatewayHTTPEvent,
@@ -17,6 +17,38 @@ import queueJob from "./queueJob";
 
 const { slug, region, ...clientConfig } = swapAWSEnvVars();
 
+const sqs = new SQS({ ...clientConfig, region });
+const urls = {
+  http: process.env.QUEUE_RUN_URL!,
+  ws: process.env.QUEUE_RUN_WS!,
+};
+
+class LambdaLocalStorage extends LocalStorage {
+  private sqs: SQS;
+
+  constructor({ sqs, urls }: { sqs: SQS; urls: { http: string; ws: string } }) {
+    super({ urls });
+    this.sqs = sqs;
+  }
+
+  queueJob(args: Parameters<LocalStorage["queueJob"]>[0]) {
+    const { dedupeID, groupID, params, payload, queueName, user } = args;
+    return queueJob({
+      dedupeID,
+      groupID,
+      params,
+      payload,
+      queueName,
+      sqs: this.sqs,
+      slug,
+      user: user === undefined ? this.user : user,
+    });
+  }
+}
+
+// Top-level await: this only makes a difference if you user provisioned concurrency
+await warmup(new LambdaLocalStorage({ sqs, urls }));
+
 // Entry point for AWS Lambda
 export async function handler(
   event: LambdaEvent,
@@ -24,11 +56,6 @@ export async function handler(
 ): Promise<APIGatewayResponse | SQSBatchResponse> {
   console.info({ event, context });
 
-  const sqs = new SQS({ ...clientConfig, region });
-  const urls = {
-    http: process.env.QUEUE_RUN_URL!,
-    ws: process.env.QUEUE_RUN_WS!,
-  };
   const newLocalStorage = () => new LambdaLocalStorage({ sqs, urls });
 
   if ("requestContext" in event) {
@@ -58,29 +85,6 @@ export async function handler(
       sqs,
     });
   } else throw new Error("Unknown event type");
-}
-
-class LambdaLocalStorage extends LocalStorage {
-  private sqs: SQS;
-
-  constructor({ sqs, urls }: { sqs: SQS; urls: { http: string; ws: string } }) {
-    super({ urls });
-    this.sqs = sqs;
-  }
-
-  queueJob(args: Parameters<LocalStorage["queueJob"]>[0]) {
-    const { dedupeID, groupID, params, payload, queueName, user } = args;
-    return queueJob({
-      dedupeID,
-      groupID,
-      params,
-      payload,
-      queueName,
-      sqs: this.sqs,
-      slug,
-      user: user === undefined ? this.user : user,
-    });
-  }
 }
 
 type LambdaEvent =
