@@ -9,11 +9,7 @@ import {
   logError,
   withLocalStorage,
 } from "../shared/index.js";
-import {
-  QueueExports,
-  QueueHandlerMetadata,
-  QueueMiddleware,
-} from "./exports.js";
+import { JobMetadata, QueueExports, QueueMiddleware } from "./exports.js";
 import { logJobFinished, logJobStarted } from "./middleware.js";
 
 export default async function handleQueuedJob({
@@ -23,7 +19,7 @@ export default async function handleQueuedJob({
   queueName,
   remainingTime,
 }: {
-  metadata: Omit<QueueHandlerMetadata, "signal">;
+  metadata: Omit<JobMetadata, "signal">;
   newLocalStorage: () => LocalStorage;
   payload: string | Buffer | object;
   queueName: string;
@@ -109,7 +105,7 @@ async function runWithMiddleware({
   newLocalStorage,
   payload,
 }: {
-  metadata: QueueHandlerMetadata;
+  metadata: JobMetadata;
   middleware: QueueMiddleware;
   module: QueueExports;
   newLocalStorage: () => LocalStorage;

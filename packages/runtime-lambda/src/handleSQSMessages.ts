@@ -212,7 +212,7 @@ function getMetadata(
     params,
     queueName: getQueueName(message),
     receivedCount: +attributes.ApproximateReceiveCount,
-    sentAt: new Date(+attributes.SentTimestamp),
+    queuedAt: new Date(+attributes.SentTimestamp),
     sequenceNumber: attributes.SequenceNumber
       ? +attributes.SequenceNumber
       : undefined,

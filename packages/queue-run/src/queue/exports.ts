@@ -2,27 +2,33 @@
 import type { AbortSignal } from "node-abort-controller";
 import { OnError } from "../shared/index.js";
 
-// Queue job handler.
-//
-// The first argument is the job.  The second argument includes message ID,
-// URL parameters, user (if authenticated), abort signal, etc.
-//
-// When using TypeScript, you can type the request object:
-//
-// export default async function <Payload, { id: string }>(payload, { params }) {
-//   // payload has type Payload
-//   const id = params.id;
-//   // id has type string
-//   . . .
-// }
+/**
+ * Queued job handler.
+ *
+ * When using TypeScript, you can type the request object:
+ *
+ * ```
+ * const handler : QueueHandler<{ id: string; amount: number }> = (payload) => {
+ *   console.log("Payload: %s %n", payload.id, payload.amount);
+ * };
+ *
+ * export default handler;
+ * ```
+ *
+ * @param payload The job payload: object, string, or Buffer
+ * @param metadata Metadata about the job
+ */
 export type QueueHandler<T = Payload, P = Params> = (
   payload: T,
-  metadata: QueueHandlerMetadata<P>
+  metadata: JobMetadata<P>
 ) => Promise<void> | void;
 
-// FIFO queue handler will always have group ID and sequence number.
+/**
+ * FIFO queue handler is similar to standard queue handler, but also has
+ * access to group ID and sequence number.
+ */
 export type FIFOQueueHandler<T, P> = QueueHandler<T, P> & {
-  metadata: QueueHandlerMetadata<P & { group: string; dedupe?: string }> & {
+  metadata: JobMetadata<P & { group: string; dedupe?: string }> & {
     groupID: string;
     sequenceNumber: number;
   };
@@ -31,48 +37,87 @@ export type FIFOQueueHandler<T, P> = QueueHandler<T, P> & {
 type Payload = string | Buffer | object;
 type Params = { [key: string]: string | string[] };
 
-export type QueueHandlerMetadata<P = Params> = {
-  // Group ID (FIFO queue only)
+/**
+ * Job metadata.
+ */
+export type JobMetadata<P = Params> = {
+  /**
+   * The group ID. (FIFO queues only)
+   */
   groupID: string | undefined;
-  // The queue name
+  /**
+   * The queue name.
+   */
   queueName: string;
-  // Unique job ID
+  /**
+   * The job ID. (Unique for your project)
+   */
   jobID: string;
-  // Parameters from the request URL, eg /project/:projectId will have the parameter `projectId`
+  /**
+   * Path parameters from the request URL.
+   */
   params: P;
-  // Number of times message was received
+  /**
+   * Approximate number of times this job was received from the queue for
+   * processing.
+   */
   receivedCount: number;
-  // Timestamp when message was sent
-  sentAt: Date;
-  // Sequence number (FIFO queue only)
+  /**
+   * Time this job was queued.
+   */
+  queuedAt: Date;
+  /**
+   * The sequence number of this job within the group. (FIFO queues only)
+   */
   sequenceNumber: number | undefined;
-  // Notified when reached timeout, message will be rejected
+  /**
+   * Abort signal notified when the job is aborted due to a timeout.
+   */
   signal: AbortSignal;
-  // If authenticted, the user ID
+  /**
+   * If authenticated, this object has the user ID.
+   */
   user: { id: string } | null;
 };
 
-// You can export this to control some aspects of the processing.
-//
-// export const config = {
-//   timeout: 60
-// };
+/**
+ * Export config object to control various aspects of job handling.
+ */
 export type QueueConfig = {
-  // Timeout for processing message in seconds. Defaults to 30.
+  /**
+   * Timeout for processing message in seconds
+   *
+   * @default 30 seconds
+   */
   timeout?: number;
 };
 
-export type OnJobStarted = (job: QueueHandlerMetadata) => Promise<void> | void;
-export type OnJobFinished = (job: QueueHandlerMetadata) => Promise<void> | void;
+/**
+ * Middleware that's called any time a job starts running.
+ *
+ * @param job The job metadata
+ */
+export type OnJobStarted = (job: JobMetadata) => Promise<void> | void;
 
-// Queue middleware.
+/**
+ * Middleware that's called any time a job finishes running successfully.
+ *
+ * @param job The job metadata
+ */
+export type OnJobFinished = (job: JobMetadata) => Promise<void> | void;
+
+/**
+ * Middleware exported from the queue module, or queues/_middleware.ts.
+ */
 export type QueueMiddleware = {
   onError?: OnError | null;
   onJobFinished?: OnJobFinished | null;
   onJobStarted?: OnJobStarted | null;
 };
 
-// All of these can be exported from the module.  The default export is required.
+/**
+ * Exported from the queue module.
+ */
 export type QueueExports = {
   default: QueueHandler;
   config?: QueueConfig;

@@ -1,12 +1,19 @@
 import fs from "fs/promises";
 import path from "path";
 
-// Use this for loading backend functions on demand:
-//
-// - Load module on-demand
-// - Return null if module is not found
-// - Load middleware and merge into module
-// - Compatible with dev server HMR
+/**
+ * Loads backend functions on demand.
+ *
+ * This will merge middleware in the following order:
+ * - The module itself
+ * - _middleware.ts file in the current directory
+ * - _middleware.ts file in the parent directory (recursively)
+ * - Default middelware (second argument)
+ *
+ * @param filename The function's filename
+ * @param defaultMiddleware Default middleware, if applicable
+ * @returns The module (exported values) and middleware
+ */
 export default async function loadModule<ModuleExports, Middleware>(
   filename: string,
   defaultMiddleware?: Middleware
@@ -15,8 +22,7 @@ export default async function loadModule<ModuleExports, Middleware>(
   middleware: Middleware;
 }> | null> {
   // Avoid path traversal. This will turn "foobar", "/foobar", and
-  // "../../foobar" into "/foobar".  Also prevents us from loading
-  // node modules.
+  // "../../foobar" into "/foobar".  Also prevents us from loading node modules.
   const fromProjectRoot = path.join("/", filename);
   const absolute = path.join(process.cwd(), fromProjectRoot);
   try {
@@ -37,10 +43,13 @@ export default async function loadModule<ModuleExports, Middleware>(
   };
 }
 
-// Given a path, returns the combined middleware for that folder and all parent
-// folders. For example, given the module name '/api/project/[id]/index.ts',
-// this will return the combined middleware from 'api/project'/[id]/_middleware.js', 'api/project/_middleware.js',
-// and 'api/_middleware.js'.
+/**
+ * Given a path, returns the combined middleware for that folder and all parent
+ * folders. For example, given the module name '/api/project/[id]/index.ts',
+ * this will return the combined middleware from
+ * 'api/project'/[id]/_middleware.js', 'api/project/_middleware.js', and
+ * 'api/_middleware.js'.
+ */
 async function loadMiddleware<Middleware>(
   dirname: string
 ): Promise<Middleware[]> {

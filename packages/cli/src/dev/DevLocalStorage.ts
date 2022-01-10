@@ -69,7 +69,7 @@ export default class DevLocalStorage extends LocalStorage {
               params: serializedParams,
               queueName,
               receivedCount: 1,
-              sentAt: new Date(),
+              queuedAt: new Date(),
               sequenceNumber: 1,
               user: userID ? { id: userID } : null,
             },

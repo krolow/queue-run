@@ -1,15 +1,25 @@
-import { QueueHandlerMetadata } from "./exports.js";
+import { JobMetadata } from "./exports.js";
 
-export async function logJobStarted(job: QueueHandlerMetadata) {
+/**
+ * Default middleware that logs when a job starts running.
+ *
+ * @param job The job metadata
+ */
+export async function logJobStarted(job: JobMetadata) {
   console.info(
     'Job started: queue="%s" job="%s" received=%d seq=%s',
     job.queueName,
     job.jobID,
-    job.receivedCount,
+    job.processedCount,
     job.sequenceNumber ?? "--"
   );
 }
 
-export async function logJobFinished(job: QueueHandlerMetadata) {
+/**
+ * Default middleware that logs when a job finished running successfully.
+ *
+ * @param job The job metadata
+ */
+export async function logJobFinished(job: JobMetadata) {
   console.info('Job finished: queue="%s" job="%s"', job.queueName, job.jobID);
 }

@@ -15,11 +15,17 @@ interface QueuesFunction<T = Payload> {
    * ```
    * const queue = queues<{ id: string; amount: number }>('my-queue');
    * ```
+   *
+   * @param name The name of the queue
+   * @returns A queue
    */
   (name: string): QueueFunction<T>;
 
   /**
    * Returns a reference to the named queue.
+   *
+   * @param name The name of the queue
+   * @returns A queue
    */
   get: <T>(name: string) => QueueFunction<T>;
 
@@ -32,6 +38,9 @@ interface QueuesFunction<T = Payload> {
    * ```
    * const queue = queues.self<{ id: string; amount: number }>();
    * ```
+   *
+   * @returns A queue
+   * @throws Called not from within a queue handler
    */
   self: <T>() => QueueFunction<T>;
 }
@@ -53,9 +62,12 @@ export default queues;
 /* eslint-disable no-unused-vars */
 interface QueueFunction<T = Payload> {
   /**
-   * Push a job to the queue. Returns the job ID.
+   * Push a job to the queue.
    *
-   * Payload can be a string, object, or Buffer. Empty payloads are allowed.
+   * @param payload Object, string, or Buffer. Empty payloads not allowed.
+   * @returns The job ID
+   * @throws If the queue doesn't exist, payload is empty, or FIFO queue and no
+   * group ID set
    */
   (payload: T, params?: Params): Promise<string>;
 
@@ -64,6 +76,10 @@ interface QueueFunction<T = Payload> {
    *
    * FIFO queues allow you to set the deduplication ID for the job.  If absent,
    * the deduplication ID is a hash of the payload.
+   *
+   * @param id The deduplication ID
+   * @returns The queue with the deduplication ID set
+   * @throws If this is not a FIFO queue
    */
   dedupe: (id: string) => QueueFunction<T>;
 
@@ -80,6 +96,10 @@ interface QueueFunction<T = Payload> {
    * ```
    * await queues('update.fifo').group(accountId).push(data);
    * ```
+   *
+   * @param id The group ID
+   * @retun The queue with the group ID set
+   * @throws If this is not a FIFO queue
    */
   group: (id: string) => QueueFunction<T>;
 
@@ -96,6 +116,11 @@ interface QueueFunction<T = Payload> {
    * Push a job to the queue. Returns the job ID.
    *
    * Payload can be a string, object, or Buffer. Empty payloads are allowed.
+   *
+   * @param payload Object, string, or Buffer. Empty payloads not allowed.
+   * @returns The job ID
+   * @throws If the queue doesn't exist, payload is empty, or FIFO queue and no
+   * group ID set
    */
   push(payload: T, params?: Params): Promise<string>;
 
