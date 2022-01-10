@@ -39,8 +39,8 @@ declare these elements as constant first.
 ```tsx
 // Make Name available as JSX element
 const Name = "Name";
-// The XML element is "ns:prefix", the JSX name must be CamelCase
-const NSPrefix = "ns:prefix";
+// The XML element is "ns:Prefix", the JSX name must be CamelCase
+const NSPrefix = "ns:Prefix";
 
 return xml(
   <Record {{ 'ns:type': 'record' }}>
@@ -48,6 +48,14 @@ return xml(
     <NSPrefix>name:</NSPrefix>
   </Record>
 );
+```
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<Record ns:type="record">
+  <Name>itemName</Name>
+  <ns:Prefix>name:</ns:Prefix>
+</Record>
 ```
 
 You can also generate (X)HTML:
@@ -61,5 +69,6 @@ return (
     <body>
       👋 I may look like React, but I'm static HTML.
     </body>
-  </html>);
+  </html>
+);
 ```
