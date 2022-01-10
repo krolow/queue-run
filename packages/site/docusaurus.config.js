@@ -27,5 +27,8 @@ module.exports = {
       hideOnScroll: true,
       items: [{ to: "/", label: "Docs", position: "left" }],
     },
+    prism: {
+      theme: require("prism-react-renderer/themes/nightOwl"),
+    },
   },
 };
