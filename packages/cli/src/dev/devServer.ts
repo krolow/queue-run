@@ -19,7 +19,8 @@ import { WebSocket, WebSocketServer } from "ws";
 import DevLocalStorage from "./DevLocalStorage.js";
 import envVariables from "./envVariables.js";
 
-const semaphore = new Sema(1);
+// Make sure we're not building the project in parallel.
+const blockOnBuild = new Sema(1);
 
 const sourceDir = process.cwd();
 const buildDir = path.resolve(".queue-run");
@@ -56,7 +57,7 @@ export default async function devServer({ port }: { port: number }) {
 }
 
 async function newWorker(port: number) {
-  const token = await semaphore.acquire();
+  const token = await blockOnBuild.acquire();
 
   for (const worker of Object.values(cluster.workers!)) worker!.kill();
   const worker = cluster.fork({ PORT: port });
@@ -70,7 +71,7 @@ async function newWorker(port: number) {
       })
       .on("exit", () => resolve(undefined));
   });
-  semaphore.release(token);
+  blockOnBuild.release(token);
 }
 
 function onFileChange(event: string, filename: string, port: number) {
@@ -86,20 +87,23 @@ function onFileChange(event: string, filename: string, port: number) {
 
 if (cluster.isWorker) {
   const port = Number(process.env.PORT);
-  const http = createServer().listen(port);
-  const ws = new WebSocketServer({ port: port + 1 });
 
-  await buildProject({ buildDir, sourceDir });
-  process.chdir(buildDir);
-  await warmup(new DevLocalStorage(port));
+  const ready = (async () => {
+    await buildProject({ buildDir, sourceDir });
+    process.send!("ready");
 
-  process.send!("ready");
-  http.on("request", (req, res) =>
-    onRequest(req, res, () => new DevLocalStorage(port))
-  );
-  ws.on("connection", (ws, req) =>
-    onConnection(ws, req, () => new DevLocalStorage(port))
-  );
+    process.chdir(buildDir);
+    await warmup(new DevLocalStorage(port));
+  })();
+
+  createServer(async (req, res) => {
+    await ready;
+    onRequest(req, res, () => new DevLocalStorage(port));
+  }).listen(port);
+  new WebSocketServer({ port: port + 1 }).on("connection", async (ws, req) => {
+    await ready;
+    onConnection(ws, req, () => new DevLocalStorage(port));
+  });
 }
 
 async function onRequest(
