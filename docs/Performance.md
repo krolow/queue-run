@@ -34,8 +34,8 @@ This works because QueueRun loads `warmup` once, before handling any requests. T
 If you want to be more specific, you can export a default function. For example:
 
 ```ts title=warmup.ts
-import db from '~/lib/db.js';
-import type { Settings } from '~/lib/types.d.ts';
+import db from '~lib/db.js';
+import type { Settings } from '~lib/types.d.ts';
 
 export default async function warmup() {
   settings = await db.settings.find();

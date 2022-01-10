@@ -7,7 +7,6 @@
     "module": "esnext",
     "moduleResolution": "node",
     "noEmit": true,
-    "paths": { "~/*": ["./*"] },
     "resolveJsonModule": true,
     "strict": true,
     "target": "ES2020"

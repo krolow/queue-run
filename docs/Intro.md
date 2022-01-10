@@ -30,9 +30,11 @@ Stuff you need in every single project — logging, authentication, form handlin
 
 Let's install queue-run. We need the command line tool, and types library, so we'll install as dev dependency:
 
-```bash
+```bash title=npm
 npm install -D queue-run
-# or
+```
+
+```bash title=yarn
 yarn add --dev queue-run
 ```
 
@@ -42,11 +44,11 @@ Next we'll write a simple backend. Start with a resource for listing all bookmar
 You can also [clone the repo](https://github.com/assaf/queue-run) and look at the [packages/example](https://github.com/assaf/queue-run/tree/main/packages/example) directory.
 :::
 
-```ts
-import { inputs } from "./_middleware";
-import { queue as screenshots } from "~/queues/screenshots";
-import { urlForBookmark } from "./[id]";
-import * as db from "~/lib/db";
+```ts title=api/bookmarks.ts
+import { inputs } from "./_middleware.js";
+import { queue as screenshots } from "~queues/screenshots.js";
+import { urlForBookmark } from "./[id].js";
+import * as db from "~lib/db.js";
 import { Response } from "queue-run";
 
 // HTTP GET /bookmarks -> JSON
@@ -73,10 +75,10 @@ export async function post({ request, user }) {
 
 You can also fetch (GET), update (PUT), and delete (DELETE) an individual resource:
 
-```ts
-import { inputs } from "./_middleware";
+```ts title=api/bookmarks/[id].ts
+import { inputs } from "./_middleware.js";
 import { url, Response } from "queue-run";
-import * as db from "lib/db";
+import * as db from "~lib/db.js";
 
 // In Express this would be get('/bookmarks/:id')
 export async function get({ params, user }) {
@@ -114,7 +116,7 @@ export const urlForBookmark = url.self<{ id: string }>();
 
 We'll need some common middleware to authenticate requests, so we can tie them to a user, and to validate inputs for POST + PUT:
 
-```ts
+```ts title=api/_middleware.ts
 import { form, Response } from "queue-run";
 
 export async function authenticate(request) {
@@ -141,10 +143,10 @@ export async function inputs(request) {
 
 Our bookmarks service takes screenshots, and these could take several seconds, and even fail intermittently. We'll use a queue for that:
 
-```ts
+```ts title=queues/screenshots.ts
 import { queues } from "queue-run";
-import * as db from "~/lib/db";
-import capture from "~/lib/capture";
+import * as db from "~lib/db.js";
+import capture from "~lib/capture.js";
 
 export default async function ({ id }, { user }) {
   const bookmark = await db.findOne({ id, userID: user.id });
@@ -167,6 +169,9 @@ Let's run this backend using the development server:
 
 ```bash
 npx queue-run dev
+```
+
+```
 👋 Dev server listening on:
    http://localhost:8000
    ws://localhost:8001
@@ -177,7 +182,13 @@ In another terminal window we're going to create a new bookmark, retrieve that b
 ```bash
 curl http://localhost:8000/bookmarks -X POST \
   -F "title=My bookmark" -F "url=http://example.com"
+```
+
+```bash
 curl http://localhost:8000/bookmarks/74e83d43
+```
+
+```bash
 curl http://localhost:8000/bookmarks
 ```
 
@@ -191,6 +202,9 @@ And then we deploy!
 
 ```bash
 npx queue-run init
+```
+
+```bash
 npx queue-run deploy
 ```
 

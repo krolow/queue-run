@@ -77,12 +77,10 @@ function compileSource({
   const syntax = /\.tsx?$/.test(filename) ? "typescript" : "ecmascript";
   debug('Compiling "%s" (%s)', filename, syntax);
 
-  const rootDir = process.cwd();
   return swc.transformSync(source, {
     filename,
     isModule: true,
     jsc: {
-      paths: { "~/*": [path.join(rootDir, "*")] },
       parser: { syntax },
       target: jscTarget,
       transform: {

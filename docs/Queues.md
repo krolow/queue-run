@@ -57,7 +57,7 @@ export const queue = queues.self();
 ```
 
 ```js title="api/tasks.js"
-import { queue as tasks } from '~/queues/tasks.js';
+import { queue as tasks } from '~queues/tasks.js';
 
 export async function post(request) {
   const task = await request.json();
