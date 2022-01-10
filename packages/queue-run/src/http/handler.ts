@@ -287,6 +287,7 @@ async function resultToResponse({
     }
     return new Response(result.body, { headers, status });
   } else if (
+    result &&
     typeof result === "object" &&
     "documentObject" in result &&
     "parent" in result
@@ -310,12 +311,14 @@ async function resultToResponse({
     addCacheControl(headers, result, body);
     return new Response(JSON.stringify(result), { headers, status: 200 });
   } else {
-    console.warn(
-      chalk.yellow(
-        'No response returned from module "%s": is this intentional?'
-      ),
-      filename
-    );
+    // null => 204, but undefined is potentially an error
+    if (result === undefined)
+      console.warn(
+        chalk.yellow(
+          'No response returned from module "%s": is this intentional?'
+        ),
+        filename
+      );
     return new Response(undefined, { headers: corsHeaders ?? {}, status: 204 });
   }
 }

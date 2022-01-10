@@ -27,7 +27,7 @@ export type RequestHandler<
   user: { id: string; [key: string]: unknown } | null;
 }) => Promise<Result> | Result;
 
-type Result = Response | string | Buffer | object;
+type Result = Response | string | Buffer | object | null;
 
 /**
  * Export config object to control various aspects of request handling.

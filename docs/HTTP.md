@@ -39,14 +39,18 @@ They take a single argument with named parameters:
 
 Request handler can return:
 
-- Object (not string or buffer), will respond with a JSON document (`application/json`)
-- String or buffer, will respond with content type `text/plain`
-- [`Response`](https://developer.mozilla.org/en-US/docs/Web/API/Response) with whatever body, headers, and status code
-- `null` or `undefined` will respond with 204 No Content, but this is potentially an error, so will be logged as well
+- `Object` — (not string or buffer) Respond with a JSON document (`application/json`)
+- [`Response`](https://developer.mozilla.org/en-US/docs/Web/API/Response) — The HTTP response
+- `String` — Respond with content type `text/plain`, UTF-8 encoded
+- `Buffer` — Respond with content type `application/octet-stream`
+- `JSX` — Response with content type `text/html` or `application/xml` (see [Generating XML](XML))
+- `null` — Respond with 204 No Content
 
-The request handler can throw a `Response` object. This is useful for breaking early with a 4xx status code. For example, authentication middleware makes use of this to respond with 401/403.
+The request handler can also throw a `Response` object. That response is returned to the client.
 
-If the request handler throws any other error, the server responds with 500.
+This is not an error, but a useful mechanism for breaking early from request handling. For example, [authentication](Authenticate) uses this effectively.
+
+If the request handler throws any other error, the server responds with 500. That error is also logged, see [Logging Middleware](#logging-middleware).
 
 ## HTTP methods
 
@@ -66,16 +70,16 @@ export async function get({ params }) {
 export async function put({ params, request }) {
   const item = await db.findOne(params.id);
   if (!item) throw new Response(null, { status: 400 });
+
   const fields = await request.json();
   return await db.update({ id: params.id, ...fields });
-  return item;
 }
 
 // HTTP DELETE, since "delete" is a keyword in JavaScript,
 // we shortern to "del"
 export async function del({ params }) {
   await db.remove(params.id);
-  return new Response(null, { status: 204 });
+  return null;
 }
 ```
 
@@ -234,3 +238,5 @@ export const config =  {
   etag: (task) => task.version
 };
 ```
+
+## Logging Middleware
