@@ -273,13 +273,17 @@ async function resultToResponse({
     const { body, headers } = xml(result as XMLElement, corsHeaders);
     addCacheControl(headers, result, body);
     return new Response(body, { headers, status: 200 });
-  } else if (typeof result === "string" || Buffer.isBuffer(result)) {
-    const body = typeof result === "string" ? result : result.toString("utf-8");
+  } else if (typeof result === "string") {
     const headers = new Headers(corsHeaders);
     // eslint-disable-next-line sonarjs/no-duplicate-string
     headers.set("Content-Type", "text/plain; charset=utf-8");
-    addCacheControl(headers, result, body);
-    return new Response(body, { headers, status: 200 });
+    addCacheControl(headers, result, result);
+    return new Response(result, { headers, status: 200 });
+  } else if (Buffer.isBuffer(result)) {
+    const headers = new Headers(corsHeaders);
+    headers.set("Content-Type", "application/octet-stream");
+    addCacheControl(headers, result, result);
+    return new Response(result, { headers, status: 200 });
   } else if (result) {
     const { body, headers } = json(result, corsHeaders);
     addCacheControl(headers, result, body);

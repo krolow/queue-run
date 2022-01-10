@@ -1,6 +1,12 @@
 import { URL } from "url";
 import { Request, Response } from "./fetch.js";
 
+/**
+ * Default middleware for HTTP routes logs the response.
+ *
+ * @param request HTTP request object
+ * @param response HTTP response object
+ */
 export async function logResponse(request: Request, response: Response) {
   console.info(
     '"%s %s" %s %d "%s" "%s"',
