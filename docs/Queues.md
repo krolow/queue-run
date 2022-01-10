@@ -156,7 +156,7 @@ Queues support the following middleware functions:
 
 The default middleware logs the job when it starts running, finishes, or any error.
 
-You can change the middleware for a given queue by exporting a function with any of these names, or `null` to disable the middleware.
+You can change the middleware for a given queue by exporting functions with any of these names, or `null` to disable the middleware.
 
 You can use the same middleware across all queues by exporting it from `queues/_middleware.ts`.
 

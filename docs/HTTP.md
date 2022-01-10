@@ -85,12 +85,13 @@ export async function del({ params }) {
 
 You should know:
 
-* The route will only accept method explicitly exported, and respond with 405 (Method Not Allowed) to all other requests
-* `delete` is a reserved keyword in JavaScript, so shorten it to `del`
-* For HEAD requests, if there's no `head` function, it will use the `get` function instead
+* This route will only accept method explicitly exported, and respond with 405 (Method Not Allowed) to all other requests
+* For HEAD requests, since there's no `head` function, it will use the `get` function instead
 * For OPTIONS requests, `Access-Control-Allow-Methods` will list allowed methods
-* If you want to handle the OPTIONS request yourself, you need to turn off CORS (`config.cors`)
-* You cannot use `config.methods` in this configuration
+
+:::info delete => del
+`delete` is a reserved keyword in JavaScript, so use `del` to export the HTTP DELETE method handler.
+:::
 
 You can handle all methods from the default export:
 
@@ -122,11 +123,22 @@ export const config = {
 };
 ```
 
+:::info OPTIONS
+If you want to handle the OPTIONS request yourself, you need to turn off CORS:
+
+```ts
+export const config = { cors: false };
+```
+:::
+
+
 ## Content types
 
-A typical API would be JSON all the way and not care much about checking and negotiating content type.
+A typical API would be JSON all the way and not care much about checking and negotiating content types.
 
-The [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) makes it really easy to parse JSON requests. QueueRun will accept any object you return and convert it into a JSON response for you.
+The [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) makes it really easy to parse JSON requests.
+
+For responses, any object you return, will be turned into a JSON document.
 
 So the common use case is as simple as:
 
@@ -136,32 +148,35 @@ export async function post({ request }) {
   return { message };
 }
 
-// curl http://localhost:8000/ -d '{ "message": "Hi" }'
-// {"messge":"Hi"}
+curl http://localhost:8000/ -d '{ "message": "Hi" }'
+=> {"messge":"Hi"}
 ```
 
-If the response is any other media type, you can get it as raw buffer (`response.arrayBuffer()`) or plain text (`response.text()`).
+To handle other media types, you can get the raw buffer (`response.arrayBuffer()`) or text (`response.text()`).
 
-There's a convenience method for [working with HTML forms](#the-form-function). And for generating [XML and HTML documents](XML.md).
 
 ## The form() function
 
-If you want to support forms, there's a convenience method that will handle that. For URL encoded form, you'll get the name/value pairs. These typically map to form fields.
+If you want to support HTML forms, there's a convenience method that will handle that for you.
 
-Note that the field value can be string (common), or array, if the form includes multiple values of the same field.
+It understands `application/x-www-form-urlencoded` and `multipart/form-data`.
 
-For example:
+Form fields are converted to name/value pairs. For encoded forms (defaults), the values are strings. For multipart forms, field value can also be [File](https://developer.mozilla.org/en-US/docs/Web/API/File).
 
-```html
+If the field appears multiple times in the form, the value will be an array.
+
+### x-www-form-urlencoded
+
+```html title=encoded.html
 <form method="post">
   <input name="name"/>
   <input name="email" type="email"/>
   <input name="password" type="password"/>
   <button type="submit">Sign Up</button>
-</button>
+</form>
 ```
 
-```ts
+```ts title=api/encoded.ts
 import { form } from 'queue-run';
 
 type Fields = {
@@ -177,11 +192,17 @@ export aync function post({ request }) {
 }
 ```
 
-For `multipart/form-data` and requests using [FormData](https://developer.mozilla.org/en-US/docs/Web/API/FormData), the value would either be a string, or for files, a [File](https://developer.mozilla.org/en-US/docs/Web/API/File) object.
+### multipart/form-data
 
-For example:
+```html title=multipart.html
+<form method="post" enctype="multipart/form-data">
+  <input type="text" name="name"/>
+  <input type="file" name="photo" accepts="image/*">
+  <button type="submit">Sign Up</button>
+</form>
+```
 
-```ts
+```ts title=api/multipart.ts
 import { form, File } from 'queue-run';
 import filesize from 'filesize';
 
@@ -192,25 +213,27 @@ type Fields = {
 
 export aync function post({ request }) {
   const { name, photo } = await form<Fields>(request);
-  console.log("Name: %s", name);
+  console.log("Name:  %s", name);
   console.log("Photo: %s type %s size %s", photo.name, photo,type, filesize(photo.size));
   await fs.writeFile(photo.filename, photo);
 }
+```
 
-// Name: Assaf Arkin
-// Photo: avatar.png of type image/png size 1.4 MB
+```
+Name:  Assaf Arkin
+Photo: avatar.png of type image/png size 1.4 MB
 ```
 
 ## export const config
 
 You can control some aspect of the request handler by exporting `config` object with the following properties, all optional:
 
-- `accepts` — Accepted content types, eg `config.accepts = ["application/json"];` (default "*/*")
+- `accepts` — Accepted content types, eg `config.accepts = ["application/json"];` (default "\*/\*")
 - `cache` — Add this `Cache-Control` header to the response (string), or cache the response for this many seconds (number), or function called with the response value
 - `cors` — True if this route supports CORS and should return apporpriate headers (default: true)
 - `etag` — If true adds `ETag` header based on the content of the response (default: true)
-- `methods` — Supported HTTP methods, when exporting the default request handler (default: "*")
-- `timeout` — Timeout for processing the request, in seconds (default: 30 seconds)
+- `methods` — Supported HTTP methods, only  when exporting the default request handler (default: "\*")
+- `timeout` — Timeout for processing the request, in seconds (default: 10 seconds)
 
 For example:
 
@@ -219,11 +242,25 @@ export const config =  {
   // This resource only accepts JSON documents
   accepts: "application/json",
   // Cache responses for 60 seconds
-  cache: 60
+  cache: 60,
+  // Extend timeout to 45 seconds
+  timeout: 45
 };
 ```
 
-Caching based on resource:
+## Cache-Control
+
+You can handle caching yourself. The default behavior only kicks in for GET/HEAD/PUT/PATCH requests that respond with status code 200.
+
+To set caching to a given duration:
+
+```ts
+export const config =  {
+  cache: 60 // 60 seconds = 1 minute
+};
+```
+
+To change caching based on the response:
 
 ```ts
 export async function get({ params }) {
@@ -233,10 +270,64 @@ export async function get({ params }) {
 }
 
 export const config =  {
-  // Status of completed task doesn't change
+  // Status of completed task doesn't change, cache for 24 hours
   cache: (task) => task.completed ? 86400 : false,
   etag: (task) => task.version
 };
 ```
 
 ## Logging Middleware
+
+Routes support the following logging middleware:
+
+- `onRequest(request)` — Called on every request
+- `onResponse(request, response)` — Called on every response
+- `onError(error, request)` — Called if the request handler throws an error (including timeout)
+
+The default middleware logs responses and errors.
+
+You can change the middleware for a given route by exporting functions with any of these names, or `null` to disable the middleware.
+
+You can use the same middleware across all route by exporting it from `_middleware.ts` in the same directory or parent directory.
+
+The most specific middleware is always used:
+
+- Middleware exported by the request handler module
+- Middleware exported by `_middleware.ts` in the current directory
+- Middleware exported by `_middleware.ts` in the parent directory
+- The default middleware
+
+Your middleware can wrap the default middleware.
+
+For example:
+
+```ts title=api/_middleware.ts
+// We're going to use the default middleware for logging
+import { logResponse, logError } from 'queue-run';
+// And count running/failed requests
+import { metrics } from 'metrics';
+
+export async function onRequest(request, response) {
+  await logResponse(request, response);
+  await metrics.increment(`request.${request.method}`);
+}
+
+export async function onResponse(request, response) {
+  await logResponse(request, response);
+  await metrics.increment(`response.${response.status}`);
+}
+
+export async function onError(error, request) {
+  await logError(error, request);
+  await metrics.increment(`error`);
+}
+```
+
+:::note Throwing Error or Response
+
+* `onRequest` is called before authentication so does not have access to the current user
+* `onRequest` can prevent the request from being handled by throwing a `Response` object (eg 404 or redirect to different URL)
+* `onResponse` can change the response by throwing a new `Response` body
+* If the request handler throws an `Error`, then 500 response is logged (`onResponse`) as well as the error (`onError`).
+* If `onResponse` throws an `Error`, then the server responds with 500
+:::

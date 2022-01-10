@@ -5,7 +5,7 @@ import { Key, match, pathToRegexp } from "path-to-regexp";
 import { loadModule, Manifest, RouteExports, RouteMiddleware } from "queue-run";
 
 const maxTimeout = 60;
-const defaultTimeout = 30;
+const defaultTimeout = 10;
 
 // Loads all routes from the current directory
 export default async function mapRoutes(): Promise<Manifest["routes"]> {

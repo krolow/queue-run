@@ -5,7 +5,6 @@ module.exports = {
     "WebSocket",
     "Queues",
     "Schedules",
-    "Middleware",
     "Authenticate",
     "URLs",
     "XML",
