@@ -23,7 +23,8 @@ export async function del({ params }: Resource) {
   return new Response(undefined, { status: 204 });
 }
 
-export const urlForBookmark = url.self<Resource["params"], never>();
+//export const urlForBookmark = url.self<Resource["params"], never>();
+export const urlForBookmark = url.self();
 
 export const config: RouteConfig = {
   cache: 60,

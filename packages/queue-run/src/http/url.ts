@@ -1,3 +1,4 @@
+import path from "path";
 import { compile } from "path-to-regexp";
 import { URL } from "url";
 import { getLocalStorage, selfPath } from "../shared/index.js";
@@ -8,8 +9,8 @@ type Params = {
 
 /* eslint-disable no-unused-vars */
 interface URLFunction<P = Params, Q = Params> {
-  (path: string, params?: P, query?: Q): string;
-  for<P = Params, Q = Params>(path: string): URLConstructor<P, Q>;
+  (path: string | URL, params?: P, query?: Q): string;
+  for<P = Params, Q = Params>(path: string | URL): URLConstructor<P, Q>;
   self<P = Params, Q = Params>(): URLConstructor<P, Q>;
 }
 
@@ -19,15 +20,17 @@ interface URLConstructor<P = Params, Q = Params> {
 /* eslint-enable no-unused-vars */
 
 const url: URLFunction<{}, {}> = (
-  path: string,
+  pathOrURL: string | URL,
   params?: { [key: string]: unknown | unknown[] },
   query?: { [key: string]: unknown | unknown[] }
 ): string => {
   const urls = getLocalStorage().urls;
   if (!urls) throw new Error("No runtime available");
 
-  const pathname = compile(replaceBracket(path))(params);
-  const url = new URL(pathname, urls.http);
+  const baseURL = pathOrURL instanceof URL ? pathOrURL.origin : urls.http;
+  const pathname = getPath(pathOrURL, baseURL);
+  const expanded = compile(replaceBracket(pathname))(params);
+  const url = new URL(expanded, baseURL);
   if (query) {
     Object.entries(query).forEach(([key, value]) => {
       if (Array.isArray(value))
@@ -39,7 +42,7 @@ const url: URLFunction<{}, {}> = (
   return url.href;
 };
 
-url.for = <P, Q>(path: string) => {
+url.for = <P, Q>(path: string | URL) => {
   const constructor: URLConstructor<P, Q> = (params, query) =>
     url(path, params, query);
 
@@ -55,6 +58,13 @@ url.self = <P, Q>() => {
 };
 
 export default url;
+
+function getPath(pathOrURL: string | URL, baseURL: string): string {
+  const { pathname, protocol } = new URL(String(pathOrURL), baseURL);
+  return protocol === "file:"
+    ? path.relative(process.cwd(), pathname).replace(/\.js$/, "")
+    : pathname;
+}
 
 function replaceBracket(path: string): string {
   return path.replace(
