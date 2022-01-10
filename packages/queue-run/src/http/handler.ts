@@ -339,11 +339,10 @@ function withCacheControl(request: Request, config: RouteConfig) {
           : config.cache;
 
       const header =
-        typeof cache === "number"
+        cache &&
+        (typeof cache === "number"
           ? `private, max-age=${cache.toFixed()}, must-revalidate`
-          : typeof cache === "string"
-          ? cache
-          : undefined;
+          : cache);
       if (header) headers.set("Cache-Control", header);
     }
 
