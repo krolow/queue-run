@@ -52,6 +52,7 @@ export default async function devServer({ port }: { port: number }) {
     const key = data[0];
     if (key === 3) process.exit(0); // Ctrl+C
     if (key === 18) newWorker(port); // Ctrl+R
+    if (key === 13) process.stdout.write("\n");
   });
   await new Promise(() => {});
 }
@@ -104,6 +105,14 @@ if (cluster.isWorker) {
     await ready;
     onConnection(ws, req, () => new DevLocalStorage(port));
   });
+
+  // Make sure we exit if buildProject fails
+  try {
+    await ready;
+  } catch (error) {
+    console.error(chalk.bold.red("💥 Build failed!"), error);
+    process.exit(1);
+  }
 }
 
 async function onRequest(
