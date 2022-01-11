@@ -15,7 +15,6 @@
     "templates"
   ],
   "dependencies": {
-    "@swc/core": "^1.2.127",
     "async-sema": "^3.1.1",
     "chalk": "5.0.0",
     "commander": "^8.3.0",
