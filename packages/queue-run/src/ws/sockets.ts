@@ -1,57 +1,118 @@
-import { getLocalStorage, selfPath } from "../shared/index.js";
+import { getLocalStorage } from "../shared/index.js";
 
-/* eslint-disable no-unused-vars */
-interface WebSocketFunction<T = object | string> {
-  (channel: string): WebSocketFunction<T>;
-  get: <T>(channel: string) => WebSocketFunction<T>;
-  self: <T>() => WebSocketFunction<T>;
-  send(payload: T): Promise<void>;
-  to(userID: string): WebSocketFunction<T>;
-  to(userIDs: string[]): WebSocketFunction<T>;
-  channel: string;
-}
-/* eslint-enable no-unused-vars */
+type Payload = object | string | ArrayBuffer | Blob | Buffer;
 
-const sockets: WebSocketFunction = newChannel("");
-export default sockets;
+/**
+ * WebSockets object associated with the current request.
+ *
+ * From within WebSocket handler, you can use this to respond to the client, or
+ * close the connection.
+ *
+ * From within HTTP request handler, or queued job handler, you can use this to
+ * send a message to the authenticated user, or specific set of users.
+ *
+ * ```
+ * await sockets.send(updates);
+ * ```
+ *
+ * ```
+ * await sockets.to(users).send(updates);
+ * ```
+ */
+class WebSockets<T = Payload> {
+  private _userIDs: string[] | null;
 
-// eslint-disable-next-line sonarjs/cognitive-complexity
-function newChannel<T = object | string>(
-  channel: string,
-  to?: string[]
-): WebSocketFunction<T> {
-  if (!/^[a-zA-Z0-9_-]*$/.test(channel))
-    throw new Error("Invalid channel name");
+  constructor(userIDs: string[] | null) {
+    this._userIDs = userIDs;
+  }
 
-  const socketFn: WebSocketFunction<T> = (channel) => socketFn.get(channel);
-  socketFn.get = <T>(channel: string) => newChannel<T>(channel, to);
-  socketFn.self = <T>() => {
-    const pathname = selfPath();
-    if (!pathname.startsWith("sockets/"))
-      throw new Error("You can only use self from a socket handler");
-    return socketFn.get<T>(pathname.slice(7));
-  };
-  socketFn.send = async (payload) => {
+  /**
+   * Close the WebSocket connection.
+   */
+  async close(): Promise<void> {
     const local = getLocalStorage();
-    const userIDs = Array.isArray(to)
-      ? to
-      : to
-      ? [to]
-      : local.user?.id
-      ? [local.user.id]
-      : [];
+    const connections = await this.getConnections();
+    await Promise.all(
+      connections.map((connection) => local.closeWebSocket(connection))
+    );
+  }
 
-    if (!userIDs.length) return;
-    const message =
-      typeof payload === "string" ? payload : JSON.stringify(payload);
-    return await local.sendWebSocketMessage({ message, userIDs });
-  };
-  socketFn.to = (userIDs) =>
-    newChannel<T>(channel, Array.isArray(userIDs) ? userIDs : [userIDs]);
+  /**
+   * Send a message.
+   *
+   * You can direct the message at a specific user (or users), by calling the
+   * `to` method.
+   *
+   * Otherwise, from within a socket handler, this uses the current connection.
+   * From withing request or job handler, the current user.
+   *
+   * ```
+   * await sockets.send({ status: "ok" });
+   * ```
+   *
+   * @param data Message to send, can be an object (serialized as JSON), a
+   * string, or a blob/buffer
+   * @throws Error if the message cannot be sent, connection closed, or if no user specified
+   */
+  async send(data: T): Promise<void> {
+    const local = getLocalStorage();
+    const connections = await this.getConnections();
+    const message = await payloadToBuffer(data as unknown as Payload);
+    await Promise.all(
+      connections.map((connection) =>
+        local.sendWebSocketMessage(message, connection)
+      )
+    );
+  }
 
-  socketFn.toString = () => channel;
-  socketFn.valueOf = () => channel;
-  socketFn.channel = channel;
+  private async getConnections(): Promise<string[]> {
+    const local = getLocalStorage();
+    if (this._userIDs) return await local.getConnections(this._userIDs);
 
-  return socketFn;
+    if (local.connection) return [local.connection];
+    if (local.user) return await local.getConnections([local.user.id]);
+
+    throw new Error(
+      "Not called within a socket handler, and no authenticated user"
+    );
+  }
+
+  /**
+   * Send the next message to the specified users.
+   *
+   *
+   * ```
+   * await sockets.to(userA).send({ status: "ok" });
+   * ```
+   *
+   * ```
+   * const members = group.map((user) => user.id);
+   * await sockets.to(members).send({ status: "ok" });
+   * ```
+   *
+   * @param userIDs One or more user IDs, as returned from the authenticate middleware
+   * @returns The web socket set with the specified users
+   */
+  to(userIDs: string | string[]): WebSockets<T> {
+    if (!userIDs) throw new Error("User ID is required");
+    const ids = Array.isArray(userIDs) ? userIDs : [userIDs];
+    return new WebSockets(ids);
+  }
+
+  toString() {
+    return (
+      this._userIDs?.join(",") ?? getLocalStorage().connection ?? "unavailable"
+    );
+  }
+}
+
+export default new WebSockets(null);
+
+async function payloadToBuffer(data: Payload): Promise<Buffer> {
+  if (typeof data === "string") return Buffer.from(data);
+  if (Buffer.isBuffer(data)) return data;
+  if (data instanceof ArrayBuffer) return Buffer.from(data);
+  if (data instanceof Blob) return Buffer.from(await data.arrayBuffer());
+  const indent = Number(process.env.QUEUE_RUN_INDENT) || 0;
+  return Buffer.from(JSON.stringify(data, null, indent));
 }

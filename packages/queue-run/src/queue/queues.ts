@@ -40,7 +40,7 @@ interface QueuesFunction<T = Payload> {
    * ```
    *
    * @returns A queue
-   * @throws Called not from within a queue handler
+   * @throws Called not from within nda queue handler
    */
   self: <T>() => QueueFunction<T>;
 }

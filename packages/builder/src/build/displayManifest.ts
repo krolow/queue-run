@@ -1,25 +1,62 @@
 import chalk from "chalk";
-import fs from "fs/promises";
-import path from "path";
-import { loadManifest } from "queue-run";
+import {
+  HTTPRoute,
+  loadManifest,
+  QueueService,
+  WebSocketRoute,
+} from "queue-run";
 
 export default async function displayManifest(dirname: string) {
-  const { routes, queues } = await loadManifest(dirname);
+  const { routes, sockets, queues } = await loadManifest(dirname);
 
+  displayRoutes(routes);
+  displaySockets(sockets);
+  displayQueues(queues);
+}
+
+function displayRoutes(routes: Map<string, HTTPRoute>) {
   console.info(
     chalk.bold.blue("λ: %s"),
     routes.size > 0 ? "API:" : "No routes"
   );
-  const rows: [string, string][] = Array.from(routes.entries()).map(
-    ([path, { filename }]) => [path, filename]
+  table(
+    Array.from(routes.entries()).map(([path, { original }]) => [path, original])
   );
-  const width = Math.max(...rows.map(([path]) => path.length));
-  const table = await Promise.all(
-    rows.map(async ([path, filename]) =>
-      [path.padEnd(width), await getOriginalFilename(dirname, filename)].join(
-        "  →  "
-      )
-    )
+}
+
+function displaySockets(sockets: Map<string, WebSocketRoute>) {
+  console.info(
+    chalk.bold.blue("λ: %s"),
+    sockets.size > 0 ? "WebSocket:" : "No WebSocket"
+  );
+  table(
+    Array.from(sockets.entries()).map(([path, { original }]) => [
+      path,
+      original,
+    ])
+  );
+}
+
+function displayQueues(queues: Map<string, QueueService>) {
+  console.info(
+    chalk.bold.blue("λ: %s"),
+    queues.size > 0 ? "Queues:" : "No queues"
+  );
+  table(
+    Array.from(queues.entries()).map(([path, { original }]) => [path, original])
+  );
+}
+
+function table(rows: [string, string][]) {
+  if (rows.length === 0) return;
+
+  const maxWidth = process.stdout.columns / 2 - 2;
+  const width = Math.min(
+    Math.max(...rows.map(([path]) => path.length), maxWidth / 2),
+    maxWidth
+  );
+  const table = rows.map(([path, original]) =>
+    [fit(path, width), fit(original, width)].join("  →  ")
   );
   console.info(
     "%s",
@@ -28,25 +65,10 @@ export default async function displayManifest(dirname: string) {
       .map((line) => `   ${line}`)
       .join("\n")
   );
-
-  console.info(
-    chalk.bold.blue("λ: %s"),
-    queues.size > 0 ? "Queues:" : "No queues"
-  );
-  console.info(
-    "%s",
-    Array.from(queues.keys())
-      .map((name, i, all) => [i === all.length - 1 ? "└──" : "├──", name])
-      .map(([prefix, name]) => `   ${prefix} ${name}`)
-      .join("\n")
-  );
 }
 
-async function getOriginalFilename(dirname: string, filename: string) {
-  const sourceMap = await fs.readFile(
-    path.join(dirname, `${filename}.map`),
-    "utf8"
-  );
-  const { sources } = JSON.parse(sourceMap);
-  return sources[0];
+function fit(path: string, width: number) {
+  return path.length <= width
+    ? path.padEnd(width)
+    : path.slice(0, width / 2 - 1) + "…" + path.slice(path.length - width / 2);
 }

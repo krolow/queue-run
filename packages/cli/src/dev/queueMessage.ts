@@ -5,8 +5,8 @@ import path from "path";
 import { loadManifest, warmup } from "queue-run";
 import { buildProject } from "queue-run-builder";
 import readline from "readline";
-import DevLocalStorage from "./DevLocalStorage.js";
 import envVariables from "./envVariables.js";
+import { DevLocalStorage, onIdleOnce } from "./state.js";
 
 const sourceDir = process.cwd();
 const buildDir = path.resolve(".queue-run");
@@ -41,9 +41,7 @@ export default async function queueMessage(
     payload,
     queueName,
   });
-  await new Promise((resolve) =>
-    localStorage.onIdleOnce(() => resolve(undefined))
-  );
+  await new Promise((resolve) => onIdleOnce(() => resolve(undefined)));
 }
 
 async function readPayload(message: string): Promise<string> {

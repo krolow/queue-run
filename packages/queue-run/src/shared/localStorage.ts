@@ -15,12 +15,14 @@ import { AsyncLocalStorage } from "async_hooks";
 export abstract class LocalStorage {
   public urls: { http: string; ws: string };
 
-  private _user: { id: string; [key: string]: any } | null;
+  private _user: { id: string; [key: string]: any } | null = null;
   private _userSet = false;
+
+  /** WebSocket connection ID */
+  public connection: string | null = null;
 
   constructor({ urls }: { urls: { http: string; ws: string } }) {
     this.urls = urls;
-    this._user = null;
   }
 
   queueJob(message: {
@@ -34,22 +36,16 @@ export abstract class LocalStorage {
     throw new Error("Job queues not available in this environment.");
   }
 
-  onWebSocketAccepted({
-    userID,
-    socketID,
-  }: {
-    userID: string;
-    socketID: string;
-  }) {
+  sendWebSocketMessage(message: Buffer, connection: string): Promise<void> {
+    // eslint-disable-next-line sonarjs/no-duplicate-string
     throw new Error("WebSocket not available in this environment.");
   }
 
-  onWebSocketClosed(socketID: string) {}
+  closeWebSocket(connection: string): Promise<void> {
+    throw new Error("WebSocket not available in this environment.");
+  }
 
-  sendWebSocketMessage(params: {
-    message: string | Buffer | object;
-    userIDs: string[];
-  }): Promise<void> {
+  getConnections(userIDs: string[]): Promise<string[]> {
     throw new Error("WebSocket not available in this environment.");
   }
 

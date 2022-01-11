@@ -11,7 +11,7 @@ import { Response } from "./fetch.js";
 import { logResponse } from "./middleware.js";
 
 /**
- * Load the route handlr for the given URL.
+ * Load the route handler for the given URL.
  *
  * @param url Request URL
  * @returns module All exports from the JavaScript module

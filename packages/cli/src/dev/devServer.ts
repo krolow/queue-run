@@ -7,17 +7,20 @@ import path from "path";
 import process from "process";
 import {
   handleHTTPRequest,
+  handleWebSocketMessage,
   LocalStorage,
   Request,
-  sockets,
   warmup,
-  withLocalStorage,
 } from "queue-run";
 import { buildProject } from "queue-run-builder";
 import { URL } from "url";
 import { WebSocket, WebSocketServer } from "ws";
-import DevLocalStorage from "./DevLocalStorage.js";
 import envVariables from "./envVariables.js";
+import {
+  DevLocalStorage,
+  onWebSocketAccepted,
+  onWebSocketClosed,
+} from "./state.js";
 
 // Make sure we're not building the project in parallel.
 const blockOnBuild = new Sema(1);
@@ -146,24 +149,28 @@ async function getRequestBody(req: IncomingMessage): Promise<Buffer | null> {
 }
 
 async function onConnection(
-  ws: WebSocket,
+  socket: WebSocket,
   req: IncomingMessage,
   newLocalStorage: () => LocalStorage
 ) {
-  const socketID = "";
-  localStorage.sockets.set(socketID, ws);
+  // TODO: authentication
+  const userID = null;
+  const connection = onWebSocketAccepted(socket, userID);
 
-  const userID = String(req.headers.authentication);
-  if (userID) localStorage.onWebSocketAccepted({ userID, socketID });
-
-  ws.on("message", (message) => {
-    localStorage.user = { id: userID };
-    withLocalStorage(newLocalStorage(), () => {
-      sockets.send("Back at you");
+  socket.on("message", async (rawData) => {
+    const data =
+      rawData instanceof ArrayBuffer
+        ? Buffer.from(rawData)
+        : Array.isArray(rawData)
+        ? Buffer.concat(rawData)
+        : rawData;
+    const response = await handleWebSocketMessage({
+      connection,
+      data,
+      newLocalStorage,
+      userID,
     });
+    if (response) socket.send(response);
   });
-  ws.on("close", function () {
-    localStorage.onWebSocketClosed(socketID);
-    localStorage.sockets.delete(socketID);
-  });
+  socket.on("close", () => onWebSocketClosed(connection));
 }

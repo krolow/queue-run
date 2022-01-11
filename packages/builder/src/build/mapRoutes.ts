@@ -1,7 +1,7 @@
 import glob from "fast-glob";
 import fs from "fs/promises";
 import path from "path";
-import { Key, match, pathToRegexp } from "path-to-regexp";
+import { Key, pathToRegexp } from "path-to-regexp";
 import { loadModule, Manifest, RouteExports, RouteMiddleware } from "queue-run";
 
 const maxTimeout = 60;
@@ -23,7 +23,7 @@ export default async function mapRoutes(): Promise<Manifest["routes"]> {
       if (!loaded) throw new Error(`Could not load module ${filename}`);
       const { module, middleware } = loaded;
 
-      const path = pathFromFilename(filename.replace(/^api\//, "/"));
+      const path = pathFromFilename(filename.replace("api/", "/"));
 
       const signature = path.replace(/:(.*?)(\/|$)/g, ":$2");
       const identical = dupes.get(signature);
@@ -42,7 +42,6 @@ export default async function mapRoutes(): Promise<Manifest["routes"]> {
         cors: config.cors ?? true,
         methods: getMethods(module),
         filename,
-        match: match(path),
         original: await getOriginalFilename(filename),
         timeout: getTimeout(config),
       };

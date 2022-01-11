@@ -8,6 +8,7 @@ export type HTTPRoute = {
   filename: string;
   match: MatchFunction<{ [key: string]: string | string[] }>;
   methods: Set<string>;
+  original: string;
   timeout: number;
 };
 
@@ -15,6 +16,13 @@ export type QueueService = {
   filename: string;
   isFifo: boolean;
   queueName: string;
+  original: string;
+  timeout: number;
+};
+
+export type WebSocketRoute = {
+  filename: string;
+  original: string;
   timeout: number;
 };
 
@@ -38,18 +46,34 @@ export type Manifest = {
     path: string;
     timeout: number;
   }>;
+  sockets: Array<{
+    path: string;
+    filename: string;
+    original: string;
+    timeout: number;
+  }>;
 };
 
 export async function loadManifest(dirname = process.cwd()): Promise<{
   queues: Map<string, QueueService>;
   routes: Map<string, HTTPRoute>;
+  sockets: Map<string, WebSocketRoute>;
 }> {
   const manifest = JSON.parse(
     await fs.readFile(path.resolve(dirname, "manifest.json"), "utf8")
   ) as Manifest;
 
   const queues = new Map(
-    manifest.queues.map((queue) => [queue.queueName, queue])
+    manifest.queues.map((queue) => [
+      queue.queueName,
+      {
+        filename: queue.filename,
+        isFifo: queue.isFifo,
+        original: queue.original,
+        queueName: queue.queueName,
+        timeout: queue.timeout ?? 30,
+      },
+    ])
   );
 
   const routes = new Map(
@@ -61,9 +85,22 @@ export async function loadManifest(dirname = process.cwd()): Promise<{
         methods: new Set(route.methods ?? "*"),
         filename: route.filename,
         match: match<{ [key: string]: string | string[] }>(route.path),
+        original: route.original,
         timeout: route.timeout ?? 10,
       },
     ])
   );
-  return { queues, routes };
+
+  const sockets = new Map(
+    manifest.sockets.map((socket) => [
+      socket.path,
+      {
+        filename: socket.filename,
+        original: socket.original,
+        timeout: socket.timeout ?? 10,
+      },
+    ])
+  );
+
+  return { queues, routes, sockets };
 }

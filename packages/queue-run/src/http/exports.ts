@@ -6,12 +6,12 @@ import type { Request, Response } from "./fetch.js";
 /**
  * HTTP request handler.
  *
- * @params args.cookies The cookies
- * @params args.query The query parameters
- * @params args.params The path parameters
- * @params args.request The HTTP request
- * @params args.signal The abort signal
- * @params args.user The authenticated user
+ * @param cookies The cookies
+ * @param query The query parameters
+ * @param params The path parameters
+ * @param request The HTTP request
+ * @param signal The abort signal
+ * @param user The authenticated user
  * @return HTTP Response, object (as application/json), string (as text/plain),
  * or buffer (as application/octet-stream)
  */
