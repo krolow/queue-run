@@ -142,7 +142,7 @@ async function handleRoute({
   };
 
   try {
-    return withLocalStorage(newLocalStorage(), () =>
+    return await withLocalStorage(newLocalStorage(), () =>
       runWithMiddleware({
         config,
         corsHeaders,
