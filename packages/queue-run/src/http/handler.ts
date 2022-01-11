@@ -142,25 +142,17 @@ async function handleRoute({
   };
 
   try {
-    const response = await Promise.race([
-      withLocalStorage(newLocalStorage(), () =>
-        runWithMiddleware({
-          config,
-          corsHeaders,
-          handler,
-          middleware,
-          request,
-          filename,
-          metadata,
-        })
-      ),
-
-      new Promise<undefined>((resolve) =>
-        controller.signal.addEventListener("abort", () => resolve(undefined))
-      ),
-    ]);
-    if (response) return response;
-    else return new Response("Timed Out", { status: 500 });
+    return withLocalStorage(newLocalStorage(), () =>
+      runWithMiddleware({
+        config,
+        corsHeaders,
+        handler,
+        middleware,
+        request,
+        filename,
+        metadata,
+      })
+    );
   } finally {
     clearTimeout(timer);
     controller.abort();
@@ -214,18 +206,30 @@ async function runWithMiddleware({
   request: Request;
 }): Promise<Response> {
   try {
-    const { onRequest } = middleware;
-    if (onRequest) await onRequest(request);
+    const { signal } = metadata;
 
-    const user = await getAuthenticatedUser({
-      cookies: metadata.cookies,
-      filename,
-      middleware,
-      request,
-    });
-    getLocalStorage().user = user;
+    const result = await Promise.race([
+      (async () => {
+        const { onRequest } = middleware;
+        if (onRequest) await onRequest(request);
 
-    const result = await handler({ ...metadata, request, user });
+        const user = await getAuthenticatedUser({
+          cookies: metadata.cookies,
+          filename,
+          middleware,
+          request,
+        });
+        getLocalStorage().user = user;
+
+        return await handler({ ...metadata, request, user });
+      })(),
+
+      new Promise<undefined>((resolve) =>
+        signal.addEventListener("abort", () => resolve(undefined))
+      ),
+    ]);
+
+    if (signal.aborted) throw new Error("Request aborted: timed out");
 
     const response = await resultToResponse({
       addCacheControl: withCacheControl(request, config),
@@ -273,7 +277,7 @@ async function resultToResponse({
   addCacheControl: ReturnType<typeof withCacheControl>;
   corsHeaders: Headers | undefined;
   filename: string;
-  result?: ReturnType<RequestHandler>;
+  result?: ReturnType<RequestHandler> | undefined;
 }): Promise<Response> {
   if (result instanceof Response) {
     const status = result.status ?? 200;
