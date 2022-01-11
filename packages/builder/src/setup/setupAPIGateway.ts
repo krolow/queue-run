@@ -107,7 +107,7 @@ async function setupWSIntegrations(project: string, lambdaARN: string) {
 
   const ws = await createIntegration({
     ApiId: api.ApiId,
-    ContentHandlingStrategy: "CONVERT_TO_TEXT",
+    ContentHandlingStrategy: "CONVERT_TO_BINARY",
     IntegrationMethod: "POST",
     IntegrationType: IntegrationType.AWS_PROXY,
     IntegrationUri: `arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/${lambdaARN}/invocations`,
@@ -215,7 +215,7 @@ async function createRouteResponse(
       ApiId: api.ApiId,
       IntegrationId: integrationId,
       IntegrationResponseKey: "$default",
-      ContentHandlingStrategy: "CONVERT_TO_TEXT",
+      ContentHandlingStrategy: "CONVERT_TO_BINARY",
     });
   }
 }

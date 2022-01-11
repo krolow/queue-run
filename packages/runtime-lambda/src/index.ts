@@ -53,13 +53,13 @@ await warmup(new LambdaLocalStorage({ sqs, urls }));
 export async function handler(
   event: LambdaEvent,
   context: LambdaContext
-): Promise<APIGatewayResponse | SQSBatchResponse> {
+): Promise<APIGatewayResponse | SQSBatchResponse | undefined> {
   console.info({ event, context });
 
   const newLocalStorage = () => new LambdaLocalStorage({ sqs, urls });
 
   if ("requestContext" in event) {
-    if ("connectionId" in event.requestContext) {
+    if ("routeKey" in event.requestContext) {
       return await handleWebSocketRequest(
         event as APIGatewayWebSocketEvent,
         newLocalStorage
