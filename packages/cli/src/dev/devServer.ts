@@ -238,6 +238,7 @@ async function onConnection(
       connection,
       data,
       newLocalStorage,
+      requestId: crypto.randomBytes(4).toString("hex"),
       userId,
     });
     if (response) socket.send(response);

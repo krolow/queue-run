@@ -8,6 +8,7 @@ import { OnError } from "../shared/index.js";
  *
  * @param connection Connection identifier
  * @param data The message data, type depends on `config.type`
+ * @param requestId Unique ID for this message
  * @param signal The abort signal
  * @param user The authenticated user
  * @return Optional response to send back
@@ -16,6 +17,7 @@ export type WebSocketHandler<P = { [key: string]: string | string[] }> =
   (args: {
     connection: string;
     data: object | string | Buffer;
+    requestId: string;
     signal: AbortSignal;
     user: { id: string; [key: string]: unknown } | null;
   }) => Promise<Result> | Result;

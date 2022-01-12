@@ -12,11 +12,13 @@ export async function handleWebSocketMessage({
   connection,
   data,
   newLocalStorage,
+  requestId,
   userId,
 }: {
   connection: string;
   data: Buffer;
   newLocalStorage: () => LocalStorage;
+  requestId: string;
   userId: string | null;
 }): Promise<Buffer | null> {
   try {
@@ -30,6 +32,7 @@ export async function handleWebSocketMessage({
       handler: module.default,
       middleware,
       newLocalStorage,
+      requestId,
       timeout: socket.timeout,
       userId,
     });
@@ -51,6 +54,7 @@ async function handleRoute({
   handler,
   middleware,
   newLocalStorage,
+  requestId,
   timeout,
   userId,
 }: {
@@ -61,6 +65,7 @@ async function handleRoute({
   handler: WebSocketHandler;
   middleware: WebSocketMiddleware;
   newLocalStorage: () => LocalStorage;
+  requestId: string;
   timeout: number;
   userId: string | null;
 }): Promise<Buffer | null> {
@@ -69,6 +74,7 @@ async function handleRoute({
 
   const metadata = {
     connection,
+    requestId,
     signal: controller.signal,
     user: userId ? { id: userId } : null,
   };

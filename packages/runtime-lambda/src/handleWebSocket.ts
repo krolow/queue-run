@@ -32,6 +32,7 @@ export default async function handleWebSocketRequest(
         connection,
         data,
         newLocalStorage,
+        requestId: event.requestContext.requestId,
         userId: null,
       });
       return response
@@ -56,6 +57,7 @@ export type APIGatewayWebSocketEvent = {
     eventType: "CONNECT" | "DISCONNECT" | "MESSAGE";
     http: never;
     identity: { sourceIp: string };
+    requestId: string;
     routeKey: "$connect" | "$disconnect" | "$default";
     stage: string;
   };
