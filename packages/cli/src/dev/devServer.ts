@@ -46,7 +46,7 @@ export default async function devServer({ port }: { port: number }) {
   console.info(chalk.gray("   Watching for changes (Crtl+R to reload) …"));
   chokidar
     .watch(sourceDir, {
-      ignored: ["**/node_modules/**", buildDir, "*.d.ts", ".*"],
+      ignored: ["**/node_modules/**", buildDir],
       ignoreInitial: true,
     })
     .on("all", (event, filename) => onFileChange(event, filename, port));
@@ -72,6 +72,7 @@ async function newWorker(port: number) {
 
   for (const worker of Object.values(cluster.workers!)) worker!.kill();
   const worker = cluster.fork({ PORT: port });
+  // For some reason we need to reset this every time we fork
   process.stdin.setRawMode(true);
   process.stdin.resume();
 
@@ -86,14 +87,15 @@ async function newWorker(port: number) {
 }
 
 function onFileChange(event: string, filename: string, port: number) {
-  if (event === "add" || event === "change") {
-    console.info(
-      chalk.gray(`   %s "%s" reloading …`),
-      event === "add" ? "New file" : "Changed",
-      filename
-    );
-    newWorker(port);
-  }
+  if (!(event === "add" || event === "change")) return;
+  if (!/\.(tsx?|jsx?|json)$/.test(filename)) return;
+
+  console.info(
+    chalk.gray(`   %s "%s" reloading …`),
+    event === "add" ? "New file" : "Changed",
+    filename
+  );
+  newWorker(port);
 }
 
 if (cluster.isWorker) {

@@ -2,14 +2,16 @@ import { Command, Option } from "commander";
 import devServer from "./devServer.js";
 import queueMessage from "./queueMessage.js";
 
-const command = new Command("dev").description("Run the development server");
-
-export default command;
-
 const port = new Option("-p, --port <port>", "Port to run the server on")
   .env("PORT")
   .default(8000)
   .makeOptionMandatory();
+
+const command = new Command("dev")
+  .description("Run the development server")
+  .addOption(port);
+
+export default command;
 
 command
   .command("start", { isDefault: true })
