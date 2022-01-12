@@ -25,12 +25,12 @@ import { queues } from 'queue-run';
 const job1 = await queues('tasks').push(task);
 
 const job2 = await queues('profile.fifo')
-  .group(userID)
+  .group(userId)
   .push(profile);
 
 const job3 = await queues('payment.fifo')
-  .group(accountID)
-  .dedupe(transactionID)
+  .group(accountId)
+  .dedupe(transactionId)
   .push(amount);
 ```
 
@@ -73,7 +73,7 @@ You can export a queue as an HTTP POST method.
 
 The queue will accept JSON documents (`application/json`), HTML forms (`application/x-www-form-urlencode` or `multipart/form-data`), and plain text (`text/plain`).
 
-It will respond with status code 202 (Accepted) and the header `X-Job-ID` with the job ID.
+It will respond with status code 202 (Accepted) and the header `X-Job-Id` with the job ID.
 
 For FIFO queues, the route must include the `[group]` named parameter, which captures the group ID. It may also include the `[dedupe]` named parameter, if you want to set the deduplication ID.
 

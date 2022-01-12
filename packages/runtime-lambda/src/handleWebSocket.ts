@@ -32,7 +32,7 @@ export default async function handleWebSocketRequest(
         connection,
         data,
         newLocalStorage,
-        userID: null,
+        userId: null,
       });
       return response
         ? {

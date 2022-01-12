@@ -72,7 +72,7 @@ export default async function handleQueuedJob({
     console.error(
       chalk.bold.red('Error in queue "%s" job %s:'),
       queueName,
-      metadata.jobID,
+      metadata.jobId,
       error
     );
 

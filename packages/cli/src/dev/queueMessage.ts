@@ -37,7 +37,7 @@ export default async function queueMessage(
   const localStorage = new DevLocalStorage(port);
   await warmup(localStorage);
   await localStorage.queueJob({
-    groupID: group,
+    groupId: group,
     payload,
     queueName,
   });

@@ -20,10 +20,10 @@ type Payload = object | string | ArrayBuffer | Blob | Buffer;
  * ```
  */
 class WebSockets<T = Payload> {
-  private _userIDs: string[] | null;
+  private _userIds: string[] | null;
 
-  constructor(userIDs: string[] | null) {
-    this._userIDs = userIDs;
+  constructor(userIds: string[] | null) {
+    this._userIds = userIds;
   }
 
   /**
@@ -67,7 +67,7 @@ class WebSockets<T = Payload> {
 
   private async getConnections(): Promise<string[]> {
     const local = getLocalStorage();
-    if (this._userIDs) return await local.getConnections(this._userIDs);
+    if (this._userIds) return await local.getConnections(this._userIds);
 
     if (local.connection) return [local.connection];
     if (local.user) return await local.getConnections([local.user.id]);
@@ -90,18 +90,18 @@ class WebSockets<T = Payload> {
    * await sockets.to(members).send({ status: "ok" });
    * ```
    *
-   * @param userIDs One or more user IDs, as returned from the authenticate middleware
+   * @param userIds One or more user IDs, as returned from the authenticate middleware
    * @returns The web socket set with the specified users
    */
-  to(userIDs: string | string[]): WebSockets<T> {
-    if (!userIDs) throw new Error("User ID is required");
-    const ids = Array.isArray(userIDs) ? userIDs : [userIDs];
-    return new WebSockets(ids);
+  to(userIds: string | string[]): WebSockets<T> {
+    if (!userIds) throw new Error("User ID is required");
+    const connections = Array.isArray(userIds) ? userIds : [userIds];
+    return new WebSockets(connections);
   }
 
   toString() {
     return (
-      this._userIDs?.join(",") ?? getLocalStorage().connection ?? "unavailable"
+      this._userIds?.join(",") ?? getLocalStorage().connection ?? "unavailable"
     );
   }
 }

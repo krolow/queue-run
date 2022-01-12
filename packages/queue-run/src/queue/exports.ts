@@ -29,7 +29,7 @@ export type QueueHandler<T = Payload, P = Params> = (
  */
 export type FIFOQueueHandler<T, P> = QueueHandler<T, P> & {
   metadata: JobMetadata<P & { group: string; dedupe?: string }> & {
-    groupID: string;
+    groupId: string;
     sequenceNumber: number;
   };
 };
@@ -44,7 +44,7 @@ export type JobMetadata<P = Params> = {
   /**
    * The group ID. (FIFO queues only)
    */
-  groupID: string | undefined;
+  groupId: string | undefined;
   /**
    * The queue name.
    */
@@ -52,7 +52,7 @@ export type JobMetadata<P = Params> = {
   /**
    * The job ID. (Unique for your project)
    */
-  jobID: string;
+  jobId: string;
   /**
    * Path parameters from the request URL.
    */

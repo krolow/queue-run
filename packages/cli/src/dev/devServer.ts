@@ -161,8 +161,8 @@ async function onConnection(
   newLocalStorage: () => LocalStorage
 ) {
   // TODO: authentication
-  const userID = null;
-  const connection = onWebSocketAccepted(socket, userID);
+  const userId = null;
+  const connection = onWebSocketAccepted(socket, userId);
 
   socket.on("message", async (rawData) => {
     const data =
@@ -175,7 +175,7 @@ async function onConnection(
       connection,
       data,
       newLocalStorage,
-      userID,
+      userId,
     });
     if (response) socket.send(response);
   });

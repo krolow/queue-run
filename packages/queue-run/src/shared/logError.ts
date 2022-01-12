@@ -34,14 +34,14 @@ export async function logError(error: Error, reference: unknown) {
     );
   } else if (
     reference instanceof Object &&
-    "jobID" in reference &&
+    "jobId" in reference &&
     "queueName" in reference
   ) {
-    const { jobID, queueName } = reference as JobMetadata;
+    const { jobId, queueName } = reference as JobMetadata;
     console.error(
       chalk.bold.red("Job failed on %s: %s: %s"),
       queueName,
-      jobID,
+      jobId,
       String(error),
       error.stack
     );

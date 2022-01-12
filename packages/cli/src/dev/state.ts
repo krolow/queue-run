@@ -11,7 +11,7 @@ const sockets = new Map<string, WebSocket>();
 // Index all open sockets belonging to a given user
 const wsUserConnections = new Map<string, string[]>();
 // Index of user ID for a given socket
-const wsConnectionUserID = new Map<string, string>();
+const wsConnectionUserId = new Map<string, string>();
 
 // Number of jobs in the queue
 let queued = 0;
@@ -33,18 +33,18 @@ export class DevLocalStorage extends LocalStorage {
 
   async queueJob({
     queueName,
-    groupID,
+    groupId,
     payload,
     params,
     user,
   }: {
     queueName: string;
-    groupID?: string | undefined;
+    groupId?: string | undefined;
     payload: string | Buffer | object;
     params?: { [key: string]: string | string[] };
     user?: { id: string };
   }) {
-    const jobID = crypto.randomBytes(4).toString("hex");
+    const jobId = crypto.randomBytes(4).toString("hex");
     const serializedPayload =
       typeof payload === "string" || Buffer.isBuffer(payload)
         ? payload
@@ -56,7 +56,7 @@ export class DevLocalStorage extends LocalStorage {
       }),
       {}
     );
-    const userID = user?.id ? String(user.id) : undefined;
+    const userId = user?.id ? String(user.id) : undefined;
 
     ++queued;
     setImmediate(() => {
@@ -65,14 +65,14 @@ export class DevLocalStorage extends LocalStorage {
           await handleQueuedJob({
             queueName,
             metadata: {
-              groupID,
-              jobID,
+              groupId,
+              jobId,
               params: serializedParams,
               queueName,
               receivedCount: 1,
               queuedAt: new Date(),
               sequenceNumber: 1,
-              user: userID ? { id: userID } : null,
+              user: userId ? { id: userId } : null,
             },
             payload: serializedPayload,
             newLocalStorage: () => new DevLocalStorage(this.port),
@@ -84,7 +84,7 @@ export class DevLocalStorage extends LocalStorage {
         }
       });
     });
-    return jobID;
+    return jobId;
   }
 
   async sendWebSocketMessage(message: Buffer, connection: string) {
@@ -99,8 +99,8 @@ export class DevLocalStorage extends LocalStorage {
     }
   }
 
-  async getConnections(userIDs: string[]) {
-    return userIDs.map((userID) => wsUserConnections.get(userID) ?? []).flat();
+  async getConnections(userIds: string[]) {
+    return userIds.map((userId) => wsUserConnections.get(userId) ?? []).flat();
   }
 
   async closeWebSocket(connection: string) {
@@ -113,15 +113,15 @@ export function onIdleOnce(cb: () => void) {
   events.once("idle", cb);
 }
 
-export function onWebSocketAccepted(socket: WebSocket, userID: string | null) {
+export function onWebSocketAccepted(socket: WebSocket, userId: string | null) {
   const id = crypto.randomBytes(4).toString("hex");
   sockets.set(id, socket);
 
-  if (userID) {
-    wsConnectionUserID.set(id, userID);
-    wsUserConnections.set(userID, [
+  if (userId) {
+    wsConnectionUserId.set(id, userId);
+    wsUserConnections.set(userId, [
       id,
-      ...(wsUserConnections.get(userID) ?? []),
+      ...(wsUserConnections.get(userId) ?? []),
     ]);
   }
   return id;
@@ -129,9 +129,9 @@ export function onWebSocketAccepted(socket: WebSocket, userID: string | null) {
 
 export function onWebSocketClosed(connection: string) {
   sockets.delete(connection);
-  const userID = wsConnectionUserID.get(connection);
-  if (userID) {
-    wsConnectionUserID.delete(connection);
-    wsUserConnections.delete(userID);
+  const userId = wsConnectionUserId.get(connection);
+  if (userId) {
+    wsConnectionUserId.delete(connection);
+    wsUserConnections.delete(userId);
   }
 }

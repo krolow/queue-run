@@ -12,12 +12,12 @@ export async function handleWebSocketMessage({
   connection,
   data,
   newLocalStorage,
-  userID,
+  userId,
 }: {
   connection: string;
   data: Buffer;
   newLocalStorage: () => LocalStorage;
-  userID: string | null;
+  userId: string | null;
 }): Promise<Buffer | null> {
   try {
     const { middleware, module, socket } = await findRoute(data);
@@ -31,7 +31,7 @@ export async function handleWebSocketMessage({
       middleware,
       newLocalStorage,
       timeout: socket.timeout,
-      userID,
+      userId,
     });
   } catch (error) {
     console.error(
@@ -52,7 +52,7 @@ async function handleRoute({
   middleware,
   newLocalStorage,
   timeout,
-  userID,
+  userId,
 }: {
   config: WebSocketConfig;
   connection: string;
@@ -62,7 +62,7 @@ async function handleRoute({
   middleware: WebSocketMiddleware;
   newLocalStorage: () => LocalStorage;
   timeout: number;
-  userID: string | null;
+  userId: string | null;
 }): Promise<Buffer | null> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout * 1000);
@@ -70,12 +70,12 @@ async function handleRoute({
   const metadata = {
     connection,
     signal: controller.signal,
-    user: userID ? { id: userID } : null,
+    user: userId ? { id: userId } : null,
   };
 
   try {
     const localStorage = newLocalStorage();
-    localStorage.user = userID ? { id: userID } : null;
+    localStorage.user = userId ? { id: userId } : null;
     return await withLocalStorage(localStorage, () => {
       localStorage.connection = connection;
       return runWithMiddleware({
@@ -132,7 +132,7 @@ async function runWithMiddleware({
       connection,
       middleware,
       response,
-      userID: metadata.user?.id,
+      userId: metadata.user?.id,
     });
   } catch (error) {
     await handleOnError({ error, filename, middleware, request });
@@ -141,7 +141,7 @@ async function runWithMiddleware({
       connection,
       middleware,
       response: { error: String(error) },
-      userID: metadata.user?.id,
+      userId: metadata.user?.id,
     });
   }
 }
@@ -164,17 +164,17 @@ async function handleResponse({
   connection,
   middleware,
   response,
-  userID,
+  userId,
 }: {
   connection: string;
   middleware: WebSocketMiddleware;
   response: object | string | Buffer | ArrayBuffer;
-  userID: string | undefined;
+  userId: string | undefined;
 }): Promise<Buffer | null> {
   const data = await resultToBuffer(response);
   const { onMessageSent } = middleware;
   if (onMessageSent) {
-    const to = userID ? [userID] : null;
+    const to = userId ? [userId] : null;
     try {
       await onMessageSent({ connection, data, to });
     } catch (error) {

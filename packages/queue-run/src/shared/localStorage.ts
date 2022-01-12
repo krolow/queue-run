@@ -26,8 +26,8 @@ export abstract class LocalStorage {
   }
 
   queueJob(message: {
-    dedupeID?: string | undefined;
-    groupID?: string | undefined;
+    dedupeId?: string | undefined;
+    groupId?: string | undefined;
     params?: { [key: string]: string | string[] } | undefined;
     payload: string | Buffer | object;
     queueName: string;
@@ -45,7 +45,7 @@ export abstract class LocalStorage {
     throw new Error("WebSocket not available in this environment.");
   }
 
-  getConnections(userIDs: string[]): Promise<string[]> {
+  getConnections(userIds: string[]): Promise<string[]> {
     throw new Error("WebSocket not available in this environment.");
   }
 

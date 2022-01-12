@@ -150,8 +150,8 @@ function newQueue<T = Payload>(
     if (fifo && !group) throw new Error("FIFO queue requires a group ID");
 
     return await local.queueJob({
-      dedupeID: dedupe,
-      groupID: group,
+      dedupeId: dedupe,
+      groupId: group,
       params: params ?? {},
       payload: payload as unknown as object,
       queueName,
@@ -176,9 +176,9 @@ function newQueue<T = Payload>(
     const deduped =
       fifo && params.dedupe ? grouped.dedupe(String(params.dedupe)) : grouped;
 
-    const jobID = await deduped.push(body as unknown as T, params);
+    const jobId = await deduped.push(body as unknown as T, params);
     return new Response("Accepted", {
-      headers: { "X-Job-ID": jobID },
+      headers: { "X-Job-Id": jobId },
       status: 202,
     });
   };

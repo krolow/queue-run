@@ -5,8 +5,8 @@ import { URLSearchParams } from "url";
 
 export default async function queueJob({
   payload,
-  dedupeID,
-  groupID,
+  dedupeId,
+  groupId,
   params,
   queueName,
   slug,
@@ -14,8 +14,8 @@ export default async function queueJob({
   user,
 }: {
   payload: Buffer | string | object;
-  dedupeID: string | undefined;
-  groupID: string | undefined;
+  dedupeId: string | undefined;
+  groupId: string | undefined;
   params: { [key: string]: string | string[] } | undefined;
   queueName: string;
   slug: string;
@@ -36,7 +36,7 @@ export default async function queueJob({
     : JSON.stringify(payload);
 
   const serializedParams = new URLSearchParams(params).toString();
-  const serializedUserID = user?.id ? String(user.id) : undefined;
+  const serializedUserId = user?.id ? String(user.id) : undefined;
 
   const message: SendMessageCommandInput = {
     QueueUrl: queueURL,
@@ -48,12 +48,12 @@ export default async function queueJob({
       ...(serializedParams
         ? { params: { DataType: "String", StringValue: serializedParams } }
         : undefined),
-      ...(serializedUserID
-        ? { userID: { DataType: "String", StringValue: serializedUserID } }
+      ...(serializedUserId
+        ? { userId: { DataType: "String", StringValue: serializedUserId } }
         : undefined),
     },
-    ...(groupID ? { MessageGroupId: groupID } : undefined),
-    ...(dedupeID ? { MessageDeduplicationId: dedupeID } : undefined),
+    ...(groupId ? { MessageGroupId: groupId } : undefined),
+    ...(dedupeId ? { MessageDeduplicationId: dedupeId } : undefined),
   };
 
   const { MessageId: messageId } = await sqs.sendMessage(message);

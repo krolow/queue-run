@@ -9,8 +9,8 @@ export async function logJobStarted(job: JobMetadata) {
   console.info(
     'Job started: queue="%s" job="%s" received=%d seq=%s',
     job.queueName,
-    job.jobID,
-    job.processedCount,
+    job.jobId,
+    job.receivedCount,
     job.sequenceNumber ?? "--"
   );
 }
@@ -21,5 +21,5 @@ export async function logJobStarted(job: JobMetadata) {
  * @param job The job metadata
  */
 export async function logJobFinished(job: JobMetadata) {
-  console.info('Job finished: queue="%s" job="%s"', job.queueName, job.jobID);
+  console.info('Job finished: queue="%s" job="%s"', job.queueName, job.jobId);
 }

@@ -32,10 +32,10 @@ class LambdaLocalStorage extends LocalStorage {
   }
 
   queueJob(args: Parameters<LocalStorage["queueJob"]>[0]) {
-    const { dedupeID, groupID, params, payload, queueName, user } = args;
+    const { dedupeId, groupId, params, payload, queueName, user } = args;
     return queueJob({
-      dedupeID,
-      groupID,
+      dedupeId,
+      groupId,
       params,
       payload,
       queueName,
