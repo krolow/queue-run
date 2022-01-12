@@ -8,6 +8,7 @@ module.exports = {
     "Authenticate",
     "URLs",
     "XML",
+    "DevServer",
     "Performance",
     {
       type: "link",
