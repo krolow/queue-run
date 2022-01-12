@@ -2,6 +2,7 @@ import { Sema } from "async-sema";
 import chalk from "chalk";
 import * as chokidar from "chokidar";
 import cluster from "cluster";
+import dotenv from "dotenv";
 import { createServer, IncomingMessage, ServerResponse } from "http";
 import path from "path";
 import process from "process";
@@ -15,7 +16,6 @@ import {
 import { buildProject } from "queue-run-builder";
 import { URL } from "url";
 import { WebSocket, WebSocketServer } from "ws";
-import envVariables from "./envVariables.js";
 import {
   DevLocalStorage,
   onWebSocketAccepted,
@@ -29,8 +29,6 @@ const sourceDir = process.cwd();
 const buildDir = path.resolve(".queue-run");
 
 export default async function devServer({ port }: { port: number }) {
-  envVariables(port);
-
   cluster.setupMaster({
     exec: new URL(import.meta.url).pathname,
   });
@@ -71,7 +69,16 @@ async function newWorker(port: number) {
   const token = await blockOnBuild.acquire();
 
   for (const worker of Object.values(cluster.workers!)) worker!.kill();
-  const worker = cluster.fork({ PORT: port });
+  const worker = cluster.fork({
+    ...dotenv.config({ path: ".env" }),
+    NODE_ENV: "development",
+    PORT: port,
+    QUEUE_RUN_ENV: "development",
+    QUEUE_RUN_INDENT: "2",
+    QUEUE_RUN_URL: `http://localhost:${port}`,
+    QUEUE_RUN_WS: `ws://localhost:${port + 1}`,
+  });
+
   // For some reason we need to reset this every time we fork
   process.stdin.setRawMode(true);
   process.stdin.resume();
