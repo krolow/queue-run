@@ -2,18 +2,22 @@ import { Sema } from "async-sema";
 import chalk from "chalk";
 import * as chokidar from "chokidar";
 import cluster from "cluster";
+import crypto from "crypto";
 import dotenv from "dotenv";
 import { createServer, IncomingMessage, ServerResponse } from "http";
+import ms from "ms";
 import path from "path";
 import process from "process";
 import {
   handleHTTPRequest,
+  handleQueuedJob,
   handleWebSocketMessage,
   LocalStorage,
   Request,
   warmup,
 } from "queue-run";
 import { buildProject } from "queue-run-builder";
+import invariant from "tiny-invariant";
 import { URL } from "url";
 import { WebSocket, WebSocketServer } from "ws";
 import {
@@ -139,6 +143,9 @@ async function onRequest(
   res: ServerResponse,
   newLocalStorage: () => LocalStorage
 ) {
+  if (req.url?.startsWith("/$queues/"))
+    return queueJob(req, res, newLocalStorage);
+
   const method = req.method?.toLocaleUpperCase() ?? "GET";
   const headers = Object.fromEntries(
     Object.entries(req.headers).map(([name, value]) => [name, String(value)])
@@ -162,6 +169,53 @@ async function getRequestBody(req: IncomingMessage): Promise<Buffer | null> {
   let data: Buffer[] = [];
   for await (const chunk of req) data.push(chunk);
   return Buffer.concat(data);
+}
+
+async function queueJob(
+  req: IncomingMessage,
+  res: ServerResponse,
+  newLocalStorage: () => LocalStorage
+) {
+  if (req.method !== "POST") {
+    res.writeHead(405, "Method not allowed").end();
+    return;
+  }
+
+  let payload;
+  let data: Buffer[] = [];
+  for await (const chunk of req) data.push(chunk);
+  payload = Buffer.concat(data).toString("utf-8");
+  try {
+    payload = JSON.parse(payload);
+  } catch {
+    // Ignore
+  }
+
+  const [queueName, groupId] = req.url!.split("/").slice(2);
+  invariant(queueName, "Queue name is required");
+
+  try {
+    await handleQueuedJob({
+      metadata: {
+        queueName,
+        groupId,
+        jobId: crypto.randomBytes(4).toString("hex"),
+        params: {},
+        receivedCount: 1,
+        queuedAt: new Date(),
+        sequenceNumber: groupId ? 1 : undefined,
+        user: null,
+      },
+      newLocalStorage,
+      payload,
+      queueName,
+      remainingTime: ms("30s"),
+    });
+    res.writeHead(200, "OK").end();
+  } catch (error) {
+    console.error(chalk.bold.red("💥 Queue job failed!"), error);
+    res.writeHead(500, "Internal Server Error").end();
+  }
 }
 
 async function onConnection(

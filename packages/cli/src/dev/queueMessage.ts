@@ -1,47 +1,22 @@
 import chalk from "chalk";
 import fs from "fs/promises";
-import ora from "ora";
-import path from "path";
-import { loadManifest, warmup } from "queue-run";
-import { buildProject } from "queue-run-builder";
 import readline from "readline";
-import envVariables from "./envVariables.js";
-import { DevLocalStorage, onIdleOnce } from "./state.js";
-
-const sourceDir = process.cwd();
-const buildDir = path.resolve(".queue-run");
+import { URL } from "url";
 
 export default async function queueMessage(
   queueName: string,
   message: string,
   { port, group }: { port: number; group?: string }
 ) {
-  const payload = parseMessage(await readPayload(message));
-  const spinner = ora(`Loading queue handler for ${queueName}`).start();
-  try {
-    envVariables(port);
+  const payload = await readPayload(message);
+  const path = group
+    ? `/$queues/${queueName}/${group}`
+    : `/$queues/${queueName}`;
 
-    await fs.mkdir(buildDir, { recursive: true });
-    await buildProject({ buildDir, sourceDir });
-    process.chdir(buildDir);
-
-    const { queues } = await loadManifest();
-    if (!queues.has(queueName)) throw new Error(`No queue named ${queueName}`);
-
-    spinner.succeed();
-  } catch (error) {
-    spinner.stop();
-    throw error;
-  }
-
-  const localStorage = new DevLocalStorage(port);
-  await warmup(localStorage);
-  await localStorage.queueJob({
-    groupId: group,
-    payload,
-    queueName,
+  await fetch(new URL(path, `http://localhost:${port}`).href, {
+    method: "POST",
+    body: payload,
   });
-  await new Promise((resolve) => onIdleOnce(() => resolve(undefined)));
 }
 
 async function readPayload(message: string): Promise<string> {
@@ -67,12 +42,4 @@ async function readPayload(message: string): Promise<string> {
   else if (message.startsWith("@"))
     return await fs.readFile(message.slice(1), "utf-8");
   else return message;
-}
-
-function parseMessage(message: string): string | object {
-  try {
-    return JSON.parse(message);
-  } catch {
-    return message;
-  }
 }
