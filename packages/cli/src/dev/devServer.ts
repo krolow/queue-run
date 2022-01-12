@@ -53,9 +53,16 @@ export default async function devServer({ port }: { port: number }) {
 
   process.stdin.on("data", (data) => {
     const key = data[0];
-    if (key === 3) process.exit(0); // Ctrl+C
-    if (key === 18) newWorker(port); // Ctrl+R
-    if (key === 13) process.stdout.write("\n");
+    if (key === 3) process.exit(0);
+    // Ctrl+C
+    else if (key === 18) newWorker(port);
+    // Ctrl+R
+    else if (key === 13) process.stdout.write("\n");
+    else if (key) {
+      if (key < 32)
+        console.info(chalk.gray("   Ctrl+C to exit, Crtl+R to reload"));
+      process.stdout.write(String.fromCharCode(key));
+    }
   });
   await new Promise(() => {});
 }
