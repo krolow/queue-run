@@ -1,7 +1,7 @@
 import chalk from "chalk";
 import crypto from "crypto";
 import { AbortController } from "node-abort-controller";
-import { URL } from "url";
+import { URL, URLSearchParams } from "url";
 import { XMLElement } from "xmlbuilder";
 import {
   getLocalStorage,
@@ -18,6 +18,7 @@ import {
 } from "./exports.js";
 import { Headers, Request, Response } from "./fetch.js";
 import findRoute from "./findRoute.js";
+import form from "./form.js";
 
 export default async function handleHTTPRequest(
   request: Request,
@@ -87,8 +88,7 @@ function checkRequest(request: Request, route: HTTPRoute) {
   if (!(route.methods.has("*") || route.methods.has(request.method)))
     throw new Response("Method Not Allowed", { status: 405 });
 
-  const hasBody = request.method !== "GET" && request.method !== "HEAD";
-  if (!hasBody) return;
+  if (!hasBody(request)) return;
 
   if (route.accepts.has("*/*")) return;
 
@@ -134,7 +134,10 @@ async function handleRoute({
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout * 1000);
 
+  const body = hasBody(request) ? await bodyFromRequest(request.clone()) : null;
+
   const metadata = {
+    body,
     cookies: getCookies(request),
     params,
     query: getQuery(request),
@@ -501,4 +504,72 @@ async function handleOnError({
   }
 
   return response;
+}
+
+async function bodyFromRequest(
+  request: Request
+): Promise<object | string | Buffer> {
+  const contentType = request.headers.get("content-type");
+  const mimeType = contentType?.split(";")[0];
+
+  switch (mimeType) {
+    case "application/json": {
+      try {
+        return (await request.json()) as object;
+      } catch (error) {
+        throw new Response("application/json: not a valid JSON document", {
+          status: 422,
+        });
+      }
+    }
+
+    case "application/octet-stream": {
+      const buffer = await request.arrayBuffer();
+      if (!buffer.byteLength)
+        throw new Response("application/octet-stream: no message body", {
+          status: 422,
+        });
+      return Buffer.from(buffer);
+    }
+
+    case "application/x-www-form-urlencoded": {
+      const text = await request.text();
+      const params = new URLSearchParams(text);
+      return Object.fromEntries(params.entries());
+    }
+
+    case "multipart/form-data": {
+      try {
+        const fields = await form(request);
+        if (
+          Object.values(fields)
+            .flat()
+            .some((field) => typeof field !== "string" && "name" in field)
+        )
+          throw new Error("multipart/form-data: files not supported");
+        return fields;
+      } catch (error) {
+        throw new Response(String(error), { status: 422 });
+      }
+    }
+
+    case "text/plain": {
+      const text = await request.text();
+      if (!text)
+        throw new Response("text/plain: no message body", { status: 422 });
+      return text;
+    }
+
+    default: {
+      throw new Response("Unsupported media type", { status: 415 });
+    }
+  }
+}
+
+function hasBody(request: Request) {
+  return !(
+    request.method === "GET" ||
+    request.method === "HEAD" ||
+    request.method === "OPTIONS"
+  );
 }

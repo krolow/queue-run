@@ -1,4 +1,4 @@
-import { form, Request, Response } from "queue-run";
+import { Request, Response } from "queue-run";
 import * as db from "../../lib/db.js";
 
 export async function authenticate(request: Request) {
@@ -13,21 +13,4 @@ export async function authenticate(request: Request) {
   return user;
   // TODO: verify JWT token
   // TODO: example with signed cookies
-}
-
-export async function input(request: Request) {
-  // HTML form or JSON document we're not particular
-  const { title, url } = (await form(request.clone()).catch(() =>
-    request.json()
-  )) as { title: string; url: string };
-
-  // Validate inputs early and validate inputs often
-  try {
-    if (!/^https?:\/\//.test(url))
-      throw new Error('"url" must start with "http://" or "https://"');
-    if (!title) throw new Error('"title" is required');
-    return { title, url };
-  } catch (error) {
-    throw new Response(String(error), { status: 422 });
-  }
 }

@@ -6,6 +6,7 @@ import type { Request, Response } from "./fetch.js";
 /**
  * HTTP request handler.
  *
+ * @param body The request body
  * @param cookies The cookies
  * @param query The query parameters
  * @param params The path parameters
@@ -19,6 +20,7 @@ export type RequestHandler<
   P = { [key: string]: string | string[] },
   Q = { [key: string]: string | string[] }
 > = (args: {
+  body: object | string | Buffer | null;
   cookies: { [key: string]: string };
   query: Q;
   params: P;

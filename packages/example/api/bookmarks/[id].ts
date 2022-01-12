@@ -1,8 +1,10 @@
-import { Request, Response, RouteConfig, url } from "queue-run";
+import { Response, RouteConfig, url } from "queue-run";
 import * as db from "../../lib/db.js";
-import { input } from "./_middleware.js";
 
-export type Resource = { request: Request; params: { id: string } };
+export type Resource = {
+  body?: { title: string };
+  params: { id: string };
+};
 
 export async function get({ params }: Resource) {
   const bookmark = await db.findOne(params.id);
@@ -10,11 +12,11 @@ export async function get({ params }: Resource) {
   return bookmark;
 }
 
-export async function put({ request, params }: Resource) {
+export async function put({ body, params }: Resource) {
   const bookmark = await db.findOne(params.id);
   if (!bookmark) throw new Response(undefined, { status: 404 });
 
-  const { title } = await input(request);
+  const { title } = body!;
   return await db.updateOne({ id: params.id, title });
 }
 
