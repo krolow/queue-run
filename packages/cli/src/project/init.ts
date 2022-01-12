@@ -45,8 +45,8 @@ async function prepareForTypeScript(templates: string) {
 
 async function replaceFile(src: string, dest: string) {
   try {
-    const current = await fs.readFile(dest, "utf8");
-    const template = await fs.readFile(src, "utf8");
+    const current = await fs.readFile(dest, "utf-8");
+    const template = await fs.readFile(src, "utf-8");
     if (current === template) return;
     const spinner = ora(`Updating ${dest}`).start();
     await fs.copyFile(src, dest);

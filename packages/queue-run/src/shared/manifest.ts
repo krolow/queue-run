@@ -60,7 +60,7 @@ export async function loadManifest(dirname = process.cwd()): Promise<{
   sockets: Map<string, WebSocketRoute>;
 }> {
   const manifest = JSON.parse(
-    await fs.readFile(path.resolve(dirname, "manifest.json"), "utf8")
+    await fs.readFile(path.resolve(dirname, "manifest.json"), "utf-8")
   ) as Manifest;
 
   const queues = new Map(

@@ -27,7 +27,7 @@ export default async function getRuntime(
     return defaultRuntime;
   }
   const packageJSON = JSON.parse(
-    await fs.readFile(path.join(dirname, "package.json"), "utf8")
+    await fs.readFile(path.join(dirname, "package.json"), "utf-8")
   );
   const specifiedEngine = packageJSON.engines?.node;
   if (!specifiedEngine) return defaultRuntime;

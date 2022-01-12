@@ -63,6 +63,6 @@ function validateMiddleware(middleware: RouteMiddleware): void {
 }
 
 async function getOriginalFilename(filename: string) {
-  const { sources } = JSON.parse(await fs.readFile(`${filename}.map`, "utf8"));
+  const { sources } = JSON.parse(await fs.readFile(`${filename}.map`, "utf-8"));
   return sources[0];
 }

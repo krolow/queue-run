@@ -12,7 +12,7 @@ type Project = {
 export async function loadProject(): Promise<Project> {
   let source;
   try {
-    source = await fs.readFile(filename, "utf8");
+    source = await fs.readFile(filename, "utf-8");
   } catch {
     return {};
   }
@@ -34,7 +34,7 @@ export async function initProject() {
   const suggestedName =
     project.name ??
     (await fs
-      .readFile("package.json", "utf8")
+      .readFile("package.json", "utf-8")
       .then(JSON.parse)
       .then((pkg) => pkg.name)
       .catch(() => null));

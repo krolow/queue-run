@@ -32,7 +32,7 @@ export default async function form<
     const fields = multipart.parse(input, boundary);
     return combine(fields) as T;
   } else if (mime === "application/x-www-form-urlencoded") {
-    const fields = new URLSearchParams(input.toString(encoding ?? "utf8"));
+    const fields = new URLSearchParams(input.toString(encoding ?? "utf-8"));
     return combine(
       Array.from(fields.keys())
         .map((name) => fields.getAll(name).map((data) => ({ name, data })))
@@ -110,6 +110,6 @@ function formField({
     });
   } else {
     const { encoding } = parseContentType(contentType);
-    return data.toString(encoding ?? "utf8");
+    return data.toString(encoding ?? "utf-8");
   }
 }

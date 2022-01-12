@@ -63,7 +63,7 @@ async function readPayload(message: string): Promise<string> {
     return lines.join("\n");
   }
   if (!message || message === "-")
-    return await fs.readFile("/dev/stdin", "utf8");
+    return await fs.readFile("/dev/stdin", "utf-8");
   else if (message.startsWith("@"))
     return await fs.readFile(message.slice(1), "utf-8");
   else return message;
