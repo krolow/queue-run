@@ -86,9 +86,20 @@ function compileSource({
     filename,
     isModule: true,
     jsc: {
-      parser: { syntax },
+      parser: {
+        decorators: true,
+        dynamicImport: true,
+        syntax,
+      },
       target: jscTarget,
       transform: {
+        constModules: {
+          globals: {
+            typeofs: {
+              window: "undefined",
+            },
+          },
+        },
         react: {
           importSource: "queue-run",
           runtime: "automatic",
@@ -101,3 +112,5 @@ function compileSource({
     swcrc: false,
   });
 }
+
+// globalWindow
