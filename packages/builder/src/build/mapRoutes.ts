@@ -110,7 +110,7 @@ function isValidPathPart(part: string): boolean {
 function getMethods(module: RouteExports): string[] {
   const { config } = module;
 
-  const methodHandlers = (
+  const methods = (
     [
       "get",
       "post",
@@ -121,15 +121,19 @@ function getMethods(module: RouteExports): string[] {
       "options",
       "head",
     ] as Array<keyof RouteExports>
-  ).filter((method) => typeof module[method] === "function");
-  if (methodHandlers.length > 0) {
+  )
+    .filter((method) => typeof module[method] === "function")
+    .map((method) => method.toUpperCase())
+    .map((method) => (method === "DEL" ? "DELETE" : method));
+
+  if (methods.length > 0) {
     if (config?.methods)
       throw new Error(
         "config.methods: cannot use this together with explicit method handlers"
       );
-    return methodHandlers
-      .map((method) => method.toUpperCase())
-      .map((method) => (method === "DEL" ? "DELETE" : method));
+    const specified = new Set(methods);
+    if (specified.has("GET")) specified.add("HEAD");
+    return Array.from(specified);
   } else {
     const handler = module.default;
     if (!handler)

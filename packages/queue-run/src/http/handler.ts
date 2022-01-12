@@ -307,6 +307,7 @@ async function resultToResponse({
     const buffer = Buffer.from(result, "utf8");
     // eslint-disable-next-line sonarjs/no-duplicate-string
     headers.set("Content-Type", "text/plain; charset=utf-8");
+    // eslint-disable-next-line sonarjs/no-duplicate-string
     headers.set("Content-Length", buffer.byteLength.toString());
     addCacheControl(headers, result, result);
     return new Response(buffer, { headers, status: 200 });
