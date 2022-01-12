@@ -104,6 +104,13 @@ class WebSockets<T = Payload> {
       this._userIds?.join(",") ?? getLocalStorage().connection ?? "unavailable"
     );
   }
+
+  /**
+   * Returns the WebSocket URL (wss:// in production, ws:// in development)
+   */
+  get url() {
+    return getLocalStorage().urls.ws;
+  }
 }
 
 export default new WebSockets(null);
