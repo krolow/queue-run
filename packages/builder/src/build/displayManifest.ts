@@ -1,68 +1,75 @@
 import chalk from "chalk";
-import {
-  HTTPRoute,
-  loadManifest,
-  QueueService,
-  WebSocketRoute,
-} from "queue-run";
+import { loadManifest } from "queue-run";
 
 export default async function displayManifest(dirname: string) {
   const { routes, sockets, queues } = await loadManifest(dirname);
 
-  displayRoutes(routes);
-  displaySockets(sockets);
-  displayQueues(queues);
+  const tables = [tabulate(routes), tabulate(sockets), tabulate(queues)];
+  const widths = calculate(tables);
+
+  displayTable({
+    missing: "No routes",
+    rows: tables[0]!,
+    title: "API",
+    widths,
+  });
+  displayTable({
+    missing: "No WebSocket",
+    rows: tables[1]!,
+    title: "WebSocket",
+    widths,
+  });
+  displayTable({
+    missing: "No queues",
+    rows: tables[2]!,
+    title: "Queues",
+    widths,
+  });
 }
 
-function displayRoutes(routes: Map<string, HTTPRoute>) {
-  console.info(
-    chalk.bold.blue("λ: %s"),
-    routes.size > 0 ? "API:" : "No routes"
-  );
-  table(
-    Array.from(routes.entries()).map(([path, { original }]) => [path, original])
-  );
+function tabulate(map: Map<string, { original: string }>): [string, string][] {
+  return Array.from(map.entries()).map(([match, { original }]) => [
+    match,
+    original,
+  ]);
 }
 
-function displaySockets(sockets: Map<string, WebSocketRoute>) {
-  console.info(
-    chalk.bold.blue("λ: %s"),
-    sockets.size > 0 ? "WebSocket:" : "No WebSocket"
-  );
-  table(
-    Array.from(sockets.entries()).map(([path, { original }]) => [
-      path,
-      original,
-    ])
-  );
+function calculate(tables: [string, string][][]): [number, number] {
+  const rows = tables.flat(1);
+  const available = process.stdout.columns - 10;
+  const min = 10;
+  const max = [
+    Math.max(...rows.map(([left]) => left.length), min),
+    Math.max(...rows.map(([, right]) => right.length), min),
+  ] as [number, number];
+  return max[0]! + max[1]! > available
+    ? [Math.floor((available / 3) * 2), Math.floor(available / 3)]
+    : max;
 }
 
-function displayQueues(queues: Map<string, QueueService>) {
-  console.info(
-    chalk.bold.blue("λ: %s"),
-    queues.size > 0 ? "Queues:" : "No queues"
-  );
-  table(
-    Array.from(queues.entries()).map(([path, { original }]) => [path, original])
-  );
-}
+function displayTable({
+  missing,
+  rows,
+  title,
+  widths,
+}: {
+  missing: string;
+  rows: [string, string][];
+  title: string;
+  widths: [number, number];
+}) {
+  if (rows.length === 0) {
+    console.info(chalk.bold.blue("λ: %s"), missing);
+    return;
+  }
 
-function table(rows: [string, string][]) {
-  if (rows.length === 0) return;
-
-  const maxWidth = process.stdout.columns / 2 - 2;
-  const width = Math.min(
-    Math.max(...rows.map(([path]) => path.length), maxWidth / 2),
-    maxWidth
-  );
-  const table = rows.map(([path, original]) =>
-    [fit(path, width), fit(original, width)].join("  →  ")
-  );
+  console.info(chalk.bold.blue("λ: %s:"), title);
   console.info(
     "%s",
-    table
+    rows
       .sort()
-      .map((line) => `   ${line}`)
+      .map(([left, right]) => [fit(left, widths[0]), fit(right, widths[1])])
+      .map(([left, right]) => `   ${left}  →  ${right}`)
       .join("\n")
   );
 }
