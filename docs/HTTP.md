@@ -48,6 +48,7 @@ They take a single argument with named parameters:
 - `params` — Object with URL path parameters, eg `/orders/123` => `{ order: "123" }` (the catch-all parameter value is an array)
 - `query` — Object with query string parameters, eg `{ sort: "desc" }` (the value is an array for any query string parameter that appears more than once)
 - `request` - The HTTP [`Request`](https://developer.mozilla.org/en-US/docs/Web/API/Request) object
+- `requestId` - Unique request ID, used for tracing
 - `signal` — The [abort signal](https://developer.mozilla.org/en-US/docs/Web/API/AbortController)
 - `user` — User object returned from the [authenticate](Authenticate.md) middleware
 

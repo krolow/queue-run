@@ -21,6 +21,7 @@ export type APIGatewayHTTPEvent = {
       sourceIp: string;
       userAgent: string;
     };
+    requestId: string;
   };
   headers: { [key: string]: string };
   body?: string;
@@ -47,7 +48,11 @@ export default async function httpHandler(
   newLocalStorage: () => LocalStorage
 ): Promise<APIGatewayResponse> {
   return await asFetchRequest(event, async (request) =>
-    handleHTTPRequest(request, newLocalStorage)
+    handleHTTPRequest({
+      newLocalStorage,
+      request,
+      requestId: String(event.headers["x-amzn-trace-id"] ?? ""),
+    })
   );
 }
 

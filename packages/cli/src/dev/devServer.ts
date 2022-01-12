@@ -157,7 +157,11 @@ async function onRequest(
     headers,
     body,
   });
-  const response = await handleHTTPRequest(request, newLocalStorage);
+  const response = await handleHTTPRequest({
+    newLocalStorage,
+    request,
+    requestId: crypto.randomBytes(4).toString("hex"),
+  });
   res.writeHead(response.status, Array.from(response.headers.entries()));
   const buffer = await response.arrayBuffer();
   res.end(Buffer.from(buffer));

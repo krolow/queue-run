@@ -11,6 +11,7 @@ import type { Request, Response } from "./fetch.js";
  * @param query The query parameters
  * @param params The path parameters
  * @param request The HTTP request
+ * @param requestId The unique request ID
  * @param signal The abort signal
  * @param user The authenticated user
  * @return HTTP Response, object (as application/json), string (as text/plain),
@@ -25,6 +26,7 @@ export type RequestHandler<
   query: Q;
   params: P;
   request: Request;
+  requestId: string;
   signal: AbortSignal;
   user: { id: string; [key: string]: unknown } | null;
 }) => Promise<Result> | Result;

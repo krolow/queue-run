@@ -20,10 +20,15 @@ import { Headers, Request, Response } from "./fetch.js";
 import findRoute from "./findRoute.js";
 import form from "./form.js";
 
-export default async function handleHTTPRequest(
-  request: Request,
-  newLocalStorage: () => LocalStorage
-): Promise<Response> {
+export default async function handleHTTPRequest({
+  newLocalStorage,
+  request,
+  requestId,
+}: {
+  newLocalStorage: () => LocalStorage;
+  request: Request;
+  requestId: string;
+}): Promise<Response> {
   try {
     // Throws 404 Not Found
     const { middleware, module, params, route } = await findRoute(request.url);
@@ -49,6 +54,7 @@ export default async function handleHTTPRequest(
       middleware,
       params,
       request,
+      requestId,
       newLocalStorage,
       timeout: route.timeout,
     });
@@ -119,6 +125,7 @@ async function handleRoute({
   newLocalStorage,
   params,
   request,
+  requestId,
   timeout,
 }: {
   config: RouteConfig;
@@ -129,6 +136,7 @@ async function handleRoute({
   newLocalStorage: () => LocalStorage;
   params: { [key: string]: string | string[] };
   request: Request;
+  requestId: string;
   timeout: number;
 }): Promise<Response> {
   const controller = new AbortController();
@@ -141,6 +149,7 @@ async function handleRoute({
     cookies: getCookies(request),
     params,
     query: getQuery(request),
+    requestId,
     signal: controller.signal,
   };
 
