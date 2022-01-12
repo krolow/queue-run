@@ -8,7 +8,7 @@
 
 **TBD**
 
-## Queuing a job
+## Queuing a Job
 
 The `queues(name)` function gives you access to the named queue.
 
@@ -39,6 +39,7 @@ const job3 = await queues('payment.fifo')
 If you queue an object, the object is serialized to JSON. Some values will convert to strings. For example, `Date` objects turn into strings. Circular references will cause an error.
 :::
 
+
 ## queues.self()
 
 You can use the `queues.self()` function to get a reference to the current queue.
@@ -66,6 +67,7 @@ export async function post(request) {
   return new Response(null, { status: 202 });
 }
 ```
+
 
 ## queue.http
 

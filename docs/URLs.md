@@ -32,7 +32,7 @@ export async function get() {
 }
 ```
 
-## The url() function
+## The url() Function
 
 Let's explain how this works, starting with the `url()` function.
 
@@ -74,7 +74,8 @@ url('/post/[...slug]', { slug: ['2021', '12', '28', 'my-post'] })
 You can also use `url()` with an absolute URL, a [URL](https://developer.mozilla.org/en-US/docs/Web/API/URL) object, and even a `file://` URL.
 :::
 
-## The url.for() function
+
+## url.for()
 
 You can use `url.for(path)` to create a URL construction function. You then pass the URL construction around to code that needs to create URLs, but not worry about the path.
 
@@ -111,7 +112,7 @@ const urlForPost = url.for<
 
 
 
-## The url.self() function
+## url.self()
 
 The `url.self()` function is a shortcut for `url.for(path)` that uses the path of the current file.
 
