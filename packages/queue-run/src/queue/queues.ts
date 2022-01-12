@@ -160,6 +160,14 @@ function newQueue<T = Payload>(
   };
 
   queueFn.http = async ({ body, params }) => {
+    if (body === null)
+      throw new Response("Unsupported media type", { status: 415 });
+    if (
+      (typeof body === "string" && body.length === 0) ||
+      (Buffer.isBuffer(body) && body.byteLength === 0)
+    )
+      throw new Response("Empty body", { status: 422 });
+
     const fifo = queueName.endsWith(".fifo");
     if (fifo && !params.group)
       throw new Error("FIFO queue requires a group ID");

@@ -508,7 +508,7 @@ async function handleOnError({
 
 async function bodyFromRequest(
   request: Request
-): Promise<object | string | Buffer> {
+): Promise<object | string | Buffer | null> {
   const contentType = request.headers.get("content-type");
   const mimeType = contentType?.split(";")[0];
 
@@ -561,7 +561,7 @@ async function bodyFromRequest(
     }
 
     default: {
-      throw new Response("Unsupported media type", { status: 415 });
+      return null;
     }
   }
 }
