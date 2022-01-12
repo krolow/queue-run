@@ -27,11 +27,15 @@ export default async function findRoute(url: string): Promise<{
 }> {
   const { routes } = await loadManifest();
   const pathname = new URL(url).pathname;
-  const matches = Array.from(routes.values())
-    .map((route) => ({ route, match: route.match(pathname) }))
+  const matches = Array.from(routes.entries())
+    .map(([path, route]) => ({ path, route, match: route.match(pathname) }))
     .filter(({ match }) => match)
-    .map(({ match, route }) => ({ params: match ? match.params : {}, route }))
-    .sort((a, b) => moreSpecificRoute(a.params, b.params));
+    .map(({ match, path, route }) => ({
+      params: match ? match.params : {},
+      path,
+      route,
+    }))
+    .sort((a, b) => moreSpecificRoute(a, b));
   const mostSpecific = matches[0];
   if (!mostSpecific) throw new Response("Not Found", { status: 404 });
   const { route, params } = mostSpecific;
@@ -47,8 +51,16 @@ export default async function findRoute(url: string): Promise<{
 }
 
 function moreSpecificRoute(
-  a: { [key: string]: string | string[] },
-  b: { [key: string]: string | string[] }
+  a: { path: string; params: { [key: string]: string | string[] } },
+  b: { path: string; params: { [key: string]: string | string[] } }
 ) {
-  return Object.keys(a).length - Object.keys(b).length;
+  // Which route matches more path parameters:
+  // api/foo/[id] > api/foo
+  const params = Object.keys(a.params).length - Object.keys(b.params).length;
+  // Which route is longer, ignoring path parameters:
+  // api/foo/[id].xml > api/foo/[id]
+  const length =
+    b.path.replace(/:(.*?)(\/|$)/g, ":").length -
+    a.path.replace(/:(.*?)(\/|$)/g, ":").length;
+  return params === 0 ? length : params;
 }

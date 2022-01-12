@@ -92,17 +92,16 @@ function validatePathParameters(path: string) {
 // see parameters in file names when using brackets than with a single prefix
 // (colon, dollar, etc).
 function renamePathProperties(filename: string): string {
-  return filename
-    .split("/")
-    .map((part) =>
-      part.replace(/^\[\.{3}(.*)\]$/, ":$1*").replace(/^\[(.*)\]$/, ":$1")
-    )
-    .join("/");
+  return filename.replace(
+    /(\/|\.)\[(?:\.{3})?([a-z0-9_-]+)\]$/gi,
+    (_, prefix, name) =>
+      name.startsWith("...") ? `${prefix}:${name}*` : `${prefix}:${name}`
+  );
 }
 
 // path-to-regexp supports a lot more options than we want to allow in filenames.
 // If you need all these options, use rewrite rules.
-//  We limit to "file_name_92-3.js".
+// We limit to "file_name_92-3.js".
 function isValidPathPart(part: string): boolean {
   return /^([a-z0-9_-]+)|(:[a-z0-9_-]+\*?)$/i.test(part);
 }

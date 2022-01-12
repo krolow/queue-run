@@ -23,6 +23,7 @@ For convenience, the URL structure is mirrored by the file system:
 - Square brackets denote parameters, eg `api/orders/[id].ts` => `/orders/123`
 - You can have multiple parameters, eg `api/orders/[orderId]/items/[itemId].ts`
 - The last parameter can be a catch-all, eg `api/reports/[...rest].ts` => `/reports/2021/01/usage.ts`
+- Paths can contain extensions, eg `/api/feed.xml.ts` or `api/orders.[format].ts`
 - Filenames that start with `_` are not part of the API, etc `api/_middleware.ts`
 
 For example:
