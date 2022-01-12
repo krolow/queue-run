@@ -65,10 +65,7 @@ export async function post({ body, user }) {
   // This will generate a URL like
   // https://example.com/bookmarks/c675e615%
   const newURL = urlForBookmark(bookmark);
-  return new Response(newURL, {
-    status: 303,
-    headers: { Location: newURL }
-  });
+  return Response.redirect(newURL, 303);
 }
 ```
 

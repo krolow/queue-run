@@ -12,7 +12,7 @@ export async function post({ body }: { body: { url: string; title: string } }) {
   await screenshots.push({ id: bookmark.id });
 
   const url = urlForBookmark(bookmark);
-  return new Response(url, { status: 303, headers: { Location: url } });
+  return Response.redirect(url, 303);
 }
 
 export const config: RouteConfig = {
