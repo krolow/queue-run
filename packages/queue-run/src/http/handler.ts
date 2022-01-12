@@ -560,6 +560,11 @@ async function bodyFromRequest(
       return text;
     }
 
+    case undefined: {
+      // No content type (eg testing with curl), we assume JSON.
+      return (await request.json().catch(() => null)) as object;
+    }
+
     default: {
       return null;
     }
