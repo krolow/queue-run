@@ -67,12 +67,11 @@ export async function get({ params }) {
 }
 
 // HTTP PUT accepts JSON document as well
-export async function put({ params, request }) {
+export async function put({ body, params }) {
   const item = await db.findOne(params.id);
   if (!item) throw new Response(null, { status: 400 });
 
-  const fields = await request.json();
-  return await db.update({ id: params.id, ...fields });
+  return await db.update({ id: params.id, ...body });
 }
 
 // HTTP DELETE, since "delete" is a keyword in JavaScript,
@@ -136,18 +135,27 @@ export const config = { cors: false };
 
 A typical API would be JSON all the way and not care much about checking and negotiating content types.
 
-The [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) makes it really easy to parse JSON requests.
+If the request includes a content type, QueueRun will parse it for you:
+
+- `application/json` — Plain JavaScript object
+- `application/x-www-form-urlencoded` - Key/value pairs of the form fields (value is string or array)
+- `multipart/form-data` — Key/value pairs of the form fields (value can also be File)
+- `text/plain` — String with the document content
+- `application/octet-stream` — `Buffer` with the document content
+
+If the request does not include a content type, you'll have to parse it yourself. See [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API).
 
 For responses, any object you return, will be turned into a JSON document.
 
 So the common use case is as simple as:
 
-```ts
-export async function post({ request }) {
-  const { message } = await request.json();
+```ts title=api/index.ts
+export async function post({ body }) {
+  const { message } = body;
   return { message };
-}
+}```
 
+```bash
 curl http://localhost:8000/ -d '{ "message": "Hi" }'
 => {"messge":"Hi"}
 ```
@@ -157,9 +165,7 @@ To handle other media types, you can get the raw buffer (`response.arrayBuffer()
 
 ## The form() function
 
-If you want to support HTML forms, there's a convenience method that will handle that for you.
-
-It understands `application/x-www-form-urlencoded` and `multipart/form-data`.
+This method is used internally to parse HTML forms.
 
 Form fields are converted to name/value pairs. For encoded forms (defaults), the values are strings. For multipart forms, field value can also be [File](https://developer.mozilla.org/en-US/docs/Web/API/File).
 
@@ -185,8 +191,8 @@ type Fields = {
   password: string;
 };
 
-export aync function post({ request }) {
-  const { name, email, passowrd } = await form<Fields>(request);
+export aync function post({ body }) {
+  const { name, email, passowrd } = body;
   await createUser({ name, email, password });
   return Response.redirect('/', 303);
 }
@@ -211,8 +217,8 @@ type Fields = {
   photo: File;
 }
 
-export aync function post({ request }) {
-  const { name, photo } = await form<Fields>(request);
+export aync function post({ body }) {
+  const { name, photo } = body;
   console.log("Name:  %s", name);
   console.log("Photo: %s type %s size %s", photo.name, photo,type, filesize(photo.size));
   await fs.writeFile(photo.filename, photo);

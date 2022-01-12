@@ -45,7 +45,6 @@ You can also [clone the repo](https://github.com/assaf/queue-run) and look at th
 :::
 
 ```ts title=api/bookmarks.ts
-import { inputs } from "./_middleware.js";
 import { queue as screenshots } from "~queues/screenshots.js";
 import { urlForBookmark } from "./[id].js";
 import * as db from "~lib/db.js";
@@ -57,8 +56,8 @@ export async function get({ user }) {
 }
 
 // And this is HTTP POST -> 303 See Other
-export async function post({ request, user }) {
-  const { title, url } = await inputs(request);
+export async function post({ body, user }) {
+  const { title, url } = body;
   const bookmark = await db.create({ title, url, user });
 
   await screenshots.push({ id: bookmark.id });
@@ -76,7 +75,6 @@ export async function post({ request, user }) {
 You can also fetch (GET), update (PUT), and delete (DELETE) an individual resource:
 
 ```ts title=api/bookmarks/[id].ts
-import { inputs } from "./_middleware.js";
 import { url, Response } from "queue-run";
 import * as db from "~lib/db.js";
 
@@ -91,15 +89,15 @@ export async function get({ params, user }) {
   return bookmark;
 }
 
-export async function put({ request, params, user }) {
+export async function put({ body, params, user }) {
   const bookmark = await db.findOne({
     id: params.id,
     userID: user.id
   });
   if (!bookmark) throw new Response(null, { status: 404 });
 
-  const { title, url } = await inputs(request);
-  return await db.updateOne({ id: params.id, title, url });
+  const { title } = body;
+  return await db.updateOne({ id: params.id, title });
 }
 
 export async function del({ params, user}) {
@@ -114,30 +112,13 @@ export async function del({ params, user}) {
 export const urlForBookmark = url.self<{ id: string }>();
 ```
 
-We'll need some common middleware to authenticate requests, so we can tie them to a user, and to validate inputs for POST + PUT:
+We'll need some common middleware to authenticate requests, so we can tie them to a user:
 
 ```ts title=api/_middleware.ts
 import { form, Response } from "queue-run";
 
 export async function authenticate(request) {
   ... TBD
-}
-
-// This is used by two route files, so put it here
-export async function inputs(request) {
-  // We accept HTML forms and JSON documents
-  const { title, url } = await form(request.clone()).
-    catch(() => request.json());
-
-  // Validate inputs early and validate inputs often
-  try {
-    if (!/^https?:\/\//.test(url))
-      throw new Error('"url" must start with "http://" or "https://"');
-    if (!title) throw new Error('"title" is required');
-    return { title, url };
-  } catch (error) {
-    throw new Response(String(error), { status: 422 });
-  }
 }
 ```
 
