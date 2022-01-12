@@ -15,7 +15,7 @@ import { AsyncLocalStorage } from "async_hooks";
 export abstract class LocalStorage {
   public urls: { http: string; ws: string };
 
-  private _user: { id: string; [key: string]: any } | null = null;
+  private _user: { id: string; [key: string]: unknown } | null = null;
   private _userSet = false;
 
   /** WebSocket connection ID */
@@ -49,7 +49,7 @@ export abstract class LocalStorage {
     throw new Error("WebSocket not available in this environment.");
   }
 
-  get user(): { id: string; [key: string]: any } | null {
+  get user(): { id: string; [key: string]: unknown } | null {
     return this._user;
   }
 

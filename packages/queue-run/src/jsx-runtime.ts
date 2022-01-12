@@ -1,13 +1,16 @@
 import xmlbuilder, { XMLDocument, XMLElement, XMLNode } from "xmlbuilder";
 
-export function jsxs(type: string, props: { [key: string]: any }): XMLDocument {
+export function jsxs(
+  type: string,
+  props: { [key: string]: unknown }
+): XMLDocument {
   return newElement(xmlbuilder.begin(), type, props);
 }
 
 function newElement(
   parent: XMLNode,
   type: string,
-  props: { [key: string]: any }
+  props: { [key: string]: unknown }
 ): XMLElement {
   const element = parent.ele(type);
   const { children, ...rest } = props;
@@ -16,17 +19,24 @@ function newElement(
   return element;
 }
 
-function addChildren(element: XMLElement, children: any) {
+function addChildren(element: XMLElement, children: unknown) {
+  if (!children) return;
   if (typeof children === "string" || typeof children === "number") {
     element.txt(String(children));
   } else if (Array.isArray(children)) {
     for (const child of children) addChildren(element, child);
   } else if (typeof children === "object") {
-    const { type, props } = children;
+    const { type, props } = children as {
+      type: string | 1 | typeof CDATA | typeof Fragment;
+      props: {
+        children: XMLNode[];
+        [key: string]: unknown;
+      };
+    };
     switch (type) {
       case 1: {
         // XMLElement
-        element.children.push(children);
+        element.children.push(children as XMLNode);
         break;
       }
       case Fragment: {
@@ -45,7 +55,10 @@ function addChildren(element: XMLElement, children: any) {
   }
 }
 
-export function jsx(type: string | Function, props: { [key: string]: any }) {
+export function jsx(
+  type: string | Function,
+  props: { [key: string]: unknown }
+) {
   return { type, props };
 }
 
