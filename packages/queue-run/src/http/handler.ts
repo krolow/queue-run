@@ -304,13 +304,16 @@ async function resultToResponse({
     return new Response(body, { headers, status: 200 });
   } else if (typeof result === "string") {
     const headers = new Headers(corsHeaders);
+    const buffer = Buffer.from(result, "utf8");
     // eslint-disable-next-line sonarjs/no-duplicate-string
     headers.set("Content-Type", "text/plain; charset=utf-8");
+    headers.set("Content-Length", buffer.byteLength.toString());
     addCacheControl(headers, result, result);
-    return new Response(result, { headers, status: 200 });
+    return new Response(buffer, { headers, status: 200 });
   } else if (Buffer.isBuffer(result)) {
     const headers = new Headers(corsHeaders);
     headers.set("Content-Type", "application/octet-stream");
+    headers.set("Content-Length", result.byteLength.toString());
     addCacheControl(headers, result, result);
     return new Response(result, { headers, status: 200 });
   } else if (result) {
@@ -332,9 +335,10 @@ async function resultToResponse({
 
 function json(object: object, corsHeaders?: Headers) {
   const indent = Number(process.env.QUEUE_RUN_INDENT) || 0;
+  const body = Buffer.from(JSON.stringify(object, null, indent), "utf-8");
   const headers = new Headers(corsHeaders);
   headers.set("Content-Type", "application/json");
-  const body = JSON.stringify(object, null, indent);
+  headers.set("Content-Length", body.byteLength.toString());
   return { body, headers };
 }
 
@@ -342,14 +346,16 @@ function xml(xml: XMLElement, corsHeaders?: Headers) {
   const isHTML = /^html$/i.test(xml.name);
   const indent = "  ".repeat(Number(process.env.QUEUE_RUN_INDENT) || 0);
   const pretty = !!indent;
-  const body = isHTML
+  const serialized = isHTML
     ? xml.dtd().end({ pretty, indent })
     : xml.dec("1.0", "utf-8").end({ pretty, indent });
+  const body = Buffer.from(serialized, "utf-8");
   const headers = new Headers(corsHeaders);
   headers.set(
     "Content-Type",
     isHTML ? "text/html; charset=utf-8" : "application/xml; charset=utf-8"
   );
+  headers.set("Content-Length", body.byteLength.toString());
   return { body, headers };
 }
 
