@@ -1,6 +1,7 @@
 import glob from "fast-glob";
 import fs from "fs/promises";
 import inquirer from "inquirer";
+import generate from "project-name-generator";
 
 const filename = ".queue-run.json";
 
@@ -31,13 +32,7 @@ export async function saveProject({ name, runtime }: Project) {
 export async function initProject() {
   const project = await loadProject();
 
-  const suggestedName =
-    project.name ??
-    (await fs
-      .readFile("package.json", "utf-8")
-      .then(JSON.parse)
-      .then((pkg) => pkg.name)
-      .catch(() => null));
+  const suggestedName = project.name ?? (await getSuggestedName());
 
   const isTypescript = (await glob("**/*.{ts,tsx}")).length > 0;
 
@@ -75,4 +70,13 @@ export async function initProject() {
   const { name, runtime } = answers;
   await saveProject({ name, runtime });
   return answers;
+}
+
+async function getSuggestedName() {
+  try {
+    const { name } = JSON.parse(await fs.readFile("package.json", "utf-8"));
+    if (name) return name;
+  } catch {
+    return generate().dashed;
+  }
 }
