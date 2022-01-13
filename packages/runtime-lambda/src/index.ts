@@ -1,5 +1,6 @@
 import { SQS } from "@aws-sdk/client-sqs";
-import { LocalStorage, warmup } from "queue-run";
+import { format } from "node:util";
+import { LocalStorage, logging, warmup } from "queue-run";
 import swapAWSEnvVars from "./environment";
 import handleHTTPRequest, {
   APIGatewayHTTPEvent,
@@ -22,6 +23,11 @@ const urls = {
   http: process.env.QUEUE_RUN_URL!,
   ws: process.env.QUEUE_RUN_WS!,
 };
+
+logging((level, args) => {
+  const formatted = format(...args).replace(/\n/g, "\r");
+  process.stdout.write(formatted + "\n");
+});
 
 class LambdaLocalStorage extends LocalStorage {
   private sqs: SQS;
