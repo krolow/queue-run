@@ -71,7 +71,7 @@ export async function loadManifest(dirname = process.cwd()): Promise<{
         isFifo: queue.isFifo,
         original: queue.original,
         queueName: queue.queueName,
-        timeout: queue.timeout ?? 30,
+        timeout: queue.timeout,
       },
     ])
   );
@@ -86,7 +86,7 @@ export async function loadManifest(dirname = process.cwd()): Promise<{
         filename: route.filename,
         match: match<{ [key: string]: string | string[] }>(route.path),
         original: route.original,
-        timeout: route.timeout ?? 10,
+        timeout: route.timeout,
       },
     ])
   );
@@ -97,7 +97,7 @@ export async function loadManifest(dirname = process.cwd()): Promise<{
       {
         filename: socket.filename,
         original: socket.original,
-        timeout: socket.timeout ?? 10,
+        timeout: socket.timeout,
       },
     ])
   );

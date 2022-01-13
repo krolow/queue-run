@@ -9,7 +9,7 @@ import {
   WebSocketMiddleware,
 } from "queue-run";
 
-const maxTimeout = 60;
+const maxTimeout = 30;
 const defaultTimeout = 10;
 
 export default async function mapSockets(): Promise<Manifest["sockets"]> {

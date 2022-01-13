@@ -137,7 +137,7 @@ async function runCommand({
       TMPDIR: process.env.TMPDIR,
     },
     stdio: "inherit",
-    timeout: ms("30s"),
+    timeout: ms("5m"),
   });
   await new Promise((resolve, reject) =>
     install

@@ -87,7 +87,7 @@ export type QueueConfig = {
   /**
    * Timeout for processing the job (in seconds)
    *
-   * @default 30 seconds
+   * @default 5 minutes
    */
   timeout?: number;
 };

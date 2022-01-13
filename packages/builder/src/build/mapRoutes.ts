@@ -4,7 +4,7 @@ import path from "path";
 import { Key, pathToRegexp } from "path-to-regexp";
 import { loadModule, Manifest, RouteExports, RouteMiddleware } from "queue-run";
 
-const maxTimeout = 60;
+const maxTimeout = 120;
 const defaultTimeout = 10;
 
 // Loads all routes from the current directory

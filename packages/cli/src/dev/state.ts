@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import ms from "ms";
 import { EventEmitter } from "node:events";
 import { handleQueuedJob, LocalStorage } from "queue-run";
 import { WebSocket } from "ws";
@@ -76,7 +77,7 @@ export class DevLocalStorage extends LocalStorage {
             },
             payload: serializedPayload,
             newLocalStorage: () => new DevLocalStorage(this.port),
-            remainingTime: 30 * 1000,
+            remainingTime: ms("30s"),
           });
         } finally {
           --queued;
