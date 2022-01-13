@@ -9,7 +9,8 @@ import { Request, Response } from "./fetch.js";
  */
 export async function logResponse(request: Request, response: Response) {
   console.info(
-    '"%s %s" %s %d "%s" "%s"',
+    '[%s] "%s %s" %s %d "%s" "%s"',
+    request.headers.get("X-Forwarded-For"),
     request.method,
     new URL(request.url).pathname,
     response.status,

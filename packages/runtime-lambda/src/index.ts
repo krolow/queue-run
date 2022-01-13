@@ -25,8 +25,10 @@ const urls = {
 };
 
 logging((level, args) => {
-  const formatted = format(...args).replace(/\n/g, "\r");
-  process.stdout.write(formatted + "\n");
+  const formatted = format(...args);
+  process.stdout.write(
+    `[${level.toUpperCase()}] ${formatted.replace(/\n/g, "\r")}\n`
+  );
 });
 
 class LambdaLocalStorage extends LocalStorage {
@@ -60,8 +62,6 @@ export async function handler(
   event: LambdaEvent,
   context: LambdaContext
 ): Promise<APIGatewayResponse | SQSBatchResponse | undefined> {
-  console.info({ event, context });
-
   const newLocalStorage = () => new LambdaLocalStorage({ sqs, urls });
 
   if (isWebSocketRequest(event))

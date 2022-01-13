@@ -85,15 +85,6 @@ function toFetchRequest(
 ): Request {
   if ("requestContext" in event) {
     const { http } = event.requestContext;
-    console.info(
-      '[%s] %s %s %s "%s%"',
-      http.sourceIp,
-      http.protocol,
-      http.method,
-      http.path,
-      http.userAgent
-    );
-
     const { method } = http;
     const url = new URL(
       `https://${event.requestContext.domainName}${event.rawPath}?${event.rawQueryString}`

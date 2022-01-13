@@ -7,7 +7,7 @@ import { URL } from "url";
 import { initProject } from "./project.js";
 
 const command = new Command("init")
-  .description("Setup a new project in the current directory")
+  .description("setup a new project")
   .action(async () => {
     const { language } = await initProject();
     await copyTemplates(language);

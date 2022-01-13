@@ -7,15 +7,17 @@ import buildCommand from "./build.js";
 import devCommand from "./dev/index.js";
 import deployCommand from "./project/deploy.js";
 import initCommand from "./project/init.js";
+import logsCommand from "./project/logs.js";
 
 const debug = debuglog("queue-run:cli");
 
 const program = new Command();
 
-program.addCommand(devCommand);
-program.addCommand(deployCommand);
 program.addCommand(buildCommand);
+program.addCommand(deployCommand);
+program.addCommand(devCommand);
 program.addCommand(initCommand);
+program.addCommand(logsCommand);
 
 program.showSuggestionAfterError();
 program.addHelpCommand();

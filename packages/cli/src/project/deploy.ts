@@ -8,7 +8,7 @@ import {
 import { loadProject } from "./project.js";
 
 const command = new Command("deploy")
-  .description("Deploy your project")
+  .description("deploy your project")
   .action(async () => {
     const { name, runtime } = await loadProject();
     if (!(name && runtime))
