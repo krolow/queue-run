@@ -1,5 +1,6 @@
 import { AbortController } from "node-abort-controller";
 import { LocalStorage, withLocalStorage } from "../shared/index.js";
+import TimeoutError from "../shared/TimeoutError.js";
 import {
   WebSocketConfig,
   WebSocketHandler,
@@ -125,7 +126,7 @@ async function runWithMiddleware({
       ),
     ]);
 
-    if (signal.aborted) throw new Error("Request aborted: timed out");
+    if (signal.aborted) throw new TimeoutError("Request aborted: timed out");
 
     if (!response) return null;
 

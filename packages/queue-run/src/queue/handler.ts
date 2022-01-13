@@ -8,6 +8,7 @@ import {
   logError,
   withLocalStorage,
 } from "../shared/index.js";
+import TimeoutError from "../shared/TimeoutError.js";
 import { JobMetadata, QueueExports, QueueMiddleware } from "./exports.js";
 import { logJobFinished, logJobStarted } from "./middleware.js";
 
@@ -64,7 +65,9 @@ export default async function handleQueuedJob({
       }),
     ]);
     if (signal.aborted) {
-      throw new Error(`Timeout: job took longer than ${timeout}s to process`);
+      throw new TimeoutError(
+        `Job aborted: job took longer than ${timeout}s to process`
+      );
     }
     return true;
   } catch (error) {

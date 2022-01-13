@@ -8,6 +8,7 @@ import {
   LocalStorage,
   withLocalStorage,
 } from "../shared/index.js";
+import TimeoutError from "../shared/TimeoutError.js";
 import {
   AuthenticatedUser,
   RequestHandler,
@@ -240,7 +241,7 @@ async function runWithMiddleware({
       ),
     ]);
 
-    if (signal.aborted) throw new Error("Request aborted: timed out");
+    if (signal.aborted) throw new TimeoutError("Request aborted: timed out");
 
     const response = await resultToResponse({
       addCacheControl: withCacheControl(request, config),
@@ -479,6 +480,8 @@ async function handleOnError({
   let response: Response =
     error instanceof Response
       ? error
+      : error instanceof TimeoutError
+      ? new Response("Request Timed Out", { status: 504 })
       : new Response("Internal Server Error", { status: 500 });
 
   try {
