@@ -57,7 +57,7 @@ async function displaySummary(zip: JSZip) {
 
 function summaryFolderName(filename: string): string {
   const dirname = path.dirname(filename);
-  if (dirname === ".") return filename;
+  if (dirname === ".") return "/";
   return dirname.replace(/((^|\/)node_modules)(\/|$).*/, "$1");
 }
 
