@@ -46,13 +46,13 @@ export type JobMetadata<P = Params> = {
    */
   groupId: string | undefined;
   /**
-   * The queue name.
-   */
-  queueName: string;
-  /**
    * The job ID. (Unique for your project)
    */
   jobId: string;
+  /**
+   * The queue name.
+   */
+  queueName: string;
   /**
    * Path parameters from the request URL.
    */

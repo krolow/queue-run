@@ -69,6 +69,13 @@ export async function post({ body, user }) {
 }
 ```
 
+:::info JavaScript, TypeScript, ESM
+
+You can use JavaScript, TypeScript, and combination of both. You can use ESM and CommonJS modules.
+
+All the examples are in TypeScript. Weird quirk of ESM is that imports must end with `.js`, even when importing a TypeScript file.
+:::
+
 You can also fetch (GET), update (PUT), and delete (DELETE) an individual resource:
 
 ```ts title=api/bookmarks/[id].ts
