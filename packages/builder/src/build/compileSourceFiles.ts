@@ -1,5 +1,4 @@
 import * as swc from "@swc/core";
-import chalk from "chalk";
 import glob from "fast-glob";
 import fs from "fs/promises";
 import ora from "ora";
@@ -59,11 +58,7 @@ export default async function compileSourceFiles({
     }
 
     spinner.stop();
-    console.info(
-      chalk.bold.blue("λ: Compiled %d files and copied %d files"),
-      compiled,
-      copied
-    );
+    console.info("λ: Compiled %d files and copied %d files", compiled, copied);
   } catch (error) {
     spinner.fail(String(error));
     throw error;
@@ -112,5 +107,3 @@ function compileSource({
     swcrc: false,
   });
 }
-
-// globalWindow

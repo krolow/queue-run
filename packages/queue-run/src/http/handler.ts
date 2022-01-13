@@ -1,4 +1,3 @@
-import chalk from "chalk";
 import crypto from "crypto";
 import { AbortController } from "node-abort-controller";
 import { URL, URLSearchParams } from "url";
@@ -63,7 +62,7 @@ export default async function handleHTTPRequest({
     // log them.
     if (error instanceof Response) return error;
     console.error(
-      chalk.bold.red("Internal processing error %s %s"),
+      "Internal processing error %s %s",
       request.method,
       request.url,
       error
@@ -275,7 +274,7 @@ async function getAuthenticatedUser({
     user === undefined
       ? 'Authenticate function returned "undefined", was this intentional?'
       : "Authenticate function returned user object without an ID";
-  console.error(chalk.bold.red(concern), filename);
+  console.error(concern, filename);
   throw new Response("Forbidden", { status: 403 });
 }
 
@@ -334,9 +333,7 @@ async function resultToResponse({
     // null => 204, but undefined is potentially an error
     if (result === undefined)
       console.warn(
-        chalk.yellow(
-          'No response returned from module "%s": is this intentional?'
-        ),
+        'No response returned from module "%s": is this intentional?',
         filename
       );
     return new Response(undefined, { headers: corsHeaders ?? {}, status: 204 });
@@ -445,11 +442,7 @@ async function handleOnResponse({
           request
         );
       } catch (error) {
-        console.error(
-          chalk.bold.red('Error in onError middleware in "%s":'),
-          filename,
-          error
-        );
+        console.error('Error in onError middleware in "%s":', filename, error);
       }
     }
     return new Response("Internal Server Error", { status: 500 });
@@ -481,7 +474,7 @@ async function handleOnError({
   request: Request;
 }): Promise<Response> {
   if (!(error instanceof Response))
-    console.error(chalk.bold.red('Error in "%s":'), filename, error);
+    console.error('Error in "%s":', filename, error);
 
   let response: Response =
     error instanceof Response
@@ -496,11 +489,7 @@ async function handleOnError({
   } catch (error) {
     if (error instanceof Response) response = error;
     else {
-      console.error(
-        chalk.bold.red('Error in onResponse middleware in "%s":'),
-        filename,
-        error
-      );
+      console.error('Error in onResponse middleware in "%s":', filename, error);
     }
   }
 
@@ -511,11 +500,7 @@ async function handleOnError({
         request
       );
     } catch (error) {
-      console.error(
-        chalk.bold.red('Error in onError middleware in "%s":'),
-        filename,
-        error
-      );
+      console.error('Error in onError middleware in "%s":', filename, error);
     }
   }
 

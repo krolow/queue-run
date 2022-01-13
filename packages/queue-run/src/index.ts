@@ -1,4 +1,6 @@
 import { install } from "source-map-support";
+import "./globals.js";
+
 // Source maps for queue-run bundle, runtime, and any app code we load
 install({ environment: "node" });
 

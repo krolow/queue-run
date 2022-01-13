@@ -1,4 +1,3 @@
-import chalk from "chalk";
 import fs from "fs/promises";
 import readline from "readline";
 import { URL } from "url";
@@ -23,9 +22,7 @@ async function readPayload(message: string): Promise<string> {
   if (!message) {
     if (process.stdin.isTTY) {
       console.info(
-        chalk.bold.blue(
-          "Type your message then Ctrl+D on an empty line (Ctrl+C to exit)"
-        )
+        "Type your message then Ctrl+D on an empty line (Ctrl+C to exit)"
       );
     }
     const rl = readline.createInterface({

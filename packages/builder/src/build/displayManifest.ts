@@ -1,4 +1,3 @@
-import chalk from "chalk";
 import { loadManifest } from "queue-run";
 
 export default async function displayManifest(dirname: string) {
@@ -59,11 +58,11 @@ function displayTable({
   widths: [number, number];
 }) {
   if (rows.length === 0) {
-    console.info(chalk.bold.blue("λ: %s"), missing);
+    console.info("λ: %s", missing);
     return;
   }
 
-  console.info(chalk.bold.blue("λ: %s:"), title);
+  console.info("λ: %s:", title);
   console.info(
     "%s",
     rows

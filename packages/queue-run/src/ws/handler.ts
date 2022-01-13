@@ -1,4 +1,3 @@
-import chalk from "chalk";
 import { AbortController } from "node-abort-controller";
 import { LocalStorage, withLocalStorage } from "../shared/index.js";
 import {
@@ -37,11 +36,7 @@ export async function handleWebSocketMessage({
       userId,
     });
   } catch (error) {
-    console.error(
-      chalk.bold.red("Internal processing error %s"),
-      connection,
-      error
-    );
+    console.error("Internal processing error %s", connection, error);
     return null;
   }
 }
@@ -184,10 +179,7 @@ async function handleResponse({
     try {
       await onMessageSent({ connection, data, to });
     } catch (error) {
-      console.error(
-        chalk.bold.red("Internal processing error in onMessageSent"),
-        error
-      );
+      console.error("Internal processing error in onMessageSent", error);
     }
   }
   return data;
@@ -221,11 +213,7 @@ async function handleOnError({
         request
       );
     } catch (error) {
-      console.error(
-        chalk.bold.red('Error in onError middleware in "%s":'),
-        filename,
-        error
-      );
+      console.error('Error in onError middleware in "%s":', filename, error);
     }
   }
 }

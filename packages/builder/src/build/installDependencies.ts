@@ -1,4 +1,3 @@
-import chalk from "chalk";
 import { spawn } from "child_process";
 import { R_OK } from "constants";
 import glob from "fast-glob";
@@ -27,7 +26,7 @@ export default async function installDependencies({
   sourceDir: string;
   targetDir: string;
 }) {
-  console.info(chalk.bold.blue("λ: Installing node modules …"));
+  console.info("λ: Installing node modules …");
   await Promise.all(
     installFiles.map(async (filename) =>
       copyFile(filename, sourceDir, targetDir)

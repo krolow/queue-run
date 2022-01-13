@@ -1,4 +1,3 @@
-import chalk from "chalk";
 import { AbortController } from "node-abort-controller";
 import invariant from "tiny-invariant";
 import {
@@ -70,7 +69,7 @@ export default async function handleQueuedJob({
     return true;
   } catch (error) {
     console.error(
-      chalk.bold.red('Error in queue "%s" job %s:'),
+      'Error in queue "%s" job %s:',
       queueName,
       metadata.jobId,
       error
@@ -84,7 +83,7 @@ export default async function handleQueuedJob({
         );
       } catch (error) {
         console.error(
-          chalk.bold.red('Error in onError handler for queue "%s"'),
+          'Error in onError handler for queue "%s"',
           queueName,
           error
         );

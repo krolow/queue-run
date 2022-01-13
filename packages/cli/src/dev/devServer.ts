@@ -133,7 +133,7 @@ if (cluster.isWorker) {
   try {
     await ready;
   } catch (error) {
-    console.error(chalk.bold.red("💥 Build failed!"), error);
+    console.error("💥 Build failed!", error);
     process.exit(1);
   }
 }
@@ -217,7 +217,7 @@ async function queueJob(
     });
     res.writeHead(200, "OK").end();
   } catch (error) {
-    console.error(chalk.bold.red("💥 Queue job failed!"), error);
+    console.error("💥 Queue job failed!", error);
     res.writeHead(500, "Internal Server Error").end();
   }
 }

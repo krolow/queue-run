@@ -1,4 +1,3 @@
-import chalk from "chalk";
 import { URL } from "url";
 import { Request } from "../http/fetch.js"; // don't import from http to avoid circular dependency
 import { JobMetadata } from "../queue/index.js";
@@ -26,7 +25,7 @@ export async function logError(error: Error, reference: unknown) {
   if (reference instanceof Request) {
     const { method, url } = reference as Request;
     console.error(
-      chalk.bold.red('"%s %s" error: %s'),
+      '"%s %s" error: %s',
       method,
       new URL(url).pathname,
       String(error),
@@ -39,7 +38,7 @@ export async function logError(error: Error, reference: unknown) {
   ) {
     const { jobId, queueName } = reference as JobMetadata;
     console.error(
-      chalk.bold.red("Job failed on %s: %s: %s"),
+      "Job failed on %s: %s: %s",
       queueName,
       jobId,
       String(error),

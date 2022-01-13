@@ -84,7 +84,7 @@ export default async function deployLambda({
   if (signal?.aborted) throw new Error("Timeout");
   await displayManifest(buildDir);
 
-  console.info(chalk.bold.blue("λ: Deploying Lambda function and queues"));
+  console.info("λ: Deploying Lambda function and queues");
 
   const envVars = await loadEnvVars({
     envVars: config.envVars ?? {},

@@ -1,4 +1,3 @@
-import chalk from "chalk";
 import glob from "fast-glob";
 import filesize from "filesize";
 import { lstat, readFile } from "fs/promises";
@@ -33,7 +32,7 @@ export default async function zipLambda(dirname: string): Promise<Uint8Array> {
   });
 
   spinner.stop();
-  console.info(chalk.bold.blue("λ: Zipped %s"), filesize(buffer.byteLength));
+  console.info("λ: Zipped %s", filesize(buffer.byteLength));
   await displaySummary(zip);
   return buffer;
 }

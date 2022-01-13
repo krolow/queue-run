@@ -1,3 +1,3 @@
 export default async function () {
-  console.info("Connecting to database …");
+  console.debug("Connecting to database …");
 }

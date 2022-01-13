@@ -35,7 +35,7 @@ try {
   await program.parseAsync(process.argv);
   console.info(chalk.bold.green("🐇 Done in %s"), ms(process.uptime() * 1000));
 } catch (error) {
-  console.error(chalk.bold.red(String(error)));
+  console.error(String(error));
   if (error instanceof Error) debug(error.stack!);
   process.exit(-1);
 }
