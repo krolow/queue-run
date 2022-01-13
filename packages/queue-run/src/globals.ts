@@ -1,4 +1,4 @@
-import chalk from "chalk";
+import chalk, { ChalkInstance } from "chalk";
 import { formatWithOptions } from "node:util";
 
 declare namespace NodeJS {
@@ -12,36 +12,35 @@ const showDebug =
     ? process.env.DEBUG !== "false"
     : process.env.DEBUG === "true";
 
-global.console.debug = (message, ...args) => {
-  if (!showDebug) return;
-  const colors = process.stdout.hasColors && process.stdout.hasColors();
-  process.stdout.write(
-    formatWithOptions({ colors }, chalk.dim(message), ...args) + "\n"
-  );
+const formatOptions = {
+  compact: true,
+  colors: process.stdout.hasColors && process.stdout.hasColors(),
 };
 
-global.console.log = (message, ...args) => {
-  const colors = process.stdout.hasColors && process.stdout.hasColors();
-  process.stdout.write(formatWithOptions({ colors }, message, ...args) + "\n");
-};
+global.console.debug = (...args) =>
+  showDebug ? writeLog("debug", ...args) : undefined;
+global.console.log = (...args) => writeLog("log", ...args);
+global.console.info = (...args) => writeLog("info", ...args);
+global.console.warn = (...args) => writeLog("warn", ...args);
+global.console.error = (...args) => writeLog("error", ...args);
 
-global.console.info = (message, ...args) => {
-  const colors = process.stdout.hasColors && process.stdout.hasColors();
-  process.stdout.write(
-    formatWithOptions({ colors }, chalk.blue(message), ...args) + "\n"
+function writeLog(level: string, message: unknown, ...args: unknown[]) {
+  const colors: { [key: string]: ChalkInstance } = {
+    debug: chalk.dim,
+    error: chalk.bold.red,
+    info: chalk.blue,
+    log: chalk.white,
+    warn: chalk.bold.yellow,
+  };
+  const formatted = formatWithOptions(
+    formatOptions,
+    (message =
+      typeof message === "string" ? colors[level]?.(message) : message),
+    ...args
   );
-};
-
-global.console.warn = (message, ...args) => {
-  const colors = process.stderr.hasColors && process.stderr.hasColors();
-  process.stderr.write(
-    formatWithOptions({ colors }, chalk.bold.yellow(message), ...args) + "\n"
-  );
-};
-
-global.console.error = (message, ...args) => {
-  const colors = process.stderr.hasColors && process.stderr.hasColors();
-  process.stderr.write(
-    formatWithOptions({ colors }, chalk.bold.red(message), ...args) + "\n"
-  );
-};
+  const stream =
+    level === "error" || level === "warn" ? process.stderr : process.stdout;
+  if (process.env.AWS_LAMBDA_LOG_GROUP_NAME)
+    stream.write(formatted.replace(/\n/g, "\r") + "\n");
+  else stream.write(formatted + "\n");
+}
