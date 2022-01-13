@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { AbortController } from "node-abort-controller";
 import { URL, URLSearchParams } from "url";
-import { XMLElement } from "xmlbuilder";
+import { XML } from "../jsx-runtime.js";
 import {
   getLocalStorage,
   HTTPRoute,
@@ -302,14 +302,9 @@ async function resultToResponse({
       addCacheControl(headers, result, body);
     }
     return new Response(result.body, { headers, status });
-  } else if (
-    result &&
-    typeof result === "object" &&
-    "documentObject" in result &&
-    "parent" in result
-  ) {
-    const { body, headers } = xml(result as XMLElement, corsHeaders);
-    addCacheControl(headers, result, body);
+  } else if (result instanceof XML) {
+    const { body, headers } = xml(result, corsHeaders);
+    addCacheControl(headers, body, body);
     return new Response(body, { headers, status: 200 });
   } else if (typeof result === "string") {
     const headers = new Headers(corsHeaders);
@@ -350,18 +345,13 @@ function json(object: object, corsHeaders?: Headers) {
   return { body, headers };
 }
 
-function xml(xml: XMLElement, corsHeaders?: Headers) {
-  const isHTML = /^html$/i.test(xml.name);
+function xml(xml: XML, corsHeaders?: Headers) {
   const indent = "  ".repeat(Number(process.env.QUEUE_RUN_INDENT) || 0);
-  const pretty = !!indent;
-  const serialized = isHTML
-    ? xml.dtd().end({ pretty, indent })
-    : xml.dec("1.0", "utf-8").end({ pretty, indent });
-  const body = Buffer.from(serialized, "utf-8");
+  const body = Buffer.from(xml.serialize(indent), "utf-8");
   const headers = new Headers(corsHeaders);
   headers.set(
     "Content-Type",
-    isHTML ? "text/html; charset=utf-8" : "application/xml; charset=utf-8"
+    xml.isHTML ? "text/html; charset=utf-8" : "application/xml; charset=utf-8"
   );
   headers.set("Content-Length", body.byteLength.toString());
   return { body, headers };
