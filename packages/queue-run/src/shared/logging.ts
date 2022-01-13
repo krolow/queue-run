@@ -65,12 +65,12 @@ const formatOptions = {
 // Default logger uses stdout/stderr, supports colors when running in terminal
 function stdio(level: LogLevel, args: unknown[]) {
   const [message, ...rest] = args;
+  // we want to apply a color to the message, but not if the user is doing
+  // console.log({ variable }).
+  const withColor =
+    typeof message === "string" ? colors[level]?.(message) : message;
 
-  const formatted = formatWithOptions(
-    formatOptions,
-    typeof message === "string" ? colors[level]?.(message) : message,
-    ...rest
-  );
+  const formatted = formatWithOptions(formatOptions, withColor, ...rest);
   const stream =
     level === "error" || level === "warn" ? process.stderr : process.stdout;
   stream.write(formatted + "\n");
