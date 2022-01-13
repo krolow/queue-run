@@ -131,11 +131,6 @@ async function runCommand({
   invariant(executable);
   const install = spawn(executable, args, {
     cwd: dirname,
-    env: {
-      PATH: process.env.PATH,
-      HOME: process.env.HOME,
-      TMPDIR: process.env.TMPDIR,
-    },
     stdio: "inherit",
     timeout: ms("5m"),
   });
