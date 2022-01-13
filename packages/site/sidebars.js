@@ -9,6 +9,7 @@ module.exports = {
     "URLs",
     "XML",
     "DevServer",
+    "Misc",
     "Performance",
     {
       type: "link",
