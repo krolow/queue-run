@@ -1,6 +1,6 @@
+import capture from "#lib/capture.js";
+import * as db from "#lib/db.js";
 import { QueueConfig, queues } from "queue-run";
-import capture from "../lib/capture.js";
-import * as db from "../lib/db.js";
 
 type Payload = { id: string };
 

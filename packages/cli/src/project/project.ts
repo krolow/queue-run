@@ -35,6 +35,7 @@ export async function initProject() {
   const suggestedName = project.name ?? (await getSuggestedName());
 
   const isTypescript = (await glob("**/*.{ts,tsx}")).length > 0;
+  const isJavascript = (await glob("**/*.{js,jsx}")).length > 0;
 
   const answers = await inquirer.prompt([
     {
@@ -48,7 +49,7 @@ export async function initProject() {
           : "Project name must be 1-40 characters long and can only contain letters, numbers, and dashes",
     },
     {
-      default: isTypescript ? "typescript" : "javascript",
+      default: isTypescript || !isJavascript ? "typescript" : "javascript",
       message: "JavaScript or TypeScript?",
       name: "language",
       type: "list",

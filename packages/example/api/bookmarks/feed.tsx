@@ -1,5 +1,5 @@
+import * as db from "#lib/db.js";
 import { url } from "queue-run";
-import * as db from "../../lib/db.js";
 import { urlForBookmark } from "./[id].js";
 
 export async function get() {

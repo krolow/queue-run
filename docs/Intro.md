@@ -45,9 +45,9 @@ You can also [clone the repo](https://github.com/assaf/queue-run) and look at th
 :::
 
 ```ts title=api/bookmarks.ts
-import { queue as screenshots } from "~queues/screenshots.js";
+import { queue as screenshots } from "#queues/screenshots.js";
 import { urlForBookmark } from "./[id].js";
-import * as db from "~lib/db.js";
+import * as db from "#lib/db.js";
 import { Response } from "queue-run";
 
 // HTTP GET /bookmarks -> JSON
@@ -73,7 +73,7 @@ You can also fetch (GET), update (PUT), and delete (DELETE) an individual resour
 
 ```ts title=api/bookmarks/[id].ts
 import { url, Response } from "queue-run";
-import * as db from "~lib/db.js";
+import * as db from "#lib/db.js";
 
 // In Express this would be get('/bookmarks/:id')
 export async function get({ params, user }) {
@@ -123,8 +123,8 @@ Our bookmarks service takes screenshots, and these could take several seconds, a
 
 ```ts title=queues/screenshots.ts
 import { queues } from "queue-run";
-import * as db from "~lib/db.js";
-import capture from "~lib/capture.js";
+import * as db from "#lib/db.js";
+import capture from "#lib/capture.js";
 
 export default async function ({ id }, { user }) {
   const bookmark = await db.findOne({ id, userId: user.id });

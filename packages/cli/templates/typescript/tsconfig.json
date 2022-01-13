@@ -3,10 +3,18 @@
   "compilerOptions": {
     "baseUrl": ".",
     "esModuleInterop": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "queue-run",
     "lib": ["ES2020", "ES2021"],
     "module": "esnext",
     "moduleResolution": "node",
     "noEmit": true,
+    "paths": {
+      "#api/*": ["./api/*"],
+      "#lib/*": ["./lib/*"],
+      "#queues/*": ["./queues/*"],
+      "#sockets/*": ["./sockets/*"]
+    },
     "resolveJsonModule": true,
     "strict": true,
     "target": "ES2020"

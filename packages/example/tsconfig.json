@@ -11,6 +11,12 @@
     "strict": true,
     "target": "ES2020",
     "jsx": "react-jsx",
-    "jsxImportSource": "queue-run"
+    "jsxImportSource": "queue-run",
+    "paths": {
+      "#api/*": ["./api/*"],
+      "#lib/*": ["./lib/*"],
+      "#queues/*": ["./queues/*"],
+      "#sockets/*": ["./sockets/*"]
+    }
   }
 }
