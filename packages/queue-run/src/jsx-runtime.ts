@@ -1,5 +1,4 @@
 import xmlbuilder, { XMLElement, XMLNode } from "xmlbuilder";
-import { Fragment } from "./jsx-runtime";
 
 export class XML {
   readonly element: XMLElement;

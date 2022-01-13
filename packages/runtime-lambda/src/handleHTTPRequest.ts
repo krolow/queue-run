@@ -9,7 +9,10 @@ import { URL } from "url";
 
 // https://docs.aws.amazon.com/lambda/latest/dg/services-apigateway.html#apigateway-example-event
 export type APIGatewayHTTPEvent = {
+  body?: string;
   cookies?: string[];
+  headers: { [key: string]: string };
+  isBase64Encoded: boolean;
   rawPath: string;
   rawQueryString: string;
   requestContext: {
@@ -23,9 +26,7 @@ export type APIGatewayHTTPEvent = {
     };
     requestId: string;
   };
-  headers: { [key: string]: string };
-  body?: string;
-  isBase64Encoded: boolean;
+  routeKey: string;
 };
 
 export type APIGatewayResponse = {

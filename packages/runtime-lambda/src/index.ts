@@ -58,21 +58,16 @@ export async function handler(
 
   const newLocalStorage = () => new LambdaLocalStorage({ sqs, urls });
 
-  if ("requestContext" in event) {
-    if ("routeKey" in event.requestContext) {
-      return await handleWebSocketRequest(
-        event as APIGatewayWebSocketEvent,
-        newLocalStorage
-      );
-    } else {
-      return await handleHTTPRequest(
-        event as APIGatewayHTTPEvent,
-        newLocalStorage
-      );
-    }
-  } else if ("url" in event) {
+  if (isWebSocketRequest(event))
+    return await handleWebSocketRequest(
+      event as APIGatewayWebSocketEvent,
+      newLocalStorage
+    );
+
+  if (isHTTPRequest(event))
     return await handleHTTPRequest(event, newLocalStorage);
-  } else if ("Records" in event) {
+
+  if (isSQSMessages(event)) {
     const { getRemainingTimeInMillis } = context;
     const messages = event.Records.filter(
       (record) => record.eventSource === "aws:sqs"
@@ -84,7 +79,26 @@ export async function handler(
       newLocalStorage,
       sqs,
     });
-  } else throw new Error("Unknown event type");
+  }
+
+  throw new Error("Unknown event type");
+}
+
+function isWebSocketRequest(
+  event: LambdaEvent
+): event is APIGatewayWebSocketEvent {
+  return "requestContext" in event && "connectionId" in event.requestContext;
+}
+
+function isHTTPRequest(event: LambdaEvent): event is APIGatewayHTTPEvent {
+  return "requestContext" in event && "http" in event.requestContext;
+}
+
+function isSQSMessages(event: LambdaEvent): event is { Records: SQSMessage[] } {
+  return (
+    "Records" in event &&
+    event.Records.every((record) => record.eventSource === "aws:sqs")
+  );
 }
 
 type LambdaEvent =
