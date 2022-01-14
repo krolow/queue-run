@@ -87,6 +87,11 @@ The following environment variabels are always available:
 * `QUEUE_RUN_WS` — URL for WebSocket, same as `socket.url`
 * `QUEUE_RUN_ENV` — Either "production" or "development"
 
+QueueRun understands the following environment variables:
+
+* `DEBUG` — Set to `true` to see `console.debug` messages in production, and `false` to hide `console.debug` messags in development (see [Logging](Logging))
+* `QUEUE_RUN_INDENT` — Indentation level for JSON and XML output, default to 2 in development, 0 in production
+
 :::tip Keep .env Secret
 
 We don't recommend committing your production `.env` file to version control.
