@@ -74,10 +74,7 @@ export async function initProject() {
 }
 
 async function getSuggestedName() {
-  try {
-    const { name } = JSON.parse(await fs.readFile("package.json", "utf-8"));
-    if (name) return name;
-  } catch {
-    return generate().dashed;
-  }
+  const pkg = await fs.readFile("package.json", "utf-8").catch(() => "{}");
+  const { name } = JSON.parse(pkg);
+  return name || generate().dashed;
 }
