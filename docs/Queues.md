@@ -4,7 +4,7 @@ Queues are a powerful mechanism for performing work that takes longer than a req
 
 * HTTP requests can offload to a queue, so the user doesn't have to wait
 * Queues can notify the user when the task completes, using WebSocket
-* Queues have a rety mechanism, so they can complete tasks even in the face of bugs and service issues
+* Queues have a retry mechanism, so they can complete tasks even in the face of bugs and service issues
 * FIFO queues can guarantee an order of processing and avoid race conditions
 * FIFO queues can ignore duplicates, for example, from double submitting an HTML form
 * Large batches of work can be split into multiple jobs that run concurrently
