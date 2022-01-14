@@ -1,5 +1,6 @@
 import { URL } from "node:url";
 import { Request } from "../http/fetch.js"; // don't import from http to avoid circular dependency
+import { WebSocketRequest } from "../index.js";
 import { JobMetadata } from "../queue/index.js";
 
 /* eslint-disable no-unused-vars */
@@ -11,7 +12,7 @@ import { JobMetadata } from "../queue/index.js";
  */
 export type OnError = (
   error: Error,
-  reference: unknown
+  reference?: Request | JobMetadata | WebSocketRequest | undefined
 ) => Promise<void> | void;
 /* eslint-enable no-unused-vars */
 

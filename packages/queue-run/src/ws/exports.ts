@@ -13,14 +13,18 @@ import { OnError } from "../shared/index.js";
  * @param user The authenticated user
  * @return Optional response to send back
  */
-export type WebSocketHandler<P = { [key: string]: string | string[] }> =
-  (args: {
-    connection: string;
-    data: object | string | Buffer;
-    requestId: string;
+export type WebSocketHandler<P = { [key: string]: string | string[] }> = (
+  reques: WebSocketRequest & {
     signal: AbortSignal;
-    user: { id: string; [key: string]: unknown } | null;
-  }) => Promise<Result> | Result;
+  }
+) => Promise<Result> | Result;
+
+export type WebSocketRequest = {
+  connection: string;
+  data: object | string | Buffer;
+  requestId: string;
+  user: { id: string; [key: string]: unknown } | null;
+};
 
 type Result = object | string | Buffer | ArrayBuffer | undefined;
 
@@ -50,24 +54,20 @@ export type WebSocketConfig = {
  * @param signal The abort signal
  * @param user The authenticated user
  */
-export type OnMessageReceived = (args: {
-  connection: string;
-  data: object | string | Buffer;
-  signal: AbortSignal;
-  user: { id: string; [key: string]: unknown } | null;
-}) => void | Promise<void>;
+export type OnMessageReceived = (
+  request: WebSocketRequest
+) => void | Promise<void>;
 
 /**
  * Middleware that's called for every WenSocket message sent.
  *
- * @param connection Connection identifier
+ * @param connections All connections the message was sent to
  * @param data The raw message data
  * @param to Recipients for `socket.send`, null when responding from a handler
  */
 export type OnMessageSent = (args: {
-  connection: string;
+  connections: string[];
   data: Buffer;
-  to: string[] | null;
 }) => void | Promise<void>;
 
 /**

@@ -11,6 +11,7 @@ import {
 } from "./exports.js";
 import findRoute from "./findRoute.js";
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
 export async function authenticateWebSocket({
   newLocalStorage,
   request,
@@ -25,7 +26,21 @@ export async function authenticateWebSocket({
   if (!authenticate) return null;
 
   return await withLocalStorage(newLocalStorage(), async () => {
-    const user = await authenticate(request, getCookies(request));
+    let user;
+    try {
+      user = await authenticate(request, getCookies(request));
+    } catch (error) {
+      if (middleware.onError) {
+        try {
+          await middleware.onError(
+            error instanceof Error ? error : new Error(String(error))
+          );
+        } catch (error) {
+          console.error("Error in onError middleware", error);
+        }
+      }
+      throw new Response("Internal Server Error", { status: 500 });
+    }
     if (user === null || user?.id) return user;
 
     const concern =
@@ -178,7 +193,6 @@ async function runWithMiddleware({
       connection,
       middleware,
       response,
-      userId: metadata.user?.id,
     });
   } catch (error) {
     await handleOnError({ error, filename, middleware, request });
@@ -187,7 +201,6 @@ async function runWithMiddleware({
       connection,
       middleware,
       response: { error: String(error) },
-      userId: metadata.user?.id,
     });
   }
 }
@@ -210,19 +223,16 @@ async function handleResponse({
   connection,
   middleware,
   response,
-  userId,
 }: {
   connection: string;
   middleware: WebSocketMiddleware;
   response: object | string | Buffer | ArrayBuffer;
-  userId: string | undefined;
 }): Promise<Buffer | null> {
   const data = await resultToBuffer(response);
   const { onMessageSent } = middleware;
   if (onMessageSent) {
-    const to = userId ? [userId] : null;
     try {
-      await onMessageSent({ connection, data, to });
+      await onMessageSent({ connections: [connection], data });
     } catch (error) {
       console.error("Internal processing error in onMessageSent", error);
     }
@@ -259,6 +269,34 @@ async function handleOnError({
       );
     } catch (error) {
       console.error('Error in onError middleware in "%s":', filename, error);
+    }
+  }
+}
+
+export async function onMessageSentAsync({
+  connections,
+  data,
+}: {
+  connections: string[];
+  data: Buffer;
+}) {
+  const { middleware } =
+    (await loadModule<never, WebSocketMiddleware>("socket/index.js", {})) ??
+    (await loadMiddleware<WebSocketMiddleware>("socket/_middleware.js", {}));
+  const { onMessageSent } = middleware;
+  if (!onMessageSent) return;
+
+  try {
+    await onMessageSent({ connections, data });
+  } catch (error) {
+    if (middleware.onError) {
+      try {
+        await middleware.onError(
+          error instanceof Error ? error : new Error(String(error))
+        );
+      } catch (error) {
+        console.error("Error in onError middleware", error);
+      }
     }
   }
 }

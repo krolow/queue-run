@@ -1,5 +1,6 @@
 import { Blob } from "../http/fetch.js";
 import { getLocalStorage } from "../shared/index.js";
+import { onMessageSentAsync } from "./handler.js";
 
 type Payload = object | string | ArrayBuffer | Blob | Buffer;
 
@@ -62,6 +63,10 @@ class WebSocket<T = Payload> {
         local.sendWebSocketMessage(message, connection)
       )
     );
+    await onMessageSentAsync({
+      data: message,
+      connections: connections,
+    });
   }
 
   private async getConnections(): Promise<string[]> {
