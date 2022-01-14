@@ -1,9 +1,7 @@
-import Blob from "fetch-blob";
 import type { TranscodeEncoding } from "node:buffer";
 import { URLSearchParams } from "node:url";
 import * as multipart from "parse-multipart-data";
-import { Request, Response } from "./fetch.js";
-export { Blob, File };
+import { File, Request, Response } from "./fetch.js";
 
 /**
  * Handle HTML forms: multipart/form-data and application/x-www-form-urlencoded,
@@ -39,28 +37,6 @@ export default async function form<
         .flat()
     ) as T;
   } else throw new Response("Unsupported Media Type", { status: 415 });
-}
-
-class File extends Blob {
-  public name: string;
-  public lastModified = 0;
-
-  constructor(
-    blobParts: (ArrayBufferLike | ArrayBufferView | Blob | Buffer | string)[],
-    options: { type?: string; name: string; lastModified?: number }
-  ) {
-    super(blobParts, options);
-    this.name = String(options.name);
-    const lastModified =
-      options.lastModified === undefined
-        ? Date.now()
-        : Number(options.lastModified);
-    if (!Number.isNaN(lastModified)) this.lastModified = lastModified;
-  }
-
-  get [Symbol.toStringTag]() {
-    return "File";
-  }
 }
 
 function combine(
@@ -104,9 +80,8 @@ function formField({
   filename?: string;
 }): string | File {
   if (Buffer.isBuffer(data) && filename) {
-    return new File([data], {
+    return new File([data], filename, {
       type: contentType ?? "application/octet-stream",
-      name: filename,
     });
   } else {
     const { encoding } = parseContentType(contentType);

@@ -1,6 +1,8 @@
 /* eslint-disable no-unused-vars */
+import { Blob as FetchBlob } from "fetch-blob";
+import { File as FetchFile } from "fetch-blob/file.js";
 import {
-  default as fetch,
+  default as nodeFetch,
   Headers as NodeFetchHeaders,
   Request as NodeFetchRequest,
   Response as NodeFetchResponse,
@@ -9,26 +11,28 @@ import {
 declare global {
   namespace NodeJS {
     interface Global {
+      Blob: typeof FetchBlob;
+      File: typeof FetchFile;
       Headers: typeof NodeFetchHeaders;
       Request: typeof NodeFetchRequest;
       Response: typeof NodeFetchResponse;
-      fetch: typeof fetch;
+      fetch: typeof nodeFetch;
     }
   }
 }
 
-// @ts-ignore
-global.Request = NodeFetchRequest;
-// @ts-ignore
-global.Response = NodeFetchResponse;
-// @ts-ignore
-global.Headers = NodeFetchHeaders;
-// @ts-ignore
-global.fetch = fetch;
+global.Request = NodeFetchRequest as unknown as typeof Request;
+global.Response = NodeFetchResponse as typeof Response;
+global.Headers = NodeFetchHeaders as typeof Headers;
+global.fetch = nodeFetch as typeof fetch;
+global.Blob = FetchBlob;
+global.File = FetchFile;
 
 export {
   NodeFetchRequest as Request,
   NodeFetchResponse as Response,
   NodeFetchHeaders as Headers,
-  fetch,
+  nodeFetch as fetch,
+  FetchBlob as Blob,
+  FetchFile as File,
 };

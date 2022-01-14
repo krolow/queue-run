@@ -1,3 +1,4 @@
+import { Blob } from "../http/fetch.js";
 import { getLocalStorage } from "../shared/index.js";
 
 type Payload = object | string | ArrayBuffer | Blob | Buffer;
