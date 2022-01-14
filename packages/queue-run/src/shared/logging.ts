@@ -52,7 +52,7 @@ export default function logging(newLogger?: LoggingFunction) {
 const colors: Record<LogLevel, ChalkInstance> = {
   debug: chalk.dim,
   error: chalk.bold.red,
-  info: chalk.blue,
+  info: chalk.white,
   verbose: chalk.white,
   warn: chalk.bold.yellow,
 };
