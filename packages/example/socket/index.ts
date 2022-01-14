@@ -1,10 +1,4 @@
-import { socket } from "queue-run";
-
 export default async function () {
-  setTimeout(async function () {
-    await socket.send("hello");
-  }, 3000);
-
   return "Welcome";
 }
 

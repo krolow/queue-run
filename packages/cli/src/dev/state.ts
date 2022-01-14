@@ -9,10 +9,16 @@ import { WebSocket } from "ws";
 // Sockets added/removed by server, since the API is ID based
 const sockets = new Map<string, WebSocket>();
 
-// Index all open sockets belonging to a given user
-const wsUserConnections = new Map<string, string[]>();
-// Index of user ID for a given socket
-const wsConnectionUserId = new Map<string, string>();
+/**  Index all open sockets belonging to a given user
+ * @key user ID
+ * @value connection ID
+ */
+const userIdToConnectionId = new Map<string, string[]>();
+/**  Index of user ID for a given socket
+ * @key connection ID
+ * @value user ID
+ */
+const connectionIdToUserId = new Map<string, string>();
 
 // Number of jobs in the queue
 let queued = 0;
@@ -101,7 +107,9 @@ export class DevLocalStorage extends LocalStorage {
   }
 
   async getConnections(userIds: string[]) {
-    return userIds.map((userId) => wsUserConnections.get(userId) ?? []).flat();
+    return userIds
+      .map((userId) => userIdToConnectionId.get(userId) ?? [])
+      .flat();
   }
 
   async closeWebSocket(connection: string) {
@@ -126,10 +134,10 @@ export function onWebSocketAccepted({
   sockets.set(connection, socket);
 
   if (userId) {
-    wsConnectionUserId.set(connection, userId);
-    wsUserConnections.set(userId, [
+    connectionIdToUserId.set(connection, userId);
+    userIdToConnectionId.set(userId, [
       connection,
-      ...(wsUserConnections.get(userId) ?? []),
+      ...(userIdToConnectionId.get(userId) ?? []),
     ]);
   }
   return connection;
@@ -137,9 +145,9 @@ export function onWebSocketAccepted({
 
 export function onWebSocketClosed(connection: string) {
   sockets.delete(connection);
-  const userId = wsConnectionUserId.get(connection);
+  const userId = connectionIdToUserId.get(connection);
   if (userId) {
-    wsConnectionUserId.delete(connection);
-    wsUserConnections.delete(userId);
+    connectionIdToUserId.delete(connection);
+    userIdToConnectionId.delete(userId);
   }
 }
