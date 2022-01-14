@@ -1,22 +1,14 @@
 {
-  "include": ["queue-run.env.d.ts", "**/*.ts", "**/*.tsx"],
   "compilerOptions": {
-    "baseUrl": ".",
     "esModuleInterop": true,
     "jsx": "react-jsx",
     "jsxImportSource": "queue-run",
-    "lib": ["ES2020", "ES2021"],
-    "module": "esnext",
-    "moduleResolution": "node",
-    "noEmit": true,
     "paths": {
       "#api/*": ["./api/*"],
       "#lib/*": ["./lib/*"],
       "#queues/*": ["./queues/*"],
       "#socket/*": ["./socket/*"]
-    },
-    "resolveJsonModule": true,
-    "strict": true,
-    "target": "ES2020"
-  }
+    }
+  },
+  "include": ["queue-run.env.d.ts", "**/*.ts", "**/*.tsx"]
 }
