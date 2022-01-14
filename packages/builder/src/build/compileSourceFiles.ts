@@ -1,9 +1,9 @@
 import * as swc from "@swc/core";
 import glob from "fast-glob";
-import fs from "fs/promises";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { debuglog } from "node:util";
 import ora from "ora";
-import path from "path";
-import { debuglog } from "util";
 import getRuntimeVersion from "./getRuntime.js";
 
 const debug = debuglog("queue-run:compile");

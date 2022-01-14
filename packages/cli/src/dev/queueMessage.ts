@@ -1,6 +1,6 @@
-import fs from "fs/promises";
-import readline from "readline";
-import { URL } from "url";
+import fs from "node:fs/promises";
+import readline from "node:readline";
+import { URL } from "node:url";
 
 export default async function queueMessage(
   queueName: string,

@@ -1,6 +1,6 @@
 import swc from "@swc/core";
-import fs from "fs/promises";
-import path from "path";
+import fs from "node:fs/promises";
+import path from "node:path";
 import semver from "semver";
 
 type RuntimeVersion = {

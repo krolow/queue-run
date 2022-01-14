@@ -1,5 +1,5 @@
-import crypto from "crypto";
 import ms from "ms";
+import crypto from "node:crypto";
 import { EventEmitter } from "node:events";
 import { handleQueuedJob, LocalStorage } from "queue-run";
 import { WebSocket } from "ws";

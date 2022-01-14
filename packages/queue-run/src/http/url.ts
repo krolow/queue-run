@@ -1,6 +1,6 @@
-import path from "path";
+import path from "node:path";
+import { URL } from "node:url";
 import { compile } from "path-to-regexp";
-import { URL } from "url";
 import { getLocalStorage, selfPath } from "../shared/index.js";
 
 type Params = {

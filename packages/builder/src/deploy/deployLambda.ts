@@ -1,11 +1,11 @@
 import { Lambda } from "@aws-sdk/client-lambda";
 import chalk from "chalk";
 import dotenv from "dotenv";
-import fs from "fs/promises";
 import { AbortSignal } from "node-abort-controller";
+import fs from "node:fs/promises";
+import { debuglog } from "node:util";
 import { Manifest } from "queue-run";
 import invariant from "tiny-invariant";
-import { debuglog } from "util";
 import { buildProject, displayManifest } from "../build/index.js";
 import { addTriggers, removeTriggers } from "./eventSource.js";
 import { createQueues, deleteOldQueues } from "./prepareQueues.js";

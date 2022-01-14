@@ -1,6 +1,6 @@
-import crypto from "crypto";
 import { AbortController } from "node-abort-controller";
-import { URL, URLSearchParams } from "url";
+import crypto from "node:crypto";
+import { URL, URLSearchParams } from "node:url";
 import { XML } from "../jsx-runtime.js";
 import {
   getLocalStorage,

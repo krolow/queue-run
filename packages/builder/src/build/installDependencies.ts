@@ -1,12 +1,11 @@
-import { spawn } from "child_process";
-import { R_OK } from "constants";
 import glob from "fast-glob";
-import fs from "fs/promises";
-import { createRequire } from "module";
 import ms from "ms";
-import path from "path";
+import { spawn } from "node:child_process";
+import fs from "node:fs/promises";
+import { createRequire } from "node:module";
+import path from "node:path";
+import { debuglog } from "node:util";
 import invariant from "tiny-invariant";
-import { debuglog } from "util";
 
 const installFiles = [
   ".npmrc",
@@ -77,7 +76,7 @@ async function copyFile(
   const source = path.resolve(sourceDir, filename);
   const dest = path.resolve(targetDir, filename);
   try {
-    await fs.access(source, R_OK);
+    await fs.access(source);
   } catch {
     // Source file doesn't exist
     return;

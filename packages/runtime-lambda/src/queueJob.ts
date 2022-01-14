@@ -1,7 +1,7 @@
 import { SendMessageCommandInput, SQS } from "@aws-sdk/client-sqs";
+import { URLSearchParams } from "node:url";
 import type { AuthenticatedUser } from "queue-run";
 import invariant from "tiny-invariant";
-import { URLSearchParams } from "url";
 
 export default async function queueJob({
   payload,

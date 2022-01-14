@@ -1,13 +1,14 @@
 import { Sema } from "async-sema";
 import chalk from "chalk";
 import * as chokidar from "chokidar";
-import cluster from "cluster";
-import crypto from "crypto";
 import dotenv from "dotenv";
-import { createServer, IncomingMessage, ServerResponse } from "http";
 import ms from "ms";
-import path from "path";
-import process from "process";
+import cluster from "node:cluster";
+import crypto from "node:crypto";
+import { createServer, IncomingMessage, ServerResponse } from "node:http";
+import path from "node:path";
+import process from "node:process";
+import { URL } from "node:url";
 import {
   handleHTTPRequest,
   handleQueuedJob,
@@ -18,7 +19,6 @@ import {
 } from "queue-run";
 import { buildProject } from "queue-run-builder";
 import invariant from "tiny-invariant";
-import { URL } from "url";
 import { WebSocket, WebSocketServer } from "ws";
 import {
   DevLocalStorage,

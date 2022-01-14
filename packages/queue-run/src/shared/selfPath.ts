@@ -1,4 +1,4 @@
-import path from "path";
+import path from "node:path";
 
 export default function selfPath(depth: number = 2): string {
   const prepare = Error.prepareStackTrace;

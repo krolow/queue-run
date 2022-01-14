@@ -1,9 +1,9 @@
 import glob from "fast-glob";
 import filesize from "filesize";
-import { lstat, readFile } from "fs/promises";
 import JSZip from "jszip";
+import { lstat, readFile } from "node:fs/promises";
+import path from "node:path";
 import ora from "ora";
-import path from "path";
 
 export default async function zipLambda(dirname: string): Promise<Uint8Array> {
   const spinner = ora(`Creating zip archive for ${dirname} …`).start();

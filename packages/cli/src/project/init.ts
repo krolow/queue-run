@@ -1,9 +1,9 @@
 import { Command } from "commander";
 import glob from "fast-glob";
-import fs from "fs/promises";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { URL } from "node:url";
 import ora from "ora";
-import path from "path";
-import { URL } from "url";
 import { initProject } from "./project.js";
 
 const command = new Command("init")

@@ -1,4 +1,4 @@
-import { URL } from "url";
+import { URL } from "node:url";
 import { Request } from "../http/fetch.js"; // don't import from http to avoid circular dependency
 import { JobMetadata } from "../queue/index.js";
 

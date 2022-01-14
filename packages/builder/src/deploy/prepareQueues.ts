@@ -1,8 +1,8 @@
 import { SQS } from "@aws-sdk/client-sqs";
+import { URL } from "node:url";
 import ora from "ora";
 import { Manifest } from "queue-run";
 import invariant from "tiny-invariant";
-import { URL } from "url";
 
 export async function createQueues({
   prefix,

@@ -1,6 +1,6 @@
 import { SQS } from "@aws-sdk/client-sqs";
+import { URLSearchParams } from "node:url";
 import { handleQueuedJob, LocalStorage, QueueHandler } from "queue-run";
-import { URLSearchParams } from "url";
 
 export type SQSBatchResponse = {
   // https://docs.aws.amazon.com/lambda/latest/dg/with-ddb.html#services-ddb-batchfailurereporting

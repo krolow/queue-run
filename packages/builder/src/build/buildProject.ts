@@ -1,4 +1,4 @@
-import fs from "fs/promises";
+import fs from "node:fs/promises";
 import ora from "ora";
 import { Manifest } from "queue-run";
 import compileSourceFiles from "./compileSourceFiles.js";

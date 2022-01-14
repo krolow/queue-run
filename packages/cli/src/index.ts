@@ -1,8 +1,8 @@
 import chalk from "chalk";
 import { Command } from "commander";
-import fs from "fs/promises";
 import ms from "ms";
-import { debuglog } from "util";
+import fs from "node:fs/promises";
+import { debuglog } from "node:util";
 import buildCommand from "./build.js";
 import devCommand from "./dev/index.js";
 import deployCommand from "./project/deploy.js";

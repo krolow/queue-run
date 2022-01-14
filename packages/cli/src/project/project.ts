@@ -1,6 +1,6 @@
 import glob from "fast-glob";
-import fs from "fs/promises";
 import inquirer from "inquirer";
+import fs from "node:fs/promises";
 import generate from "project-name-generator";
 
 const filename = ".queue-run.json";

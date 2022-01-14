@@ -1,5 +1,5 @@
+import { URL } from "node:url";
 import invariant from "tiny-invariant";
-import { URL } from "url";
 import {
   HTTPRoute,
   loadManifest,

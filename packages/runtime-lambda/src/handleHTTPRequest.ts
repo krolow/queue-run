@@ -1,3 +1,4 @@
+import { URL } from "node:url";
 import {
   handleHTTPRequest,
   Headers,
@@ -5,7 +6,6 @@ import {
   Request,
   Response,
 } from "queue-run";
-import { URL } from "url";
 
 // https://docs.aws.amazon.com/lambda/latest/dg/services-apigateway.html#apigateway-example-event
 export type APIGatewayHTTPEvent = {
