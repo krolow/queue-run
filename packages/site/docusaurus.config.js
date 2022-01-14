@@ -12,6 +12,7 @@ module.exports = {
         docs: {
           path: "../../docs",
           routeBasePath: "/",
+          sidebarCollapsed: false,
           sidebarPath: require.resolve("./sidebars.js"),
         },
         theme: {
