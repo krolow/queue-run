@@ -1,8 +1,6 @@
 {
-  "include": ["queue-run.env.d.ts", "**/*.ts", "**/*.tsx"],
   "compilerOptions": {
     "esModuleInterop": true,
-    "strict": true,
     "jsx": "react-jsx",
     "jsxImportSource": "queue-run",
     "paths": {
@@ -10,6 +8,8 @@
       "#lib/*": ["./lib/*"],
       "#queues/*": ["./queues/*"],
       "#socket/*": ["./socket/*"]
-    }
-  }
+    },
+    "strict": true
+  },
+  "include": ["queue-run.env.d.ts", "**/*.ts", "**/*.tsx"]
 }

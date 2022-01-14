@@ -15,6 +15,7 @@ import invariant from "tiny-invariant";
 
 const apiGateway = new ApiGatewayV2({});
 const lambda = new Lambda({});
+const wsPath = "/_ws";
 
 // See https://docs.aws.amazon.com/lambda/latest/dg/services-apigateway.html#apigateway-permissions
 
@@ -24,7 +25,10 @@ export async function getAPIGatewayURLs(project: string) {
     protocol: ProtocolType.WEBSOCKET,
     project,
   });
-  return { http: api?.ApiEndpoint, ws: ws?.ApiEndpoint };
+  return {
+    http: api?.ApiEndpoint ?? "unavailable",
+    ws: ws ? `${ws.ApiEndpoint}${wsPath}` : "unavailable",
+  };
 }
 
 // Setup API Gateway. We need the endpoint URLs before we can deploy the project
@@ -44,7 +48,7 @@ export async function setupAPIGateway(project: string): Promise<{
   });
   spinner.succeed(`Created API Gateway WS endpoint: ${ws}`);
 
-  return { http, ws };
+  return { http, ws: ws + wsPath };
 }
 
 async function createApi(
