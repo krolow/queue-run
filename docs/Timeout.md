@@ -1,5 +1,8 @@
+---
+sidebar_label: "Timeout/Abort"
+---
 
-# Timeout / Abort Signal
+# Timeout and Abort Signal
 
 Each task is given a finite time to complete. The default timeout depends on the task: 10 seconds for HTTP and WebSocket requests, 5 minutes for queued and scheduled jobs.
 

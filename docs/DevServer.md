@@ -37,9 +37,3 @@ cat job.json
 { "id": 123 }
 npx queue-run dev queue screenshots @job.json
 ```
-
-
-:::note
-
-To keep the `queue-run` module lean, CLI tools include the dev server are available in separate modules. You don't have to add them in `package.json`. They are loaded on demand when you run `npx queue-run` for the first time.
-:::

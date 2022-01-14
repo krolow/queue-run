@@ -1,4 +1,8 @@
-# AWS Lambda + SQS
+---
+sidebar_label: "AWS Lambda"
+---
+
+# AWS Lambda + SQS + DynamoDB
 
 ## Lambda Warm Up
 

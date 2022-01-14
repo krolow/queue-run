@@ -6,7 +6,6 @@ module.exports = {
         "HTTP",
         "WebSocket",
         "Queues",
-        "Schedules",
         "Authenticate",
         "URLs",
         "Logging",
@@ -15,7 +14,7 @@ module.exports = {
       ],
     },
     {
-      Using: ["DevServer", "Deploying", "Runtime_Lambda"],
+      Using: ["Deploying", "DevServer", "Runtime_Lambda"],
     },
     {
       type: "link",
