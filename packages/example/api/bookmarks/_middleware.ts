@@ -1,5 +1,4 @@
 import * as db from "#lib/db.js";
-import { Request, Response } from "queue-run";
 
 export async function authenticate(request: Request) {
   const header = request.headers.get("Authorization");

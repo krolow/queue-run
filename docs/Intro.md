@@ -48,7 +48,6 @@ You can also [clone the repo](https://github.com/assaf/queue-run) and look at th
 import { queue as screenshots } from "#queues/screenshots.js";
 import { urlForBookmark } from "./[id].js";
 import * as db from "#lib/db.js";
-import { Response } from "queue-run";
 
 // HTTP GET /bookmarks -> JSON
 export async function get({ user }) {
@@ -79,7 +78,7 @@ All the examples are in TypeScript. Weird quirk of ESM is that imports must end 
 You can also fetch (GET), update (PUT), and delete (DELETE) an individual resource:
 
 ```ts title=api/bookmarks/[id].ts
-import { url, Response } from "queue-run";
+import { url } from "queue-run";
 import * as db from "#lib/db.js";
 
 // In Express this would be get('/bookmarks/:id')
@@ -119,7 +118,7 @@ export const urlForBookmark = url.self<{ id: string }>();
 We'll need some common middleware to authenticate requests, so we can tie them to a user:
 
 ```ts title=api/_middleware.ts
-import { form, Response } from "queue-run";
+import { form } from "queue-run";
 
 export async function authenticate(request) {
   ... TBD

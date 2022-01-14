@@ -1,5 +1,5 @@
 import * as db from "#lib/db.js";
-import { Response, RouteConfig, url } from "queue-run";
+import { RouteConfig, url } from "queue-run";
 
 export type Resource = {
   body?: { title: string };
