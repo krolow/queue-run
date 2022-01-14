@@ -78,22 +78,22 @@ For example:
 ```ts
 // HTTP GET => JSON document or 404
 export async function get({ params }) {
-  const item = await db.findOne(params.id);
+  const item = await db.items.findOne(params.id);
   if (!item) throw new Response(null, { status: 404 });
   return item;
 }
 
 // HTTP PUT + JSON => JSON document or 404
 export async function put({ body, params }) {
-  const item = await db.findOne(params.id);
+  const item = await db.items.findOne(params.id);
   if (!item) throw new Response(null, { status: 404 });
 
-  return await db.update({ id: params.id, ...body });
+  return await db.items.update({ id: params.id, ...body });
 }
 
 // HTTP DELETE => 204
 export async function del({ params }) {
-  await db.remove(params.id);
+  await db.items.remove(params.id);
   return null;
 }
 ```
@@ -334,7 +334,7 @@ Routes support the following logging middleware:
 
 - `onRequest(request)` — Called on every request
 - `onResponse(request, response)` — Called on every response
-- `onError(error, request)` — Called if the request handler throws an error (including timeout)
+- `onError(error, request)` — Called if the request handler or any middleware throws an error
 
 The default middleware logs responses and errors.
 

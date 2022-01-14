@@ -47,17 +47,17 @@ You can also [clone the repo](https://github.com/assaf/queue-run) and look at th
 ```ts title=api/bookmarks.ts
 import { queue as screenshots } from "#queues/screenshots.js";
 import { urlForBookmark } from "./[id].js";
-import * as db from "#lib/db.js";
+import db from "#lib/db.js";
 
 // HTTP GET /bookmarks -> JSON
 export async function get({ user }) {
-  return await db.findAll({ userId: user.id });
+  return await db.bookmarks.findAll({ userId: user.id });
 }
 
 // And this is HTTP POST -> 303 See Other
 export async function post({ body, user }) {
   const { title, url } = body;
-  const bookmark = await db.create({ title, url, user });
+  const bookmark = await db.bookmarks.create({ title, url, user });
 
   await screenshots.push({ id: bookmark.id });
 
@@ -79,11 +79,11 @@ You can also fetch (GET), update (PUT), and delete (DELETE) an individual resour
 
 ```ts title=api/bookmarks/[id].ts
 import { url } from "queue-run";
-import * as db from "#lib/db.js";
+import db from "#lib/db.js";
 
 // In Express this would be get('/bookmarks/:id')
 export async function get({ params, user }) {
-  const bookmark = await db.findOne({
+  const bookmark = await db.bookmarks.findOne({
     id: params.id,
     userId: user.id
   });
@@ -93,14 +93,14 @@ export async function get({ params, user }) {
 }
 
 export async function put({ body, params, user }) {
-  const bookmark = await db.findOne({
+  const bookmark = await db.bookmarks.findOne({
     id: params.id,
     userId: user.id
   });
   if (!bookmark) throw new Response(null, { status: 404 });
 
   const { title } = body;
-  return await db.updateOne({ id: params.id, title });
+  return await db.bookmarks.updateOne({ id: params.id, title });
 }
 
 export async function del({ params, user}) {
@@ -129,18 +129,18 @@ Our bookmarks service takes screenshots, and these could take several seconds, a
 
 ```ts title=queues/screenshots.ts
 import { queues } from "queue-run";
-import * as db from "#lib/db.js";
+import db from "#lib/db.js";
 import capture from "#lib/capture.js";
 
 export default async function ({ id }, { user }) {
-  const bookmark = await db.findOne({ id, userId: user.id });
+  const bookmark = await db.bookmarks.findOne({ id, userId: user.id });
   if (!bookmark) return;
 
   // This could easily take several seconds,
   // so we're doing this in a background job
   console.info('Taking screenshot of "%s"', bookmark.url)
   const screenshot = await capture(bookmark.url);
-  await db.updateOne({ id, userId: user.id,  screenshot });
+  await db.bookmarks.updateOne({ id, userId: user.id,  screenshot });
 }
 
 // api/bookmarks/index.ts doesn't need to guess the queue name

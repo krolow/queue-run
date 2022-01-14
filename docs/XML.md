@@ -7,7 +7,7 @@ import { url } from "queue-run";
 import { urlForItem } from "./[id]";
 
 export async function get() {
-  const items = await db.find();
+  const items = await items.find();
   const feedURL = String(url.self());
   return (
     <feed xmlns="http://www.w3.org/2005/Atom">

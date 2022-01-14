@@ -23,7 +23,7 @@ class WebSocket<T = Payload> {
   private _userIds: string[] | null;
 
   constructor(userIds: string[] | null) {
-    this._userIds = userIds;
+    this._userIds = userIds ? Array.from(new Set(userIds)) : null;
   }
 
   /**
@@ -71,13 +71,17 @@ class WebSocket<T = Payload> {
 
   private async getConnections(): Promise<string[]> {
     const local = getLocalStorage();
-    if (this._userIds) return await local.getConnections(this._userIds);
 
-    if (local.connection) return [local.connection];
+    // In order of precedence:
+    // - Users explicitly specified
+    // - All connections for current user
+    // - Current connection
+    if (this._userIds) return await local.getConnections(this._userIds);
     if (local.user) return await local.getConnections([local.user.id]);
+    if (local.connection) return [local.connection];
 
     throw new Error(
-      "Not called within a socket handler, and no authenticated user"
+      "This only works within a socket handler, with an authenticated user, or with explicit list of users"
     );
   }
 
@@ -99,13 +103,12 @@ class WebSocket<T = Payload> {
    */
   to(userIds: string | string[]): WebSocket<T> {
     if (!userIds) throw new Error("User ID is required");
-    const connections = Array.isArray(userIds) ? userIds : [userIds];
-    return new WebSocket(connections);
+    return new WebSocket(Array.isArray(userIds) ? userIds : [userIds]);
   }
 
   toString() {
     return (
-      this._userIds?.join(",") ?? getLocalStorage().connection ?? "unavailable"
+      this._userIds?.join(", ") ?? getLocalStorage().connection ?? "unavailable"
     );
   }
 

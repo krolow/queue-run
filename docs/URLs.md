@@ -21,7 +21,7 @@ import { urlForItem } from './[id].js';
 
 // Respond with a list of all items
 export async function get() {
-  const items = await db.find();
+  const items = await db.items.find();
   return {
     items: items.map(item => ({
       id: item.id,
