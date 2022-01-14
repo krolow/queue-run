@@ -9,6 +9,7 @@ export async function authenticate(request: Request) {
     });
   const user = await db.authenticate(token);
   if (!user) throw new Response("Access Denied!", { status: 403 });
+  console.log("🔑 Authenticated user:", user.id);
   return user;
   // TODO: verify JWT token
   // TODO: example with signed cookies

@@ -75,7 +75,12 @@ export default async function devServer({ port }: { port: number }) {
 async function newWorker(port: number) {
   const token = await blockOnBuild.acquire();
 
-  for (const worker of Object.values(cluster.workers!)) worker!.kill();
+  for (const worker of Object.values(cluster.workers!)) {
+    invariant(worker);
+    worker.disconnect();
+    const timeout = setTimeout(() => worker.kill(), 1000);
+    worker.on("disconnect", () => clearTimeout(timeout));
+  }
 
   const fromFile = await fs.readFile(`.env.local`, "utf-8").then(
     (file) => dotenv.parse(file),
@@ -129,14 +134,17 @@ if (cluster.isWorker) {
     await warmup(new DevLocalStorage(port));
   })();
 
-  createServer(async (req, res) => {
+  const http = createServer(async (req, res) => {
     await ready;
     onRequest(req, res, () => new DevLocalStorage(port));
   }).listen(port);
-  new WebSocketServer({ port: port + 1 }).on("connection", async (ws, req) => {
-    await ready;
-    onConnection(ws, req, () => new DevLocalStorage(port));
-  });
+  const ws = new WebSocketServer({ port: port + 1 }).on(
+    "connection",
+    async (ws, req) => {
+      await ready;
+      onConnection(ws, req, () => new DevLocalStorage(port));
+    }
+  );
 
   // Make sure we exit if buildProject fails
   try {
@@ -145,6 +153,11 @@ if (cluster.isWorker) {
     console.error("💥 Build failed!", error);
     process.exit(1);
   }
+
+  process.on("disconnect", function () {
+    http.close();
+    ws.close();
+  });
 }
 
 async function onRequest(
