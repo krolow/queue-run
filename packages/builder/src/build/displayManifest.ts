@@ -1,29 +1,22 @@
 import { loadManifest } from "queue-run";
 
 export default async function displayManifest(dirname: string) {
-  const { routes, sockets, queues } = await loadManifest(dirname);
+  const manifest = await loadManifest(dirname);
 
-  const tables = [tabulate(routes), tabulate(sockets), tabulate(queues)];
-  const widths = calculate(tables);
+  const routes = tabulate(manifest.routes);
+  const socket = tabulate(manifest.socket);
+  const queues = tabulate(manifest.queues);
 
-  displayTable({
-    missing: "No routes",
-    rows: tables[0]!,
-    title: "API",
-    widths,
-  });
+  const widths = calculate(routes, socket, queues);
+
+  displayTable({ missing: "No routes", rows: routes, title: "API", widths });
   displayTable({
     missing: "No WebSocket",
-    rows: tables[1]!,
+    rows: socket,
     title: "WebSocket",
     widths,
   });
-  displayTable({
-    missing: "No queues",
-    rows: tables[2]!,
-    title: "Queues",
-    widths,
-  });
+  displayTable({ missing: "No queues", rows: queues, title: "Queues", widths });
 }
 
 function tabulate(map: Map<string, { original: string }>): [string, string][] {
@@ -33,7 +26,7 @@ function tabulate(map: Map<string, { original: string }>): [string, string][] {
   ]);
 }
 
-function calculate(tables: [string, string][][]): [number, number] {
+function calculate(...tables: [string, string][][]): [number, number] {
   const rows = tables.flat(1);
   const available = process.stdout.columns - 10;
   const min = 10;

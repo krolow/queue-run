@@ -46,7 +46,7 @@ export type Manifest = {
     path: string;
     timeout: number;
   }>;
-  sockets: Array<{
+  socket: Array<{
     path: string;
     filename: string;
     original: string;
@@ -57,7 +57,7 @@ export type Manifest = {
 export async function loadManifest(dirname = process.cwd()): Promise<{
   queues: Map<string, QueueService>;
   routes: Map<string, HTTPRoute>;
-  sockets: Map<string, WebSocketRoute>;
+  socket: Map<string, WebSocketRoute>;
 }> {
   const manifest = JSON.parse(
     await fs.readFile(path.resolve(dirname, "manifest.json"), "utf-8")
@@ -91,8 +91,8 @@ export async function loadManifest(dirname = process.cwd()): Promise<{
     ])
   );
 
-  const sockets = new Map(
-    manifest.sockets.map((socket) => [
+  const socket = new Map(
+    manifest.socket.map((socket) => [
       socket.path,
       {
         filename: socket.filename,
@@ -102,5 +102,5 @@ export async function loadManifest(dirname = process.cwd()): Promise<{
     ])
   );
 
-  return { queues, routes, sockets };
+  return { queues, routes, socket };
 }

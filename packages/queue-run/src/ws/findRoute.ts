@@ -22,16 +22,16 @@ export default async function findRoute(data: Buffer): Promise<{
   middleware: WebSocketMiddleware;
   socket: WebSocketRoute;
 }> {
-  const { sockets } = await loadManifest();
-  const socket = sockets.get("/");
-  if (!socket) throw new Error("Not Found");
+  const { socket } = await loadManifest();
+  const route = socket.get("/");
+  if (!route) throw new Error("Not Found");
 
   const loaded = await loadModule<WebSocketExports, WebSocketMiddleware>(
-    socket.filename,
+    route.filename,
     { onMessageReceived: logMessageReceived, onError: logError }
   );
   invariant(loaded, "Could not load route module");
   const { module, middleware } = loaded;
 
-  return { module, middleware, socket };
+  return { module, middleware, socket: route };
 }

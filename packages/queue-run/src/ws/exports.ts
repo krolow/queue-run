@@ -62,7 +62,7 @@ export type OnMessageReceived = (args: {
  *
  * @param connection Connection identifier
  * @param data The raw message data
- * @param to Recipients for `sockets.send`, null when responding from a handler
+ * @param to Recipients for `socket.send`, null when responding from a handler
  */
 export type OnMessageSent = (args: {
   connection: string;
@@ -71,7 +71,7 @@ export type OnMessageSent = (args: {
 }) => void | Promise<void>;
 
 /**
- * Middleware exported from the route module, or sockets/_middleware.ts.
+ * Middleware exported from the route module, or socket/_middleware.ts.
  */
 export type WebSocketMiddleware = {
   authenticate?: AuthenticateMethod | null;

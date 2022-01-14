@@ -7,7 +7,7 @@ import getRuntime from "./getRuntime.js";
 import installDependencies from "./installDependencies.js";
 import mapQueues from "./mapQueues.js";
 import mapRoutes from "./mapRoutes.js";
-import mapSockets from "./mapSockets.js";
+import mapSocket from "./mapSocket.js";
 import zipLambda from "./zipLambda.js";
 
 // Short build: compile source files to target directory.
@@ -58,9 +58,9 @@ async function createManifest(dirname: string) {
   try {
     process.chdir(dirname);
     const routes = await mapRoutes();
-    const sockets = await mapSockets();
+    const socket = await mapSocket();
     const queues = await mapQueues();
-    const manifest: Manifest = { queues, routes, sockets };
+    const manifest: Manifest = { queues, routes, socket };
     await fs.writeFile("manifest.json", JSON.stringify(manifest), "utf-8");
     return manifest;
   } finally {

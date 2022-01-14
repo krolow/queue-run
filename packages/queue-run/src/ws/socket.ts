@@ -3,8 +3,6 @@ import { getLocalStorage } from "../shared/index.js";
 type Payload = object | string | ArrayBuffer | Blob | Buffer;
 
 /**
- * WebSockets object associated with the current request.
- *
  * From within WebSocket handler, you can use this to respond to the client, or
  * close the connection.
  *
@@ -12,14 +10,14 @@ type Payload = object | string | ArrayBuffer | Blob | Buffer;
  * send a message to the authenticated user, or specific set of users.
  *
  * ```
- * await sockets.send(updates);
+ * await socket.send(updates);
  * ```
  *
  * ```
- * await sockets.to(users).send(updates);
+ * await socket.to(users).send(updates);
  * ```
  */
-class WebSockets<T = Payload> {
+class WebSocket<T = Payload> {
   private _userIds: string[] | null;
 
   constructor(userIds: string[] | null) {
@@ -47,7 +45,7 @@ class WebSockets<T = Payload> {
    * From withing request or job handler, the current user.
    *
    * ```
-   * await sockets.send({ status: "ok" });
+   * await socket.send({ status: "ok" });
    * ```
    *
    * @param data Message to send, can be an object (serialized as JSON), a
@@ -82,21 +80,21 @@ class WebSockets<T = Payload> {
    *
    *
    * ```
-   * await sockets.to(userA).send({ status: "ok" });
+   * await socket.to(userA).send({ status: "ok" });
    * ```
    *
    * ```
    * const members = group.map((user) => user.id);
-   * await sockets.to(members).send({ status: "ok" });
+   * await socket.to(members).send({ status: "ok" });
    * ```
    *
    * @param userIds One or more user IDs, as returned from the authenticate middleware
    * @returns The web socket set with the specified users
    */
-  to(userIds: string | string[]): WebSockets<T> {
+  to(userIds: string | string[]): WebSocket<T> {
     if (!userIds) throw new Error("User ID is required");
     const connections = Array.isArray(userIds) ? userIds : [userIds];
-    return new WebSockets(connections);
+    return new WebSocket(connections);
   }
 
   toString() {
@@ -113,7 +111,7 @@ class WebSockets<T = Payload> {
   }
 }
 
-export default new WebSockets(null);
+export default new WebSocket(null);
 
 async function payloadToBuffer(data: Payload): Promise<Buffer> {
   if (typeof data === "string") return Buffer.from(data);

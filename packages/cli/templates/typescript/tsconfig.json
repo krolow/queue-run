@@ -13,7 +13,7 @@
       "#api/*": ["./api/*"],
       "#lib/*": ["./lib/*"],
       "#queues/*": ["./queues/*"],
-      "#sockets/*": ["./sockets/*"]
+      "#socket/*": ["./socket/*"]
     },
     "resolveJsonModule": true,
     "strict": true,
