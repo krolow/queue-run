@@ -11,11 +11,13 @@ import path from "node:path";
 import process from "node:process";
 import { URL } from "node:url";
 import {
+  authenticateWebSocket,
   handleHTTPRequest,
   handleQueuedJob,
   handleWebSocketMessage,
   LocalStorage,
   Request,
+  Response,
   warmup,
 } from "queue-run";
 import { buildProject } from "queue-run-builder";
@@ -234,9 +236,19 @@ async function onConnection(
   req: IncomingMessage,
   newLocalStorage: () => LocalStorage
 ) {
-  // TODO: authentication
-  const userId = null;
-  const connection = onWebSocketAccepted(socket, userId);
+  let userId: string | null;
+  try {
+    userId = await authenticate(req, newLocalStorage);
+  } catch {
+    socket.send(JSON.stringify({ error: "Unauthorized" }));
+    socket.terminate();
+    return;
+  }
+  const connection = onWebSocketAccepted({
+    connection: String(req.headers["sec-websocket-key"]),
+    socket,
+    userId,
+  });
 
   socket.on("message", async (rawData) => {
     const data =
@@ -255,4 +267,33 @@ async function onConnection(
     if (response) socket.send(response);
   });
   socket.on("close", () => onWebSocketClosed(connection));
+}
+
+async function authenticate(
+  req: IncomingMessage,
+  newLocalStorage: () => LocalStorage
+): Promise<string | null> {
+  const request = new Request(
+    new URL(req.url ?? "/", `http://${req.headers.host}`).href,
+    {
+      method: req.method ?? "GET",
+      headers: Object.fromEntries(
+        Object.entries(req.headers).map(([name, value]) => [
+          name,
+          String(value),
+        ])
+      ),
+    }
+  );
+  try {
+    const user = await authenticateWebSocket({
+      request,
+      newLocalStorage,
+    });
+    return user?.id ?? null;
+  } catch (error) {
+    if (!(error instanceof Response))
+      console.error("💥 Authentication failed!", error);
+    throw error;
+  }
 }

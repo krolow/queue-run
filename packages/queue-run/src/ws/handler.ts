@@ -1,5 +1,8 @@
 import { AbortController } from "node-abort-controller";
-import { LocalStorage, withLocalStorage } from "../shared/index.js";
+import { Request } from "../http/fetch.js";
+import { AuthenticatedUser } from "../index.js";
+import { loadModule, LocalStorage, withLocalStorage } from "../shared/index.js";
+import { loadMiddleware } from "../shared/loadModule.js";
 import TimeoutError from "../shared/TimeoutError.js";
 import {
   WebSocketConfig,
@@ -7,6 +10,47 @@ import {
   WebSocketMiddleware,
 } from "./exports.js";
 import findRoute from "./findRoute.js";
+
+export async function authenticateWebSocket({
+  newLocalStorage,
+  request,
+}: {
+  newLocalStorage: () => LocalStorage;
+  request: Request;
+}): Promise<AuthenticatedUser | null> {
+  const { middleware } =
+    (await loadModule<never, WebSocketMiddleware>("socket/index.js", {})) ??
+    (await loadMiddleware<WebSocketMiddleware>("socket/_middleware.js", {}));
+  const { authenticate } = middleware;
+  if (!authenticate) return null;
+
+  return await withLocalStorage(newLocalStorage(), async () => {
+    const user = await authenticate(request, getCookies(request));
+    if (user === null || user?.id) return user;
+
+    const concern =
+      user === undefined
+        ? 'Authenticate function returned "undefined", was this intentional?'
+        : "Authenticate function returned user object without an ID";
+    console.error(concern);
+    throw new Response("Forbidden", { status: 403 });
+  });
+}
+
+function getCookies(request: Request): { [key: string]: string } {
+  const header = request.headers.get("cookie");
+  if (!header) return {};
+  const cookies = header
+    .split(";")
+    .map((cookie) => cookie.trim())
+    .map((cookie) => cookie.match(/^([^=]+?)=(.*)$/)?.slice(1)!)
+    .filter(([name]) => name) as [string, string][];
+
+  return cookies.reduce(
+    (cookies, [key, value]) => ({ ...cookies, [key]: value }),
+    {}
+  );
+}
 
 export async function handleWebSocketMessage({
   connection,

@@ -114,18 +114,25 @@ export function onIdleOnce(cb: () => void) {
   events.once("idle", cb);
 }
 
-export function onWebSocketAccepted(socket: WebSocket, userId: string | null) {
-  const id = crypto.randomBytes(4).toString("hex");
-  sockets.set(id, socket);
+export function onWebSocketAccepted({
+  connection,
+  socket,
+  userId,
+}: {
+  connection: string;
+  socket: WebSocket;
+  userId: string | null;
+}) {
+  sockets.set(connection, socket);
 
   if (userId) {
-    wsConnectionUserId.set(id, userId);
+    wsConnectionUserId.set(connection, userId);
     wsUserConnections.set(userId, [
-      id,
+      connection,
       ...(wsUserConnections.get(userId) ?? []),
     ]);
   }
-  return id;
+  return connection;
 }
 
 export function onWebSocketClosed(connection: string) {

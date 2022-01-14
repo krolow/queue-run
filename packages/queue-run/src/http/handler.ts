@@ -227,7 +227,6 @@ async function runWithMiddleware({
 
         const user = await getAuthenticatedUser({
           cookies: metadata.cookies,
-          filename,
           middleware,
           request,
         });
@@ -257,12 +256,10 @@ async function runWithMiddleware({
 
 async function getAuthenticatedUser({
   cookies,
-  filename,
   middleware,
   request,
 }: {
   cookies: { [key: string]: string };
-  filename: string;
   middleware: RouteMiddleware;
   request: Request;
 }): Promise<AuthenticatedUser | null> {
@@ -275,7 +272,7 @@ async function getAuthenticatedUser({
     user === undefined
       ? 'Authenticate function returned "undefined", was this intentional?'
       : "Authenticate function returned user object without an ID";
-  console.error(concern, filename);
+  console.error(concern);
   throw new Response("Forbidden", { status: 403 });
 }
 

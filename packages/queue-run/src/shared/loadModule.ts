@@ -12,11 +12,11 @@ import path from "node:path";
  *
  * @param filename The function's filename
  * @param defaultMiddleware Default middleware, if applicable
- * @returns The module (exported values) and middleware
+ * @returns The module (exported values) and middleware, or null if the module does not exist
  */
-export default async function loadModule<ModuleExports, Middleware>(
+export async function loadModule<ModuleExports, Middleware>(
   filename: string,
-  defaultMiddleware?: Middleware
+  defaultMiddleware: Middleware = {} as Middleware
 ): Promise<Readonly<{
   module: ModuleExports;
   middleware: Middleware;
@@ -31,39 +31,57 @@ export default async function loadModule<ModuleExports, Middleware>(
     return null;
   }
   const module = (await import(absolute)) as ModuleExports;
-  const middleware = await loadMiddleware<Middleware>(fromProjectRoot);
+  const { middleware } = await loadMiddleware<Middleware>(
+    fromProjectRoot,
+    defaultMiddleware
+  );
   return {
     // Route takes precendece over _middleware
-    middleware: combine(
-      module as unknown as Middleware,
-      ...middleware,
-      defaultMiddleware ?? ({} as Middleware)
-    ),
+    middleware: combine(module as unknown as Middleware, middleware),
     module,
   };
 }
 
 /**
- * Given a path, returns the combined middleware for that folder and all parent
- * folders. For example, given the module name '/api/project/[id]/index.ts',
- * this will return the combined middleware from
- * 'api/project'/[id]/_middleware.js', 'api/project/_middleware.js', and
- * 'api/_middleware.js'.
+ * Load middleware on demand.
+ *
+ * This will combine middleware from the current and all parent directories,
+ * excluding the root directory.
+ *
+ * For example, for the module 'api/project/[id]/index.ts', call this function
+ * with `api/project/[id]` and it will combinethe middleware:
+ * - api/project/[id]/_middleware.ts
+ * - api/project/_middleware.ts
+ * - api/_middleware.ts
+ * - Default middleware (second argument)
+ *
+ * @param dirname The directory
+ * @param defaultMiddleware The default middleware
+ * @returns The combined middleware
  */
-async function loadMiddleware<Middleware>(
-  dirname: string
-): Promise<Middleware[]> {
-  if (dirname === "/") return [];
-  const parent = await loadMiddleware<Middleware>(path.dirname(dirname));
+export async function loadMiddleware<Middleware>(
+  dirname: string,
+  defaultMiddleware: Middleware
+): Promise<{
+  middleware: Middleware;
+}> {
+  if (dirname === "/") return { middleware: defaultMiddleware };
+
+  const { middleware: parent } = await loadMiddleware<Middleware>(
+    path.dirname(dirname),
+    defaultMiddleware
+  );
   const absolute = path.join(process.cwd(), dirname, "_middleware.js");
   try {
     await fs.access(absolute);
   } catch {
-    return parent;
+    return { middleware: parent };
   }
   const exports = await import(absolute);
   // This middleware's exports take precendece over parent's
-  return [exports, ...parent];
+  return {
+    middleware: combine(exports, parent),
+  };
 }
 
 function combine<T = { [key: string]: Function }>(...middleware: T[]): T {

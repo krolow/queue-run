@@ -14,3 +14,5 @@ export default async function () {
 export const config = {
   type: "text",
 };
+
+export { authenticate } from "#api/bookmarks/_middleware.js";
