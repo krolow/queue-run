@@ -22,7 +22,7 @@ QueueRun is for building the back-end of the application, from the HTTP/WS API t
 
 QueueRun is designed for building APIs or backends, and deploying to serverless environments. AWS Lambda by default, but GPC, CloudFlare Workers, Fly.io are all options.
 
-Your code is the configuration. You don't need to write boilerplate YAML, we can figure out the URL path for the file `api/todo/[id].ts`, and the queue name from `queues/update.fifo.ts`. Forget about CloudFormation, ot don't learn it to begin with.
+Your code is the configuration. You don't need to write boilerplate YAML, we can figure out the URL path for the file `api/todo/[id].ts`, and the queue name from `queues/update.fifo.ts`. Forget about CloudFormation, or don't learn it to begin with.
 
 Stuff you need in every single project — logging, authentication, form handling, etc — included by default. Use what you like, or replace with your own implementation. No dependency injection either, just export from the module.
 
