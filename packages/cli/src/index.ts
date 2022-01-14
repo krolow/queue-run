@@ -6,6 +6,7 @@ import { debuglog } from "node:util";
 import buildCommand from "./build.js";
 import devCommand from "./dev/index.js";
 import deployCommand from "./project/deploy.js";
+import infoCommand from "./project/info.js";
 import initCommand from "./project/init.js";
 import logsCommand from "./project/logs.js";
 
@@ -18,6 +19,7 @@ program.addCommand(deployCommand);
 program.addCommand(devCommand);
 program.addCommand(initCommand);
 program.addCommand(logsCommand);
+program.addCommand(infoCommand);
 
 program.showSuggestionAfterError();
 program.addHelpCommand();

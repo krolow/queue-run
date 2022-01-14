@@ -18,6 +18,15 @@ const lambda = new Lambda({});
 
 // See https://docs.aws.amazon.com/lambda/latest/dg/services-apigateway.html#apigateway-permissions
 
+export async function getAPIGatewayURLs(project: string) {
+  const api = await findGatewayAPI({ protocol: ProtocolType.HTTP, project });
+  const ws = await findGatewayAPI({
+    protocol: ProtocolType.WEBSOCKET,
+    project,
+  });
+  return { http: api?.ApiEndpoint, ws: ws?.ApiEndpoint };
+}
+
 // Setup API Gateway. We need the endpoint URLs before we can deploy the project
 // for the first time.
 export async function setupAPIGateway(project: string): Promise<{

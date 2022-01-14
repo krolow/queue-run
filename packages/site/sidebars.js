@@ -15,7 +15,7 @@ module.exports = {
       ],
     },
     {
-      Using: ["DevServer", "Runtime_Lambda"],
+      Using: ["DevServer", "Deploying", "Runtime_Lambda"],
     },
     {
       type: "link",
