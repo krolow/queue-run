@@ -31,6 +31,7 @@ async function deployRuntimeLambda({ name }: { name: string }) {
   });
   await setupIntegrations({ project: name, lambdaARN });
 
-  console.info(chalk.bold.green(`Your API is available at: %s`), http);
+  console.info(chalk.bold.green(`Your API is available at:\t%s`), http);
+  console.info(chalk.bold.green(`WebSocket available at:\t\t%s`), ws);
   console.info(`Try:\n  curl ${http}`);
 }
