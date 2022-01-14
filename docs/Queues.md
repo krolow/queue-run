@@ -43,7 +43,7 @@ export async function put({ body, user }: Resource) {
   });
   // This is a FIFO queue, so need group ID
   // highlight-next-line
-  await queue.group(user.id).push(body);
+  await updateProfile.group(user.id).push(body);
 }
 ```
 
