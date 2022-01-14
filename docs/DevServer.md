@@ -20,6 +20,11 @@ The server watches the current working directory and reloads whenever it detects
 
 It only watches over JavaScript, TypeScript and JSON files, and ignores `node_modules`. You can always force it to reload by pressing `Control+R`.
 
+The development server will load environment variables from the file `.env.local` or `.env`.
+
+
+## Testing Queues
+
 You can test queues directly by running (from a separate terminal window):
 
 ```bash

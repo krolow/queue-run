@@ -129,13 +129,10 @@ async function loadEnvVars({
   url: string;
   ws: string;
 }) {
-  const fromFile = await fs
-    .readFile(`.env.${environment}`, "utf-8")
-    .catch(() => fs.readFile(".env", "utf-8"))
-    .then(
-      (file) => dotenv.parse(file),
-      () => undefined
-    );
+  const fromFile = await fs.readFile(`.env.${environment}`, "utf-8").then(
+    (file) => dotenv.parse(file),
+    () => undefined
+  );
   debug(
     'Loaded %d env vars from file "%s"',
     Object.keys(fromFile ?? {}).length,

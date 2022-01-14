@@ -2,6 +2,7 @@ import { Sema } from "async-sema";
 import chalk from "chalk";
 import * as chokidar from "chokidar";
 import dotenv from "dotenv";
+import fs from "fs/promises";
 import ms from "ms";
 import cluster from "node:cluster";
 import crypto from "node:crypto";
@@ -73,8 +74,14 @@ async function newWorker(port: number) {
   const token = await blockOnBuild.acquire();
 
   for (const worker of Object.values(cluster.workers!)) worker!.kill();
+
+  const fromFile = await fs.readFile(`.env.local`, "utf-8").then(
+    (file) => dotenv.parse(file),
+    () => undefined
+  );
+
   const worker = cluster.fork({
-    ...dotenv.config({ path: ".env" }),
+    ...fromFile,
     NODE_ENV: "development",
     PORT: port,
     QUEUE_RUN_ENV: "development",

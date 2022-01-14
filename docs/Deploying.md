@@ -67,6 +67,33 @@ These are stored in the file `.queue-run.json` in the current working directory.
 To keep the `queue-run` module lean, the CLI tools include are available as a separate module. You don't have to add them in `package.json`. They are loaded on demand when you run `npx queue-run` for the first time.
 :::
 
+## Environment Variables
+
+You can deploy your project with environment variables using an `.env.*` file.
+
+Use `.env.production` for production and `.env.local` for development.
+
+The `.env.*` file would look something like:
+
+```
+DATABASE_URL=postgresql://localhost/main
+API_TOKEN=eyBob3cgYXJlIHlvdSBkb2luZyB0b2RheT8gfQ==
+```
+
+The following environment variabels are always available:
+
+* `NODE_ENV` — Either "production" or "development"
+* `QUEUE_RUN_URL` — URL for the API, same as `url('/')`
+* `QUEUE_RUN_WS` — URL for WebSocket, same as `socket.url`
+* `QUEUE_RUN_ENV` — Either "production" or "development"
+
+:::tip Keep .env Secret
+
+We don't recommend committing your production `.env` file to version control.
+
+There are many products that work better when you connect them to your GitHub/GitLab/etc repository. In doing so, you're giving them access to your source code, and any secrets contained there. If these services get hacked … well then …
+:::
+
 
 ## Configuration Files
 
