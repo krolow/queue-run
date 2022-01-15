@@ -18,7 +18,7 @@
     "src"
   ],
   "devDependencies": {
-    "@aws-sdk/client-sqs": "^3.46.0",
+    "@aws-sdk/client-sqs": "^3.47.0",
     "queue-run": "^0.6.0",
     "tiny-invariant": "^1.2.0"
   },
