@@ -8,7 +8,6 @@ export async function logMessageReceived({
 }: {
   connection: string;
   data: object | string | Buffer;
-  signal: AbortSignal;
   user: { id: string; [key: string]: unknown } | null;
 }) {
   const message =

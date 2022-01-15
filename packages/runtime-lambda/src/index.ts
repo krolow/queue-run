@@ -1,3 +1,8 @@
+import {
+  ApiGatewayManagementApiClient,
+  DeleteConnectionCommand,
+  PostToConnectionCommand,
+} from "@aws-sdk/client-apigatewaymanagementapi";
 import { SQS } from "@aws-sdk/client-sqs";
 import { format } from "node:util";
 import { LocalStorage, logging, warmup } from "queue-run";
@@ -16,14 +21,6 @@ import handleWebSocketRequest, {
 } from "./handleWebSocket";
 import queueJob from "./queueJob";
 
-const { slug, region, ...clientConfig } = swapAWSEnvVars();
-
-const sqs = new SQS({ ...clientConfig, region });
-const urls = {
-  http: process.env.QUEUE_RUN_URL!,
-  ws: process.env.QUEUE_RUN_WS!,
-};
-
 logging((level, args) => {
   const formatted = format(...args);
   process.stdout.write(
@@ -31,12 +28,22 @@ logging((level, args) => {
   );
 });
 
-class LambdaLocalStorage extends LocalStorage {
-  private sqs: SQS;
+const urls = {
+  http: process.env.QUEUE_RUN_URL!,
+  ws: process.env.QUEUE_RUN_WS!,
+};
+const { slug, region, ...clientConfig } = swapAWSEnvVars();
 
-  constructor({ sqs, urls }: { sqs: SQS; urls: { http: string; ws: string } }) {
+const sqs = new SQS({ ...clientConfig, region });
+const gateway = new ApiGatewayManagementApiClient({
+  ...clientConfig,
+  endpoint: urls.ws.replace("wss://", "https://"),
+  region,
+});
+
+class LambdaLocalStorage extends LocalStorage {
+  constructor() {
     super({ urls });
-    this.sqs = sqs;
   }
 
   queueJob(args: Parameters<LocalStorage["queueJob"]>[0]) {
@@ -47,22 +54,42 @@ class LambdaLocalStorage extends LocalStorage {
       params,
       payload,
       queueName,
-      sqs: this.sqs,
+      sqs,
       slug,
       user: user === undefined ? this.user : user,
     });
   }
+
+  async sendWebSocketMessage(
+    message: Buffer,
+    connection: string
+  ): Promise<void> {
+    await gateway.send(
+      new PostToConnectionCommand({ ConnectionId: connection, Data: message })
+    );
+  }
+
+  async closeWebSocket(connection: string): Promise<void> {
+    await gateway.send(
+      new DeleteConnectionCommand({ ConnectionId: connection })
+    );
+  }
+
+  // eslint-disable-next-line no-unused-vars
+  getConnections(userIds: string[]): Promise<string[]> {
+    throw new Error("Not implementea yetd");
+  }
 }
 
 // Top-level await: this only makes a difference if you user provisioned concurrency
-await warmup(new LambdaLocalStorage({ sqs, urls }));
+await warmup(new LambdaLocalStorage());
 
 // Entry point for AWS Lambda
 export async function handler(
   event: LambdaEvent,
   context: LambdaContext
 ): Promise<APIGatewayResponse | SQSBatchResponse | undefined> {
-  const newLocalStorage = () => new LambdaLocalStorage({ sqs, urls });
+  const newLocalStorage = () => new LambdaLocalStorage();
 
   if (isWebSocketRequest(event))
     return await handleWebSocketRequest(
