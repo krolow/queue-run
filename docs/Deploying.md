@@ -45,6 +45,7 @@ To deploy your project you'll need to use your AWS account credentials:
 export AWS_ACCESS_KEY_ID="AKI..."
 export AWS_SECRET_ACCESS_KEY="v…"
 export AWS_REGION="us-east-1"
+npx queue-run deploy
 ```
 :::
 

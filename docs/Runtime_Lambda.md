@@ -4,6 +4,33 @@ sidebar_label: "AWS Lambda"
 
 # AWS Lambda + SQS + DynamoDB
 
+## AWS Credentials
+
+You have to think in terms of three permission models:
+
+* **Deploy** — Permissions necessary to deploy the project
+* **Runtime** — Permissions available to the QueueRun runtime
+* **Backend** — Permissions available to your backend
+
+QueueRun uses your AWS access key to deploy the backend. That access key needs to be able to deploy Lambda function, setup API Gateway, create SQS queues, and manage DynamoDB tables.
+
+The backend deploys as a Lambda function. That function needs read/write access to SQS queues, select DynamoDB tables (WebSockets), and logging to CloudWatch.
+
+The QueueRun runtime uses an AWS access key that's limited to this policy. It cannot access other AWS resources on your account.
+
+By default, your backend does not have an AWS access key. For your backend to use AWS resources, create a policy and the appropriate AWS access key. Then set the apporpriate environment variables.
+
+For example:
+
+```bash
+cat .env.production
+# Backend needs access to DynamoDB and S3
+AWS_ACCESS_KEY_ID="AKI..."
+AWS_SECRET_ACCESS_KEY="v…"
+AWS_REGION="us-east-1"
+```
+
+
 ## Lambda Warm Up
 
 Lambda performance is solid for most applications.
