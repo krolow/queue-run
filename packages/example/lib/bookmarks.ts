@@ -1,3 +1,4 @@
+import { queue as screenshots } from "#queues/screenshots.js";
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import os from "node:os";
@@ -35,6 +36,7 @@ export async function create({
   const bookmark = { title, url, id, created, updated: created };
   bookmarks[id] = bookmark;
   await save(bookmarks);
+  await screenshots.push({ id: bookmark.id });
   return bookmark;
 }
 

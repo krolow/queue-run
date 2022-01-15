@@ -1,4 +1,4 @@
-import * as db from "#lib/db.js";
+import * as bookmarks from "#lib/bookmarks.js";
 
 export async function authenticate(request: Request) {
   const header = request.headers.get("Authorization");
@@ -7,7 +7,7 @@ export async function authenticate(request: Request) {
     throw new Response("Missing Authorization header with bearer token", {
       status: 401,
     });
-  const user = await db.authenticate(token);
+  const user = await bookmarks.authenticate(token);
   if (!user) throw new Response("Access Denied!", { status: 403 });
   console.log("🔑 Authenticated user:", user.id);
   return user;
