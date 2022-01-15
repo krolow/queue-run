@@ -15,6 +15,10 @@ module.exports = {
           sidebarCollapsed: false,
           sidebarPath: require.resolve("./sidebars.js"),
         },
+        gtag: {
+          trackingID: "G-MPPR8JCTVR",
+          anonymizeIP: true,
+        },
         theme: {
           customCss: [require.resolve("./src/css/custom.css")],
         },
