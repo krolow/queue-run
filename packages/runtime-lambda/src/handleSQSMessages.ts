@@ -1,4 +1,4 @@
-import { SQS } from "@aws-sdk/client-sqs";
+import { DeleteMessageCommand, SQSClient } from "@aws-sdk/client-sqs";
 import { URLSearchParams } from "node:url";
 import { handleQueuedJob, LocalStorage, QueueHandler } from "queue-run";
 
@@ -40,7 +40,7 @@ export default async function handleSQSMessages({
   getRemainingTimeInMillis: () => number;
   messages: SQSMessage[];
   newLocalStorage: () => LocalStorage;
-  sqs: SQS;
+  sqs: SQSClient;
 }): Promise<SQSBatchResponse> {
   return isFifoQueue(messages[0]!)
     ? await handleFifoMessages({
@@ -73,7 +73,7 @@ async function handleStandardMessages({
   getRemainingTimeInMillis: () => number;
   messages: SQSMessage[];
   newLocalStorage: () => LocalStorage;
-  sqs: SQS;
+  sqs: SQSClient;
 }) {
   const remainingTime = getRemainingTimeInMillis();
   const failedMessageIds = await Promise.all(
@@ -106,7 +106,7 @@ async function handleFifoMessages({
   getRemainingTimeInMillis: () => number;
   messages: SQSMessage[];
   newLocalStorage: () => LocalStorage;
-  sqs: SQS;
+  sqs: SQSClient;
 }) {
   let next;
   while ((next = messages.shift())) {
@@ -139,7 +139,7 @@ export async function handleOneSQSMessage({
   message: SQSMessage;
   newLocalStorage: () => LocalStorage;
   remainingTime: number;
-  sqs: SQS;
+  sqs: SQSClient;
 }): Promise<boolean> {
   const queueName = getQueueName(message);
   const successful = await handleQueuedJob({
@@ -155,10 +155,12 @@ export async function handleOneSQSMessage({
       message.messageId,
       queueName
     );
-    await sqs.deleteMessage({
-      QueueUrl: getQueueURL(message),
-      ReceiptHandle: message.receiptHandle,
-    });
+    await sqs.send(
+      new DeleteMessageCommand({
+        QueueUrl: getQueueURL(message),
+        ReceiptHandle: message.receiptHandle,
+      })
+    );
   }
   return successful;
 }

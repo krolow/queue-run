@@ -3,7 +3,7 @@ import {
   DeleteConnectionCommand,
   PostToConnectionCommand,
 } from "@aws-sdk/client-apigatewaymanagementapi";
-import { SQS } from "@aws-sdk/client-sqs";
+import { SQSClient } from "@aws-sdk/client-sqs";
 import { format } from "node:util";
 import { LocalStorage, logging, warmup } from "queue-run";
 import swapAWSEnvVars from "./environment";
@@ -34,7 +34,7 @@ const urls = {
 };
 const { slug, region, ...clientConfig } = swapAWSEnvVars();
 
-const sqs = new SQS({ ...clientConfig, region });
+const sqs = new SQSClient({ ...clientConfig, region });
 const gateway = new ApiGatewayManagementApiClient({
   ...clientConfig,
   endpoint: urls.ws.replace("wss://", "https://"),

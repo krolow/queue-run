@@ -1,4 +1,9 @@
-import { SendMessageCommandInput, SQS } from "@aws-sdk/client-sqs";
+import {
+  GetQueueUrlCommand,
+  SendMessageCommand,
+  SendMessageCommandInput,
+  SQSClient,
+} from "@aws-sdk/client-sqs";
 import { URLSearchParams } from "node:url";
 import type { AuthenticatedUser } from "queue-run";
 import invariant from "tiny-invariant";
@@ -19,7 +24,7 @@ export default async function queueJob({
   params: { [key: string]: string | string[] } | undefined;
   queueName: string;
   slug: string;
-  sqs: SQS;
+  sqs: SQSClient;
   user?: AuthenticatedUser | null;
 }): Promise<string> {
   const queueURL = await getQueueURL({ queueName, slug, sqs });
@@ -56,7 +61,9 @@ export default async function queueJob({
     ...(dedupeId ? { MessageDeduplicationId: dedupeId } : undefined),
   };
 
-  const { MessageId: messageId } = await sqs.sendMessage(message);
+  const { MessageId: messageId } = await sqs.send(
+    new SendMessageCommand(message)
+  );
   invariant(messageId);
   return messageId;
 }
@@ -69,11 +76,13 @@ async function getQueueURL({
 }: {
   queueName: string;
   slug: string;
-  sqs: SQS;
+  sqs: SQSClient;
 }): Promise<string> {
   const qualified = `${slug}__${queueName}`;
   try {
-    const { QueueUrl } = await sqs.getQueueUrl({ QueueName: qualified });
+    const { QueueUrl } = await sqs.send(
+      new GetQueueUrlCommand({ QueueName: qualified })
+    );
     invariant(QueueUrl);
     return QueueUrl;
   } catch (error) {
