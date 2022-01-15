@@ -42,3 +42,23 @@ cat job.json
 { "id": 123 }
 npx queue-run dev queue screenshots @job.json
 ```
+
+
+## Testing WebSocket
+
+You can use CLI tool like [websocat](https://github.com/vi/websocat):
+
+```bash
+websocat ws://localhost:8001
+```
+
+You can also use authentication with websocat, for example:
+
+```bash
+websocat ws://localhost:8001 -H "Authorization: Bearer dcx..."
+```
+
+:::note Port 8001
+
+The port number for WebSocket is one more than the port number for HTTP.
+:::
