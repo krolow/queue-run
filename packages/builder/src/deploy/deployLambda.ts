@@ -12,28 +12,33 @@ import { createQueues, deleteOldQueues } from "./prepareQueues.js";
 import updateAlias from "./updateAlias.js";
 import uploadLambda from "./uploadLambda.js";
 
-type BuildConfig = {
+type LambdaConfig = {
+  /**  AWS account ID  */
+  accountId: string;
+
   env: "production" | "preview";
 
-  // Misc environment variables to add
+  /**  Misc environment variables to add */
   envVars?: Record<string, string>;
 
-  // The slug is used as the Lambda function name, queue prefix name, etc.
-  // Limited to 40 characters, alphanumeric, and dashes, eg "my-project-pr-13".
-  // It should be unique for each project/branch.
+  /** AWS region */
+  region: string;
+
+  /** The slug is used as the Lambda function name, queue prefix name, etc.
+   *  Limited to 40 characters, alphanumeric, and dashes, eg "my-project-pr-13".
+   *  It should be unique for each project/branch. */
   slug: string;
 
-  // The full URL for this backend's HTTP API. Available to the backed as the
-  // environment variable QUEUE_RUN_URL.
-  //
-  // If not specified, uses the template: https://${slug}.queue.run
-  url?: string;
+  /** The full URL for this backend's HTTP API. Available to the backed as the
+   *  environment variable QUEUE_RUN_URL. */
+  httpURL: string;
 
-  // The full URL for this backend's WebSocket. Available to the backed as the
-  // environment variable QUEUE_RUN_WS.
-  //
-  // If not specified, uses the template: wss://ws.queue.run
-  ws?: string;
+  /** The full URL for this backend's WebSocket. Available to the backed as the
+   *  environment variable QUEUE_RUN_WS. */
+  wsURL: string;
+
+  /**  WebSocket Gateway API ID. */
+  wsApiId: string;
 };
 
 const debug = debuglog("queue-run:deploy");
@@ -45,7 +50,7 @@ export default async function deployLambda({
   sourceDir,
 }: {
   buildDir: string;
-  config: BuildConfig;
+  config: LambdaConfig;
   signal?: AbortSignal;
   sourceDir: string;
 }): Promise<string> {
@@ -60,11 +65,10 @@ export default async function deployLambda({
       "Slug must be 40 characters or less, alphanumeric and dashes"
     );
 
-  const url = config.url ?? `https://${slug}.queue.run`;
-  if (!/^https:\/\//.test(url))
+  const { httpURL, wsURL } = config;
+  if (!/^https:\/\//.test(httpURL))
     throw new Error('HTTP URL must start with "https://"');
-  const ws = config.ws ?? `wss://ws.queue.run`;
-  if (!/^wss:\/\//.test(ws))
+  if (!/^wss:\/\//.test(wsURL))
     throw new Error('WS URL must start with "https://"');
 
   const lambdaName = `qr-${slug}`;
@@ -72,7 +76,7 @@ export default async function deployLambda({
   const queuePrefix = `${lambdaName}__`;
   debug('Queue prefix: "%s"', queuePrefix);
 
-  console.info(chalk.bold.green("🐇 Deploying %s to %s"), slug, url);
+  console.info(chalk.bold.green("🐇 Deploying %s to %s"), slug, httpURL);
 
   const { lambdaRuntime, zip, manifest } = await buildProject({
     buildDir,
@@ -89,8 +93,8 @@ export default async function deployLambda({
   const envVars = await loadEnvVars({
     envVars: config.envVars ?? {},
     environment: config.env,
-    url,
-    ws,
+    httpURL,
+    wsURL,
   });
 
   if (signal?.aborted) throw new Error();
@@ -102,9 +106,12 @@ export default async function deployLambda({
   debug("Lambda timeout %d seconds", lambdaTimeout);
   const versionARN = await uploadLambda({
     envVars,
+    accountId: config.accountId,
     lambdaName,
     lambdaTimeout,
     lambdaRuntime,
+    region: config.region,
+    wsApiId: config.wsApiId,
     zip,
   });
 
@@ -121,13 +128,13 @@ export default async function deployLambda({
 async function loadEnvVars({
   environment,
   envVars,
-  url,
-  ws,
+  httpURL,
+  wsURL,
 }: {
   environment: "production" | "preview";
   envVars?: Record<string, string>;
-  url: string;
-  ws: string;
+  httpURL: string;
+  wsURL: string;
 }) {
   const fromFile = await fs.readFile(`.env.${environment}`, "utf-8").then(
     (file) => dotenv.parse(file),
@@ -143,8 +150,8 @@ async function loadEnvVars({
     ...fromFile,
     ...envVars,
     NODE_ENV: "production",
-    QUEUE_RUN_URL: url,
-    QUEUE_RUN_WS: ws,
+    QUEUE_RUN_URL: httpURL,
+    QUEUE_RUN_WS: wsURL,
     QUEUE_RUN_ENV: environment,
   };
 }

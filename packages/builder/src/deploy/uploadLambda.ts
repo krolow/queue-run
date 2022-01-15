@@ -8,26 +8,39 @@ export const handler = "runtime.handler";
 // Creates or updates Lambda function with latest configuration and code.
 // Publishes the new version and returns the published version ARN.
 export default async function uploadLambda({
+  accountId,
   envVars,
   lambdaName,
   lambdaRuntime,
   lambdaTimeout,
+  region,
+  wsApiId,
   zip,
 }: {
+  accountId: string;
   envVars: Record<string, string>;
   lambdaName: string;
   lambdaTimeout: number;
   lambdaRuntime: string;
+  region: string;
+  wsApiId: string;
   zip: Uint8Array;
 }): Promise<string> {
   const lambda = new Lambda({});
   const spinner = ora(`Uploading Lambda "${lambdaName}"`).start();
 
+  const roleArn = await getLambdaRole({
+    accountId,
+    lambdaName,
+    region,
+    wsApiId,
+  });
+
   const configuration = {
     Environment: { Variables: aliasAWSEnvVars(envVars) },
     FunctionName: lambdaName,
     Handler: handler,
-    Role: await getLambdaRole({ lambdaName }),
+    Role: roleArn,
     Runtime: lambdaRuntime,
     Timeout: lambdaTimeout,
     TracingConfig: { Mode: "Active" },

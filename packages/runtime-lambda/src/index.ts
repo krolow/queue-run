@@ -77,7 +77,7 @@ class LambdaLocalStorage extends LocalStorage {
 
   // eslint-disable-next-line no-unused-vars
   getConnections(userIds: string[]): Promise<string[]> {
-    throw new Error("Not implementea yetd");
+    throw new Error("Not implemented yet");
   }
 }
 

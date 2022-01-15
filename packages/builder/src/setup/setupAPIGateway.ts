@@ -19,42 +19,51 @@ const wsPath = "/_ws";
 
 // See https://docs.aws.amazon.com/lambda/latest/dg/services-apigateway.html#apigateway-permissions
 
-export async function getAPIGatewayURLs(project: string) {
-  const api = await findGatewayAPI({ protocol: ProtocolType.HTTP, project });
-  const ws = await findGatewayAPI({
-    protocol: ProtocolType.WEBSOCKET,
-    project,
-  });
+export async function getAPIGatewayURLs(project: string): Promise<{
+  httpURL: string;
+  wsURL: string;
+}> {
+  const [http, ws] = await Promise.all([
+    findGatewayAPI({ protocol: ProtocolType.HTTP, project }),
+    findGatewayAPI({ protocol: ProtocolType.WEBSOCKET, project }),
+  ]);
   return {
-    http: api?.ApiEndpoint ?? "unavailable",
-    ws: ws ? `${ws.ApiEndpoint}${wsPath}` : "unavailable",
+    httpURL: http?.ApiEndpoint ?? "unavailable",
+    wsURL: ws ? `${ws.ApiEndpoint}${wsPath}` : "unavailable",
   };
 }
 
 // Setup API Gateway. We need the endpoint URLs before we can deploy the project
 // for the first time.
 export async function setupAPIGateway(project: string): Promise<{
-  http: string;
-  ws: string;
+  httpURL: string;
+  wsURL: string;
+  wsApiId: string;
 }> {
   const spinner = ora("Setting up API Gateway...").start();
-  const http = await createApi(project, {
-    ProtocolType: ProtocolType.HTTP,
-  });
-  spinner.succeed(`Created API Gateway HTTP endpoint: ${http}`);
-  const ws = await createApi(project, {
-    ProtocolType: ProtocolType.WEBSOCKET,
-    RouteSelectionExpression: "*",
-  });
-  spinner.succeed(`Created API Gateway WS endpoint: ${ws}`);
+  const [http, ws] = await Promise.all([
+    createApi(project, { ProtocolType: ProtocolType.HTTP }),
+    createApi(project, {
+      ProtocolType: ProtocolType.WEBSOCKET,
+      RouteSelectionExpression: "*",
+    }),
+  ]);
 
-  return { http, ws: ws + wsPath };
+  invariant(http.ApiEndpoint);
+  invariant(ws.ApiEndpoint && ws.ApiId);
+  spinner.succeed("Created API Gateway endpoints");
+
+  return {
+    httpURL: http.ApiEndpoint ?? "unavailable",
+    wsURL: `${ws.ApiEndpoint}${wsPath}`,
+    wsApiId: ws.ApiId,
+  };
 }
 
 async function createApi(
   project: string,
   args: Omit<CreateApiRequest, "Name"> & { ProtocolType: ProtocolType }
-): Promise<string> {
+) {
   const existing = await findGatewayAPI({
     project,
     protocol: args.ProtocolType,
@@ -70,7 +79,7 @@ async function createApi(
     ? apiGateway.updateApi({ ApiId: existing.ApiId, ...options })
     : apiGateway.createApi(options));
   invariant(api.ApiEndpoint);
-  return api.ApiEndpoint;
+  return api;
 }
 
 // Once we deployed the Lambda function, setup HTTP and WS integrations.

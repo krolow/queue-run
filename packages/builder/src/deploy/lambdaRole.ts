@@ -33,33 +33,58 @@ const LambdaPolicy = {
         "sqs:ReceiveMessage",
         "sqs:SendMessage",
       ],
-      Resource: `arn:aws:sqs:*`,
+      Resource: `arn:aws:sqs:$region:$accountId:$lambdaName__*`,
+    },
+    {
+      Effect: "Allow",
+      Action: ["execute-api:ManageConnections"],
+      Resource: ["arn:aws:execute-api:$region:$accountId:$wsApiId/*"],
     },
     {
       Effect: "Allow",
       Action: "logs:CreateLogGroup",
-      Resource: `arn:aws:logs:us-east-1:122210178198:/aws/lambda/*`,
+      Resource: `arn:aws:logs:$region:$accountId:/aws/lambda/$lambdaName`,
     },
     {
       Effect: "Allow",
       Action: ["logs:CreateLogStream", "logs:PutLogEvents"],
-      Resource: [`arn:aws:logs:us-east-1:122210178198:log-group:/aws/lambda/*`],
+      Resource: [
+        `arn:aws:logs:$region:$accountId:log-group:/aws/lambda/$lambdaName:*`,
+      ],
     },
   ],
 };
 
 // Returns ARN for a role that only applies to the named function.
 export async function getLambdaRole({
+  accountId,
   lambdaName,
+  region,
+  wsApiId,
 }: {
+  accountId: string;
   lambdaName: string;
+  region: string;
+  wsApiId: string;
 }): Promise<string> {
   const spinner = ora("Updating role/permissions").start();
-  const iam = new IAM({});
+  const iam = new IAM({ region });
   const roleName = lambdaName;
   const role = await upsertRole(iam, roleName);
   invariant(role.Arn, "Role has no ARN");
-  await updatePolicy(iam, role);
+
+  const policy = JSON.stringify(LambdaPolicy)
+    .replace(/\$accountId/g, accountId)
+    .replace(/\$region/g, region)
+    .replace(/\$lambdaName/g, lambdaName)
+    .replace(/\$wsApiId/g, wsApiId);
+
+  await iam.putRolePolicy({
+    RoleName: role.RoleName,
+    PolicyName: "queue-run",
+    PolicyDocument: policy,
+  });
+
   spinner.succeed(`Update role "${roleName}"`);
   return role.Arn;
 }
@@ -79,14 +104,6 @@ async function upsertRole(iam: IAM, roleName: string): Promise<Role> {
   });
   invariant(newRole, "Failed to create role");
   return newRole;
-}
-
-async function updatePolicy(iam: IAM, role: Role) {
-  await iam.putRolePolicy({
-    RoleName: role.RoleName,
-    PolicyName: "queue-run",
-    PolicyDocument: JSON.stringify(LambdaPolicy),
-  });
 }
 
 export async function deleteLambdaRole({ lambdaName }: { lambdaName: string }) {
