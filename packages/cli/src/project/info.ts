@@ -14,9 +14,9 @@ const command = new Command("info")
     console.info("Name:\t\t%s", name);
     console.info("Runtime:\t%s", runtime);
 
-    const { http, ws } = await getAPIGatewayURLs(name);
-    console.info("API:\t\t%s", http ?? "Not setup");
-    console.info("WebSocket:\t%s", ws ?? "Not setup");
+    const { httpURL, wsURL } = await getAPIGatewayURLs(name);
+    console.info("API:\t\t%s", httpURL);
+    console.info("WebSocket:\t%s", wsURL);
   });
 
 export default command;
