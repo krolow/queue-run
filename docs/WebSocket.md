@@ -1,19 +1,75 @@
 # WebSocket
 
-**TBD**
+WebSockets keep an open connection between the browser and the server.
+
+They allow you to do many interesting things:
+
+* Low latency communication, eg sending changes to the server to save as you type
+* Update multiple users at once in real time, eg chat rooms and collaborative editing
+* Update multiple devices at once for the same user, eg sync desktop and mobile
+* Update the user when a long running task completes, eg a queued job
+* Track which users are currently online, aka "presence"
+
+WebSocket make that possible by allowing you to send a message to the client at any time, during an HTTP/WebSocket request, or from a queued or scheduled job.
+
+You can send messages to specific users, for example, all members of a chat room, or all users actively editing a document.
+
 
 ## Request Handlers
 
-Request handlers accept a WebSocket request.
+The simplest way to handle WebSocket requests it to create a file `socket/index.ts` and export the WebSocket request handler.
 
-They take a single argument with named parameters:
+For example:
+
+```ts title=socket/index.md
+export default async function({ data }) {
+  console.log("Message from client: %o", data);
+}
+```
+
+The request handler receives a single argument with the properties:
 
 - `connection` — The connection ID for this WebSocket
 - `data` — The request is either a JavaScript object (JSON), string, or `Buffer`
 - `requestId` - Unique request ID
-- `user` — User object returned from the [authenticate](Authenticate.md) middleware
+- `user` — User object returned from the [authenticate](#authentication) middleware
 
-WebSocket request handler can a respond with a message, but this is not required. It can also use `socket.send` to send one or more messages.
+Since JSON is the most common use case, this is also the default. If you want to receive the raw text string, use `export const config = { type: "string" };`. To receive the raw `Buffer`, set `type: "binary"`;
+
+Clients can still connect and you can send them messages.
+
+The request handler can respond to the client with an object (JSON), string, or `Buffer`. It doesn't have to, as WebSocket is an asynchronous protocol, it can send a message at any point.
+
+If the request handler throws any error, or the request times out, the server sends back a JSON object of the form `{ error: string }`. That error is also logged by the [Logging Middleware](#logging-middleware).
+
+You can change the timeout using `export const config = { timeout: inSeconds };`.
+
+
+## Routes
+
+`socket/index.ts` exists to respond to all WebSocket requests that don't have a more specific request handler.
+
+You can write handlers that respond to specific WebSocket request by matching on specific name/value pairs (JSON requests only).
+
+For example:
+
+* `socket/action_join.ts` will match a request where `{ action: "join" }`
+* `socket/action_leave.ts` will match a request where `{ action: "leave" }`
+* `socket/[action].ts` will match a request where `action` has a value (not an empty string)
+* `socket/[room]/action_join.ts` will match a request where `{ action: "join" }` and `room` has any value
+
+If the request does not match any route, and there's no `socket/index.ts`, the server responds with `{ error: "not available" }`.
+
+If there are no request handlers, the client can't send request to the server, but the server can still send messages to the client.
+
+:::danger
+WebSocket routes are stil work in progress, need more feedback, and this might change in the future.
+:::
+
+
+## Sending Messages
+
+You can use `socket.send(message)` to send a message.
 
 The sent message can be any of:
 
@@ -21,31 +77,13 @@ The sent message can be any of:
 - `Buffer` — Respond with binary content
 - `string` — Respond with string
 
-If the request handler throws any other error, or the request times out, the server sends back a JSON object of the form `{ error: string }`. That error is also logged by the [Logging Middleware](#logging-middleware).
+If the user is authenticated, it will send a message to that user, on all devices that have an open WebSocket connection.
 
+This works in HTTP and WebSocket request handlers, as well as queued jobs.
 
-## Sending Messages
+You can also send a message to specific user, or up to 100 users, using `socket.to(userIDs).send(message)`. This works everywhere, including scheduled jobs.
 
-You use the `socket` object to send a message to one or more users:
-
-* With a list of users, to all these users (who have an active WebSocket connection)
-* Without a list, to the user associated with the current HTTP/WebSocket request or queued job
-* Otherwise, over the current connection (WebSocket request handler only)
-
-In this example, when the user updates their profile, we save the changes in the database, and then notify all the user's devices:
-
-```ts title=api/profile.ts
-import { socket } from 'queue-run';
-
-export async function put({ body, params }) {
-  await db.users.update({ id: params.id, ...body });
-  await socket.send({ event: 'profile' });
-}
-```
-
-You can also update a specific user or set of users:
-
-```ts title=queues/chat.ts
+```ts title=queues/chat_message.ts
 export default async function({ roomId, message }) {
   ...
   const room = await db.rooms.findOne({ id: roomId });
@@ -55,6 +93,42 @@ export default async function({ roomId, message }) {
     .send({ event: 'message', message });
 } 
 ```
+
+If the user is not authenticated, you can still send them a message from within the WebSocket request handler using `socket.send`. It will only arrive on the currently connected device.
+
+The `socket.send` method is generic, so you can apply type checking for messages:
+
+```ts
+await socket.send<{ update: 'profile '}>({ update: 'profile', profile });
+```
+
+:::tip Await and Errors
+
+It's a good practice to use `await` to make sure your code waits for the message to be sent.
+
+If you don't care for errors, you can do this:
+
+```ts
+await socket.push(message).catch(() => undefined);
+```
+:::
+
+
+## Authentication
+
+To authenticate users, export the `authenticate` method from either `socket/index.ts` or `socket/_middleware.ts`. (`socket/_middleware.ts` is also used for [logging](#logging-middleware))
+
+The `authenticate` method receives the HTTP request for opening a WebSocket connection, so has access to the HTTP headers (eg `Authentication`) and cookies.
+
+Typically you use the same authentication for HTTP and WebSocket, so your middleware would look like:
+
+```ts title=socket/_middleware.ts
+export { authenticate } from '#api/_middleware.js';
+```
+
+From an HTTP/WebSocket request or queued job that's already authenticated, you can always send a message to the user with `socket.send(message)`.
+
+The authenticated user ID can be anything, so you can also support anonymous users. For example, in a public chat space, you can use random IDs.
 
 
 ## Logging Middleware
