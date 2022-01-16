@@ -57,16 +57,43 @@ export default async function devServer({ port }: { port: number }) {
     .on("all", (event, filename) => onFileChange(event, filename, port));
 
   process.stdin.on("data", (data) => {
-    const key = data[0];
-    if (key === 3) process.exit(0);
-    // Ctrl+C
-    else if (key === 18) newWorker(port);
-    // Ctrl+R
-    else if (key === 13) process.stdout.write("\n");
-    else if (key) {
-      if (key < 32)
-        console.info(chalk.gray("   Ctrl+C to exit, Crtl+R to reload"));
-      process.stdout.write(String.fromCharCode(key));
+    const key = data[0]!;
+    switch (key) {
+      case 3: {
+        // Ctrl+C
+        process.exit(0);
+        break;
+      }
+      case 12: {
+        // Ctrl+L
+        // ANSI code to clear terminal
+        process.stdout.write("\u001B[2J\u001B[0;0f");
+        break;
+      }
+      case 18: {
+        // Ctrl+R
+        newWorker(port);
+        break;
+      }
+      case 13: {
+        // Enter
+        process.stdout.write("\n");
+        break;
+      }
+      default: {
+        if (key < 32)
+          console.info(
+            "   %s",
+            chalk.gray(
+              [
+                "Ctrl+C to exit",
+                "Ctrl+L to clear screen",
+                "Ctrl+R to reload",
+              ].join(", ")
+            )
+          );
+        process.stdout.write(String.fromCharCode(key));
+      }
     }
   });
   await new Promise(() => {});
