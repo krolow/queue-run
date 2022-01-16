@@ -29,6 +29,8 @@ export async function authenticateWebSocket({
     try {
       user = await authenticate(request, getCookies(request));
     } catch (error) {
+      if (error instanceof Response) throw error;
+
       if (onError) {
         try {
           await onError(
@@ -38,8 +40,9 @@ export async function authenticateWebSocket({
           console.error(error);
         }
       }
-      throw new Response("Internal Server Error", { status: 500 });
+      throw error;
     }
+
     if (user === null || user?.id) return user;
 
     const concern =
