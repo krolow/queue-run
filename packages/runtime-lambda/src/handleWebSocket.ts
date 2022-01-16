@@ -30,7 +30,7 @@ async function authenticate(
   event: APIGatewayWebSocketEvent,
   connections: ReturnType<typeof userConnections>,
   newLocalStorage: () => LocalStorage
-): Promise<APIGatewayResponse | undefined> {
+): Promise<APIGatewayResponse> {
   const url = `wss://${event.requestContext.domainName}${event.requestContext.stage}`;
   const request = new Request(url, {
     headers: new Headers(event.headers),
@@ -49,10 +49,9 @@ async function authenticate(
     }
 
     return {
-      body: "",
       headers: {},
       isBase64Encoded: false,
-      statusCode: 200,
+      statusCode: 204,
     };
   } catch (error) {
     if (error instanceof Response) {
@@ -78,7 +77,7 @@ async function onMessage(
   event: APIGatewayWebSocketEvent,
   connections: ReturnType<typeof userConnections>,
   newLocalStorage: () => LocalStorage
-): Promise<APIGatewayResponse | undefined> {
+): Promise<APIGatewayResponse> {
   const data = Buffer.from(
     event.body ?? "",
     event.isBase64Encoded ? "base64" : "utf-8"
@@ -95,7 +94,6 @@ async function onMessage(
       userId,
     });
     return {
-      body: "",
       headers: {},
       isBase64Encoded: false,
       statusCode: 200,
@@ -114,13 +112,18 @@ async function disconnect(
   event: APIGatewayWebSocketEvent,
   connections: ReturnType<typeof userConnections>,
   newLocalStorage: () => LocalStorage
-): Promise<void> {
+): Promise<APIGatewayResponse> {
   const { connectionId } = event.requestContext;
   const { wentOffline, userId } = await connections.onDisconnected(
     connectionId
   );
   if (wentOffline && userId)
     await handleUserOffline({ userId, newLocalStorage });
+  return {
+    headers: {},
+    isBase64Encoded: false,
+    statusCode: 200,
+  };
 }
 
 export type APIGatewayWebSocketEvent = {

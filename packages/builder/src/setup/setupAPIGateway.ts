@@ -149,15 +149,12 @@ async function setupWSIntegrations(project: string, lambdaARN: string) {
       RouteKey: "$disconnect",
       Target: `integrations/${ws}`,
     }),
+    createRoute({
+      ApiId: api.ApiId,
+      RouteKey: "$default",
+      Target: `integrations/${ws}`,
+    }),
   ]);
-
-  const defaultRouteId = await createRoute({
-    ApiId: api.ApiId,
-    RouteKey: "$default",
-    RouteResponseSelectionExpression: "$default",
-    Target: `integrations/${ws}`,
-  });
-  await createRouteResponse(api, ws, defaultRouteId);
 
   // API Gateway insists on WS having a non-empty stage name, and that stage
   // name is used in the URL, so the URL would end with _ws.
@@ -201,44 +198,6 @@ async function createRoute(args: CreateRouteRequest): Promise<string> {
     const { RouteId: id } = await apiGateway.createRoute(args);
     invariant(id);
     return id;
-  }
-}
-
-async function createRouteResponse(
-  api: Api,
-  integrationId: string,
-  routeId: string
-) {
-  const { Items: routeResponses } = await apiGateway.getRouteResponses({
-    ApiId: api.ApiId,
-    RouteId: routeId,
-  });
-  const hasRouteResponse = routeResponses?.find(
-    ({ RouteResponseKey }) => RouteResponseKey === "$default"
-  );
-  if (!hasRouteResponse) {
-    await apiGateway.createRouteResponse({
-      ApiId: api.ApiId,
-      RouteResponseKey: "$default",
-      RouteId: routeId,
-    });
-  }
-
-  const { Items: integrationResponses } =
-    await apiGateway.getIntegrationResponses({
-      ApiId: api.ApiId,
-      IntegrationId: integrationId,
-    });
-  const hasIntegrationResponse = integrationResponses?.find(
-    ({ IntegrationResponseKey }) => IntegrationResponseKey === "$default"
-  );
-  if (!hasIntegrationResponse) {
-    await apiGateway.createIntegrationResponse({
-      ApiId: api.ApiId,
-      IntegrationId: integrationId,
-      IntegrationResponseKey: "$default",
-      ContentHandlingStrategy: "CONVERT_TO_BINARY",
-    });
   }
 }
 
