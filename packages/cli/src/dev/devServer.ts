@@ -42,7 +42,7 @@ export default async function devServer({ port }: { port: number }) {
   console.info(
     chalk.bold.green("👋 Dev server listening on:\n   %s\n   %s"),
     `http://localhost:${port}`,
-    `ws://localhost:${port + 1}`
+    `ws://localhost:${port}`
   );
 
   await newWorker(port);
@@ -120,7 +120,7 @@ async function newWorker(port: number) {
     QUEUE_RUN_ENV: "development",
     QUEUE_RUN_INDENT: "2",
     QUEUE_RUN_URL: `http://localhost:${port}`,
-    QUEUE_RUN_WS: `ws://localhost:${port + 1}`,
+    QUEUE_RUN_WS: `ws://localhost:${port}`,
   });
 
   // For some reason we need to reset this every time we fork
@@ -164,11 +164,12 @@ if (cluster.isWorker) {
     await ready;
     onRequest(req, res, () => new DevLocalStorage(port));
   }).listen(port);
-  const ws = new WebSocketServer({ port: port + 1 }).on(
+
+  const ws = new WebSocketServer({ server: http }).on(
     "connection",
-    async (ws, req) => {
+    async (socket, req) => {
       await ready;
-      onConnection(ws, req, () => new DevLocalStorage(port));
+      onConnection(socket, req, () => new DevLocalStorage(port));
     }
   );
 
@@ -279,7 +280,6 @@ async function onConnection(
   try {
     userId = await authenticate(req, newLocalStorage);
   } catch {
-    socket.send(JSON.stringify({ error: "Unauthorized" }));
     socket.terminate();
     return;
   }

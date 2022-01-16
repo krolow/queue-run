@@ -158,7 +158,7 @@ npx queue-run dev
 ```
 👋 Dev server listening on:
    http://localhost:8000
-   ws://localhost:8001
+   ws://localhost:8000
 ```
 
 In another terminal window we're going to create a new bookmark, retrieve that bookmark, and list all the bookmarks:

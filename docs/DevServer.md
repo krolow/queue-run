@@ -9,12 +9,12 @@ npx queue-run dev
 ```
 👋 Dev server listening on:
    http://localhost:8000
-   ws://localhost:8001
+   ws://localhost:8000
 λ: Compiled 10 files and copied 3 files
    Watching for changes (Crtl+R to reload) …
 ```
 
-The dev server lists on ports 8000 (HTTP) and 8001 (WebSocket). You can change the ports with the `--port` argument or `PORT` environment variable.
+The dev server lists on port 8000 for HTTP and WebSocket. You can change the ports with the `--port` argument or `PORT` environment variable.
 
 The server watches the current working directory and reloads whenever it detects a change.
 
@@ -49,16 +49,16 @@ npx queue-run dev queue screenshots @job.json
 You can use CLI tool like [websocat](https://github.com/vi/websocat):
 
 ```bash
-websocat ws://localhost:8001
+websocat ws://localhost:8000
 ```
 
 You can also use authentication with websocat, for example:
 
 ```bash
-websocat ws://localhost:8001 -H "Authorization: Bearer dcx..."
+websocat ws://localhost:8000 -H "Authorization: Bearer dcx..."
 ```
 
-:::note Port 8001
+:::note Port 8000
 
 The port number for WebSocket is one more than the port number for HTTP.
 :::
