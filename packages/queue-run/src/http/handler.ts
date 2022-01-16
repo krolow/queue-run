@@ -1,7 +1,8 @@
 import { AbortController } from "node-abort-controller";
 import crypto from "node:crypto";
 import { URL, URLSearchParams } from "node:url";
-import { XML } from "../jsx-runtime.js";
+import { XMLElement } from "xmlbuilder";
+import { isElement, render } from "../jsx-runtime";
 import {
   getLocalStorage,
   HTTPRoute,
@@ -300,7 +301,7 @@ async function resultToResponse({
       addCacheControl(headers, result, body);
     }
     return new Response(result.body, { headers, status });
-  } else if (result instanceof XML) {
+  } else if (isElement(result)) {
     const { body, headers } = xml(result, corsHeaders);
     addCacheControl(headers, body, body);
     return new Response(body, { headers, status: 200 });
@@ -343,14 +344,12 @@ function json(object: object, corsHeaders?: Headers) {
   return { body, headers };
 }
 
-function xml(xml: XML, corsHeaders?: Headers) {
+function xml(xml: XMLElement, corsHeaders?: Headers) {
   const indent = "  ".repeat(Number(process.env.QUEUE_RUN_INDENT) || 0);
-  const body = Buffer.from(xml.serialize(indent), "utf-8");
+  const { text, type } = render(xml, indent);
+  const body = Buffer.from(text, "utf-8");
   const headers = new Headers(corsHeaders);
-  headers.set(
-    "Content-Type",
-    xml.isHTML ? "text/html; charset=utf-8" : "application/xml; charset=utf-8"
-  );
+  headers.set("Content-Type", type);
   headers.set("Content-Length", body.byteLength.toString());
   return { body, headers };
 }

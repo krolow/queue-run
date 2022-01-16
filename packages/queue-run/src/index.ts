@@ -5,7 +5,7 @@ import "./globals.js";
 install({ environment: "node" });
 
 export * from "./http/index.js";
-export * from "./jsx-runtime.js";
+export { CDATA, Comment, Fragment } from "./jsx-runtime";
 export * from "./queue/index.js";
 export * from "./shared/index.js";
 export * from "./ws/index.js";

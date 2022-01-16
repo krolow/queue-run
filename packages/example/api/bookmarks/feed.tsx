@@ -1,11 +1,12 @@
 import * as bookmarks from "#lib/bookmarks.js";
-import { url } from "queue-run";
+import { Comment, url } from "queue-run";
 import { urlForBookmark } from "./[id].js";
 
 export async function get() {
   const all = await bookmarks.findAll();
   return (
     <feed xmlns="http://www.w3.org/2005/Atom">
+      <Comment>Atom feed</Comment>
       <url>{String(url.self())}</url>
       <title>Bookmarks</title>
       <link rel="self" href={url.self()()} />
@@ -24,4 +25,5 @@ export async function get() {
   );
 }
 
-export const authenticate = false;
+// Disable the authentication middleware (`false` also works)
+export const authenticate = null;

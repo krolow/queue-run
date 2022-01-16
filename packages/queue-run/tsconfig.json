@@ -2,8 +2,9 @@
   "$schema": "https://json.schemastore.org/tsconfig",
   "compilerOptions": {
     "outDir": "dist",
-    "declarationMap": true
+    "declarationMap": true,
+    "emitDeclarationOnly": true
   },
   "extends": "../../tsconfig.json",
-  "include": ["src/**/*.ts"]
+  "files": ["src/index.ts"]
 }

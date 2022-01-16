@@ -37,6 +37,8 @@ But if you need to use CamelCase, or namespace prefixes, then you have to
 declare these elements as constant first.
 
 ```tsx
+import { Comment } from "queue-run/jsx-runtime";
+
 // Make Name available as JSX element
 const Name = "Name";
 // The XML element is "ns:Prefix", the JSX name must be CamelCase
@@ -44,6 +46,7 @@ const NSPrefix = "ns:Prefix";
 
 return xml(
   <Record {{ 'ns:type': 'record' }}>
+    <Comment>This is a comment</Comment>
     <Name>{item.name}</Name>
     <NSPrefix>name:</NSPrefix>
   </Record>
@@ -53,6 +56,7 @@ return xml(
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
 <Record ns:type="record">
+  <!-- This is a comment -->
   <Name>itemName</Name>
   <ns:Prefix>name:</ns:Prefix>
 </Record>

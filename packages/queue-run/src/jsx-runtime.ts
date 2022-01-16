@@ -1,35 +1,43 @@
 import xmlbuilder, { XMLElement, XMLNode } from "xmlbuilder";
 
 /* eslint-disable no-unused-vars */
-declare namespace JSX {
+export declare namespace JSX {
   interface IntrinsicElements {
     [elemName: string]: any;
   }
 }
 /* eslint-enable no-unused-vars */
 
-export class XML {
-  readonly element: XMLElement;
-
-  constructor(element: XMLElement) {
-    this.element = element;
-  }
-
-  serialize(indent = "") {
-    const pretty = !!indent;
-    return this.isHTML
-      ? this.element.dtd().end({ pretty, indent })
-      : this.element.dec("1.0", "utf-8").end({ pretty, indent });
-  }
-
-  get isHTML(): boolean {
-    return /^html$/i.test(this.element.name);
-  }
+export function jsxs(
+  type: string,
+  props: { [key: string]: unknown }
+): XMLElement {
+  return newElement(xmlbuilder.begin(), type, props);
 }
 
-export function jsxs(type: string, props: { [key: string]: unknown }): XML {
-  const element = newElement(xmlbuilder.begin(), type, props);
-  return new XML(element);
+export function render(element: XMLElement, indent = "") {
+  const pretty = !!indent;
+  const isHTML = /^html$/i.test(element.name);
+  const text = isHTML
+    ? element.dtd().end({ pretty, indent })
+    : element.dec("1.0", "utf-8").end({ pretty, indent });
+  const type = isHTML
+    ? "text/html; charset=utf-8"
+    : "application/xml; charset=utf-8";
+  return { text, type };
+}
+
+export function isElement(object: unknown): object is XMLElement {
+  return (
+    !!object &&
+    typeof object === "object" &&
+    "parent" in object &&
+    "children" in object &&
+    "type" in object &&
+    (object as { type: number }).type === 1 &&
+    "isRoot" in object &&
+    (object as { isRoot: boolean }).isRoot === true
+  );
 }
 
 function newElement(
@@ -50,29 +58,38 @@ function addChildren(element: XMLElement, children: unknown) {
     element.txt(String(children));
   } else if (Array.isArray(children)) {
     for (const child of children) addChildren(element, child);
-  } else if (children instanceof XML) {
-    element.children.push(children.element);
   } else if (children) {
     const { type, props } = children as {
-      type: string | typeof CDATA | typeof Fragment | typeof Comment;
+      type: string | 1 | 8 | typeof Comment | typeof CDATA | typeof Fragment;
       props: { children: XMLNode[] };
     };
+    if (typeof type === "function") {
+      addChildren(element, {
+        ...type(),
+        props,
+      });
+      return;
+    }
     switch (type) {
-      case Fragment: {
-        for (const child of props.children)
-          element.children.push(child instanceof XML ? child.element : child);
+      case 1: {
+        // XMLElement
+        element.children.push(children as XMLElement);
         break;
       }
-      case CDATA: {
+      case 11: {
+        for (const child of props.children) element.children.push(child);
+        break;
+      }
+      case 4: {
         element.cdata(String(props.children));
         break;
       }
-      case Comment: {
+      case 8: {
         element.comment(String(props.children));
         break;
       }
       default: {
-        newElement(element, type, props);
+        newElement(element, type as string, props);
         break;
       }
     }
@@ -98,7 +115,7 @@ export function jsx(
  * );
  * ```
  */
-export const Fragment = Symbol("Fragment");
+export const Fragment = () => ({ type: 11 });
 
 /**
  * Use this to emit a CDATA section in XML.
@@ -115,7 +132,7 @@ export const Fragment = Symbol("Fragment");
  * => <code><![CDATA[my code here]]></code>
  * ```
  */
-export const CDATA = Symbol("CDATA");
+export const CDATA = () => ({ type: 4 });
 
 /**
  * Use this to emit a comment.
@@ -132,4 +149,4 @@ export const CDATA = Symbol("CDATA");
  * => <entry><!-- This is a comment --></entry>
  * ```
  */
-export const Comment = Symbol("Comment");
+export const Comment = () => ({ type: 8 });
