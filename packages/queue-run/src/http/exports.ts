@@ -19,14 +19,22 @@ import type { Request, Response } from "./fetch.js";
  * or buffer (as application/octet-stream)
  */
 export type RequestHandler<
-  Types extends { body: Body; path: Params; query: Params } = {
+  Types extends {
     body: Body;
     path: Params;
     query: Params;
+    response: HTTPResponse;
+  } = {
+    body: Body;
+    path: Params;
+    query: Params;
+    response: HTTPResponse;
   }
-> = (args: HTTPRequest<Types>) => Promise<Result> | Result;
+> = (
+  args: HTTPRequest<Types>
+) => Promise<Types["response"]> | Types["response"];
 
-type HTTPRequest<
+export type HTTPRequest<
   Types extends {
     body?: Body;
     path?: Params;
@@ -37,7 +45,7 @@ type HTTPRequest<
     query: Params;
   }
 > = {
-  body: Types["body"];
+  body: Types["body"] | undefined;
   cookies: { [key: string]: string };
   query: Types["query"];
   params: Types["path"];
@@ -46,9 +54,10 @@ type HTTPRequest<
   signal: AbortSignal;
   user: { id: string; [key: string]: unknown } | null;
 };
-type Body = JSONValue | string | Buffer | undefined;
+type Body = JSONValue | string | Buffer;
 type Params = { [key: string]: string | string[] };
-type Result = Response | string | Buffer | object | null;
+
+export type HTTPResponse = object | string | Buffer | null;
 
 /**
  * Export config object to control various aspects of request handling.
@@ -79,7 +88,7 @@ export type RouteConfig = {
    * - function - Called with the result of the handler, and should return a
    * header value (string) or cache duration (number)
    */
-  cache?: string | number | ((result: Result) => string | number);
+  cache?: string | number | ((result: HTTPResponse) => string | number);
 
   /**
    * The ETag header.
@@ -88,7 +97,7 @@ export type RouteConfig = {
    * - false - Do not set the ETag header
    * - function - Called with the result of the handler, and should return the ETag value
    */
-  etag?: boolean | ((result: Result) => string);
+  etag?: boolean | ((result: HTTPResponse) => string);
 
   /**
    * Timeout for processing the request (in seconds)

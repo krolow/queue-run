@@ -9,6 +9,7 @@ import {
   WebSocketConfig,
   WebSocketHandler,
   WebSocketMiddleware,
+  WebSocketRequest,
 } from "./exports.js";
 import findRoute from "./findRoute.js";
 
@@ -212,7 +213,12 @@ async function runWithMiddleware({
       response,
     });
   } catch (error) {
-    await handleOnError({ error, filename, middleware, request });
+    await handleOnError({
+      error,
+      filename,
+      middleware,
+      request: request as WebSocketRequest,
+    });
 
     return await handleResponse({
       connection,
@@ -276,7 +282,7 @@ async function handleOnError({
   error: unknown;
   filename: string;
   middleware: WebSocketMiddleware;
-  request: Parameters<WebSocketHandler>[0];
+  request: WebSocketRequest;
 }): Promise<void> {
   if (middleware.onError) {
     try {

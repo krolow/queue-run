@@ -22,7 +22,9 @@ export type WebSocketHandler<
   }
 ) => Promise<Result> | Result;
 
-export type WebSocketRequest<Data extends JSONValue | string | Buffer> = {
+export type WebSocketRequest<
+  Data extends JSONValue | string | Buffer = JSONValue
+> = {
   connection: string;
   data: Data;
   requestId: string;

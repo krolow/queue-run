@@ -7,7 +7,7 @@ export async function logMessageReceived({
   user,
 }: {
   connection: string;
-  data: object | string | Buffer;
+  data: unknown;
   user: { id: string; [key: string]: unknown } | null;
 }) {
   const message =

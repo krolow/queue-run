@@ -1,5 +1,6 @@
 import { AbortController } from "node-abort-controller";
 import invariant from "tiny-invariant";
+import { JSONObject } from "../json.js";
 import {
   getLocalStorage,
   loadManifest,
@@ -120,7 +121,7 @@ async function runWithMiddleware({
     if (middleware.onJobStarted) await middleware.onJobStarted(metadata);
     if (signal.aborted) return;
 
-    await module.default(payload, metadata);
+    await module.default(payload as JSONObject, metadata);
     if (signal.aborted) return;
 
     if (middleware.onJobFinished) await middleware.onJobFinished(metadata);

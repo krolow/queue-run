@@ -11,6 +11,7 @@ import {
 import TimeoutError from "../shared/TimeoutError.js";
 import {
   AuthenticatedUser,
+  HTTPRequest,
   RequestHandler,
   RouteConfig,
   RouteExports,
@@ -144,8 +145,8 @@ async function handleRoute({
 
   const body = hasBody(request) ? await bodyFromRequest(request.clone()) : null;
 
-  const metadata = {
-    body,
+  const metadata: Omit<HTTPRequest, "request" | "user"> = {
+    body: body as HTTPRequest["body"],
     cookies: getCookies(request),
     params,
     query: getQuery(request),
@@ -213,7 +214,7 @@ async function runWithMiddleware({
   corsHeaders: Headers | undefined;
   filename: string;
   handler: RequestHandler;
-  metadata: Omit<Parameters<RequestHandler>[0], "request" | "user">;
+  metadata: Omit<HTTPRequest, "request" | "user">;
   middleware: RouteMiddleware;
   request: Request;
 }): Promise<Response> {
