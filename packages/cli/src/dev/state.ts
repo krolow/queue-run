@@ -1,7 +1,12 @@
 import ms from "ms";
 import crypto from "node:crypto";
 import { EventEmitter } from "node:events";
-import { handleQueuedJob, LocalStorage } from "queue-run";
+import {
+  handleQueuedJob,
+  handleUserOffline,
+  handleUserOnline,
+  LocalStorage,
+} from "queue-run";
 import { WebSocket } from "ws";
 
 // All open websockets by unique socket ID
@@ -124,30 +129,43 @@ export function onIdleOnce(cb: () => void) {
 
 export function onWebSocketAccepted({
   connection,
+  newLocalStorage,
   socket,
   userId,
 }: {
   connection: string;
+  newLocalStorage: () => LocalStorage;
   socket: WebSocket;
   userId: string | null;
 }) {
   sockets.set(connection, socket);
 
   if (userId) {
+    const connections = userIdToConnectionId.get(userId) ?? [];
     connectionIdToUserId.set(connection, userId);
-    userIdToConnectionId.set(userId, [
-      connection,
-      ...(userIdToConnectionId.get(userId) ?? []),
-    ]);
+    userIdToConnectionId.set(userId, [...connections, connection]);
+    if (connections.length === 0) handleUserOnline({ userId, newLocalStorage });
   }
   return connection;
 }
 
-export function onWebSocketClosed(connection: string) {
+export function onWebSocketClosed({
+  connection,
+  newLocalStorage,
+}: {
+  connection: string;
+  newLocalStorage: () => LocalStorage;
+}) {
   sockets.delete(connection);
   const userId = connectionIdToUserId.get(connection);
   if (userId) {
     connectionIdToUserId.delete(connection);
-    userIdToConnectionId.delete(userId);
+    const connections = (userIdToConnectionId.get(userId) ?? []).filter(
+      (c) => c !== connection
+    );
+    if (connections.length === 0) {
+      userIdToConnectionId.delete(userId);
+      handleUserOffline({ userId, newLocalStorage });
+    } else userIdToConnectionId.set(userId, connections);
   }
 }

@@ -259,6 +259,7 @@ async function onConnection(
   }
   const connection = onWebSocketAccepted({
     connection: String(req.headers["sec-websocket-key"]),
+    newLocalStorage,
     socket,
     userId,
   });
@@ -279,7 +280,12 @@ async function onConnection(
     });
     if (response) socket.send(response);
   });
-  socket.on("close", () => onWebSocketClosed(connection));
+  socket.on("close", () =>
+    onWebSocketClosed({
+      connection,
+      newLocalStorage,
+    })
+  );
 }
 
 async function authenticate(

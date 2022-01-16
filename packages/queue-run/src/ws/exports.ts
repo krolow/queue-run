@@ -47,6 +47,20 @@ export type WebSocketConfig = {
 };
 
 /**
+ * Middleware that's called the first time the user connects with WebSocket.
+ *
+ * @param userId The user ID
+ */
+export type OnOnline = (userId: string) => void | Promise<void>;
+
+/**
+ * Middleware that's called after the user has closed all WebSocket connections.
+ *
+ * @param userId The user ID
+ */
+export type OnOffline = (userId: string) => void | Promise<void>;
+
+/**
  * Middleware that's called for every WebSocket message received.
  *
  * @param connection Connection identifier
@@ -76,6 +90,8 @@ export type OnMessageSent = (args: {
 export type WebSocketMiddleware = {
   authenticate?: AuthenticateMethod | null;
   onError?: OnError | null;
+  onOnline?: OnOnline | null;
+  onOffline?: OnOffline | null;
   onMessageReceived?: OnMessageReceived | null;
   onMessageSent?: OnMessageSent | null;
 };

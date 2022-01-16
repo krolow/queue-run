@@ -313,3 +313,57 @@ export async function onMessageSentAsync({
     }
   }
 }
+
+export async function handleUserOnline({
+  newLocalStorage,
+  userId,
+}: {
+  newLocalStorage: () => LocalStorage;
+  userId: string;
+}) {
+  const { onOnline, onError } = await getCommonMiddleware();
+  if (!onOnline) return null;
+
+  return await withLocalStorage(newLocalStorage(), async () => {
+    try {
+      await onOnline(userId);
+    } catch (error) {
+      if (onError) {
+        try {
+          await onError(
+            error instanceof Error ? error : new Error(String(error))
+          );
+        } catch (error) {
+          console.error(error);
+        }
+      }
+    }
+  });
+}
+
+export async function handleUserOffline({
+  newLocalStorage,
+  userId,
+}: {
+  newLocalStorage: () => LocalStorage;
+  userId: string;
+}) {
+  const { onOffline, onError } = await getCommonMiddleware();
+  if (!onOffline) return null;
+
+  return await withLocalStorage(newLocalStorage(), async () => {
+    try {
+      await onOffline(userId);
+    } catch (error) {
+      if (onError) {
+        try {
+          await onError(
+            error instanceof Error ? error : new Error(String(error))
+          );
+        } catch (error) {
+          console.error(error);
+        }
+      }
+    }
+  });
+}
