@@ -3,6 +3,7 @@ import {
   DeleteConnectionCommand,
   PostToConnectionCommand,
 } from "@aws-sdk/client-apigatewaymanagementapi";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { SQSClient } from "@aws-sdk/client-sqs";
 import { format } from "node:util";
 import { LocalStorage, logging, warmup } from "queue-run";
@@ -20,6 +21,7 @@ import handleWebSocketRequest, {
   APIGatewayWebSocketEvent,
 } from "./handleWebSocket";
 import queueJob from "./queueJob";
+import userConnections from "./userConnections";
 
 logging((level, args) => {
   const formatted = format(...args);
@@ -34,12 +36,15 @@ const urls = {
 };
 const { slug, region, ...clientConfig } = swapAWSEnvVars();
 
-const sqs = new SQSClient({ ...clientConfig, region });
+const dynamoDB = new DynamoDBClient({ ...clientConfig, region });
 const gateway = new ApiGatewayManagementApiClient({
   ...clientConfig,
   endpoint: urls.ws.replace("wss://", "https://"),
   region,
 });
+const sqs = new SQSClient({ ...clientConfig, region });
+
+const connections = userConnections(dynamoDB);
 
 class LambdaLocalStorage extends LocalStorage {
   constructor() {
@@ -76,8 +81,8 @@ class LambdaLocalStorage extends LocalStorage {
   }
 
   // eslint-disable-next-line no-unused-vars
-  getConnections(userIds: string[]): Promise<string[]> {
-    throw new Error("Not implemented yet");
+  async getConnections(userIds: string[]): Promise<string[]> {
+    return await connections.getConnections(userIds);
   }
 }
 
@@ -88,12 +93,13 @@ await warmup(new LambdaLocalStorage());
 export async function handler(
   event: LambdaEvent,
   context: LambdaContext
-): Promise<APIGatewayResponse | SQSBatchResponse | undefined> {
+): Promise<APIGatewayResponse | SQSBatchResponse | void> {
   const newLocalStorage = () => new LambdaLocalStorage();
 
   if (isWebSocketRequest(event))
     return await handleWebSocketRequest(
       event as APIGatewayWebSocketEvent,
+      connections,
       newLocalStorage
     );
 

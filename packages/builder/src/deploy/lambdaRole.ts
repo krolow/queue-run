@@ -42,6 +42,20 @@ const LambdaPolicy = {
     },
     {
       Effect: "Allow",
+      Action: [
+        "dynamodb:DeleteItem",
+        "dynamodb:BatchGetItem",
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:UpdateItem",
+      ],
+      Resource: [
+        "arn:aws:dynamodb:$region:$accountId:table/qr-connections",
+        "arn:aws:dynamodb:$region:$accountId:table/qr-user-connections",
+      ],
+    },
+    {
+      Effect: "Allow",
       Action: "logs:CreateLogGroup",
       Resource: `arn:aws:logs:$region:$accountId:/aws/lambda/$lambdaName`,
     },

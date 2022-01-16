@@ -7,6 +7,7 @@ import { debuglog } from "node:util";
 import { Manifest } from "queue-run";
 import invariant from "tiny-invariant";
 import { buildProject, displayManifest } from "../build/index.js";
+import { createTables } from "./createTables.js";
 import { addTriggers, removeTriggers } from "./eventSource.js";
 import { createQueues, deleteOldQueues } from "./prepareQueues.js";
 import updateAlias from "./updateAlias.js";
@@ -89,6 +90,11 @@ export default async function deployLambda({
   await displayManifest(buildDir);
 
   console.info("λ: Deploying Lambda function and queues");
+
+  // DDB tables are referenced in the Lambda policy, so we need these to exist
+  // before we can deploy.
+  await createTables();
+  if (signal?.aborted) throw new Error();
 
   const envVars = await loadEnvVars({
     envVars: config.envVars ?? {},
