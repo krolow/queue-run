@@ -6,3 +6,4 @@ export * from "./manifest.js";
 export { default as selfPath } from "./selfPath.js";
 export { default as TimeoutError } from "./TimeoutError.js";
 export { default as warmup } from "./warmup.js";
+import "./crypto.js";

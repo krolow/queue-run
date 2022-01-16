@@ -1,5 +1,5 @@
 import { AbortController } from "node-abort-controller";
-import crypto from "node:crypto";
+import { createHash } from "node:crypto";
 import { URL, URLSearchParams } from "node:url";
 import { XMLElement } from "xmlbuilder";
 import { isElement, render } from "../jsx-runtime";
@@ -388,7 +388,7 @@ function withCacheControl(request: Request, config: RouteConfig) {
           ? config.etag(result)
           : config.etag === false
           ? undefined
-          : crypto.createHash("md5").update(body).digest("hex");
+          : createHash("md5").update(body).digest("hex");
       if (etag) headers.set("ETag", etag);
     }
   };

@@ -1,5 +1,4 @@
 import ms from "ms";
-import crypto from "node:crypto";
 import { EventEmitter } from "node:events";
 import {
   handleQueuedJob,
@@ -56,7 +55,7 @@ export class DevLocalStorage extends LocalStorage {
     params?: { [key: string]: string | string[] };
     user?: { id: string };
   }) {
-    const jobId = crypto.randomBytes(4).toString("hex");
+    const jobId = crypto.randomUUID();
     const serializedPayload =
       typeof payload === "string" || Buffer.isBuffer(payload)
         ? payload

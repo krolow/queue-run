@@ -1,3 +1,6 @@
+/// <reference types="node" />
+/* eslint-disable no-unused-vars */
+
 declare namespace NodeJS {
   interface ProcessEnv {
     readonly DEBUG: "false" | "true" | undefined;

@@ -5,7 +5,6 @@ import dotenv from "dotenv";
 import fs from "fs/promises";
 import ms from "ms";
 import cluster from "node:cluster";
-import crypto from "node:crypto";
 import { createServer, IncomingMessage, ServerResponse } from "node:http";
 import path from "node:path";
 import process from "node:process";
@@ -209,7 +208,7 @@ async function onRequest(
   const response = await handleHTTPRequest({
     newLocalStorage,
     request,
-    requestId: crypto.randomBytes(4).toString("hex"),
+    requestId: crypto.randomUUID(),
   });
   res.writeHead(response.status, Array.from(response.headers.entries()));
   const buffer = await response.arrayBuffer();
@@ -252,7 +251,7 @@ async function queueJob(
       metadata: {
         queueName,
         groupId,
-        jobId: crypto.randomBytes(4).toString("hex"),
+        jobId: crypto.randomUUID(),
         params: {},
         receivedCount: 1,
         queuedAt: new Date(),
@@ -302,7 +301,7 @@ async function onConnection(
       connection,
       data,
       newLocalStorage,
-      requestId: crypto.randomBytes(4).toString("hex"),
+      requestId: crypto.randomUUID(),
       userId,
     });
     if (response) socket.send(response);

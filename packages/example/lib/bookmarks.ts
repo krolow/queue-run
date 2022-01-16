@@ -1,5 +1,4 @@
 import { queue as screenshots } from "#queues/screenshots.js";
-import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -30,7 +29,7 @@ export async function create({
   title: string;
   url: string;
 }): Promise<Bookmark> {
-  const id = crypto.randomBytes(4).toString("hex");
+  const id = crypto.randomUUID();
   const created = new Date().toISOString();
   const bookmarks = await findAll();
   const bookmark = { title, url, id, created, updated: created };
