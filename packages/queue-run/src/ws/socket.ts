@@ -106,6 +106,18 @@ class WebSocket<T = Payload> {
     return new WebSocket(Array.isArray(userIds) ? userIds : [userIds]);
   }
 
+  /**
+   * Returns true if the user has an open WebSocket connection.
+   *
+   * @param userId The user ID
+   * @returns true if the user has an open WebSocket connection
+   */
+  async isConnected(userId: string): Promise<boolean> {
+    const local = getLocalStorage();
+    const connections = await local.getConnections([userId]);
+    return connections.length > 0;
+  }
+
   toString() {
     return (
       this._userIds?.join(", ") ?? getLocalStorage().connection ?? "unavailable"
