@@ -48,7 +48,7 @@ export async function put({ body, user }: Resource) {
 ```
 
 ```ts title=queues/update_profile.fifo.ts
-import { queues } from 'queue-run';
+import { queues } from "queue-run";
 
 type UpdateProfile = {
   email: string;
@@ -91,12 +91,12 @@ FIFO queues require a group ID. You set the group ID by calling `group(id)` on t
 
 ```ts
 await queues
-  .get('update_profile.fifo')
+  .get("update_profile.fifo")
   .group(userId)
   .push(profile);
 
 await post
-  .get('publish_post.fifo')
+  .get("publish_post.fifo")
   .group(postId)
   .push({ title, body });
 ```
@@ -123,12 +123,12 @@ By default, each job is considered unique based on a hash of the serialized job 
 If this is not what you want, set the deduplication ID directly, by calling `dedupe(id)` on the queue. For example:
 
 ```ts
-await queues('checkout.fifo')
+await queues("checkout.fifo")
   .group(user.id)
   .dedupe(order.id)
   .push(order);
 
-await queues('debit_account.fifo')
+await queues("debit_account.fifo")
   .group(accountId)
   .dedupe(transactionId)
   .push(amount);
@@ -171,7 +171,7 @@ If you queue from an HTTP/WebSocket request, or from another queue handler, the 
 That allows you to ssend a WebSocket message back to the user to inform them of progress. For example:
 
 ```ts
-import { socket } from 'queue-run';
+import { socket } from "queue-run";
 
 export default async function(order) {
 	socket.send({ id: order.id, status: "preparing" });
@@ -196,7 +196,7 @@ You can use the `queues.self()` function to get a reference to the current queue
 For example:
 
 ```js title="queues/tasks.js"
-import { queues } from 'queue-run';
+import { queues } from "queue-run";
 
 export default async function(task) {
   ...
@@ -207,7 +207,7 @@ export const queue = queues.self();
 ```
 
 ```js title="api/tasks.js"
-import { queue as tasks } from '~queues/tasks.js';
+import { queue as tasks } from "#queues/tasks.js";
 
 export async function post(request) {
   const task = await request.json();
@@ -236,19 +236,19 @@ The queue handler will be called with the parsed HTTP request, and in the second
 For example:
 
 ```ts title=api/tasks.ts
-import { queue as updates } from '~/queues/update.js';
-import { queues } from 'queue-run';
+import { queue as updates } from "#/queues/update.js";
+import { queues } from "queue-run";
 
 export const post = updates.http;
 
 // We only care about JSON and HTML forms
 export const config = {
-  accepts: ['application/json', 'application/x-www-form-urlencode']
+  accepts: ["application/json", "application/x-www-form-urlencode"]
 }
 ```
 
 ```ts title=queues/update.ts
-import { queues } from 'queue-run';
+import { queues } from "queue-run";
 
 export default async function(payload: object, { user }) {
   console.info("Authenticated user ID: %s", user.id)
@@ -283,9 +283,9 @@ import {
   logJobStarted,
   logJobFinished,
   logError
-} from 'queue-run';
+} from "queue-run";
 // And count running/failed jobs
-import { metrics } from 'metrics';
+import { metrics } from "metrics";
 
 export async function onJobStarted(metadata) {
   await logJobStarted(metadata);

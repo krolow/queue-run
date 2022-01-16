@@ -45,14 +45,14 @@ You can write that code in the module `warmup.ts`. For example:
 
 
 ```ts title=warmup.ts
-import { Connection } from 'db';
+import { Connection } from "db";
 
 // highlight-next-line
 export const connection = new Connection(process.env.DB_URL);
 ```
 
 ```ts title=api/index.ts
-import { connection } from '../warmup.js';
+import { connection } from "../warmup.js";
 
 export async function get() {
   const records = await connection.query('SELECT * FROM table');
@@ -65,8 +65,8 @@ This works because QueueRun loads `warmup` once, before handling any requests. T
 If you want to be more specific, you can export a default function. For example:
 
 ```ts title=warmup.ts
-import db from '~lib/db.js';
-import type { Settings } from '~lib/types.d.ts';
+import db from "#lib/db.js";
+import type { Settings } from "#lib/types.d.ts";
 
 export default async function warmup() {
   settings = await db.settings.find();
@@ -77,7 +77,7 @@ export let settings : Settings;
 ```
 
 ```ts title=api/index.ts
-import { settings } from '../warmup.js';
+import { settings } from "../warmup.js";
 
 export async function get() {
   // warmup function executed, settings has a value

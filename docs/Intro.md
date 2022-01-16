@@ -138,7 +138,7 @@ export default async function ({ id }, { user }) {
 
   // This could easily take several seconds,
   // so we're doing this in a background job
-  console.info('Taking screenshot of "%s"', bookmark.url)
+  console.info("Taking screenshot of %s", bookmark.url)
   const screenshot = await capture(bookmark.url);
   await db.bookmarks.updateOne({ id, userId: user.id,  screenshot });
 }

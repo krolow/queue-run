@@ -44,8 +44,8 @@ You can provide your own logging function. This is useful if you want to send al
 For example, to use with LogTail:
 
 ```ts title=warmup.ts
-import { format } from 'node:util';
-import { logging } from 'queue-run';
+import { format } from "node:util";
+import { logging } from "queue-run";
 import { Logtail } from "@logtail/node";
 
 const logger = logging();
@@ -88,7 +88,7 @@ The reference object depends on the task:
 For example, to send errors to Sentry:
 
 ```ts title=api/_middleware.ts
-const { logError } from 'queue-run';
+import { logError } from "queue-run";
 import * as Sentry from "@sentry/node";
 
 export async function logError(error, request) {

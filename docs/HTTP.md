@@ -113,15 +113,15 @@ To use the default request handler:
 ```ts
 export default async function({ params, request }) {
   switch (request.method) {
-    case 'GET': {
+    case "GET": {
       const item = await db.findOne(params.id);
       if (!item) throw new Response(null, { status: 400 });
       return item;
     }
-    case 'PUT': {
+    case "PUT": {
       ...
     }
-    case 'DELETE': {
+    case "DELETE": {
       ...
     }
     default:
@@ -134,7 +134,7 @@ You can also limit which methods are accepted:
 
 ```ts
 export const config = {
-  methods: ['GET', 'HEAD', 'PUT', 'DELETE']
+  methods: ["GET", "HEAD", "PUT", "DELETE"]
 };
 ```
 
@@ -163,7 +163,7 @@ export async function post({ body }) {
 ```
 
 ```bash
-curl http://localhost:8000/ -d '{ "message": "hello" }'
+curl http://localhost:8000/ -d '{ "message": "Hello" }'
 => { "messge": "Hello" }
 ```
 
@@ -237,7 +237,7 @@ type Fields = {
 export aync function post({ body }: { body: Fields }) {
   const { name, email, passowrd } = body;
   const user = await createUser({ name, email, password });
-  return Response.redirect(url('/user/[id]', { user }), 303);
+  return Response.redirect(url("/user/[id]", { user }), 303);
 }
 ```
 
@@ -357,9 +357,9 @@ For example:
 
 ```ts title=api/_middleware.ts
 // We're going to use the default middleware for logging
-import { logResponse, logError } from 'queue-run';
+import { logResponse, logError } from "queue-run";
 // And count running/failed requests
-import { metrics } from 'metrics';
+import { metrics } from "metrics";
 
 export async function onRequest(request, response) {
   await metrics.increment(`request.${request.method}`);
@@ -372,7 +372,7 @@ export async function onResponse(request, response) {
 
 export async function onError(error, request) {
   await logError(error, request);
-  await metrics.increment(`error`);
+  await metrics.increment("error");
 }
 ```
 
