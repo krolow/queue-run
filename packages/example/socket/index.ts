@@ -1,5 +1,7 @@
+import { socket } from "queue-run";
+
 export default async function () {
-  return { message: "👋 Welcome!" };
+  await socket.send({ message: "👋 Welcome!" });
 }
 
 export const config = {

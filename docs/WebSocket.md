@@ -22,8 +22,11 @@ The simplest way to handle WebSocket requests it to create a file `socket/index.
 For example:
 
 ```ts title=socket/index.md
+import { socket } from "queue-run";
+
 export default async function({ data }) {
   console.log("Message from client: %o", data);
+  await socket.send({ reply: "👋 Welcome!" });
 }
 ```
 

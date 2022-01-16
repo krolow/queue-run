@@ -10,6 +10,7 @@ import path from "node:path";
 import process from "node:process";
 import { URL } from "node:url";
 import {
+  AuthenticatedUser,
   authenticateWebSocket,
   handleHTTPRequest,
   handleQueuedJob,
@@ -20,6 +21,7 @@ import {
   warmup,
 } from "queue-run";
 import { buildProject } from "queue-run-builder";
+import { Duplex } from "stream";
 import invariant from "tiny-invariant";
 import { WebSocket, WebSocketServer } from "ws";
 import {
@@ -160,18 +162,17 @@ if (cluster.isWorker) {
     await warmup(new DevLocalStorage(port));
   })();
 
-  const http = createServer(async (req, res) => {
-    await ready;
-    onRequest(req, res, () => new DevLocalStorage(port));
-  }).listen(port);
-
-  const ws = new WebSocketServer({ server: http }).on(
-    "connection",
-    async (socket, req) => {
+  const ws = new WebSocketServer({ noServer: true });
+  const http = createServer()
+    .on("request", async (req, res) => {
       await ready;
-      onConnection(socket, req, () => new DevLocalStorage(port));
-    }
-  );
+      onRequest(req, res, () => new DevLocalStorage(port));
+    })
+    .on("upgrade", async (req, socket, head) => {
+      await ready;
+      onUpgrade(req, socket, head, ws, () => new DevLocalStorage(port));
+    })
+    .listen(port);
 
   // Make sure we exit if buildProject fails
   try {
@@ -271,23 +272,69 @@ async function queueJob(
   }
 }
 
-async function onConnection(
-  socket: WebSocket,
+async function onUpgrade(
   req: IncomingMessage,
+  socket: Duplex,
+  head: Buffer,
+  wss: WebSocketServer,
   newLocalStorage: () => LocalStorage
 ) {
-  let userId: string | null;
   try {
-    userId = await authenticate(req, newLocalStorage);
-  } catch {
-    socket.terminate();
-    return;
+    const request = new Request(
+      new URL(req.url ?? "/", `http://${req.headers.host}`).href,
+      {
+        method: req.method ?? "GET",
+        headers: Object.fromEntries(
+          Object.entries(req.headers).map(([name, value]) => [
+            name,
+            String(value),
+          ])
+        ),
+      }
+    );
+
+    const user = await authenticateWebSocket({
+      request,
+      newLocalStorage,
+    });
+    const connection = req.headers["sec-websocket-key"]!;
+
+    wss.handleUpgrade(req, socket, head, (socket) =>
+      onConnection({
+        connection,
+        newLocalStorage,
+        socket,
+        user,
+      })
+    );
+  } catch (error) {
+    if (error instanceof Response) {
+      console.info("   Authentication rejected: %d", error.status);
+      socket.write(`HTTP/1.1 ${error.status} ${await error.text()}\r\n\r\n`);
+    } else {
+      console.error("💥 Authentication failed!");
+      socket.write("HTTP/1.1 500 Internal Server Error\r\n\r\n");
+    }
+    socket.destroy();
   }
-  const connection = onWebSocketAccepted({
-    connection: String(req.headers["sec-websocket-key"]),
+}
+
+async function onConnection({
+  connection,
+  newLocalStorage,
+  socket,
+  user,
+}: {
+  connection: string;
+  newLocalStorage: () => LocalStorage;
+  socket: WebSocket;
+  user: AuthenticatedUser | null;
+}) {
+  onWebSocketAccepted({
+    connection,
     newLocalStorage,
     socket,
-    userId,
+    userId: user?.id ?? null,
   });
 
   socket.on("message", async (rawData) => {
@@ -297,14 +344,17 @@ async function onConnection(
         : Array.isArray(rawData)
         ? Buffer.concat(rawData)
         : rawData;
-    const response = await handleWebSocketMessage({
-      connection,
-      data,
-      newLocalStorage,
-      requestId: crypto.randomUUID(),
-      userId,
-    });
-    if (response) socket.send(response);
+    try {
+      await handleWebSocketMessage({
+        connection,
+        data,
+        newLocalStorage,
+        requestId: crypto.randomUUID(),
+        userId: user?.id ?? null,
+      });
+    } catch (error) {
+      socket.send(JSON.stringify({ error: String(error) }));
+    }
   });
   socket.on("close", () =>
     onWebSocketClosed({
@@ -312,33 +362,4 @@ async function onConnection(
       newLocalStorage,
     })
   );
-}
-
-async function authenticate(
-  req: IncomingMessage,
-  newLocalStorage: () => LocalStorage
-): Promise<string | null> {
-  const request = new Request(
-    new URL(req.url ?? "/", `http://${req.headers.host}`).href,
-    {
-      method: req.method ?? "GET",
-      headers: Object.fromEntries(
-        Object.entries(req.headers).map(([name, value]) => [
-          name,
-          String(value),
-        ])
-      ),
-    }
-  );
-  try {
-    const user = await authenticateWebSocket({
-      request,
-      newLocalStorage,
-    });
-    return user?.id ?? null;
-  } catch (error) {
-    if (!(error instanceof Response))
-      console.error("💥 Authentication failed!", error);
-    throw error;
-  }
 }

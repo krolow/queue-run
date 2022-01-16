@@ -145,7 +145,6 @@ export function onWebSocketAccepted({
     userIdToConnectionId.set(userId, [...connections, connection]);
     if (connections.length === 0) handleUserOnline({ userId, newLocalStorage });
   }
-  return connection;
 }
 
 export function onWebSocketClosed({

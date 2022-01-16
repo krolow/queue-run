@@ -88,7 +88,7 @@ export async function handleWebSocketMessage({
   newLocalStorage: () => LocalStorage;
   requestId: string;
   userId: string | null;
-}): Promise<Buffer | null> {
+}) {
   try {
     let found;
     try {
@@ -100,11 +100,11 @@ export async function handleWebSocketMessage({
           error instanceof Error ? error : new Error(String(error))
         );
       }
-      return Buffer.from(JSON.stringify({ error: "Not available" }));
+      throw new Error("Not available");
     }
 
     const { middleware, module, route } = found;
-    return await handleRoute({
+    await handleRoute({
       config: module.config ?? {},
       connection,
       data,
@@ -118,7 +118,7 @@ export async function handleWebSocketMessage({
     });
   } catch (error) {
     console.error("Internal processing error %s", connection, error);
-    return Buffer.from(JSON.stringify({ error: String(error) }));
+    throw error;
   }
 }
 
@@ -144,7 +144,7 @@ async function handleRoute({
   requestId: string;
   timeout: number;
   userId: string | null;
-}): Promise<Buffer | null> {
+}) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout * 1000);
 
@@ -158,9 +158,9 @@ async function handleRoute({
   try {
     const localStorage = newLocalStorage();
     localStorage.user = userId ? { id: userId } : null;
-    return await withLocalStorage(localStorage, () => {
+    await withLocalStorage(localStorage, async () => {
       localStorage.connection = connection;
-      return runWithMiddleware({
+      await runWithMiddleware({
         config,
         data,
         handler,
@@ -207,8 +207,6 @@ async function runWithMiddleware({
     ]);
 
     if (signal.aborted) throw new TimeoutError("Request aborted: timed out");
-
-    return null;
   } catch (error) {
     await handleOnError({
       error,
@@ -216,7 +214,7 @@ async function runWithMiddleware({
       middleware,
       request: request as WebSocketRequest,
     });
-    return Buffer.from(JSON.stringify({ error: String(error) }));
+    throw error;
   }
 }
 

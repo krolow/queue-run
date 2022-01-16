@@ -72,21 +72,23 @@ async function onMessage(
     event.body ?? "",
     event.isBase64Encoded ? "base64" : "utf-8"
   );
-  const response = await handleWebSocketMessage({
-    connection,
-    data,
-    newLocalStorage,
-    requestId: event.requestContext.requestId,
-    userId: null,
-  });
-  return response
-    ? {
-        body: response.toString(),
-        headers: {},
-        isBase64Encoded: false,
-        statusCode: 200,
-      }
-    : undefined;
+  try {
+    await handleWebSocketMessage({
+      connection,
+      data,
+      newLocalStorage,
+      requestId: event.requestContext.requestId,
+      userId: null,
+    });
+    return undefined;
+  } catch (error) {
+    return {
+      body: String(error),
+      headers: {},
+      isBase64Encoded: false,
+      statusCode: 500,
+    };
+  }
 }
 
 export type APIGatewayWebSocketEvent = {
