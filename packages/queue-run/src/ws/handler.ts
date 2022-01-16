@@ -186,16 +186,16 @@ async function runWithMiddleware({
   handler: WebSocketHandler;
   metadata: Omit<Parameters<WebSocketHandler>[0], "data">;
   middleware: WebSocketMiddleware;
-}): Promise<Buffer | null> {
-  const { connection, signal } = metadata;
+}) {
+  const { signal } = metadata;
   const request = { data: bufferToData(data, config), ...metadata };
   try {
-    const response = await Promise.race([
+    await Promise.race([
       (async () => {
         const { onMessageReceived } = middleware;
         if (onMessageReceived) await onMessageReceived(request);
 
-        return await handler(request);
+        await handler(request);
       })(),
 
       new Promise<undefined>((resolve) =>
@@ -205,13 +205,7 @@ async function runWithMiddleware({
 
     if (signal.aborted) throw new TimeoutError("Request aborted: timed out");
 
-    if (!response) return null;
-
-    return await handleResponse({
-      connection,
-      middleware,
-      response,
-    });
+    return null;
   } catch (error) {
     await handleOnError({
       error,
@@ -219,12 +213,7 @@ async function runWithMiddleware({
       middleware,
       request: request as WebSocketRequest,
     });
-
-    return await handleResponse({
-      connection,
-      middleware,
-      response: { error: String(error) },
-    });
+    return Buffer.from(JSON.stringify({ error: String(error) }));
   }
 }
 
@@ -240,37 +229,6 @@ function bufferToData(
     default:
       return data;
   }
-}
-
-async function handleResponse({
-  connection,
-  middleware,
-  response,
-}: {
-  connection: string;
-  middleware: WebSocketMiddleware;
-  response: object | string | Buffer | ArrayBuffer;
-}): Promise<Buffer | null> {
-  const data = await resultToBuffer(response);
-  const { onMessageSent } = middleware;
-  if (onMessageSent) {
-    try {
-      await onMessageSent({ connections: [connection], data });
-    } catch (error) {
-      console.error("Internal processing error in onMessageSent", error);
-    }
-  }
-  return data;
-}
-
-async function resultToBuffer(
-  result: object | string | Buffer | ArrayBuffer
-): Promise<Buffer> {
-  if (typeof result === "string") return Buffer.from(result);
-  if (result instanceof Buffer) return result;
-  if (result instanceof ArrayBuffer) return Buffer.from(result);
-  const indent = Number(process.env.QUEUE_RUN_INDENT) || 0;
-  return Buffer.from(JSON.stringify(result, null, indent));
 }
 
 async function handleOnError({

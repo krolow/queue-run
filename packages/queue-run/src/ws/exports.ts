@@ -12,7 +12,6 @@ import type { OnError } from "../shared/index.js";
  * @param requestId Unique ID for this message
  * @param signal The abort signal
  * @param user The authenticated user
- * @return Optional response to send back
  */
 export type WebSocketHandler<
   Data extends JSONValue | string | Buffer = JSONValue | string | Buffer
@@ -20,7 +19,7 @@ export type WebSocketHandler<
   reques: WebSocketRequest<Data> & {
     signal: AbortSignal;
   }
-) => Promise<Result> | Result;
+) => void | Promise<void>;
 
 export type WebSocketRequest<
   Data extends JSONValue | string | Buffer = JSONValue
@@ -30,8 +29,6 @@ export type WebSocketRequest<
   requestId: string;
   user: { id: string; [key: string]: unknown } | null;
 };
-
-type Result = object | string | Buffer | ArrayBuffer | undefined;
 
 export type WebSocketConfig = {
   /**

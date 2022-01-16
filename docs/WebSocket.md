@@ -38,8 +38,6 @@ Since JSON is the most common use case, this is also the default. If you want to
 
 Clients can still connect and you can send them messages.
 
-The request handler can respond to the client with an object (JSON), string, or `Buffer`. It doesn't have to, as WebSocket is an asynchronous protocol, it can send a message at any point.
-
 If the request handler throws any error, or the request times out, the server sends back a JSON object of the form `{ error: string }`. That error is also logged by the [Logging Middleware](#logging-middleware).
 
 You can change the timeout using `export const config = { timeout: inSeconds };`.
