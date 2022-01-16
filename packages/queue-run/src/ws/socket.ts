@@ -112,7 +112,7 @@ class WebSocket<T = Payload> {
    * @param userId The user ID
    * @returns true if the user has an open WebSocket connection
    */
-  async isConnected(userId: string): Promise<boolean> {
+  async isOnline(userId: string): Promise<boolean> {
     const local = getLocalStorage();
     const connections = await local.getConnections([userId]);
     return connections.length > 0;
