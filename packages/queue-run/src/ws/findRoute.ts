@@ -20,11 +20,11 @@ import { logMessageReceived } from "./middleware.js";
 export default async function findRoute(data: Buffer): Promise<{
   module: WebSocketExports;
   middleware: WebSocketMiddleware;
-  socket: WebSocketRoute;
+  route: WebSocketRoute;
 }> {
   const { socket } = await loadManifest();
   const route = socket.get("/");
-  if (!route) throw new Error("Not Found");
+  if (!route) throw new Error("No route matching request");
 
   const loaded = await loadModule<WebSocketExports, WebSocketMiddleware>(
     route.filename,
@@ -33,5 +33,5 @@ export default async function findRoute(data: Buffer): Promise<{
   invariant(loaded, "Could not load route module");
   const { module, middleware } = loaded;
 
-  return { module, middleware, socket: route };
+  return { module, middleware, route: route };
 }

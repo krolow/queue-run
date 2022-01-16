@@ -19,10 +19,7 @@ export async function authenticateWebSocket({
   newLocalStorage: () => LocalStorage;
   request: Request;
 }): Promise<AuthenticatedUser | null> {
-  const { middleware } =
-    (await loadModule<never, WebSocketMiddleware>("socket/index.js", {})) ??
-    (await loadMiddleware<WebSocketMiddleware>("socket/_middleware.js", {}));
-  const { authenticate } = middleware;
+  const { authenticate, onError } = await getCommonMiddleware();
   if (!authenticate) return null;
 
   return await withLocalStorage(newLocalStorage(), async () => {
@@ -30,13 +27,13 @@ export async function authenticateWebSocket({
     try {
       user = await authenticate(request, getCookies(request));
     } catch (error) {
-      if (middleware.onError) {
+      if (onError) {
         try {
-          await middleware.onError(
+          await onError(
             error instanceof Error ? error : new Error(String(error))
           );
         } catch (error) {
-          console.error("Error in onError middleware", error);
+          console.error(error);
         }
       }
       throw new Response("Internal Server Error", { status: 500 });
@@ -67,6 +64,13 @@ function getCookies(request: Request): { [key: string]: string } {
   );
 }
 
+async function getCommonMiddleware() {
+  const { middleware } =
+    (await loadModule<never, WebSocketMiddleware>("socket/index.js", {})) ??
+    (await loadMiddleware<WebSocketMiddleware>("socket/_middleware.js", {}));
+  return middleware;
+}
+
 export async function handleWebSocketMessage({
   connection,
   data,
@@ -81,23 +85,35 @@ export async function handleWebSocketMessage({
   userId: string | null;
 }): Promise<Buffer | null> {
   try {
-    const { middleware, module, socket } = await findRoute(data);
+    let found;
+    try {
+      found = await findRoute(data);
+    } catch (error) {
+      const { onError } = await getCommonMiddleware();
+      if (onError) {
+        await onError(
+          error instanceof Error ? error : new Error(String(error))
+        );
+      }
+      return Buffer.from(JSON.stringify({ error: "Not available" }));
+    }
 
+    const { middleware, module, route } = found;
     return await handleRoute({
       config: module.config ?? {},
       connection,
       data,
-      filename: socket.filename,
+      filename: route.filename,
       handler: module.default,
       middleware,
       newLocalStorage,
       requestId,
-      timeout: socket.timeout,
+      timeout: route.timeout,
       userId,
     });
   } catch (error) {
     console.error("Internal processing error %s", connection, error);
-    return null;
+    return Buffer.from(JSON.stringify({ error: String(error) }));
   }
 }
 
@@ -280,18 +296,15 @@ export async function onMessageSentAsync({
   connections: string[];
   data: Buffer;
 }) {
-  const { middleware } =
-    (await loadModule<never, WebSocketMiddleware>("socket/index.js", {})) ??
-    (await loadMiddleware<WebSocketMiddleware>("socket/_middleware.js", {}));
-  const { onMessageSent } = middleware;
+  const { onMessageSent, onError } = await getCommonMiddleware();
   if (!onMessageSent) return;
 
   try {
     await onMessageSent({ connections, data });
   } catch (error) {
-    if (middleware.onError) {
+    if (onError) {
       try {
-        await middleware.onError(
+        await onError(
           error instanceof Error ? error : new Error(String(error))
         );
       } catch (error) {
