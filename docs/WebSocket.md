@@ -131,6 +131,33 @@ From an HTTP/WebSocket request or queued job that's already authenticated, you c
 The authenticated user ID can be anything, so you can also support anonymous users. For example, in a public chat space, you can use random IDs.
 
 
+## Presence
+
+If you want to track whether a user is online (has an active WebSocket connection):
+
+* `onOnline(userId)` will be called when the user first connects, after they've been authenticated
+* `onOffline(userId)` will be called when the last connection has closed
+* `socket.isOnline(userID)` will return `true` if there's an open connection for that user
+
+You can export `onOnline` and `onOffline` from `socket/index.ts` or `socket/_middleware.ts`.
+
+You can combine that with WebSocket messages from the client to determine whether the user is active in a chat room, editing a document, etc.
+
+For example:
+
+```ts socket/[room]/action_enter.ts
+export default async function({ data, user }) {
+  await db.join({ roomId: data.room, userId: user.id });
+}
+```
+
+```ts socket/_middleware.ts
+export async function onOffline(userId) {
+  await db.leaveAllRooms({ userId });
+}
+```
+
+
 ## Logging Middleware
 
 WebSocket support the following logging middleware:
