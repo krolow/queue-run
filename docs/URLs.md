@@ -1,134 +1,115 @@
 # Working with URLs
 
-## Simple Example
+There are five things the framework should do for you:
 
-If you want to return a URL as part of the response, you can use the `url` helper.
+* Prevent URLs from breaking when you're moving code around (see [`url.self`](#urlself) below)
+* Expand the URL template with path paramters, eg `/items/[id]` + `{ id: 123 }` ⇒ `/items/123`
+* Add query string paramters to the URL, eg `/items` + `{ sort: 'desc' }` ⇒ `/items?sort=desc`
+* Support type checking for path and query parameters
+* Expand paths to absolute urls, eg `/items` ⇒ `https://example.com/items`
 
-```ts title="api/items/[id].ts"
+We'll see how QueueRun handles all of these use cases with the handy `url` function.
+
+First, the `url` function itself allows you to construct an absolute URL from a template, expanding path parameters and adding query parameters.
+
+```ts
 import { url } from 'queue-run';
 
-// highlight-next-line
-export const urlForItem = url.self<{ id: string >}();
+// The second argument are the path parameters
+url("/items/[id]", { id: 123 })
+=> https://example.com/items/123
 
-// The request URL looks like /items/123
-export async function get() {
-  ...
-}
+// You can have multiple path parameters
+url("/reports/[month]/[day]", { year: 2022, month: "01" })
+=> https://example.com/reports/2022/01
+
+// Rest parameter also works
+url("/reports/[...date]", { date: ["2022", "01", "15"] })
+=> https://example.com/reports/2022/01/15
+
+// The third argument are the query parameters
+url("/items", null, { sort: "desc" })
+=> https://example.com/items?sort=desc
+
+// A query string parameter can have multiple values
+url("/items", null, { category: "work", category: "fun" })
+=> https://example.com/items?category=work&category=fun
+
+// External URLs also allowed
+url("https://example.org/items/[id]", { id: 123 })
+=> https://example.org/items/123
 ```
 
-```ts title="api/items/index.ts"
-import { urlForItem } from './[id].js';
+## url.for
 
-// Respond with a list of all items
-export async function get() {
-  const items = await db.items.find();
-  return {
-    items: items.map(item => ({
-      id: item.id,
-      // highlight-next-line
-      url: urlForItem(item),
-    })),
-  };
-}
-```
+If you have multiple places where you generate URLs from the same template, you don't want to repeat that template.
 
-## The url() Function
-
-Let's explain how this works, starting with the `url()` function.
-
-The `url()` function accepts three arguments:
-
-- The resource path (e.g. `/items/[id]`)
-- Optional parameters to insert into the path (e.g. `{ id: '123' }`)
-- Optional query string parameters (e.g. `{ page: 2 }`)
-
-The `url()` function returns an absolute URL, eg `https://example.com/items/123`;
-
-The format for the resource path:
-
-- `[name]` for a single value parameter, eg `/items/[id]`
-- `[...name]` for the rest parameter, eg `/post/[...slug]`
-- If you use the rest parameter, it must come at the end of the path
-- The leading slash is optional
-- You can also use Express notation: `/tasks/:id` and `/post/:slug*`.
-
-
-Here are some examples:
+You can use a constructor function to keep your code DRY. The constructor function memorizes the URL template, and accepts two arguments: path parameters and query parameters.
 
 ```ts
-url('/tasks/[id]', { id: 123 })
-=> https://example.queue.run/tasks/123
-
-url('/tasks', null, { category: 'abc' })
-=> https://example.queue.run/tasks?category=abc
-
-url('/tasks', null, { filters: ['abc', 'xyz']  })
-=> https://example.queue.run/tasks?filters=abc&filters=xyz
-
-url('/post/[...slug]', { slug: ['2021', '12', '28', 'my-post'] })
-=> https://example.queue.run/post/2021/12/28/my-post
+const urlForItem = url.for("/items/[id]");
+urlForItem({ id: 123 });
+=> https://example.com/items/123
 ```
 
-:::note
+Remember how we use filenames as URL templates? In this example, the resource exists in the file `api/items/[id].ts`.
 
-You can also use `url()` with an absolute URL, a [URL](https://developer.mozilla.org/en-US/docs/Web/API/URL) object, and even a `file://` URL.
-:::
+That file is the best place from which to export the URL constructor:
 
+```ts title=api/items/[id].ts
+import { url } from "queue-run";
 
-## url.for()
-
-You can use `url.for(path)` to create a URL construction function. You then pass the URL construction around to code that needs to create URLs, but not worry about the path.
-
-Here are some examples:
-
-```js
-const urlForTask = url.for('/tasks/[id]');
-
-urlForTask({ id: 123 })
-=> https://example.queue.run/tasks/123
-
-urlForTask({ id: 123 }, { category: 'abc' })
-=> https://example.queue.run/tasks/123?category=abc
-
-const urlForPost = url.for('/post/[...slug]');
-
-urlForPost({ slug: ['2021', '12', '28', 'my-post'] })
-=> https://example.queue.run/post/2021/12/28/my-post
+export const urlForItem = url.for("/item/[id]");
 ```
 
-If you're using TypeScript, you can apply types to the URL construction function:
+## url.self
 
-```ts
-const urlForTask = url.for<{ id: string }>('/tasks/[id]');
+We're still duplicating the URL: once in the filename, twice in the file itself.
 
-// No path parameters, but type-checking for query parameters
-const urlForList = url.for<never, { page: number }>('/list');
+ESM allows us to do this:
 
-const urlForPost = url.for<
-  { slug: string[] },
-  { theme?: 'light' | 'dark' }
->('/post/[...slug]');
+```ts title=api/items/[id].ts
+import { url } from "queue-run";
+
+export const urlForItem = url.for(import.meta.url);
 ```
 
+This is such a common use case, we can simplify it:
 
+```ts title=api/items/[id].ts
+import { url } from "queue-run";
 
-## url.self()
-
-The `url.self()` function is a shortcut for `url.for(path)` that uses the path of the current file.
-
-These  are equivalent:
-
-```ts title="api/items/[id].ts"
 export const urlForItem = url.self();
-
-export const urlForItem = url.url('/items/[id]');
-
-export const urlForItem = url.url(import.meta.url);
 ```
 
-:::info Safe To Rename
+What happens if we rename `api/items/[id].ts` to `api/item/[id].ts`?
 
-The convenience of `url.self()` is when you rename files, your URLs change and don't break.
+If you use an IDE, it will update every place where you import `urlForItem` from this module. And `url.self()` will always use the correct URL template!
 
-For example, if you rename `items/[id].ts` to `item/[id].ts` (plural to singular), or `items/[itemId].ts` (parameter name). You don't need to change any of the code.
-:::
+## Type Checking
+
+Finally, let's add some type checks to our URLs:
+
+```ts title=api/items/[id].ts
+import { url } from "queue-run";
+
+export const urlForItem = url.self<{ id: number }>();
+```
+
+```ts title=api/items/index.ts
+import { urlForItem } from "./[id].js";
+
+// Type error if id is missing or not a number!
+urlFormItem({ id });
+```
+
+Type checking works for `url.for` and `url.self`. The first type is for the path parameters, and the second path for query parameters:
+
+```ts
+export const urlForReport = url.self(<
+  { date: string },
+  { sort?: "asc" | "desc" }
+>);
+```
+
+Hopefully `url.self` and type checking will help spare you from common editing bugs.
