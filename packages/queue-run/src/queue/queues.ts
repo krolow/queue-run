@@ -5,7 +5,7 @@ type Payload = Buffer | string | object;
 type Params = { [key: string]: string | string[] };
 
 /* eslint-disable no-unused-vars */
-interface QueuesFunction<T = Payload> {
+interface QueuesFunction<T extends Payload> {
   /**
    * Returns a reference to the named queue.
    *
@@ -26,7 +26,7 @@ interface QueuesFunction<T = Payload> {
    * @param name The name of the queue
    * @returns A queue
    */
-  get: <T>(name: string) => QueueFunction<T>;
+  get: <T extends Payload>(name: string) => QueueFunction<T>;
 
   /**
    * Returns a reference to the current queue. You can only use this from a
@@ -41,15 +41,15 @@ interface QueuesFunction<T = Payload> {
    * @returns A queue
    * @throws Called not from within nda queue handler
    */
-  self: <T>() => QueueFunction<T>;
+  self: <T extends Payload>() => QueueFunction<T>;
 }
 /* eslint-enable no-unused-vars */
 
-const queues: QueuesFunction = (name) => newQueue(name);
+const queues: QueuesFunction<Payload> = (name) => newQueue(name);
 
-queues.get = <T>(name: string) => newQueue<T>(name);
+queues.get = <T extends Payload>(name: string) => newQueue<T>(name);
 
-queues.self = <T>() => {
+queues.self = <T extends Payload>() => {
   const pathname = selfPath();
   if (!pathname.startsWith("queues/"))
     throw new Error("You can only use self from a queue handler");
@@ -59,7 +59,7 @@ queues.self = <T>() => {
 export default queues;
 
 /* eslint-disable no-unused-vars */
-interface QueueFunction<T = Payload> {
+interface QueueFunction<T extends Payload> {
   /**
    * Push a job to the queue.
    *
@@ -131,7 +131,7 @@ interface QueueFunction<T = Payload> {
 /* eslint-enable no-unused-vars */
 
 // eslint-disable-next-line sonarjs/cognitive-complexity
-function newQueue<T = Payload>(
+function newQueue<T extends Payload>(
   queueName: string,
   group?: string,
   dedupe?: string

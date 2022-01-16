@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 import type { AbortSignal } from "node-abort-controller";
 import { OnError } from "../shared/index.js";
+import { JSONValue } from "./../json.d";
 import type { Request, Response } from "./fetch.js";
 
 /**
@@ -18,19 +19,35 @@ import type { Request, Response } from "./fetch.js";
  * or buffer (as application/octet-stream)
  */
 export type RequestHandler<
-  P = { [key: string]: string | string[] },
-  Q = { [key: string]: string | string[] }
-> = (args: {
-  body: object | string | Buffer | null;
+  Types extends { body: Body; path: Params; query: Params } = {
+    body: Body;
+    path: Params;
+    query: Params;
+  }
+> = (args: HTTPRequest<Types>) => Promise<Result> | Result;
+
+type HTTPRequest<
+  Types extends {
+    body?: Body;
+    path?: Params;
+    query?: Params;
+  } = {
+    body: Body;
+    path: Params;
+    query: Params;
+  }
+> = {
+  body: Types["body"];
   cookies: { [key: string]: string };
-  query: Q;
-  params: P;
+  query: Types["query"];
+  params: Types["path"];
   request: Request;
   requestId: string;
   signal: AbortSignal;
   user: { id: string; [key: string]: unknown } | null;
-}) => Promise<Result> | Result;
-
+};
+type Body = JSONValue | string | Buffer | undefined;
+type Params = { [key: string]: string | string[] };
 type Result = Response | string | Buffer | object | null;
 
 /**

@@ -4,6 +4,7 @@ import { AuthenticatedUser } from "../index.js";
 import { loadModule, LocalStorage, withLocalStorage } from "../shared/index.js";
 import { loadMiddleware } from "../shared/loadModule.js";
 import TimeoutError from "../shared/TimeoutError.js";
+import { JSONValue } from "./../json.d";
 import {
   WebSocketConfig,
   WebSocketHandler,
@@ -224,10 +225,10 @@ async function runWithMiddleware({
 function bufferToData(
   data: Buffer,
   config: WebSocketConfig
-): object | string | Buffer {
+): JSONValue | string | Buffer {
   switch (config.type ?? "json") {
     case "json":
-      return JSON.parse(data.toString("utf-8"));
+      return JSON.parse(data.toString("utf-8")) as JSONValue;
     case "text":
       return data.toString("utf-8");
     default:

@@ -19,7 +19,7 @@ type Payload = object | string | ArrayBuffer | Blob | Buffer;
  * await socket.to(users).send(updates);
  * ```
  */
-class WebSocket<T = Payload> {
+class WebSocket<T extends Payload = object> {
   private _userIds: string[] | null;
 
   constructor(userIds: string[] | null) {

@@ -1,7 +1,8 @@
 /* eslint-disable no-unused-vars */
 import type { AbortSignal } from "node-abort-controller";
 import { AuthenticateMethod } from "../http/index.js";
-import { OnError } from "../shared/index.js";
+import type { JSONValue } from "../json.js";
+import type { OnError } from "../shared/index.js";
 
 /**
  * WebSocket message handler.
@@ -13,15 +14,17 @@ import { OnError } from "../shared/index.js";
  * @param user The authenticated user
  * @return Optional response to send back
  */
-export type WebSocketHandler<P = { [key: string]: string | string[] }> = (
-  reques: WebSocketRequest & {
+export type WebSocketHandler<
+  Data extends JSONValue | string | Buffer = JSONValue | string | Buffer
+> = (
+  reques: WebSocketRequest<Data> & {
     signal: AbortSignal;
   }
 ) => Promise<Result> | Result;
 
-export type WebSocketRequest = {
+export type WebSocketRequest<Data extends JSONValue | string | Buffer> = {
   connection: string;
-  data: object | string | Buffer;
+  data: Data;
   requestId: string;
   user: { id: string; [key: string]: unknown } | null;
 };
@@ -69,7 +72,7 @@ export type OnOffline = (userId: string) => void | Promise<void>;
  * @param user The authenticated user
  */
 export type OnMessageReceived = (
-  request: WebSocketRequest
+  request: WebSocketRequest<JSONValue | string | Buffer>
 ) => void | Promise<void>;
 
 /**

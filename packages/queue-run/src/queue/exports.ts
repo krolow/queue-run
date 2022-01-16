@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-vars */
 import type { AbortSignal } from "node-abort-controller";
+import type { JSONObject, JSONValue } from "../json.js";
 import { OnError } from "../shared/index.js";
 
 /**
@@ -18,23 +19,26 @@ import { OnError } from "../shared/index.js";
  * @param payload The job payload: object, string, or Buffer
  * @param metadata Metadata about the job
  */
-export type QueueHandler<T = Payload, P = Params> = (
-  payload: T,
-  metadata: JobMetadata<P>
-) => Promise<void> | void;
+export type QueueHandler<
+  T extends Payload = JSONObject,
+  P extends Params = Params
+> = (payload: T, metadata: JobMetadata<P>) => Promise<void> | void;
 
 /**
  * FIFO queue handler is similar to standard queue handler, but also has
  * access to group ID and sequence number.
  */
-export type FIFOQueueHandler<T, P> = QueueHandler<T, P> & {
+export type FIFOQueueHandler<
+  T extends Payload = JSONObject,
+  P extends Params = Params
+> = QueueHandler<T, P> & {
   metadata: JobMetadata<P & { group: string; dedupe?: string }> & {
     groupId: string;
     sequenceNumber: number;
   };
 };
 
-type Payload = string | Buffer | object;
+type Payload = string | Buffer | JSONValue;
 type Params = { [key: string]: string | string[] };
 
 /**
