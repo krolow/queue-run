@@ -1,7 +1,7 @@
 import { URL } from "node:url";
-import { Request } from "../http/fetch.js"; // don't import from http to avoid circular dependency
+import { Request } from "../http/fetch.js";
 import { WebSocketRequest } from "../index.js";
-import { JobMetadata } from "../queue/index.js";
+import { JobMetadata } from "../queue/exports.js";
 
 /* eslint-disable no-unused-vars */
 /**

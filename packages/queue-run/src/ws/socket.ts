@@ -1,5 +1,5 @@
 import { Blob } from "../http/fetch.js";
-import { getLocalStorage } from "../shared/index.js";
+import { getLocalStorage } from "../shared/localStorage.js";
 import { onMessageSentAsync } from "./handler.js";
 
 type Payload = object | string | ArrayBuffer | Blob | Buffer;

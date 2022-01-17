@@ -1,10 +1,10 @@
 import { AbortController } from "node-abort-controller";
 import { Request } from "../http/fetch.js";
 import { AuthenticatedUser } from "../index.js";
-import { loadModule, LocalStorage, withLocalStorage } from "../shared/index.js";
-import { loadMiddleware } from "../shared/loadModule.js";
+import { loadMiddleware, loadModule } from "../shared/loadModule.js";
+import { LocalStorage, withLocalStorage } from "../shared/localStorage.js";
 import TimeoutError from "../shared/TimeoutError.js";
-import { JSONValue } from "./../json.d";
+import type { JSONValue } from "./../json";
 import {
   WebSocketConfig,
   WebSocketHandler,

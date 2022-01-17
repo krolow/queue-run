@@ -1,8 +1,8 @@
 /* eslint-disable no-unused-vars */
 import type { AbortSignal } from "node-abort-controller";
-import { AuthenticateMethod } from "../http/index.js";
-import type { JSONValue } from "../json.js";
-import type { OnError } from "../shared/index.js";
+import { AuthenticateMethod } from "../http/exports.js";
+import type { JSONValue } from "../json";
+import type { OnError } from "../shared/logError.js";
 
 /**
  * WebSocket message handler.

@@ -1,14 +1,14 @@
 import { AbortController } from "node-abort-controller";
 import invariant from "tiny-invariant";
-import { JSONObject } from "../json.js";
+import type { JSONObject } from "../json";
+import { loadModule } from "../shared/loadModule.js";
 import {
   getLocalStorage,
-  loadManifest,
-  loadModule,
   LocalStorage,
-  logError,
   withLocalStorage,
-} from "../shared/index.js";
+} from "../shared/localStorage.js";
+import { logError } from "../shared/logError.js";
+import { loadManifest } from "../shared/manifest.js";
 import TimeoutError from "../shared/TimeoutError.js";
 import { JobMetadata, QueueExports, QueueMiddleware } from "./exports.js";
 import { logJobFinished, logJobStarted } from "./middleware.js";

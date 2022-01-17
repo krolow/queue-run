@@ -2,13 +2,13 @@ import { AbortController } from "node-abort-controller";
 import { createHash } from "node:crypto";
 import { URL, URLSearchParams } from "node:url";
 import { XMLElement } from "xmlbuilder";
-import { isElement, render } from "../jsx-runtime";
+import { isElement, render } from "../jsx-runtime.js";
 import {
   getLocalStorage,
-  HTTPRoute,
   LocalStorage,
   withLocalStorage,
-} from "../shared/index.js";
+} from "../shared/localStorage";
+import { HTTPRoute } from "../shared/manifest";
 import TimeoutError from "../shared/TimeoutError.js";
 import {
   AuthenticatedUser,

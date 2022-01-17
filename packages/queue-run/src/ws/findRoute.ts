@@ -1,10 +1,7 @@
 import invariant from "tiny-invariant";
-import {
-  loadManifest,
-  loadModule,
-  logError,
-  WebSocketRoute,
-} from "../shared/index.js";
+import { loadModule } from "../shared/loadModule.js";
+import { logError } from "../shared/logError.js";
+import { loadManifest, WebSocketRoute } from "../shared/manifest.js";
 import { WebSocketExports, WebSocketMiddleware } from "./exports.js";
 import { logMessageReceived } from "./middleware.js";
 

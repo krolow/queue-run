@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 import type { AbortSignal } from "node-abort-controller";
-import { OnError } from "../shared/index.js";
+import { OnError } from "../shared/logError.js";
 import { JSONValue } from "./../json.d";
 import type { Request, Response } from "./fetch.js";
 

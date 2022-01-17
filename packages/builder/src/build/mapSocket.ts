@@ -1,13 +1,12 @@
 import glob from "fast-glob";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { loadModule, Manifest } from "queue-run";
 import {
-  loadModule,
-  Manifest,
   RouteMiddleware,
   WebSocketExports,
   WebSocketMiddleware,
-} from "queue-run";
+} from "queue-run/";
 
 const maxTimeout = 30;
 const defaultTimeout = 10;

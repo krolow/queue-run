@@ -1,5 +1,8 @@
-import { RequestHandler, Response } from "../http/index.js";
-import { getLocalStorage, loadManifest, selfPath } from "../shared/index.js";
+import { RequestHandler } from "../http/exports.js";
+import { Response } from "../http/fetch.js";
+import { getLocalStorage } from "../shared/localStorage.js";
+import { loadManifest } from "../shared/manifest.js";
+import selfPath from "../shared/selfPath.js";
 
 type Payload = Buffer | string | object;
 type Params = { [key: string]: string | string[] };

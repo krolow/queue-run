@@ -1,4 +1,5 @@
-import { loadModule, LocalStorage, withLocalStorage } from ".";
+import { loadModule } from "./loadModule.js";
+import { LocalStorage, withLocalStorage } from "./localStorage.js";
 
 type WarmupFunction = () => Promise<void>;
 

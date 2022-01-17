@@ -1,7 +1,8 @@
 import path from "node:path";
 import { URL } from "node:url";
 import { compile } from "path-to-regexp";
-import { getLocalStorage, selfPath } from "../shared/index.js";
+import { getLocalStorage } from "../shared/localStorage.js";
+import selfPath from "../shared/selfPath.js";
 
 type Params = {
   [key: string]: string | number | boolean | (string | number | boolean)[];
