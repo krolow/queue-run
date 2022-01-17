@@ -46,28 +46,6 @@ If the request handler throws any error, or the request times out, the server se
 You can change the timeout using `export const config = { timeout: inSeconds };`.
 
 
-## Routes
-
-`socket/index.ts` exists to respond to all WebSocket requests that don't have a more specific request handler.
-
-You can write handlers that respond to specific WebSocket request by matching on specific name/value pairs (JSON requests only).
-
-For example:
-
-* `socket/action_join.ts` will match a request where `{ action: "join" }`
-* `socket/action_leave.ts` will match a request where `{ action: "leave" }`
-* `socket/[action].ts` will match a request where `action` has a value (not an empty string)
-* `socket/[room]/action_join.ts` will match a request where `{ action: "join" }` and `room` has any value
-
-If the request does not match any route, and there's no `socket/index.ts`, the server responds with `{ error: "not available" }`.
-
-If there are no request handlers, the client can't send request to the server, but the server can still send messages to the client.
-
-:::danger
-WebSocket routes are stil work in progress, need more feedback, and this might change in the future.
-:::
-
-
 ## Sending Messages
 
 You can use `socket.send(message)` to send a message.
