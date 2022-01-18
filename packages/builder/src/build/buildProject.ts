@@ -1,6 +1,11 @@
 import fs from "node:fs/promises";
 import ora from "ora";
-import { Manifest } from "queue-run";
+import {
+  loadMiddleware,
+  loadModule,
+  Manifest,
+  WebSocketMiddleware,
+} from "queue-run";
 import compileSourceFiles from "./compileSourceFiles.js";
 import createBuildDirectory from "./createBuildDirectory.js";
 import getRuntime from "./getRuntime.js";
@@ -43,9 +48,8 @@ export default async function buildProject({
   if (full) await installDependencies({ sourceDir, targetDir: buildDir });
   if (signal?.aborted) throw new Error();
 
-  const spinner = ora("Creating manifest …").start();
   const manifest = await createManifest(buildDir);
-  spinner.stop();
+  if (signal?.aborted) throw new Error();
 
   const zip = full ? await zipLambda(buildDir) : undefined;
   if (signal?.aborted) throw new Error();
@@ -54,14 +58,34 @@ export default async function buildProject({
 }
 
 async function createManifest(dirname: string) {
+  const spinner = ora("Creating manifest …").start();
   const cwd = process.cwd();
   try {
     process.chdir(dirname);
+
     const routes = await mapRoutes();
     const socket = await mapSocket();
     const queues = await mapQueues();
     const manifest: Manifest = { queues, routes, socket };
     await fs.writeFile("manifest.json", JSON.stringify(manifest), "utf-8");
+    spinner.succeed("Created manifest");
+
+    if (manifest.routes.length === 0) {
+      console.warn(
+        'No routes found. Add "export default async function () { … }" to your routes.'
+      );
+    } else {
+      const { middleware } =
+        (await loadModule<never, WebSocketMiddleware>("socket/index.js", {})) ??
+        (await loadMiddleware<WebSocketMiddleware>(
+          "socket/_middleware.js",
+          {}
+        ));
+      if (!middleware.authenticate)
+        console.warn(
+          "NOTE: WebSocket works better when you authenticate users"
+        );
+    }
     return manifest;
   } finally {
     process.chdir(cwd);

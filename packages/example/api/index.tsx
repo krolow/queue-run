@@ -47,3 +47,5 @@ curl $new_url -X DELETE -H "Authorization: Bearer ${token}"`}
     </html>
   );
 }
+
+export const authenticate = null;

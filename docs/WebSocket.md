@@ -107,7 +107,12 @@ export { authenticate } from '#api/_middleware.js';
 
 From an HTTP/WebSocket request or queued job that's already authenticated, you can always send a message to the user with `socket.send(message)`.
 
-The authenticated user ID can be anything, so you can also support anonymous users. For example, in a public chat space, you can use random IDs.
+:::info Why Authenticate?
+
+Authentication allows you to send messages to the user across all their devices and from queued jobs. Without authentication, you only get request/response for WebSocket.
+
+If users are not signed in, the browser can still create a unique identifier. This allows WebSocket to receive messages even after a reconnect, or reloading the page.
+:::
 
 
 ## Presence
