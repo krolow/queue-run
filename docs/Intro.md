@@ -6,7 +6,7 @@ slug: /
 
 * Unapologitecally Web 2.0 framework for buildng back-ends and APIs
 * Designed for serverless deployments
-* You don't have to know any CloudFormation
+* Write code and instantly deploy, no need to learn CloudFormation
 * Of the web: HTTP and WebSocket, REST resources, Fetch API, console.log, HTML forms, Blob
 * For the backend: routing, standard and FIFO job queues, scheduled jobs
 * Batteries included: logging, authentication, multipart/form-data, etc
@@ -115,6 +115,8 @@ export async function del({ params, user}) {
 export const urlForBookmark = url.self<{ id: string }>();
 ```
 
+Learn more about [handling HTTP requests and routing](HTTP).
+
 We'll need some common middleware to authenticate requests, so we can tie them to a user:
 
 ```ts title=api/_middleware.ts
@@ -141,6 +143,9 @@ export default async function ({ id }, { user }) {
   console.info("Taking screenshot of %s", bookmark.url)
   const screenshot = await capture(bookmark.url);
   await db.bookmarks.updateOne({ id, userId: user.id,  screenshot });
+
+  // If the client uses WebSocket, let them know we updated the bookmark
+  await socket.push({ update: 'bookmark', id });
 }
 
 // api/bookmarks/index.ts doesn't need to guess the queue name
@@ -148,6 +153,8 @@ export default async function ({ id }, { user }) {
 // Type information for your IDE
 export const queue = queues.self<{ id: string }>();
 ```
+
+Learn more about [standard and FIFO queues](Queues) and [how to use WebSocket](WebSocket).
 
 Let's run this backend using the development server:
 
@@ -193,6 +200,8 @@ npx queue-run deploy
 ```
 
 You'll see the URL for your new backend. You can try and make HTTP requests against it, open WebSocket connection, etc.
+
+Learn more about commands to [deploy your code, setup custom domains, watch logs, rollback, and more](Deploying).
 
 :::tip
 If you used [our example](https://github.com/assaf/queue-run/tree/main/packages/example), then you can open the URL in your browser, and it will show you `curl` commands for testing your the backend.

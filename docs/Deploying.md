@@ -62,7 +62,7 @@ These are stored in the file `.queue-run.json` in the current working directory.
 * `deploy` — Deploy your project
 * `info` — See information about your deployed project (eg HTTP and WebSocket URLs)
 * `logs` — Watch server logs
-* `rollback` — Rollback to a previous version
+* `rollback` — Broke something? Rollback to a previous version
 
 :::note
 
