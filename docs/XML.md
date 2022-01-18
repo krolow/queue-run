@@ -62,7 +62,7 @@ return xml(
 </Record>
 ```
 
-You can also generate (X)HTML:
+Not a replacement for a proper front-end framework, but in a pinch you can also generate (X)HTML:
 
 ```tsx
 return (
