@@ -6,8 +6,8 @@ import generate from "project-name-generator";
 const filename = ".queue-run.json";
 
 type Project = {
-  name?: string;
-  runtime?: "lambda";
+  name: string;
+  runtime: "lambda";
 };
 
 export async function loadProject(): Promise<Project> {
@@ -15,13 +15,29 @@ export async function loadProject(): Promise<Project> {
   try {
     source = await fs.readFile(filename, "utf-8");
   } catch {
-    return {};
+    throw new Error(`Missing ${filename}, please run npx queue-run init`);
   }
+
+  let project;
   try {
-    return JSON.parse(source);
+    project = JSON.parse(source);
   } catch (error) {
     throw new Error(`Syntax error in ${filename}: ${String(error)}`);
   }
+
+  if (!project.name)
+    throw new Error("Missing project name, please run npx queue-run init");
+  if (!/^[a-zA-Z0-9-_]+$/.test(project.name))
+    throw new Error(
+      "Project name must be alphanumeric, dashes and underscores alowed"
+    );
+
+  if (!project.runtime)
+    throw new Error("Missing project name, please run npx queue-run init");
+  if (project.runtime !== "lambda")
+    throw new Error(`Unsupported runtime: ${project.runtime}`);
+
+  return project;
 }
 
 export async function saveProject({ name, runtime }: Project) {
@@ -30,7 +46,13 @@ export async function saveProject({ name, runtime }: Project) {
 }
 
 export async function initProject() {
-  const project = await loadProject();
+  let project;
+  try {
+    project = await loadProject();
+  } catch {
+    // No .queue-run.json, we'll create one
+    project = {};
+  }
 
   const suggestedName = project.name ?? (await getSuggestedName());
 

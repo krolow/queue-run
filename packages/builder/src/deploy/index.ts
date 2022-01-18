@@ -1,1 +1,2 @@
-export { default as deployLambda } from "./deployLambda.js";
+export { deployLambda, getRecentVersions } from "./deployLambda.js";
+export { default as updateAlias } from "./updateAlias.js";

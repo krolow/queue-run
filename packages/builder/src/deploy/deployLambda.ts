@@ -44,7 +44,7 @@ type LambdaConfig = {
 
 const debug = debuglog("queue-run:deploy");
 
-export default async function deployLambda({
+export async function deployLambda({
   buildDir,
   config,
   signal = new AbortSignal(),
@@ -208,26 +208,59 @@ async function switchOver({
   // Delete any queues that are no longer needed.
   await deleteOldQueues({ prefix: queuePrefix, queueARNs });
 
-  // Delete old versions (excluding this one and $LATEST)
-  await deleteOldVersions(versionARN);
-
   return aliasARN;
 }
 
-async function deleteOldVersions(versionARN: string) {
+export async function getRecentVersions(slug: string): Promise<
+  Array<{
+    arn: string;
+    isCurrent: boolean;
+    modified: Date;
+    size: number;
+    version: string;
+  }>
+> {
+  const lambdaName = `qr-${slug}`;
   const lambda = new Lambda({});
-  const { Versions: versions } = await lambda.listVersionsByFunction({
-    FunctionName: versionARN.replace(/:\d+$/, ""),
+
+  const { FunctionVersion: currentVersion } = await lambda.getAlias({
+    FunctionName: lambdaName,
+    Name: "latest",
   });
-  invariant(versions);
-  const obsolete = versions
-    .filter(({ Version }) => Version !== "$LATEST")
-    .filter(({ FunctionArn }) => FunctionArn !== versionARN)
-    .map(({ FunctionArn }) => FunctionArn);
-  await Promise.all(
-    obsolete.map((arn) => {
-      debug('Deleting old version "%s"', arn);
-      lambda.deleteFunction({ FunctionName: arn });
-    })
-  );
+  const versions = (await getAllVersions(lambdaName))
+    .filter(({ version }) => version !== "$LATEST")
+    .sort((a, b) => b.version.localeCompare(a.version));
+
+  return versions.map((version) => ({
+    ...version,
+    isCurrent: version.version === currentVersion,
+  }));
+}
+
+async function getAllVersions(
+  lambdaName: string,
+  nextToken?: string
+): Promise<
+  Array<{
+    arn: string;
+    modified: Date;
+    size: number;
+    version: string;
+  }>
+> {
+  const lambda = new Lambda({});
+  const { NextMarker, Versions } = await lambda.listVersionsByFunction({
+    FunctionName: lambdaName,
+    ...(nextToken && { Marker: nextToken }),
+  });
+  if (!Versions) return [];
+  const versions = Versions.map((version) => ({
+    arn: version.FunctionArn!,
+    modified: new Date(version.LastModified!),
+    size: version.CodeSize!,
+    version: version.Version!,
+  }));
+  return NextMarker
+    ? [...versions, ...(await getAllVersions(lambdaName, NextMarker))]
+    : versions;
 }

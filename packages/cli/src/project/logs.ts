@@ -9,14 +9,7 @@ const command = new Command("logs")
   .option("-h --hours <n>", "number of hours to look back", "1")
   .option("--once", "show most recent logs and stop")
   .action(async ({ hours, once }: { hours: string; once: boolean }) => {
-    const { name, runtime } = await loadProject();
-    if (!(name && runtime))
-      throw new Error(
-        "You need to setup your project first: npx queue-run init"
-      );
-
-    if (runtime !== "lambda")
-      throw new Error(`Unsupported runtime: ${runtime}`);
+    const { name } = await loadProject();
 
     let nextToken = await showEvents({ name, hours: Number(hours) });
     while (!once) nextToken = await showEvents({ name, nextToken });

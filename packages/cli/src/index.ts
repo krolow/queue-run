@@ -9,6 +9,7 @@ import deployCommand from "./project/deploy.js";
 import infoCommand from "./project/info.js";
 import initCommand from "./project/init.js";
 import logsCommand from "./project/logs.js";
+import rollbackCommand from "./project/rollback.js";
 
 const debug = debuglog("queue-run:cli");
 
@@ -20,6 +21,7 @@ program.addCommand(devCommand);
 program.addCommand(initCommand);
 program.addCommand(logsCommand);
 program.addCommand(infoCommand);
+program.addCommand(rollbackCommand);
 
 program.showSuggestionAfterError();
 program.addHelpCommand();

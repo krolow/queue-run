@@ -12,14 +12,8 @@ import { loadProject } from "./project.js";
 const command = new Command("deploy")
   .description("deploy your project")
   .action(async () => {
-    const { name, runtime } = await loadProject();
-    if (!(name && runtime))
-      throw new Error(
-        "You need to setup your project first: npx queue-run init"
-      );
-
-    if (runtime === "lambda") await deployRuntimeLambda({ name });
-    else throw new Error(`Unsupported runtime: ${runtime}`);
+    const { name } = await loadProject();
+    await deployRuntimeLambda({ name });
   });
 
 export default command;
