@@ -6,5 +6,5 @@
     "emitDeclarationOnly": true
   },
   "extends": "../../tsconfig.json",
-  "files": ["src/index.ts", "src/jsx-runtime", "src/integration"]
+  "files": ["src/index.ts", "src/jsx-runtime"]
 }
