@@ -296,6 +296,12 @@ export async function addAPIGatewayDomain({
     addDomainMapping({
       apiId: http?.ApiId!,
       certificateArn,
+      domain: domain,
+      stage: "$default",
+    }),
+    addDomainMapping({
+      apiId: http?.ApiId!,
+      certificateArn,
       domain: `*.${domain}`,
       stage: "$default",
     }),
