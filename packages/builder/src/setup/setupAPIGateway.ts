@@ -397,4 +397,5 @@ async function removeDomain({
       DomainName: domain,
     });
   }
+  await apiGateway.deleteDomainName({ DomainName: domain });
 }

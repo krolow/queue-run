@@ -1,5 +1,4 @@
 import { ACM, CertificateDetail } from "@aws-sdk/client-acm";
-import chalk from "chalk";
 import inquirer from "inquirer";
 import ora from "ora";
 import invariant from "tiny-invariant";
@@ -28,10 +27,11 @@ export async function requestCertificate({
   method?: "email" | "dns" | undefined;
   verifyDomain?: string | undefined;
 }): Promise<string> {
+  const spinner = ora("Looking up existing certificate").start();
   const certificate = await findCertificate(domain);
+  spinner.succeed();
   if (certificate?.Status === "ISSUED") return certificate.CertificateArn!;
 
-  console.info(chalk.green.bold("\n1. Let's get you a new TLS certificate\n"));
   const answers = await inquirer.prompt([
     {
       type: "list",
@@ -61,9 +61,7 @@ export async function requestCertificate({
         })
       : await useDNSVerification({ certificate, domain });
 
-  const spinner = ora("Waiting for request to be verified").start();
   await waitForCertificateIssued(arn);
-  spinner.succeed();
   return arn;
 }
 
@@ -97,15 +95,20 @@ async function findCertificate(
 }
 
 async function waitForCertificateIssued(arn: string) {
-  const { Certificate } = await acm.describeCertificate({
-    CertificateArn: arn,
-  });
-  if (Certificate?.Status === "ISSUED") return;
-  if (Certificate?.Status === "PENDING_VALIDATION") {
+  const spinner = ora("Waiting for request to be verified").start();
+  let status: string = "PENDING_VALIDATION";
+  while (status === "PENDING_VALIDATION") {
+    const { Certificate } = await acm.describeCertificate({
+      CertificateArn: arn,
+    });
+    invariant(Certificate?.Status, "Certificate deleted");
+    status = Certificate.Status;
+    if (status === "ISSUED") return;
+    if (status !== "PENDING_VALIDATION")
+      throw new Error(`Certificate verification failed ${status}`);
     await new Promise((resolve) => setTimeout(resolve, 1000));
-    await waitForCertificateIssued(arn);
   }
-  throw new Error("Certificate verification failed");
+  spinner.succeed();
 }
 
 async function useEmailVerification({
@@ -115,11 +118,13 @@ async function useEmailVerification({
   domain: string;
   verifyDomain: string;
 }): Promise<string> {
+  const spinner = ora("Requesting a new certificate").start();
   const { CertificateArn } = await acm.requestCertificate({
     DomainName: domain,
     DomainValidationOptions: [
       { DomainName: domain, ValidationDomain: verifyDomain },
     ],
+    SubjectAlternativeNames: [domain],
     ValidationMethod: "EMAIL",
   });
   invariant(CertificateArn);
@@ -129,6 +134,7 @@ async function useEmailVerification({
     CertificateArn,
   });
   invariant(Certificate, "Certificate deleted");
+  spinner.succeed();
 
   const recipients = Certificate.DomainValidationOptions?.find(
     ({ ValidationMethod }) => ValidationMethod === "EMAIL"
@@ -156,19 +162,22 @@ async function useDNSVerification({
       "\nWaiting for DNS changes to propagate, this could take a while ..."
     );
     console.info(
-      "You can check DNS propagation here: %s",
-      `https://dns.google/query?name=${validation.Value}&rr_type=CNAME&ecs=`
+      "You can check DNS propagation here:\n%s",
+      `https://dns.google/query?name=${validation.Name}&rr_type=CNAME&ecs=`
     );
     return certificate!.CertificateArn!;
   } else {
+    const spinner = ora("Requesting a new certificate").start();
     const { CertificateArn } = await acm.requestCertificate({
       DomainName: domain,
       ValidationMethod: "DNS",
+      SubjectAlternativeNames: [domain],
     });
     const { Certificate } = await acm.describeCertificate({
       CertificateArn,
     });
     invariant(Certificate);
+    spinner.succeed();
     return await useDNSVerification({ certificate: Certificate, domain });
   }
 }
