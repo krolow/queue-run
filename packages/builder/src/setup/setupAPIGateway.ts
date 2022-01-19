@@ -291,14 +291,15 @@ export async function addAPIGatewayDomain({
     findGatewayAPI({ protocol: ProtocolType.HTTP, project }),
     findGatewayAPI({ protocol: ProtocolType.WEBSOCKET, project }),
   ]);
+
   await Promise.all([
-    createAndMapDomain({
+    addDomainMapping({
       apiId: http?.ApiId!,
       certificateArn,
       domain: `*.${domain}`,
       stage: "$default",
     }),
-    await createAndMapDomain({
+    await addDomainMapping({
       apiId: ws?.ApiId!,
       certificateArn,
       domain: `ws.${domain}`,
@@ -308,7 +309,7 @@ export async function addAPIGatewayDomain({
   return { httpURL: `https://${domain}`, wsURL: `wss://ws.${domain}/ws` };
 }
 
-async function createAndMapDomain({
+async function addDomainMapping({
   apiId,
   certificateArn,
   domain,
@@ -361,12 +362,12 @@ export async function removeAPIGatewayDomain({
     findGatewayAPI({ protocol: ProtocolType.WEBSOCKET, project }),
   ]);
   await Promise.all([
-    removeDomain({
+    removeDomainMapping({
       apiId: http?.ApiId!,
       domain: `*.${domain}`,
       stage: "$default",
     }),
-    removeDomain({
+    removeDomainMapping({
       apiId: ws?.ApiId!,
       domain: `ws.${domain}`,
       stage: "_ws",
@@ -374,7 +375,7 @@ export async function removeAPIGatewayDomain({
   ]);
 }
 
-async function removeDomain({
+async function removeDomainMapping({
   apiId,
   domain,
   stage,
@@ -383,6 +384,7 @@ async function removeDomain({
   domain: string;
   stage: string;
 }) {
+  console.log("remove mapping", domain);
   const { Items } = await apiGateway
     .getApiMappings({
       DomainName: domain,
@@ -397,5 +399,5 @@ async function removeDomain({
       DomainName: domain,
     });
   }
-  await apiGateway.deleteDomainName({ DomainName: domain });
+  await apiGateway.deleteDomainName({ DomainName: domain }).catch(() => null);
 }

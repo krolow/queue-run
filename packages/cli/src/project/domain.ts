@@ -60,9 +60,8 @@ async function addDomain({
   project: string;
   verifyDomain: string | undefined;
 }) {
-  const wildcard = domain.startsWith("*.") ? domain : `*.${domain}`;
   const certificateArn = await requestCertificate({
-    domain: wildcard,
+    domain,
     method,
     verifyDomain,
   });
@@ -126,11 +125,10 @@ command
   .argument("<domain>", "domain name, eg example.com")
   .action(async (domain: string) => {
     const { name } = await loadProject();
-    const wildcard = domain.startsWith("*.") ? domain : `*.${domain}`;
 
     const spinner = ora(`Removing domain ${domain}`).start();
     await removeAPIGatewayDomain({ domain, project: name });
-    await discardCertificateRequest(wildcard);
+    await discardCertificateRequest(domain);
     spinner.succeed();
   });
 

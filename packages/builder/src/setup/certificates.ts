@@ -28,7 +28,8 @@ export async function requestCertificate({
   verifyDomain?: string | undefined;
 }): Promise<string> {
   const spinner = ora("Looking up existing certificate").start();
-  const certificate = await findCertificate(domain);
+  const wildcard = `*.${domain}`;
+  const certificate = await findCertificate(wildcard);
   spinner.succeed();
   if (certificate?.Status === "ISSUED") return certificate.CertificateArn!;
 
@@ -66,7 +67,8 @@ export async function requestCertificate({
 }
 
 export async function discardCertificateRequest(domain: string) {
-  const certificate = await findCertificate(domain);
+  const wildcard = `*.${domain}`;
+  const certificate = await findCertificate(wildcard);
   if (certificate?.Status !== "ISSUED") {
     await acm.deleteCertificate({
       CertificateArn: certificate!.CertificateArn!,
@@ -119,10 +121,11 @@ async function useEmailVerification({
   verifyDomain: string;
 }): Promise<string> {
   const spinner = ora("Requesting a new certificate").start();
+  const wildcard = `*.${domain}`;
   const { CertificateArn } = await acm.requestCertificate({
     DomainName: domain,
     DomainValidationOptions: [
-      { DomainName: domain, ValidationDomain: verifyDomain },
+      { DomainName: wildcard, ValidationDomain: verifyDomain },
     ],
     SubjectAlternativeNames: [domain],
     ValidationMethod: "EMAIL",
@@ -168,11 +171,14 @@ async function useDNSVerification({
     return certificate!.CertificateArn!;
   } else {
     const spinner = ora("Requesting a new certificate").start();
+    const wildcard = `*.${domain}`;
     const { CertificateArn } = await acm.requestCertificate({
-      DomainName: domain,
+      DomainName: wildcard,
       ValidationMethod: "DNS",
       SubjectAlternativeNames: [domain],
     });
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
     const { Certificate } = await acm.describeCertificate({
       CertificateArn,
     });
