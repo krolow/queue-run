@@ -19,12 +19,7 @@
     },
     {
       "Effect": "Allow",
-      "Action": [
-        "logs:DescribeLogGroups",
-        "logs:DescribeLogStreams",
-        "logs:GetLogEvents",
-        "logs:FilterLogEvents"
-      ],
+      "Action": ["logs:DescribeLogGroups", "logs:FilterLogEvents"],
       "Resource": "arn:aws:logs:*:*:log-group:/aws/lambda/qr-*"
     },
     {
@@ -46,7 +41,6 @@
       "Action": [
         "lambda:CreateEventSourceMapping",
         "lambda:DeleteEventSourceMapping",
-        "lambda:ListEventSourceMappings",
         "lambda:UpdateEventSourceMapping"
       ],
       "Resource": "*",
@@ -55,6 +49,11 @@
           "lambda:FunctionArn": "arn:aws:lambda:*:*:function:qr-*"
         }
       }
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["lambda:ListEventSourceMappings"],
+      "Resource": "*"
     },
     {
       "Effect": "Allow",
@@ -74,7 +73,10 @@
     {
       "Effect": "Allow",
       "Action": "iam:PassRole",
-      "Resource": "arn:aws:lambda:*:*:function:qr-*",
+      "Resource": [
+        "arn:aws:lambda:*:*:function:qr-*",
+        "arn:aws:iam::*:role/qr-*"
+      ],
       "Condition": {
         "StringEquals": {
           "iam:PassedToService": "lambda.amazonaws.com"
@@ -83,7 +85,6 @@
     },
     {
       "Action": [
-        "sqs:ListQueues",
         "sqs:GetQueueUrl",
         "sqs:CreateQueue",
         "sqs:DeleteQueue",
@@ -92,6 +93,11 @@
       ],
       "Effect": "Allow",
       "Resource": "arn:aws:sqs:*:*:*"
+    },
+    {
+      "Action": ["sqs:ListQueues"],
+      "Effect": "Allow",
+      "Resource": "*"
     },
     {
       "Action": ["dynamodb:CreateTable", "dynamodb:DescribeTable"],
