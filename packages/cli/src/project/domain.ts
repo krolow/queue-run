@@ -1,4 +1,6 @@
 import { ACM, CertificateDetail } from "@aws-sdk/client-acm";
+import { ApiGatewayV2 } from "@aws-sdk/client-apigatewayv2";
+import chalk from "chalk";
 import { Command } from "commander";
 import inquirer from "inquirer";
 import {
@@ -10,6 +12,7 @@ import invariant from "tiny-invariant";
 import { loadProject } from "./project.js";
 
 const command = new Command("domain");
+const apiGateway = new ApiGatewayV2({});
 const acm = new ACM({});
 
 command
@@ -34,6 +37,8 @@ async function addDomain({
   wsApiId: string;
 }) {
   const wildcard = domain.startsWith("*.") ? domain : `*.${domain}`;
+
+  console.info(chalk.green.bold("\n1. Let's get you a TLS certificate\n"));
   const certificate = await findCertificate(wildcard);
   if (certificate?.Status === "ISSUED") {
     const { httpURL, wsURL } = await addAPIGatewayDomain({
@@ -42,8 +47,28 @@ async function addDomain({
       httpApiId,
       wsApiId,
     });
+    const { DomainNameConfigurations } = await apiGateway.getDomainName({
+      DomainName: wildcard,
+    });
+    invariant(DomainNameConfigurations);
+
     console.info("API:\t\t%s", httpURL);
     console.info("WebSocket:\t%s", wsURL);
+
+    console.info(chalk.green.bold("\n2. Update your DNS:\n"));
+    console.info(
+      "Please update your DNS by adding the following CNAME record:"
+    );
+    console.info("CNAME name:\t%s", wildcard);
+    for (const { ApiGatewayDomainName } of DomainNameConfigurations)
+      console.info("CNAME value:\t%s", ApiGatewayDomainName);
+
+    console.info(
+      chalk.green.bold(
+        "\n3. After you update your DNS, deploy your project again\n"
+      )
+    );
+    console.info("npx queue-run deploy");
   } else {
     const { method, email } = await inquirer.prompt([
       {

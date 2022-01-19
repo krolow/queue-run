@@ -60,6 +60,7 @@ These are stored in the file `.queue-run.json` in the current working directory.
 
 * `init` - Configure your project and update `.queue-run.json`
 * `deploy` — Deploy your project
+* `domain` — Add and remove custom domains
 * `info` — See information about your deployed project (eg HTTP and WebSocket URLs)
 * `logs` — Watch server logs
 * `rollback` — Broke something? Rollback to a previous version
@@ -68,6 +69,25 @@ These are stored in the file `.queue-run.json` in the current working directory.
 
 To keep the `queue-run` module lean, the CLI tools include are available as a separate module. You don't have to add them in `package.json`. They are loaded on demand when you run `npx queue-run` for the first time.
 :::
+
+
+## Custom Domains
+
+To use a custom domain:
+
+```bash
+npx queue-run domain add example.com
+```
+
+You can verify your domain in one of two ways:
+
+- dns — Recommended but could take a while to verify
+- email — Usually quicker you will receive an email immediately
+
+QueueRun will create a TLS certificate for you. Your HTTP API will be available on the main domain, while WebSocket are available a sub domain.
+
+Your backend is not aware of the new domain until you deploy again it will use the old URLs.
+
 
 ## Environment Variables
 
