@@ -370,7 +370,6 @@ export async function removeAPIGatewayDomain({
   httpApiId: string;
   wsApiId: string;
 }) {
-  const spinner = ora(`Removing domain ${domain}`).start();
   await removeDomain({
     apiId: httpApiId,
     domain: `*.${domain}`,
@@ -381,7 +380,6 @@ export async function removeAPIGatewayDomain({
     domain: `ws.${domain}`,
     stage: "_ws",
   });
-  spinner.succeed();
 }
 
 async function removeDomain({
@@ -393,9 +391,11 @@ async function removeDomain({
   domain: string;
   stage: string;
 }) {
-  const { Items } = await apiGateway.getApiMappings({
-    DomainName: domain,
-  });
+  const { Items } = await apiGateway
+    .getApiMappings({
+      DomainName: domain,
+    })
+    .catch(() => ({ Items: [] }));
   const mappingId = Items?.find(
     ({ ApiId, Stage }) => ApiId === apiId && Stage === stage
   )?.ApiMappingId;
