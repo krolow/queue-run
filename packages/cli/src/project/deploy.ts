@@ -1,6 +1,7 @@
 import { IAM } from "@aws-sdk/client-iam";
 import chalk from "chalk";
 import { Command } from "commander";
+import ora from "ora";
 import {
   deployLambda,
   setupAPIGateway,
@@ -21,7 +22,10 @@ export default command;
 async function deployRuntimeLambda({ name }: { name: string }) {
   const accountId = await getAccountId();
   const region = process.env.AWS_REGION || "us-east-1";
+
+  const spinner = ora("Setting up API Gateway...").start();
   const { httpURL, wsURL, wsApiId } = await setupAPIGateway(name);
+  spinner.succeed("Created API Gateway endpoints");
 
   const lambdaARN = await deployLambda({
     buildDir: ".queue-run",

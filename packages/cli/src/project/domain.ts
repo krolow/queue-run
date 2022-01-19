@@ -5,7 +5,6 @@ import ora from "ora";
 import {
   addAPIGatewayDomain,
   discardCertificateRequest,
-  getAPIGatewayIds,
   removeAPIGatewayDomain,
   requestCertificate,
 } from "queue-run-builder";
@@ -33,9 +32,6 @@ command
       }
     ) => {
       const { name } = await loadProject();
-      const { httpApiId, wsApiId } = await getAPIGatewayIds(name);
-      if (!(httpApiId && wsApiId))
-        throw new Error('Project not deployed: run "npx queue-run deploy"');
 
       const wildcard = domain.startsWith("*.") ? domain : `*.${domain}`;
       const certificateArn = await requestCertificate({
@@ -48,8 +44,7 @@ command
       const { httpURL, wsURL } = await addAPIGatewayDomain({
         certificateArn,
         domain,
-        httpApiId,
-        wsApiId,
+        project: name,
       });
       const { DomainNameConfigurations } = await apiGateway.getDomainName({
         DomainName: wildcard,
@@ -83,12 +78,10 @@ command
   .argument("<domain>", "domain name, eg example.com")
   .action(async (domain: string) => {
     const { name } = await loadProject();
-    const { httpApiId, wsApiId } = await getAPIGatewayIds(name);
-    if (!(httpApiId && wsApiId)) throw new Error("Project not deployed");
-
     const wildcard = domain.startsWith("*.") ? domain : `*.${domain}`;
+
     const spinner = ora(`Removing domain ${domain}`).start();
-    await removeAPIGatewayDomain({ domain, httpApiId, wsApiId });
+    await removeAPIGatewayDomain({ domain, project: name });
     await discardCertificateRequest(wildcard);
     spinner.succeed();
   });

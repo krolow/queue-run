@@ -19,6 +19,13 @@ const wsPath = "/_ws";
 
 // See https://docs.aws.amazon.com/lambda/latest/dg/services-apigateway.html#apigateway-permissions
 
+/**
+ * Returns HTTP and WS URLs from API Gateway: custom domain name if available.
+ *
+ * @param project Project name
+ * @returns HTTP and WS URLs
+ * @throws If API Gateway not configured yet
+ */
 export async function getAPIGatewayURLs(project: string): Promise<{
   httpURL: string;
   wsURL: string;
@@ -28,7 +35,7 @@ export async function getAPIGatewayURLs(project: string): Promise<{
     findGatewayAPI({ protocol: ProtocolType.WEBSOCKET, project }),
   ]);
   if (!(http?.ApiEndpoint && ws?.ApiEndpoint))
-    throw new Error("API Gateway not configured yet");
+    throw new Error("Project has not been deployed successfully");
 
   const { Items: domains } = await apiGateway.getDomainNames({});
   for (const { DomainName } of domains ?? []) {
@@ -50,20 +57,6 @@ export async function getAPIGatewayURLs(project: string): Promise<{
   };
 }
 
-export async function getAPIGatewayIds(project: string): Promise<{
-  httpApiId: string | undefined;
-  wsApiId: string | undefined;
-}> {
-  const [http, ws] = await Promise.all([
-    findGatewayAPI({ protocol: ProtocolType.HTTP, project }),
-    findGatewayAPI({ protocol: ProtocolType.WEBSOCKET, project }),
-  ]);
-  return {
-    httpApiId: http?.ApiId,
-    wsApiId: ws?.ApiId,
-  };
-}
-
 // Setup API Gateway. We need the endpoint URLs before we can deploy the project
 // for the first time.
 export async function setupAPIGateway(project: string): Promise<{
@@ -71,24 +64,17 @@ export async function setupAPIGateway(project: string): Promise<{
   wsURL: string;
   wsApiId: string;
 }> {
-  const spinner = ora("Setting up API Gateway...").start();
-  const [http, ws] = await Promise.all([
+  const [, ws] = await Promise.all([
     createApi(project, { ProtocolType: ProtocolType.HTTP }),
     createApi(project, {
       ProtocolType: ProtocolType.WEBSOCKET,
       RouteSelectionExpression: "*",
     }),
   ]);
+  invariant(ws.ApiId);
 
-  invariant(http.ApiEndpoint);
-  invariant(ws.ApiEndpoint && ws.ApiId);
-  spinner.succeed("Created API Gateway endpoints");
-
-  return {
-    httpURL: http.ApiEndpoint ?? "unavailable",
-    wsURL: `${ws.ApiEndpoint}${wsPath}`,
-    wsApiId: ws.ApiId,
-  };
+  const { httpURL, wsURL } = await getAPIGatewayURLs(project);
+  return { httpURL, wsURL, wsApiId: ws.ApiId };
 }
 
 async function createApi(
@@ -292,31 +278,33 @@ async function findGatewayAPI({
 export async function addAPIGatewayDomain({
   certificateArn,
   domain,
-  httpApiId,
-  wsApiId,
+  project,
 }: {
   certificateArn: string;
   domain: string;
-  httpApiId: string;
-  wsApiId: string;
+  project: string;
 }): Promise<{
   httpURL: string;
   wsURL: string;
 }> {
-  const spinner = ora(`Creating domain ${domain}`).start();
-  await createAndMapDomain({
-    apiId: httpApiId,
-    certificateArn,
-    domain: `*.${domain}`,
-    stage: "$default",
-  });
-  await createAndMapDomain({
-    apiId: wsApiId,
-    certificateArn,
-    domain: `ws.${domain}`,
-    stage: "_ws",
-  });
-  spinner.succeed();
+  const [http, ws] = await Promise.all([
+    findGatewayAPI({ protocol: ProtocolType.HTTP, project }),
+    findGatewayAPI({ protocol: ProtocolType.WEBSOCKET, project }),
+  ]);
+  await Promise.all([
+    createAndMapDomain({
+      apiId: http?.ApiId!,
+      certificateArn,
+      domain: `*.${domain}`,
+      stage: "$default",
+    }),
+    await createAndMapDomain({
+      apiId: ws?.ApiId!,
+      certificateArn,
+      domain: `ws.${domain}`,
+      stage: "_ws",
+    }),
+  ]);
   return { httpURL: `https://${domain}`, wsURL: `wss://ws.${domain}/ws` };
 }
 
@@ -363,23 +351,27 @@ async function createAndMapDomain({
 
 export async function removeAPIGatewayDomain({
   domain,
-  httpApiId,
-  wsApiId,
+  project,
 }: {
   domain: string;
-  httpApiId: string;
-  wsApiId: string;
+  project: string;
 }) {
-  await removeDomain({
-    apiId: httpApiId,
-    domain: `*.${domain}`,
-    stage: "$default",
-  });
-  await removeDomain({
-    apiId: wsApiId,
-    domain: `ws.${domain}`,
-    stage: "_ws",
-  });
+  const [http, ws] = await Promise.all([
+    findGatewayAPI({ protocol: ProtocolType.HTTP, project }),
+    findGatewayAPI({ protocol: ProtocolType.WEBSOCKET, project }),
+  ]);
+  await Promise.all([
+    removeDomain({
+      apiId: http?.ApiId!,
+      domain: `*.${domain}`,
+      stage: "$default",
+    }),
+    removeDomain({
+      apiId: ws?.ApiId!,
+      domain: `ws.${domain}`,
+      stage: "_ws",
+    }),
+  ]);
 }
 
 async function removeDomain({
