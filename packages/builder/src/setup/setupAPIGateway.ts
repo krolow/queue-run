@@ -27,9 +27,40 @@ export async function getAPIGatewayURLs(project: string): Promise<{
     findGatewayAPI({ protocol: ProtocolType.HTTP, project }),
     findGatewayAPI({ protocol: ProtocolType.WEBSOCKET, project }),
   ]);
+  if (!(http?.ApiEndpoint && ws?.ApiEndpoint))
+    throw new Error("API Gateway not configured yet");
+
+  const { Items: domains } = await apiGateway.getDomainNames({});
+  for (const { DomainName } of domains ?? []) {
+    const { Items } = await apiGateway.getApiMappings({
+      DomainName,
+    });
+    if (Items?.find(({ ApiId }) => ApiId === http.ApiId)) {
+      const domain = DomainName!.replace("*.", "");
+      return {
+        httpURL: `https://${domain}`,
+        wsURL: `wss://ws.${domain}${wsPath}`,
+      };
+    }
+  }
+
   return {
-    httpURL: http?.ApiEndpoint ?? "unavailable",
-    wsURL: ws ? `${ws.ApiEndpoint}${wsPath}` : "unavailable",
+    httpURL: http.ApiEndpoint,
+    wsURL: `${ws.ApiEndpoint}${wsPath}`,
+  };
+}
+
+export async function getAPIGatewayIds(project: string): Promise<{
+  httpApiId: string | undefined;
+  wsApiId: string | undefined;
+}> {
+  const [http, ws] = await Promise.all([
+    findGatewayAPI({ protocol: ProtocolType.HTTP, project }),
+    findGatewayAPI({ protocol: ProtocolType.WEBSOCKET, project }),
+  ]);
+  return {
+    httpApiId: http?.ApiId,
+    wsApiId: ws?.ApiId,
   };
 }
 
@@ -256,4 +287,122 @@ async function findGatewayAPI({
   return result.NextToken
     ? await findGatewayAPI({ nextToken: result.NextToken, project, protocol })
     : null;
+}
+
+export async function addAPIGatewayDomain({
+  certificateArn,
+  domain,
+  httpApiId,
+  wsApiId,
+}: {
+  certificateArn: string;
+  domain: string;
+  httpApiId: string;
+  wsApiId: string;
+}): Promise<{
+  httpURL: string;
+  wsURL: string;
+}> {
+  const spinner = ora(`Creating domain ${domain}`).start();
+  await createAndMapDomain({
+    apiId: httpApiId,
+    certificateArn,
+    domain: `*.${domain}`,
+    stage: "$default",
+  });
+  await createAndMapDomain({
+    apiId: wsApiId,
+    certificateArn,
+    domain: `ws.${domain}`,
+    stage: "_ws",
+  });
+  spinner.succeed();
+  return { httpURL: `https://${domain}`, wsURL: `wss://ws.${domain}/ws` };
+}
+
+async function createAndMapDomain({
+  apiId,
+  certificateArn,
+  domain,
+  stage,
+}: {
+  apiId: string;
+  certificateArn: string;
+  domain: string;
+  stage: string;
+}) {
+  try {
+    await apiGateway.getDomainName({
+      DomainName: domain,
+    });
+  } catch (error) {
+    await apiGateway.createDomainName({
+      DomainName: domain,
+      DomainNameConfigurations: [
+        {
+          CertificateArn: certificateArn,
+          EndpointType: "REGIONAL",
+        },
+      ],
+    });
+  }
+
+  const { Items } = await apiGateway
+    .getApiMappings({
+      DomainName: domain,
+    })
+    .catch(() => ({ Items: [] }));
+  if (!Items?.find((item) => item.ApiId === apiId)) {
+    await apiGateway.createApiMapping({
+      ApiId: apiId,
+      DomainName: domain,
+      Stage: stage,
+    });
+  }
+}
+
+export async function removeAPIGatewayDomain({
+  domain,
+  httpApiId,
+  wsApiId,
+}: {
+  domain: string;
+  httpApiId: string;
+  wsApiId: string;
+}) {
+  const spinner = ora(`Removing domain ${domain}`).start();
+  await removeDomain({
+    apiId: httpApiId,
+    domain: `*.${domain}`,
+    stage: "$default",
+  });
+  await removeDomain({
+    apiId: wsApiId,
+    domain: `ws.${domain}`,
+    stage: "_ws",
+  });
+  spinner.succeed();
+}
+
+async function removeDomain({
+  apiId,
+  domain,
+  stage,
+}: {
+  apiId: string;
+  domain: string;
+  stage: string;
+}) {
+  const { Items } = await apiGateway.getApiMappings({
+    DomainName: domain,
+  });
+  const mappingId = Items?.find(
+    ({ ApiId, Stage }) => ApiId === apiId && Stage === stage
+  )?.ApiMappingId;
+  if (mappingId) {
+    await apiGateway.deleteApiMapping({
+      ApiMappingId: mappingId,
+      DomainName: domain,
+    });
+  }
 }

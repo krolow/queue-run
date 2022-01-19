@@ -6,6 +6,7 @@ import generate from "project-name-generator";
 const filename = ".queue-run.json";
 
 type Project = {
+  domain?: string;
   name: string;
   runtime: "lambda";
 };

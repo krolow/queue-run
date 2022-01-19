@@ -16,6 +16,7 @@
     "types"
   ],
   "dependencies": {
+    "@aws-sdk/client-acm": "^3.47.0",
     "@aws-sdk/client-apigatewayv2": "^3.47.0",
     "@aws-sdk/client-dynamodb": "^3.47.0",
     "@aws-sdk/client-iam": "^3.47.0",
