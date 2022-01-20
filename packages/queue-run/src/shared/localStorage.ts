@@ -19,7 +19,7 @@ export abstract class LocalStorage {
   public user?: AuthenticatedUser | null = null;
 
   /** WebSocket connection ID */
-  public connectionId?: string;
+  public connectionId: string | undefined;
 
   constructor({ urls }: { urls: { http: string; ws: string } }) {
     this.urls = urls;

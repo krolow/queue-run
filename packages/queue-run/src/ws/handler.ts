@@ -71,8 +71,8 @@ function getCookies(request: Request): { [key: string]: string } {
 
 async function getCommonMiddleware() {
   const { middleware } =
-    (await loadModule<never, WebSocketMiddleware>("socket/index.js", {})) ??
-    (await loadMiddleware<WebSocketMiddleware>("socket/_middleware.js", {}));
+    (await loadModule<never, WebSocketMiddleware>("socket/index.mjs", {})) ??
+    (await loadMiddleware<WebSocketMiddleware>("socket/_middleware.mjs", {}));
   return middleware;
 }
 

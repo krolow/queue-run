@@ -71,7 +71,7 @@ export async function loadMiddleware<Middleware>(
     path.dirname(dirname),
     defaultMiddleware
   );
-  const absolute = path.join(process.cwd(), dirname, "_middleware.js");
+  const absolute = path.join(process.cwd(), dirname, "_middleware.mjs");
   try {
     await fs.access(absolute);
   } catch {

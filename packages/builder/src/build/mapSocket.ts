@@ -8,7 +8,7 @@ const maxTimeout = 30;
 const defaultTimeout = 10;
 
 export default async function mapSocket(): Promise<Manifest["socket"]> {
-  const filenames = await glob("socket/[!_]*.{js,jsx,ts,tsx}");
+  const filenames = await glob("socket/[!_]*.{mjs,js,jsx,ts,tsx}");
   return Promise.all(
     filenames.map(async (filename) => {
       const loaded = await loadModule<WebSocketExports, WebSocketMiddleware>(

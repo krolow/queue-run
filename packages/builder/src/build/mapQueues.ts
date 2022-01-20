@@ -7,7 +7,7 @@ const maxTimeout = 900; // 15 minute (Lambda maximum)
 const defaultTimeout = 300; // 5 minutes
 
 export default async function mapQueues(): Promise<Manifest["queues"]> {
-  const filenames = await glob("queues/[!_]*.{js,ts}");
+  const filenames = await glob("queues/[!_]*.{mjs,js,ts}");
   return await Promise.all(
     filenames.map(async (filename) => {
       try {

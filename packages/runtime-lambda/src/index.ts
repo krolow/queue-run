@@ -69,7 +69,7 @@ class LambdaLocalStorage extends LocalStorage {
       queueName,
       sqs,
       slug,
-      user: user === undefined ? this.user : user,
+      user: (user === undefined ? this.user : user) ?? null,
     });
   }
 

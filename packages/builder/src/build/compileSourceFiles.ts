@@ -39,7 +39,9 @@ export default async function compileSourceFiles({
     let copied = 0;
     for (const filename of filenames) {
       const src = path.join(sourceDir, filename);
-      const dest = path.join(targetDir, filename).replace(/\.tsx?$/, ".js");
+      const dest = path
+        .join(targetDir, filename)
+        .replace(/\.(js|ts)x?$/, ".mjs");
       await fs.mkdir(path.dirname(dest), { recursive: true });
       if (/\.(js|ts)x?$/.test(filename)) {
         const source = await fs.readFile(src, "utf-8");

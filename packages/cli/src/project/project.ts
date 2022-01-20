@@ -58,7 +58,7 @@ export async function initProject() {
   const suggestedName = project.name ?? (await getSuggestedName());
 
   const isTypescript = (await glob("**/*.{ts,tsx}")).length > 0;
-  const isJavascript = (await glob("**/*.{js,jsx}")).length > 0;
+  const isJavascript = (await glob("**/*.{js,mjs,cjs,jsx}")).length > 0;
 
   const answers = await inquirer.prompt([
     {

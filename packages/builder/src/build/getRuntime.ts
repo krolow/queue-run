@@ -20,16 +20,11 @@ export default async function getRuntime(
   dirname: string
 ): Promise<RuntimeVersion> {
   const filename = path.join(dirname, "package.json");
-
-  try {
-    await fs.access(filename);
-  } catch {
-    return defaultRuntime;
-  }
-  const packageJSON = JSON.parse(
-    await fs.readFile(path.join(dirname, "package.json"), "utf-8")
+  const { engines } = JSON.parse(
+    await fs.readFile(filename, "utf-8").catch(() => "{}")
   );
-  const specifiedEngine = packageJSON.engines?.node;
+
+  const specifiedEngine = engines?.node;
   if (!specifiedEngine) return defaultRuntime;
 
   for (const runtime of runtimes) {

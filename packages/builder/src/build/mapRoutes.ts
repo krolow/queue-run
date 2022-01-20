@@ -16,7 +16,7 @@ export default async function mapRoutes(): Promise<Manifest["routes"]> {
     string
   >();
 
-  const filenames = await glob("api/**/[!_]*.{js,jsx,ts,tsx}");
+  const filenames = await glob("api/**/[!_]*.{mjs,js,jsx,ts,tsx}");
   return Promise.all(
     filenames.map(async (filename) => {
       const loaded = await loadModule<RouteExports, RouteMiddleware>(filename);
