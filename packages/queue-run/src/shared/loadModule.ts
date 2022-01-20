@@ -1,4 +1,4 @@
-import fs from "node:fs/promises";
+import glob from "fast-glob";
 import path from "node:path";
 
 /**
@@ -22,17 +22,15 @@ export async function loadModule<ModuleExports, Middleware>(
   middleware: Middleware;
 }> | null> {
   // Avoid path traversal. This will turn "foobar", "/foobar", and
-  // "../../foobar" into "/foobar".  Also prevents us from loading node modules.
-  const fromProjectRoot = path.join("/", filename);
-  const absolute = path.join(process.cwd(), fromProjectRoot);
-  try {
-    await fs.access(absolute);
-  } catch {
-    return null;
-  }
+  // "../../foobar" into "foobar".  Also prevents us from loading node modules.
+  const fromProjectRoot = path.join("/", filename).slice(1);
+  const [absolute] = await glob(`${filename}{.mjs,.js,}`, {
+    absolute: true,
+  });
+  if (!absolute) return null;
   const module = (await import(absolute)) as ModuleExports;
   const { middleware } = await loadMiddleware<Middleware>(
-    fromProjectRoot,
+    path.dirname(fromProjectRoot),
     defaultMiddleware
   );
   return {
@@ -65,23 +63,21 @@ export async function loadMiddleware<Middleware>(
 ): Promise<{
   middleware: Middleware;
 }> {
-  if (dirname === "/") return { middleware: defaultMiddleware };
+  if (dirname === ".") return { middleware: defaultMiddleware };
 
   const { middleware: parent } = await loadMiddleware<Middleware>(
     path.dirname(dirname),
     defaultMiddleware
   );
-  const absolute = path.join(process.cwd(), dirname, "_middleware.mjs");
-  try {
-    await fs.access(absolute);
-  } catch {
-    return { middleware: parent };
-  }
+  const [absolute] = await glob("_middleware.{mjs,js}", {
+    cwd: path.join(process.cwd(), dirname),
+    absolute: true,
+  });
+  if (!absolute) return { middleware: parent };
+
   const exports = await import(absolute);
   // This middleware's exports take precendece over parent's
-  return {
-    middleware: combine(exports, parent),
-  };
+  return { middleware: combine(exports, parent) };
 }
 
 function combine<T = { [key: string]: Function }>(...middleware: T[]): T {

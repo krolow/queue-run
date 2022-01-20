@@ -31,7 +31,7 @@ export default async function handleQueuedJob({
   if (!queue) throw new Error(`No handler for queue ${queueName}`);
 
   const loaded = await loadModule<QueueExports, QueueMiddleware>(
-    `queues/${queueName}.js`,
+    `queues/${queueName}`,
     {
       onJobStarted: logJobStarted,
       onJobFinished: logJobFinished,
