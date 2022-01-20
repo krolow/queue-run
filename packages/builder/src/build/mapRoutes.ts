@@ -58,7 +58,7 @@ function pathFromFilename(filename: string): string {
   const basename = path.basename(filename, path.extname(filename)).normalize();
   const directory = path.dirname(filename).normalize();
   const withoutIndex =
-    basename === "index" ? directory : `${directory}/${basename}`;
+    basename === "index" ? directory : `${directory}${basename}`;
 
   const renamed = renamePathProperties(withoutIndex);
   validatePathParameters(renamed);
