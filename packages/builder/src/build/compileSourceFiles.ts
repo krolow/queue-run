@@ -18,6 +18,7 @@ export default async function compileSourceFiles({
   const spinner = ora("Compiling source files …").start();
   try {
     const { jscTarget } = await getRuntimeVersion(sourceDir);
+    const esm = await getIsModule(sourceDir);
 
     const ignore = (
       await fs
@@ -35,13 +36,14 @@ export default async function compileSourceFiles({
       markDirectories: true,
       unique: true,
     });
+    const extension = esm ? ".js" : ".mjs";
     let compiled = 0;
     let copied = 0;
     for (const filename of filenames) {
       const src = path.join(sourceDir, filename);
       const dest = path
         .join(targetDir, filename)
-        .replace(/\.(js|ts)x?$/, ".mjs");
+        .replace(/\.(js|ts)x?$/, extension);
       await fs.mkdir(path.dirname(dest), { recursive: true });
       if (/\.(js|ts)x?$/.test(filename)) {
         const source = await fs.readFile(src, "utf-8");
@@ -65,6 +67,14 @@ export default async function compileSourceFiles({
     spinner.fail(String(error));
     throw error;
   }
+}
+
+async function getIsModule(dirname: string) {
+  const filename = path.join(dirname, "package.json");
+  const { type } = JSON.parse(
+    await fs.readFile(filename, "utf-8").catch(() => "{}")
+  );
+  return type === "module";
 }
 
 function compileSource({

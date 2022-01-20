@@ -68,11 +68,13 @@ export async function post({ body, user }) {
 }
 ```
 
-:::info JavaScript, TypeScript, ESM
+:::info ESM, JavaScript, and TypeScript
 
-You can use JavaScript, TypeScript, and combination of both. You can use ESM and CommonJS modules.
+All the examples are in TypeScript. Regardless, when using ESM imports, file imports must include the proper extension (`.js`, `.jsc`, or `.jsm`).
 
-All the examples are in TypeScript. Weird quirk of ESM is that imports must end with `.js`, even when importing a TypeScript file.
+If your project is ESM (`package.json` contains `type: "module"`), then imports would use the filename extension `.js`.
+
+If your project is CommonJS, then imports would use the filename extension `.jsm`, as your project is compiled to support ESM.
 :::
 
 You can also fetch (GET), update (PUT), and delete (DELETE) an individual resource:
