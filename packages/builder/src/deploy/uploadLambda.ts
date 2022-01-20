@@ -74,6 +74,7 @@ export default async function uploadLambda({
     invariant(updatedCode.FunctionArn && updatedCode.RevisionId);
 
     spinner.succeed();
+
     return updatedCode.FunctionArn;
   } else {
     const newLambda = await lambda.createFunction({
@@ -82,10 +83,11 @@ export default async function uploadLambda({
       PackageType: "Zip",
       Publish: true,
     });
-    // FunctionArn does not include version number
-    const arn = `${newLambda.FunctionArn}:${newLambda.Version}`;
+
     spinner.succeed();
-    return arn;
+
+    // FunctionArn does not include version number
+    return `${newLambda.FunctionArn}:${newLambda.Version}`;
   }
 }
 

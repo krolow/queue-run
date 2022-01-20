@@ -19,7 +19,13 @@
     },
     {
       "Effect": "Allow",
-      "Action": ["logs:DescribeLogGroups", "logs:FilterLogEvents"],
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:DescribeLogGroups",
+        "logs:FilterLogEvents",
+        "logs:PutLogEvents"
+      ],
       "Resource": "arn:aws:logs:*:*:log-group:/aws/lambda/qr-*"
     },
     {

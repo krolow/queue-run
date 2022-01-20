@@ -1,3 +1,4 @@
+import { CloudWatchLogs } from "@aws-sdk/client-cloudwatch-logs";
 import { Lambda } from "@aws-sdk/client-lambda";
 import chalk from "chalk";
 import dotenv from "dotenv";
@@ -106,6 +107,15 @@ export async function deployLambda({
 
   if (signal?.aborted) throw new Error();
 
+  const cw = new CloudWatchLogs({});
+  const logGroupName = `/aws/lambda/${lambdaName}`;
+  const logStreamName = `deploy/${crypto.randomUUID()}`;
+
+  await cw.createLogGroup({ logGroupName }).catch(() => undefined);
+  await cw
+    .createLogStream({ logGroupName, logStreamName })
+    .catch(() => undefined);
+
   // Upload new Lambda function and publish a new version.
   // This doesn't make any difference yet: event sources are tied to an alias,
   // and the alias points to an earlier version (or no version on first deploy).
@@ -124,12 +134,34 @@ export async function deployLambda({
 
   if (signal?.aborted) throw new Error();
 
+  const { nextSequenceToken } = await cw.putLogEvents({
+    logGroupName,
+    logStreamName,
+    logEvents: [
+      { message: `Uploaded new version ${versionArn}`, timestamp: Date.now() },
+    ],
+  });
+
   // From this point on, we hope to complete successfully and so ignore abort signal
-  return await switchOver({
+  const aliasArn = await switchOver({
     queues: manifest.queues,
     queuePrefix,
     versionArn,
   });
+
+  await cw.putLogEvents({
+    logGroupName,
+    logStreamName,
+    logEvents: [
+      {
+        message: `Switched to new version ${versionArn}`,
+        timestamp: Date.now(),
+      },
+    ],
+    sequenceToken: nextSequenceToken!,
+  });
+
+  return aliasArn;
 }
 
 async function loadEnvVars({
@@ -182,7 +214,7 @@ async function switchOver({
   queues: Manifest["queues"];
   versionArn: string;
 }): Promise<string> {
-  const aliasArn = versionArn.replace(/(\d+)$/, "latest");
+  const aliasArn = versionArn.replace(/(\d+)$/, "current");
 
   // Create queues that new version expects, and remove triggers for event
   // sources that new version does not understand.
@@ -229,7 +261,7 @@ export async function getRecentVersions(slug: string): Promise<
 
   const { FunctionVersion: currentVersion } = await lambda.getAlias({
     FunctionName: lambdaName,
-    Name: "latest",
+    Name: "current",
   });
   const versions = (await getAllVersions(lambdaName))
     .filter(({ version }) => version !== "$LATEST")
