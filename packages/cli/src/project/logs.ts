@@ -2,7 +2,10 @@ import { CloudWatchLogs } from "@aws-sdk/client-cloudwatch-logs";
 import chalk from "chalk";
 import { Command } from "commander";
 import ms from "ms";
+import ora from "ora";
 import { loadProject } from "./project.js";
+
+const cw = new CloudWatchLogs({});
 
 const command = new Command("logs")
   .description("view server logs (Ctrl+C to stop)")
@@ -24,13 +27,14 @@ async function showEvents({
   name: string;
   nextToken?: string | undefined;
 }): Promise<string> {
-  const cw = new CloudWatchLogs({});
+  const spinner = ora("Fetching logs...").start();
   const result = await cw.filterLogEvents({
     logGroupName: `/aws/lambda/qr-${name}`,
     ...(nextToken
       ? { nextToken }
       : { startTime: Date.now() - ms("1h") * hours }),
   });
+  spinner.stop();
 
   const events = result.events!;
   if (!events.length) return nextToken!;
