@@ -532,15 +532,9 @@ async function bodyFromRequest(
 
     case "multipart/form-data": {
       try {
-        const fields = await form(request);
-        if (
-          Object.values(fields)
-            .flat()
-            .some((field) => typeof field !== "string" && "name" in field)
-        )
-          throw new Error("multipart/form-data: files not supported");
-        return fields;
+        return await form(request);
       } catch (error) {
+        console.log(error);
         throw new Response(String(error), { status: 422 });
       }
     }
