@@ -159,7 +159,7 @@ async function handleRoute({
     const localStorage = newLocalStorage();
     localStorage.user = userId ? { id: userId } : null;
     await withLocalStorage(localStorage, async () => {
-      localStorage.connection = connection;
+      localStorage.connectionId = connection;
       await runWithMiddleware({
         config,
         data,

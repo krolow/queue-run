@@ -14,6 +14,7 @@ export { CDATA, Comment, Fragment } from "./jsx-runtime.js";
 export * from "./queue/exports.js";
 export * from "./queue/middleware.js";
 export { default as queues } from "./queue/queues.js";
+export { default as authenticated } from "./shared/authenticated.js";
 export * from "./shared/logError.js";
 export { logError, OnError } from "./shared/logError.js";
 export { default as logging } from "./shared/logging.js";

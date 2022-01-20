@@ -227,12 +227,12 @@ async function runWithMiddleware({
         const { onRequest } = middleware;
         if (onRequest) await onRequest(request);
 
-        const user = await getAuthenticatedUser({
+        await getAuthenticatedUser({
           cookies: metadata.cookies,
           middleware,
           request,
         });
-        getLocalStorage().user = user;
+        const user = getLocalStorage().user ?? null;
 
         return await handler({ ...metadata, request, user });
       })(),

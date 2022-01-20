@@ -6,7 +6,14 @@ import {
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { SQSClient } from "@aws-sdk/client-sqs";
 import { format } from "node:util";
-import { LocalStorage, logging, warmup } from "queue-run";
+import {
+  AuthenticatedUser,
+  getLocalStorage,
+  handleUserOnline,
+  LocalStorage,
+  logging,
+  warmup,
+} from "queue-run";
 import swapAWSEnvVars from "./environment";
 import handleHTTPRequest, {
   APIGatewayHTTPEvent,
@@ -47,8 +54,9 @@ const sqs = new SQSClient({ ...clientConfig, region });
 const connections = userConnections(dynamoDB);
 
 class LambdaLocalStorage extends LocalStorage {
-  constructor() {
+  constructor(connectionId?: string) {
     super({ urls });
+    this.connectionId = connectionId;
   }
 
   queueJob(args: Parameters<LocalStorage["queueJob"]>[0]) {
@@ -84,6 +92,25 @@ class LambdaLocalStorage extends LocalStorage {
   async getConnections(userIds: string[]): Promise<string[]> {
     return await connections.getConnections(userIds);
   }
+
+  async authenticated(user: AuthenticatedUser | null) {
+    super.authenticated(user);
+    if (this.user && this.connectionId) {
+      const userId = this.user.id;
+      const { wentOnline } = await connections.onAuthenticated({
+        connectionId: this.connectionId,
+        userId,
+      });
+      if (wentOnline) {
+        getLocalStorage().exit(() =>
+          handleUserOnline({
+            userId,
+            newLocalStorage: () => new LambdaLocalStorage(),
+          })
+        );
+      }
+    }
+  }
 }
 
 // Top-level await: this only makes a difference if you user provisioned concurrency
@@ -94,9 +121,9 @@ export async function handler(
   event: LambdaEvent,
   context: LambdaContext
 ): Promise<APIGatewayResponse | SQSBatchResponse | void> {
-  const newLocalStorage = () => new LambdaLocalStorage();
-
   if (isWebSocketRequest(event)) {
+    const { connectionId } = event.requestContext;
+    const newLocalStorage = () => new LambdaLocalStorage(connectionId);
     return await handleWebSocketRequest(
       event as APIGatewayWebSocketEvent,
       connections,
@@ -104,10 +131,13 @@ export async function handler(
     );
   }
 
-  if (isHTTPRequest(event))
+  if (isHTTPRequest(event)) {
+    const newLocalStorage = () => new LambdaLocalStorage();
     return await handleHTTPRequest(event, newLocalStorage);
+  }
 
   if (isSQSMessages(event)) {
+    const newLocalStorage = () => new LambdaLocalStorage();
     const { getRemainingTimeInMillis } = context;
     const messages = event.Records.filter(
       (record) => record.eventSource === "aws:sqs"

@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from "async_hooks";
+import { AuthenticatedUser } from "../http/exports";
 
 /* eslint-disable no-unused-vars */
 /**
@@ -13,16 +14,16 @@ import { AsyncLocalStorage } from "async_hooks";
  * The request handler will set the user after authentication.
  */
 export abstract class LocalStorage {
-  public urls: { http: string; ws: string };
+  public readonly urls: { http: string; ws: string };
 
-  private _user: { id: string; [key: string]: unknown } | null = null;
-  private _userSet = false;
+  public user?: AuthenticatedUser | null = null;
 
   /** WebSocket connection ID */
-  public connection: string | null = null;
+  public connectionId?: string;
 
   constructor({ urls }: { urls: { http: string; ws: string } }) {
     this.urls = urls;
+    this.user;
   }
 
   queueJob(message: {
@@ -49,20 +50,14 @@ export abstract class LocalStorage {
     throw new Error("WebSocket not available in this environment.");
   }
 
-  get user(): { id: string; [key: string]: unknown } | null {
-    return this._user;
-  }
-
   /**
-   * Use this to set the current user after authentication, include to null.
+   * Use this to set the current user **after** authentication, include to null.
    *
-   * This method can be called exactly once per context.
+   * Set the user property, to associated the (previously) authenticated user.
    */
-  set user(user: { id: string } | null | undefined) {
-    if (this._userSet) throw new Error("Local context user already set");
+  async authenticated(user: AuthenticatedUser | null) {
     if (user && !user.id) throw new TypeError("User ID is required");
-    this._user = user ?? null;
-    this._userSet = true;
+    this.user = user ?? null;
   }
 
   /**

@@ -110,10 +110,12 @@ async function onAuthenticated({
         Key: { id: { S: userId } },
         UpdateExpression: "ADD connections :connection",
         ExpressionAttributeValues: { ":connection": { SS: [connectionId] } },
+        ReturnValues: "ALL_OLD",
       })
     ),
   ]);
-  const wentOnline = !Attributes || Attributes.connections?.SS?.length === 1;
+
+  const wentOnline = !Attributes;
   return { wentOnline };
 }
 

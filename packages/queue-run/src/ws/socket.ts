@@ -78,7 +78,7 @@ class WebSocket<T extends Payload = object> {
     // - Current connection
     if (this._userIds) return await local.getConnections(this._userIds);
     if (local.user) return await local.getConnections([local.user.id]);
-    if (local.connection) return [local.connection];
+    if (local.connectionId) return [local.connectionId];
 
     throw new Error(
       "This only works within a socket handler, with an authenticated user, or with explicit list of users"
@@ -120,7 +120,9 @@ class WebSocket<T extends Payload = object> {
 
   toString() {
     return (
-      this._userIds?.join(", ") ?? getLocalStorage().connection ?? "unavailable"
+      this._userIds?.join(", ") ??
+      getLocalStorage().connectionId ??
+      "unavailable"
     );
   }
 
