@@ -37,11 +37,12 @@ export default async function handleHTTPRequest({
 
     // If we handle CORS than OPTIONS is always available, so this comes first
     const corsHeaders = getCorsHeaders(route);
-    if (route.cors && request.method === "OPTIONS")
+    if (route.cors && request.method === "OPTIONS") {
       return new Response(undefined, {
         headers: corsHeaders ?? {},
         status: 204,
       });
+    }
 
     // Throws 405 Method Not Allowed
     const handler = getHandler(module, request.method);
@@ -323,7 +324,7 @@ async function resultToResponse({
   } else if (result) {
     const { body, headers } = json(result, corsHeaders);
     addCacheControl(headers, result, body);
-    return new Response(JSON.stringify(result), { headers, status: 200 });
+    return new Response(body, { headers, status: 200 });
   } else {
     // null => 204, but undefined is potentially an error
     if (result === undefined)
