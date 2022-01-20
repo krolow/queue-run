@@ -34,12 +34,12 @@ const urls = {
   http: process.env.QUEUE_RUN_URL!,
   ws: process.env.QUEUE_RUN_WS!,
 };
-const { slug, region, ...clientConfig } = swapAWSEnvVars();
+const { slug, region, wsApiId, ...clientConfig } = swapAWSEnvVars();
 
 const dynamoDB = new DynamoDBClient({ ...clientConfig, region });
 const gateway = new ApiGatewayManagementApiClient({
   ...clientConfig,
-  endpoint: urls.ws.replace("wss://", "https://"),
+  endpoint: `https://${wsApiId}.execute-api.${region}.amazonaws.com/_ws`,
   region,
 });
 const sqs = new SQSClient({ ...clientConfig, region });
@@ -96,12 +96,13 @@ export async function handler(
 ): Promise<APIGatewayResponse | SQSBatchResponse | void> {
   const newLocalStorage = () => new LambdaLocalStorage();
 
-  if (isWebSocketRequest(event))
+  if (isWebSocketRequest(event)) {
     return await handleWebSocketRequest(
       event as APIGatewayWebSocketEvent,
       connections,
       newLocalStorage
     );
+  }
 
   if (isHTTPRequest(event))
     return await handleHTTPRequest(event, newLocalStorage);

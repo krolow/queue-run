@@ -67,14 +67,14 @@ async function addDomain({
   });
 
   const spinner = ora(`Adding domain ${domain}`).start();
-  const { httpURL, wsURL } = await addAPIGatewayDomain({
+  const { httpUrl, wsUrl } = await addAPIGatewayDomain({
     certificateArn,
     domain,
     project,
   });
   spinner.succeed();
-  console.info("API:\t\t%s", httpURL);
-  console.info("WebSocket:\t%s", wsURL);
+  console.info("API:\t\t%s", httpUrl);
+  console.info("WebSocket:\t%s", wsUrl);
 }
 
 async function updateCNames(domain: string) {

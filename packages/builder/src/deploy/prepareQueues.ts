@@ -28,7 +28,7 @@ export async function createQueues({
       // different attributes, so we split createQueue and setQueueAttributes
       // into two separate calls.
       const isFifo = queueName.endsWith(".fifo");
-      const { QueueUrl: queueURL } = await sqs.createQueue({
+      const { QueueUrl: queueUrl } = await sqs.createQueue({
         QueueName: `${prefix}${queueName}`,
         Attributes: {
           ...(isFifo
@@ -41,16 +41,16 @@ export async function createQueues({
             : undefined),
         },
       });
-      if (!queueURL) throw new Error(`Could not create queue ${queueName}`);
+      if (!queueUrl) throw new Error(`Could not create queue ${queueName}`);
 
       await sqs.setQueueAttributes({
-        QueueUrl: queueURL,
+        QueueUrl: queueUrl,
         Attributes: {
           VisibilityTimeout: queueTimeout.toFixed(0),
         },
       });
 
-      return arnFromQueueURL(queueURL);
+      return arnFromQueueURL(queueUrl);
     })
   );
   spinner.succeed();
@@ -59,10 +59,10 @@ export async function createQueues({
 
 export async function deleteOldQueues({
   prefix,
-  queueARNs,
+  queueArns,
 }: {
   prefix: string;
-  queueARNs: string[];
+  queueArns: string[];
 }) {
   const sqs = new SQS({});
   const { QueueUrls: queueURLs } = await sqs.listQueues({
@@ -70,7 +70,7 @@ export async function deleteOldQueues({
   });
   if (!queueURLs) return;
 
-  const set = new Set(queueARNs);
+  const set = new Set(queueArns);
   const toDelete = queueURLs.filter((url) => !set.has(arnFromQueueURL(url)));
   await Promise.all(
     toDelete.map(async (url) => {
@@ -80,17 +80,17 @@ export async function deleteOldQueues({
   );
 }
 
-function arnFromQueueURL(queueURL: string): string {
+function arnFromQueueURL(queueUrl: string): string {
   // Looks like https://sqs.{region}.amazonaws.com/{accountId}/{queueName}
-  const { hostname, pathname } = new URL(queueURL);
+  const { hostname, pathname } = new URL(queueUrl);
   const region = hostname.match(/^sqs\.(.+?)\.amazonaws\.com/)?.[1];
   const [accountId, name] = pathname.split("/").slice(1);
   return `arn:aws:sqs:${region}:${accountId}:${name}`;
 }
 
-function nameFromQueueURL(queueURL: string): string {
+function nameFromQueueURL(queueUrl: string): string {
   // Looks like https://sqs.{region}.amazonaws.com/{accountId}/{queueName}
-  const { pathname } = new URL(queueURL);
+  const { pathname } = new URL(queueUrl);
   const queueName = pathname.split("/")[2];
   invariant(queueName, "Incorrectly formatted queue URL");
   return queueName;

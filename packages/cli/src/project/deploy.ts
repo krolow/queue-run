@@ -24,10 +24,10 @@ async function deployRuntimeLambda({ name }: { name: string }) {
   const region = process.env.AWS_REGION || "us-east-1";
 
   const spinner = ora("Setting up API Gateway...").start();
-  const { httpURL, wsURL, wsApiId } = await setupAPIGateway(name);
+  const { httpUrl, wsUrl, wsApiId } = await setupAPIGateway(name);
   spinner.succeed("Created API Gateway endpoints");
 
-  const lambdaARN = await deployLambda({
+  const lambdaArn = await deployLambda({
     buildDir: ".queue-run",
     sourceDir: process.cwd(),
     config: {
@@ -35,16 +35,16 @@ async function deployRuntimeLambda({ name }: { name: string }) {
       env: "production",
       region,
       slug: name,
-      httpURL,
-      wsURL,
+      httpUrl,
+      wsUrl,
       wsApiId,
     },
   });
-  await setupIntegrations({ project: name, lambdaARN });
+  await setupIntegrations({ project: name, lambdaArn });
 
-  console.info(chalk.bold.green(`Your API is available at:\t%s`), httpURL);
-  console.info(chalk.bold.green(`WebSocket available at:\t\t%s`), wsURL);
-  console.info(`Try:\n  curl ${httpURL}`);
+  console.info(chalk.bold.green(`Your API is available at:\t%s`), httpUrl);
+  console.info(chalk.bold.green(`WebSocket available at:\t\t%s`), wsUrl);
+  console.info(`Try:\n  curl ${httpUrl}`);
 }
 
 async function getAccountId(): Promise<string> {

@@ -2,14 +2,14 @@ import { Lambda } from "@aws-sdk/client-lambda";
 import invariant from "tiny-invariant";
 
 export default async function updateAlias({
-  aliasARN,
-  versionARN,
+  aliasArn,
+  versionArn,
 }: {
-  aliasARN: string;
-  versionARN: string;
+  aliasArn: string;
+  versionArn: string;
 }): Promise<string> {
-  const [lambdaName, alias] = aliasARN.match(/([^:]+):([^:]+)$/)!.slice(1);
-  const version = versionARN.match(/\d+$/)?.[0];
+  const [lambdaName, alias] = aliasArn.match(/([^:]+):([^:]+)$/)!.slice(1);
+  const version = versionArn.match(/\d+$/)?.[0];
   invariant(alias && lambdaName);
   const lambda = new Lambda({});
 

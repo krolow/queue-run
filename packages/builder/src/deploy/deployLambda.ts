@@ -32,11 +32,11 @@ type LambdaConfig = {
 
   /** The full URL for this backend's HTTP API. Available to the backed as the
    *  environment variable QUEUE_RUN_URL. */
-  httpURL: string;
+  httpUrl: string;
 
   /** The full URL for this backend's WebSocket. Available to the backed as the
    *  environment variable QUEUE_RUN_WS. */
-  wsURL: string;
+  wsUrl: string;
 
   /**  WebSocket Gateway API ID. */
   wsApiId: string;
@@ -66,10 +66,10 @@ export async function deployLambda({
       "Slug must be 40 characters or less, alphanumeric and dashes"
     );
 
-  const { httpURL, wsURL } = config;
-  if (!/^https:\/\//.test(httpURL))
+  const { httpUrl, wsUrl } = config;
+  if (!/^https:\/\//.test(httpUrl))
     throw new Error('HTTP URL must start with "https://"');
-  if (!/^wss:\/\//.test(wsURL))
+  if (!/^wss:\/\//.test(wsUrl))
     throw new Error('WS URL must start with "https://"');
 
   const lambdaName = `qr-${slug}`;
@@ -77,7 +77,7 @@ export async function deployLambda({
   const queuePrefix = `${lambdaName}__`;
   debug('Queue prefix: "%s"', queuePrefix);
 
-  console.info(chalk.bold.green("🐇 Deploying %s to %s"), slug, httpURL);
+  console.info(chalk.bold.green("🐇 Deploying %s to %s"), slug, httpUrl);
 
   const { lambdaRuntime, zip, manifest } = await buildProject({
     buildDir,
@@ -99,8 +99,9 @@ export async function deployLambda({
   const envVars = await loadEnvVars({
     envVars: config.envVars ?? {},
     environment: config.env,
-    httpURL,
-    wsURL,
+    httpUrl,
+    wsUrl,
+    wsApiId: config.wsApiId,
   });
 
   if (signal?.aborted) throw new Error();
@@ -110,7 +111,7 @@ export async function deployLambda({
   // and the alias points to an earlier version (or no version on first deploy).
   const lambdaTimeout = getLambdaTimeout(manifest);
   debug("Lambda timeout %d seconds", lambdaTimeout);
-  const versionARN = await uploadLambda({
+  const versionArn = await uploadLambda({
     envVars,
     accountId: config.accountId,
     lambdaName,
@@ -127,20 +128,22 @@ export async function deployLambda({
   return await switchOver({
     queues: manifest.queues,
     queuePrefix,
-    versionARN,
+    versionArn,
   });
 }
 
 async function loadEnvVars({
   environment,
   envVars,
-  httpURL,
-  wsURL,
+  httpUrl,
+  wsUrl,
+  wsApiId,
 }: {
   environment: "production" | "preview";
   envVars?: Record<string, string>;
-  httpURL: string;
-  wsURL: string;
+  httpUrl: string;
+  wsUrl: string;
+  wsApiId: string;
 }) {
   const fromFile = await fs.readFile(`.env.${environment}`, "utf-8").then(
     (file) => dotenv.parse(file),
@@ -156,9 +159,10 @@ async function loadEnvVars({
     ...fromFile,
     ...envVars,
     NODE_ENV: "production",
-    QUEUE_RUN_URL: httpURL,
-    QUEUE_RUN_WS: wsURL,
     QUEUE_RUN_ENV: environment,
+    QUEUE_RUN_URL: httpUrl,
+    QUEUE_RUN_WS_API_ID: wsApiId,
+    QUEUE_RUN_WS: wsUrl,
   };
 }
 
@@ -172,22 +176,22 @@ function getLambdaTimeout(manifest: Manifest) {
 async function switchOver({
   queues,
   queuePrefix,
-  versionARN,
+  versionArn,
 }: {
   queuePrefix: string;
   queues: Manifest["queues"];
-  versionARN: string;
+  versionArn: string;
 }): Promise<string> {
-  const aliasARN = versionARN.replace(/(\d+)$/, "latest");
+  const aliasArn = versionArn.replace(/(\d+)$/, "latest");
 
   // Create queues that new version expects, and remove triggers for event
   // sources that new version does not understand.
-  const queueARNs = await createQueues({
+  const queueArns = await createQueues({
     queues,
     prefix: queuePrefix,
   });
 
-  await removeTriggers({ lambdaARN: aliasARN, sourceARNs: queueARNs });
+  await removeTriggers({ lambdaArn: aliasArn, sourceArns: queueArns });
 
   // Update alias to point to new version.
   //
@@ -196,19 +200,19 @@ async function switchOver({
   // versions:
   //
   //    {projectId}-{branch} => {projectId}:{version}
-  await updateAlias({ aliasARN, versionARN });
+  await updateAlias({ aliasArn, versionArn });
 
   // Add triggers for queues that new version can handle.  We do that for the
   // alias, so we only need to add new triggers, existing triggers carry over:
   //
   //   trigger {projectId}-{branch}__{queueName} => {projectId}-{branch}
-  await addTriggers({ lambdaARN: aliasARN, sourceARNs: queueARNs });
-  console.info("  This is version %s", versionARN.split(":").slice(-1)[0]);
+  await addTriggers({ lambdaArn: aliasArn, sourceArns: queueArns });
+  console.info("  This is version %s", versionArn.split(":").slice(-1)[0]);
 
   // Delete any queues that are no longer needed.
-  await deleteOldQueues({ prefix: queuePrefix, queueARNs });
+  await deleteOldQueues({ prefix: queuePrefix, queueArns });
 
-  return aliasARN;
+  return aliasArn;
 }
 
 export async function getRecentVersions(slug: string): Promise<

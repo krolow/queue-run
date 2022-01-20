@@ -1,17 +1,17 @@
 import { Lambda } from "@aws-sdk/client-lambda";
 
 export async function addTriggers({
-  lambdaARN,
-  sourceARNs,
+  lambdaArn,
+  sourceArns,
 }: {
-  lambdaARN: string;
-  sourceARNs: string[];
+  lambdaArn: string;
+  sourceArns: string[];
 }) {
   const lambda = new Lambda({});
 
-  if (sourceARNs.length === 0) return;
+  if (sourceArns.length === 0) return;
   const { EventSourceMappings } = await lambda.listEventSourceMappings({
-    FunctionName: lambdaARN,
+    FunctionName: lambdaArn,
   });
   const arnToUUID = new Map<string, string>(
     EventSourceMappings?.map(
@@ -20,19 +20,19 @@ export async function addTriggers({
   );
 
   const created = await Promise.all(
-    sourceARNs.map(async (arn) => {
+    sourceArns.map(async (arn) => {
       const uuid = arnToUUID.get(arn);
       if (uuid) {
         await lambda.updateEventSourceMapping({
           UUID: uuid,
-          FunctionName: lambdaARN,
+          FunctionName: lambdaArn,
         });
         return false;
       } else {
         const { UUID } = await lambda.createEventSourceMapping({
           Enabled: true,
           EventSourceArn: arn,
-          FunctionName: lambdaARN,
+          FunctionName: lambdaArn,
           FunctionResponseTypes: ["ReportBatchItemFailures"],
         });
         if (!UUID) throw new Error(`Could not create event source for ${arn}`);
@@ -44,20 +44,20 @@ export async function addTriggers({
 }
 
 export async function removeTriggers({
-  lambdaARN,
-  sourceARNs,
+  lambdaArn,
+  sourceArns,
 }: {
-  lambdaARN: string;
-  sourceARNs: string[];
+  lambdaArn: string;
+  sourceArns: string[];
 }) {
   const lambda = new Lambda({});
 
   const { EventSourceMappings } = await lambda.listEventSourceMappings({
-    FunctionName: lambdaARN,
+    FunctionName: lambdaArn,
   });
   if (!EventSourceMappings) return;
 
-  const set = new Set(sourceARNs);
+  const set = new Set(sourceArns);
   const removing = EventSourceMappings.filter(
     ({ EventSourceArn }) => EventSourceArn && !set.has(EventSourceArn)
   );

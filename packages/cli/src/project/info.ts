@@ -19,9 +19,9 @@ const command = new Command("info")
     console.info("Deployed:\t%s", current.modified.toLocaleString());
     console.info("Size:\t\t%s", filesize(current.size));
 
-    const { httpURL, wsURL } = await getAPIGatewayURLs(name);
-    console.info("API:\t\t%s", httpURL);
-    console.info("WebSocket:\t%s", wsURL);
+    const { httpUrl, wsUrl } = await getAPIGatewayURLs(name);
+    console.info("API:\t\t%s", httpUrl);
+    console.info("WebSocket:\t%s", wsUrl);
   });
 
 export default command;

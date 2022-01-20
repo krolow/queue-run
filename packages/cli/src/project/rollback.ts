@@ -10,8 +10,8 @@ const command = new Command("rollback")
     const { name } = await loadProject();
     const arn = await chooseVersion(name, version);
     await updateAlias({
-      aliasARN: arn.replace(/:\d+$/, ":latest"),
-      versionARN: arn,
+      aliasArn: arn.replace(/:\d+$/, ":latest"),
+      versionArn: arn,
     });
     console.log({ arn });
   });

@@ -27,8 +27,8 @@ const wsPath = "/_ws";
  * @throws If API Gateway not configured yet
  */
 export async function getAPIGatewayURLs(project: string): Promise<{
-  httpURL: string;
-  wsURL: string;
+  httpUrl: string;
+  wsUrl: string;
 }> {
   const [http, ws] = await Promise.all([
     findGatewayAPI({ protocol: ProtocolType.HTTP, project }),
@@ -45,23 +45,23 @@ export async function getAPIGatewayURLs(project: string): Promise<{
     if (Items?.find(({ ApiId }) => ApiId === http.ApiId)) {
       const domain = DomainName!.replace("*.", "");
       return {
-        httpURL: `https://${domain}`,
-        wsURL: `wss://ws.${domain}${wsPath}`,
+        httpUrl: `https://${domain}`,
+        wsUrl: `wss://ws.${domain}${wsPath}`,
       };
     }
   }
 
   return {
-    httpURL: http.ApiEndpoint,
-    wsURL: `${ws.ApiEndpoint}${wsPath}`,
+    httpUrl: http.ApiEndpoint,
+    wsUrl: `${ws.ApiEndpoint}${wsPath}`,
   };
 }
 
 // Setup API Gateway. We need the endpoint URLs before we can deploy the project
 // for the first time.
 export async function setupAPIGateway(project: string): Promise<{
-  httpURL: string;
-  wsURL: string;
+  httpUrl: string;
+  wsUrl: string;
   wsApiId: string;
 }> {
   const [, ws] = await Promise.all([
@@ -73,8 +73,8 @@ export async function setupAPIGateway(project: string): Promise<{
   ]);
   invariant(ws.ApiId);
 
-  const { httpURL, wsURL } = await getAPIGatewayURLs(project);
-  return { httpURL, wsURL, wsApiId: ws.ApiId };
+  const { httpUrl, wsUrl } = await getAPIGatewayURLs(project);
+  return { httpUrl, wsUrl, wsApiId: ws.ApiId };
 }
 
 async function createApi(
@@ -103,29 +103,29 @@ async function createApi(
 // API Gateway must have been created before.
 export async function setupIntegrations({
   project,
-  lambdaARN,
+  lambdaArn,
 }: {
   project: string;
-  lambdaARN: string;
+  lambdaArn: string;
 }) {
   const spinner = ora("Updating API Gateway").start();
-  await addInvokePermission(lambdaARN);
+  await addInvokePermission(lambdaArn);
   await Promise.all([
-    setupHTTPIntegrations(project, lambdaARN),
-    setupWSIntegrations(project, lambdaARN),
+    setupHTTPIntegrations(project, lambdaArn),
+    setupWSIntegrations(project, lambdaArn),
   ]);
 
   spinner.succeed();
 }
 
-async function setupHTTPIntegrations(project: string, lambdaARN: string) {
+async function setupHTTPIntegrations(project: string, lambdaArn: string) {
   const api = await findGatewayAPI({ protocol: ProtocolType.HTTP, project });
   if (!api) throw new Error("Missing API Gateway for HTTP");
 
   const http = await createIntegration({
     ApiId: api.ApiId,
     IntegrationType: IntegrationType.AWS_PROXY,
-    IntegrationUri: lambdaARN,
+    IntegrationUri: lambdaArn,
     PayloadFormatVersion: "2.0",
     TimeoutInMillis: 30000,
   });
@@ -137,7 +137,7 @@ async function setupHTTPIntegrations(project: string, lambdaARN: string) {
   await deployAPI(api, "$default");
 }
 
-async function setupWSIntegrations(project: string, lambdaARN: string) {
+async function setupWSIntegrations(project: string, lambdaArn: string) {
   const api = await findGatewayAPI({
     protocol: ProtocolType.WEBSOCKET,
     project,
@@ -149,7 +149,7 @@ async function setupWSIntegrations(project: string, lambdaARN: string) {
     ContentHandlingStrategy: "CONVERT_TO_BINARY",
     IntegrationMethod: "POST",
     IntegrationType: IntegrationType.AWS_PROXY,
-    IntegrationUri: `arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/${lambdaARN}/invocations`,
+    IntegrationUri: `arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/${lambdaArn}/invocations`,
     PassthroughBehavior: "WHEN_NO_MATCH",
     TimeoutInMillis: 29000,
   });
@@ -238,12 +238,12 @@ async function deployAPI(api: Api, stageName: string): Promise<void> {
   else await apiGateway.createStage(stage);
 }
 
-async function addInvokePermission(lambdaARN: string) {
+async function addInvokePermission(lambdaArn: string) {
   const statementId = "qr-api-gateway";
   try {
     await lambda.addPermission({
       Action: "lambda:InvokeFunction",
-      FunctionName: lambdaARN,
+      FunctionName: lambdaArn,
       Principal: "apigateway.amazonaws.com",
       StatementId: statementId,
     });
@@ -284,8 +284,8 @@ export async function addAPIGatewayDomain({
   domain: string;
   project: string;
 }): Promise<{
-  httpURL: string;
-  wsURL: string;
+  httpUrl: string;
+  wsUrl: string;
 }> {
   const [http, ws] = await Promise.all([
     findGatewayAPI({ protocol: ProtocolType.HTTP, project }),
@@ -312,7 +312,7 @@ export async function addAPIGatewayDomain({
       stage: "_ws",
     }),
   ]);
-  return { httpURL: `https://${domain}`, wsURL: `wss://ws.${domain}/ws` };
+  return { httpUrl: `https://${domain}`, wsUrl: `wss://ws.${domain}/ws` };
 }
 
 async function addDomainMapping({
