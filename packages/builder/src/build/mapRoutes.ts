@@ -157,7 +157,7 @@ function getContentTypes(config: { accepts?: string[] | string }): string[] {
   const accepts = Array.isArray(config?.accepts)
     ? config.accepts
     : [config?.accepts ?? "*/*"];
-  if (!accepts.every((accepts) => /^([a-z]+|\*)\/([a-z]+|\*)$/i.test(accepts)))
+  if (!accepts.every((type) => /^([a-z-]+|\*)\/([a-z-]+|\*)$/i.test(type)))
     throw new Error(
       `config.accepts lists acceptable MIME types, like "application/json" or "text/*"`
     );
