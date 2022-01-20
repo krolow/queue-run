@@ -27,6 +27,7 @@
       "Action": [
         "lambda:AddPermission",
         "lambda:CreateAlias",
+        "lambda:CreateFunction",
         "lambda:GetAlias",
         "lambda:GetFunction",
         "lambda:PutFunctionConcurrency",
