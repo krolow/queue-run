@@ -154,22 +154,11 @@ async function useDNSVerification({
   certificate: CertificateDetail | null;
   domain: string;
 }): Promise<string> {
-  const validation = certificate?.DomainValidationOptions?.find(
+  let validation = certificate?.DomainValidationOptions?.find(
     ({ ValidationMethod }) => ValidationMethod === "DNS"
-  )?.ResourceRecord;
-  if (validation) {
-    console.info("Update your DNS and add the following CNAME record:");
-    console.info("CNAME name:\t%s", validation.Name);
-    console.info("CNAME value:\t%s", validation.Value);
-    console.info(
-      "\nWaiting for DNS changes to propagate, this could take a while ..."
-    );
-    console.info(
-      "You can check DNS propagation here:\n%s",
-      `https://dns.google/query?name=${validation.Name}&rr_type=CNAME&ecs=`
-    );
-    return certificate!.CertificateArn!;
-  } else {
+  );
+
+  if (!validation) {
     const spinner = ora("Requesting a new certificate").start();
     const wildcard = `*.${domain}`;
     const { CertificateArn } = await acm.requestCertificate({
@@ -177,13 +166,31 @@ async function useDNSVerification({
       ValidationMethod: "DNS",
       SubjectAlternativeNames: [domain],
     });
-    await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    const { Certificate } = await acm.describeCertificate({
-      CertificateArn,
-    });
-    invariant(Certificate);
+    while (!validation) {
+      const { Certificate } = await acm.describeCertificate({
+        CertificateArn,
+      });
+      validation = Certificate?.DomainValidationOptions?.find(
+        ({ ValidationMethod }) => ValidationMethod === "DNS"
+      );
+    }
+
     spinner.succeed();
-    return await useDNSVerification({ certificate: Certificate, domain });
   }
+
+  invariant(validation.ResourceRecord);
+  const { Name, Value } = validation.ResourceRecord;
+
+  console.info("Update your DNS and add the following CNAME record:");
+  console.info("CNAME name:\t%s", Name);
+  console.info("CNAME value:\t%s", Value);
+  console.info(
+    "\nWaiting for DNS changes to propagate, this could take a while ..."
+  );
+  console.info(
+    "You can check DNS propagation here:\n%s",
+    `https://dns.google/query?name=${Name}&rr_type=CNAME&ecs=`
+  );
+  return certificate!.CertificateArn!;
 }

@@ -96,7 +96,7 @@ async function updateCNames(domain: string) {
       .join("\n")
   );
   console.info("");
-  for (const { cname, value } of cnames) await waitForCName(cname, value);
+  await waitForCNames(cnames);
 }
 
 async function getCNames(domain: string) {
@@ -110,14 +110,21 @@ async function getCNames(domain: string) {
   }));
 }
 
-async function waitForCName(cname: string, value: string) {
-  const spinner = ora(`Waiting for ${cname}`).start();
-  let resolved = await dns.promises.resolve(cname, "CNAME").catch(() => null);
-  while (!resolved?.includes(value)) {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    resolved = await dns.promises.resolve(cname, "CNAME").catch(() => null);
+async function waitForCNames(cnames: { cname: string; value: string }[]) {
+  let spinner = ora(`Checking DNS for updates …`).start();
+  while (cnames.length > 0) {
+    for (const { cname, value } of cnames) {
+      const resolved = await dns.promises
+        .resolve(cname, "CNAME")
+        .catch(() => null);
+      if (resolved?.includes(value)) {
+        spinner.succeed(cname);
+        cnames = cnames.filter(({ cname: name }) => name !== cname);
+        spinner = ora(`Checking DNS for updates …`).start();
+      }
+    }
   }
-  spinner.succeed();
+  spinner.stop();
 }
 
 command
