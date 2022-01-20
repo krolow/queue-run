@@ -78,35 +78,36 @@ async function addDomain({
 }
 
 async function updateCNames(domain: string) {
-  const wildcard = domain.startsWith("*.") ? domain : `*.${domain}`;
-  const { DomainNameConfigurations } = await apiGateway.getDomainName({
-    DomainName: wildcard,
-  });
-  invariant(DomainNameConfigurations);
-
   console.info(
     "Please update your DNS by adding the following CNAME records:\n"
   );
-  const cnames = [
-    DomainNameConfigurations.map(({ ApiGatewayDomainName }) => ({
-      cname: domain,
-      value: ApiGatewayDomainName!,
-    })),
-    DomainNameConfigurations.map(({ ApiGatewayDomainName }) => ({
-      cname: wildcard,
-      value: ApiGatewayDomainName!,
-    })),
-  ].flat();
+  const cnames = (
+    await Promise.all([
+      getCNames(domain),
+      getCNames(`*.${domain}`),
+      getCNames(`ws.${domain}`),
+    ])
+  ).flat();
+
   console.info(
     "%s",
     cnames
-      .map(
-        ({ cname, value }) => `${cname.padEnd(wildcard.length + 1)}\t${value}`
-      )
+      .map(({ cname, value }) => `${cname.padEnd(domain.length + 4)}\t${value}`)
       .join("\n")
   );
   console.info("");
   for (const { cname, value } of cnames) await waitForCName(cname, value);
+}
+
+async function getCNames(domain: string) {
+  const { DomainNameConfigurations } = await apiGateway.getDomainName({
+    DomainName: domain,
+  });
+  invariant(DomainNameConfigurations);
+  return DomainNameConfigurations.map(({ ApiGatewayDomainName }) => ({
+    cname: domain,
+    value: ApiGatewayDomainName!,
+  }));
 }
 
 async function waitForCName(cname: string, value: string) {
