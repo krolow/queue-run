@@ -1,11 +1,6 @@
 import fs from "node:fs/promises";
 import ora from "ora";
-import {
-  loadMiddleware,
-  loadModule,
-  Manifest,
-  WebSocketMiddleware,
-} from "queue-run";
+import { Manifest } from "queue-run";
 import compileSourceFiles from "./compileSourceFiles.js";
 import createBuildDirectory from "./createBuildDirectory.js";
 import getRuntime from "./getRuntime.js";
@@ -74,17 +69,6 @@ async function createManifest(dirname: string) {
       console.warn(
         'No routes found. Add "export default async function () { … }" to your routes.'
       );
-    } else {
-      const { middleware } =
-        (await loadModule<never, WebSocketMiddleware>("socket/index.js", {})) ??
-        (await loadMiddleware<WebSocketMiddleware>(
-          "socket/_middleware.js",
-          {}
-        ));
-      if (!middleware.authenticate)
-        console.warn(
-          "NOTE: WebSocket works better when you authenticate users"
-        );
     }
     return manifest;
   } finally {
