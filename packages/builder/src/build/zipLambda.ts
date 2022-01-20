@@ -28,7 +28,6 @@ export default async function zipLambda(dirname: string): Promise<Uint8Array> {
   const buffer = await zip.generateAsync({
     type: "uint8array",
     compression: "DEFLATE",
-    compressionOptions: { level: 9 },
   });
 
   spinner.stop();
