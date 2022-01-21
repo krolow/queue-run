@@ -15,6 +15,7 @@ import {
   handleHTTPRequest,
   handleQueuedJob,
   handleWebSocketMessage,
+  Headers,
   LocalStorage,
   Request,
   Response,
@@ -197,16 +198,20 @@ async function onRequest(
     return queueJob(req, res, newLocalStorage);
 
   const method = req.method?.toLocaleUpperCase() ?? "GET";
-  const headers = Object.fromEntries(
-    Object.entries(req.headers).map(([name, value]) => [name, String(value)])
+  const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
+  const headers = new Headers(
+    Object.fromEntries(
+      Object.entries(req.headers).map(([name, value]) => [name, String(value)])
+    )
   );
-  const url = new URL(req.url ?? "/", `http://${headers.host}`);
+  headers.set("X-Forwarded-For", req.socket?.remoteAddress ?? "unknown");
   const body = await getRequestBody(req);
   const request = new Request(url.href, {
     method,
     headers,
     body,
   });
+
   const response = await handleHTTPRequest({
     newLocalStorage,
     request,
