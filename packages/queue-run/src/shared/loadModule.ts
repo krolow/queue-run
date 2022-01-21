@@ -29,7 +29,7 @@ export async function loadModule<ModuleExports, Middleware>(
   });
   if (!absolute) return null;
   const module = (await import(absolute)) as ModuleExports;
-  const { middleware } = await loadMiddleware<Middleware>(
+  const middleware = await loadMiddleware<Middleware>(
     path.dirname(fromProjectRoot),
     defaultMiddleware
   );
@@ -60,24 +60,31 @@ export async function loadModule<ModuleExports, Middleware>(
 export async function loadMiddleware<Middleware>(
   dirname: string,
   defaultMiddleware: Middleware
-): Promise<{
-  middleware: Middleware;
-}> {
-  if (dirname === ".") return { middleware: defaultMiddleware };
+): Promise<Middleware> {
+  if (dirname === ".") {
+    const [absolute] = await glob("index.{mjs,js}", {
+      absolute: true,
+    });
+    if (!absolute) return defaultMiddleware;
 
-  const { middleware: parent } = await loadMiddleware<Middleware>(
+    const exports = await import(absolute);
+    return combine(exports, defaultMiddleware);
+  }
+
+  const parent = await loadMiddleware<Middleware>(
     path.dirname(dirname),
     defaultMiddleware
   );
+
   const [absolute] = await glob("_middleware.{mjs,js}", {
     cwd: path.join(process.cwd(), dirname),
     absolute: true,
   });
-  if (!absolute) return { middleware: parent };
+  if (!absolute) return parent;
 
   const exports = await import(absolute);
   // This middleware's exports take precendece over parent's
-  return { middleware: combine(exports, parent) };
+  return combine(exports, parent);
 }
 
 function combine<T = { [key: string]: Function }>(...middleware: T[]): T {

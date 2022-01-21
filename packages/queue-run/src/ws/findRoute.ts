@@ -27,7 +27,7 @@ export default async function findRoute(data: Buffer): Promise<{
     route.filename,
     { onMessageReceived: logMessageReceived, onError: logError }
   );
-  invariant(loaded, "Could not load route module");
+  invariant(loaded, "Could not load request handler");
   const { module, middleware } = loaded;
 
   return { module, middleware, route: route };

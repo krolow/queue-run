@@ -1,22 +1,23 @@
 import { AbortController } from "node-abort-controller";
 import { createHash } from "node:crypto";
 import { URL, URLSearchParams } from "node:url";
+import { RouteConfig, RouteMiddleware } from "queue-run";
 import { XMLElement } from "xmlbuilder";
 import { isElement, render } from "../jsx-runtime.js";
+import { loadMiddleware } from "../shared/loadModule.js";
 import {
   getLocalStorage,
   LocalStorage,
   withLocalStorage,
 } from "../shared/localStorage";
+import { logError } from "../shared/logError.js";
 import { HTTPRoute } from "../shared/manifest";
 import TimeoutError from "../shared/TimeoutError.js";
 import {
   AuthenticatedUser,
   HTTPRequest,
   RequestHandler,
-  RouteConfig,
   RouteExports,
-  RouteMiddleware,
 } from "./exports.js";
 import { Headers, Request, Response } from "./fetch.js";
 import findRoute from "./findRoute.js";
@@ -62,17 +63,15 @@ export default async function handleHTTPRequest({
       timeout: route.timeout,
     });
   } catch (error) {
-    // checkRequest and getHandler.  These are client errors (4xx) and we don't
-    // log them.
-    if (error instanceof Response) return error;
-    console.error(
-      "Internal processing error %s %s",
-      request.method,
-      request.url,
-      error
-    );
-    // eslint-disable-next-line sonarjs/no-duplicate-string
-    return new Response("Internal Server Error", { status: 500 });
+    const middleware = await loadMiddleware<RouteMiddleware>("api", {
+      onError: logError,
+    });
+    return await handleOnError({
+      error,
+      filename: "unknown",
+      middleware,
+      request,
+    });
   }
 }
 
@@ -275,7 +274,7 @@ async function getAuthenticatedUser({
     user === undefined
       ? 'Authenticate function returned "undefined", was this intentional?'
       : "Authenticate function returned user object without an ID";
-  console.error(concern);
+  console.warn(concern);
   throw new Response("Forbidden", { status: 403 });
 }
 

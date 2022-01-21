@@ -70,10 +70,10 @@ function getCookies(request: Request): { [key: string]: string } {
 }
 
 async function getCommonMiddleware() {
-  const { middleware } =
-    (await loadModule<never, WebSocketMiddleware>("socket/index", {})) ??
-    (await loadMiddleware<WebSocketMiddleware>("socket", {}));
-  return middleware;
+  return (
+    (await loadModule<never, WebSocketMiddleware>("socket/index", {}))
+      ?.middleware ?? (await loadMiddleware<WebSocketMiddleware>("socket", {}))
+  );
 }
 
 export async function handleWebSocketMessage({
