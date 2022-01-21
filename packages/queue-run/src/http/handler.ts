@@ -461,9 +461,6 @@ async function handleOnError({
   middleware: RouteMiddleware;
   request: Request;
 }): Promise<Response> {
-  if (!(error instanceof Response))
-    console.error('Error in "%s":', filename, error);
-
   let response: Response =
     error instanceof Response
       ? error
