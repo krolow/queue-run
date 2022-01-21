@@ -43,7 +43,7 @@ You can provide your own logging function. This is useful if you want to send al
 
 For example, to use with LogTail:
 
-```ts title=warmup.ts
+```ts title=index.ts
 import { format } from "node:util";
 import { logging } from "queue-run";
 import { Logtail } from "@logtail/node";

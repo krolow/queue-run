@@ -41,10 +41,10 @@ The most noticeable issue is the warm up time. It needs at least 3 seconds to wa
 
 If you opted into provisioned concurrency, you will want to do warm up work before the request handler gets involved. For things like opening database connections, downloading dynamic resources and data, etc.
 
-You can write that code in the module `warmup.ts`. For example:
+You can write that code in the module `index.ts`. For example:
 
 
-```ts title=warmup.ts
+```ts title=index.ts
 import { Connection } from "db";
 
 // highlight-next-line
@@ -52,7 +52,7 @@ export const connection = new Connection(process.env.DB_URL);
 ```
 
 ```ts title=api/index.ts
-import { connection } from "../warmup.js";
+import { connection } from "../index.js";
 
 export async function get() {
   const records = await connection.query('SELECT * FROM table');
@@ -60,15 +60,16 @@ export async function get() {
 }
 ```
 
-This works because QueueRun loads `warmup` once, before handling any requests. This gives time for the database connection object to establish a TCP connection to the database server.
+This works because QueueRun loads `index.js` once, before handling any requests. This gives time for the database connection object to establish a TCP connection to the database server.
 
-If you want to be more specific, you can export a default function. For example:
+If you want to be more specific, you can export a `warmup` function. For example:
 
-```ts title=warmup.ts
+```ts title=index.ts
 import db from "#lib/db.js";
 import type { Settings } from "#lib/types.d.ts";
 
-export default async function warmup() {
+// This is called before request/job handler
+export async function warmup() {
   settings = await db.settings.find();
 }
 
@@ -77,7 +78,7 @@ export let settings : Settings;
 ```
 
 ```ts title=api/index.ts
-import { settings } from "../warmup.js";
+import { settings } from "../index.js";
 
 export async function get() {
   // warmup function executed, settings has a value
