@@ -2,7 +2,6 @@ import chalk from "chalk";
 import { Command } from "commander";
 import ms from "ms";
 import fs from "node:fs/promises";
-import { debuglog } from "node:util";
 import buildCommand from "./build.js";
 import devCommand from "./dev/index.js";
 import deployCommand from "./project/deploy.js";
@@ -11,8 +10,6 @@ import infoCommand from "./project/info.js";
 import initCommand from "./project/init.js";
 import logsCommand from "./project/logs.js";
 import rollbackCommand from "./project/rollback.js";
-
-const debug = debuglog("queue-run:cli");
 
 const program = new Command();
 
@@ -44,6 +41,6 @@ try {
   console.info(chalk.bold.green("🐇 Done in %s"), ms(process.uptime() * 1000));
 } catch (error) {
   console.error(String(error));
-  if (error instanceof Error) debug(error.stack!);
+  if (error instanceof Error) console.log(error.stack!);
   process.exit(-1);
 }
