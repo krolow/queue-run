@@ -51,6 +51,7 @@ export async function loadModule<ModuleExports, Middleware>(
  * - api/project/[id]/_middleware.ts
  * - api/project/_middleware.ts
  * - api/_middleware.ts
+ * - _middleware.ts (shared by API, WS, queues, etc)
  * - Default middleware (second argument)
  *
  * @param dirname The directory
@@ -61,20 +62,13 @@ export async function loadMiddleware<Middleware>(
   dirname: string,
   defaultMiddleware: Middleware
 ): Promise<Middleware> {
-  if (dirname === ".") {
-    const [absolute] = await glob("index.{mjs,js}", {
-      absolute: true,
-    });
-    if (!absolute) return defaultMiddleware;
-
-    const exports = await import(absolute);
-    return combine(exports, defaultMiddleware);
-  }
-
-  const parent = await loadMiddleware<Middleware>(
-    path.dirname(dirname),
-    defaultMiddleware
-  );
+  const parent =
+    dirname === "."
+      ? defaultMiddleware
+      : await loadMiddleware<Middleware>(
+          path.dirname(dirname),
+          defaultMiddleware
+        );
 
   const [absolute] = await glob("_middleware.{mjs,js}", {
     cwd: path.join(process.cwd(), dirname),
