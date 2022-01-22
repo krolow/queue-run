@@ -2,8 +2,9 @@ import chalk from "chalk";
 import { Command } from "commander";
 import ms from "ms";
 import fs from "node:fs/promises";
-import buildCommand from "./build.js";
 import devCommand from "./dev/index.js";
+import buildCommand from "./local/build.js";
+import policyCommand from "./local/policy.js";
 import deployCommand from "./project/deploy.js";
 import domainCommand from "./project/domain.js";
 import infoCommand from "./project/info.js";
@@ -20,6 +21,7 @@ program.addCommand(domainCommand);
 program.addCommand(infoCommand);
 program.addCommand(initCommand);
 program.addCommand(logsCommand);
+program.addCommand(policyCommand);
 program.addCommand(rollbackCommand);
 
 program.showSuggestionAfterError();

@@ -14,7 +14,9 @@
     },
     {
       "Effect": "Allow",
-      "Action": ["iam:GetUser"],
+      "Action": [
+        "iam:GetUser"
+      ],
       "Resource": "*"
     },
     {
@@ -60,7 +62,9 @@
     },
     {
       "Effect": "Allow",
-      "Action": ["lambda:ListEventSourceMappings"],
+      "Action": [
+        "lambda:ListEventSourceMappings"
+      ],
       "Resource": "*"
     },
     {
@@ -103,12 +107,17 @@
       "Resource": "arn:aws:sqs:*:*:*"
     },
     {
-      "Action": ["sqs:ListQueues"],
+      "Action": [
+        "sqs:ListQueues"
+      ],
       "Effect": "Allow",
       "Resource": "*"
     },
     {
-      "Action": ["dynamodb:CreateTable", "dynamodb:DescribeTable"],
+      "Action": [
+        "dynamodb:CreateTable",
+        "dynamodb:DescribeTable"
+      ],
       "Effect": "Allow",
       "Resource": [
         "arn:aws:dynamodb:*:*:table/qr-connections",
