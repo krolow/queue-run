@@ -1,6 +1,6 @@
 {
   "name": "queue-run-builder",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
@@ -33,8 +33,8 @@
     "ora": "^6.0.1",
     "path-to-regexp": "^6.2.0",
     "pirates": "^4.0.4",
-    "queue-run": "^0.8.2",
-    "queue-run-lambda": "^0.8.2",
+    "queue-run": "^0.8.3",
+    "queue-run-lambda": "^0.8.3",
     "tiny-invariant": "^1.2.0"
   },
   "devDependencies": {
