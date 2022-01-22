@@ -15,7 +15,7 @@ import invariant from "tiny-invariant";
 
 const apiGateway = new ApiGatewayV2({});
 const lambda = new Lambda({});
-const wsPath = "/_ws";
+const wsStage = "prod";
 
 // See https://docs.aws.amazon.com/lambda/latest/dg/services-apigateway.html#apigateway-permissions
 
@@ -46,14 +46,14 @@ export async function getAPIGatewayURLs(project: string): Promise<{
       const domain = DomainName!.replace("*.", "");
       return {
         httpUrl: `https://${domain}`,
-        wsUrl: `wss://ws.${domain}${wsPath}`,
+        wsUrl: `wss://ws.${domain}`,
       };
     }
   }
 
   return {
     httpUrl: http.ApiEndpoint,
-    wsUrl: `${ws.ApiEndpoint}${wsPath}`,
+    wsUrl: `${ws.ApiEndpoint}/${wsStage}`,
   };
 }
 
@@ -175,7 +175,7 @@ async function setupWSIntegrations(project: string, lambdaArn: string) {
 
   // API Gateway insists on WS having a non-empty stage name, and that stage
   // name is used in the URL, so the URL would end with _ws.
-  await deployAPI(api, "_ws");
+  await deployAPI(api, wsStage);
 }
 
 async function createIntegration(
@@ -309,10 +309,13 @@ export async function addAPIGatewayDomain({
       apiId: ws?.ApiId!,
       certificateArn,
       domain: `ws.${domain}`,
-      stage: "_ws",
+      stage: wsStage,
     }),
   ]);
-  return { httpUrl: `https://${domain}`, wsUrl: `wss://ws.${domain}/ws` };
+  return {
+    httpUrl: `https://${domain}`,
+    wsUrl: `wss://ws.${domain}/${wsStage}`,
+  };
 }
 
 async function addDomainMapping({
@@ -376,7 +379,7 @@ export async function removeAPIGatewayDomain({
     removeDomainMapping({
       apiId: ws?.ApiId!,
       domain: `ws.${domain}`,
-      stage: "_ws",
+      stage: wsStage,
     }),
   ]);
 }
