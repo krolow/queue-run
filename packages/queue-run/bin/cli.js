@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { execFileSync } from "node:child_process";
+import { execFileSync, fork } from "node:child_process";
 import { createRequire } from "node:module";
 
 // CLI is provided by queue-run-cli, separate package, keep queue-run smaller.
@@ -21,4 +21,7 @@ try {
   } else throw error;
 }
 
-await import(cliModule);
+const child = await fork(`node_modules/${cliModule}`, process.argv);
+await new Promise(() => {
+  child.on("exit", (code) => process.exit(code));
+});
