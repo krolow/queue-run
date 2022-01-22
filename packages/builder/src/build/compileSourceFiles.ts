@@ -17,9 +17,6 @@ export default async function compileSourceFiles({
 }) {
   const spinner = ora("Compiling source files …").start();
   try {
-    const { jscTarget } = await getRuntimeVersion(sourceDir);
-    const esm = await getIsModule(sourceDir);
-
     const ignore = (
       await fs
         .readFile(path.join(sourceDir, ".gitignore"), "utf-8")
@@ -36,7 +33,11 @@ export default async function compileSourceFiles({
       markDirectories: true,
       unique: true,
     });
+
+    const { jscTarget } = await getRuntimeVersion(sourceDir);
+    const esm = await getIsModule(sourceDir);
     const extension = esm ? ".js" : ".mjs";
+
     let compiled = 0;
     let copied = 0;
     for (const filename of filenames) {
@@ -61,8 +62,7 @@ export default async function compileSourceFiles({
       }
     }
 
-    spinner.stop();
-    console.info("λ: Compiled %d files and copied %d files", compiled, copied);
+    spinner.succeed(`Compiled ${compiled} files and copied ${copied} files`);
   } catch (error) {
     spinner.fail(String(error));
     throw error;
