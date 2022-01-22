@@ -13,12 +13,14 @@ import { loadProject } from "./project.js";
 const command = new Command("deploy")
   .description("deploy your project")
   .action(async () => {
-    const { name } = await loadProject();
+    const { name, region } = await loadProject();
     const accountId = await getAccountId();
-    const region = process.env.AWS_REGION || "us-east-1";
 
     const spinner = ora("Setting up API Gateway...").start();
-    const { httpUrl, wsUrl, wsApiId } = await setupAPIGateway(name);
+    const { httpUrl, wsUrl, wsApiId } = await setupAPIGateway({
+      project: name,
+      region,
+    });
     spinner.succeed("Created API Gateway endpoints");
 
     const lambdaArn = await deployLambda({
@@ -34,7 +36,7 @@ const command = new Command("deploy")
         wsApiId,
       },
     });
-    await setupIntegrations({ project: name, lambdaArn });
+    await setupIntegrations({ project: name, lambdaArn, region });
 
     console.info(chalk.bold.green(`Your API is available at:\t%s`), httpUrl);
     console.info(chalk.bold.green(`WebSocket available at:\t\t%s`), wsUrl);

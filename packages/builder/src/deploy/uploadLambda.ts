@@ -26,7 +26,7 @@ export default async function uploadLambda({
   wsApiId: string;
   zip: Uint8Array;
 }): Promise<string> {
-  const lambda = new Lambda({});
+  const lambda = new Lambda({ region });
   const spinner = ora(`Uploading Lambda "${lambdaName}"`).start();
 
   const roleArn = await getLambdaRole({
@@ -145,8 +145,14 @@ function aliasAWSEnvVars(
   return aliased;
 }
 
-export async function deleteLambda({ lambdaName }: { lambdaName: string }) {
-  const lambda = new Lambda({});
+export async function deleteLambda({
+  lambdaName,
+  region,
+}: {
+  lambdaName: string;
+  region: string;
+}) {
+  const lambda = new Lambda({ region });
   await lambda.deleteFunction({ FunctionName: lambdaName });
   await deleteLambdaRole({ lambdaName });
 }

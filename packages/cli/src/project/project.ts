@@ -8,6 +8,7 @@ const filename = ".queue-run.json";
 type Project = {
   domain?: string;
   name: string;
+  region: string;
   runtime: "lambda";
 };
 
@@ -92,7 +93,8 @@ export async function initProject() {
     },
   ]);
   const { name, runtime } = answers;
-  await saveProject({ name, runtime });
+  const region = process.env.AWS_REGION ?? "us-east-1";
+  await saveProject({ name, region, runtime });
   return answers;
 }
 

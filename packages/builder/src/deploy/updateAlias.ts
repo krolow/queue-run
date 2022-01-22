@@ -3,15 +3,17 @@ import invariant from "tiny-invariant";
 
 export default async function updateAlias({
   aliasArn,
+  region,
   versionArn,
 }: {
   aliasArn: string;
+  region: string;
   versionArn: string;
 }): Promise<string> {
   const [lambdaName, alias] = aliasArn.match(/([^:]+):([^:]+)$/)!.slice(1);
   const version = versionArn.match(/\d+$/)?.[0];
   invariant(alias && lambdaName);
-  const lambda = new Lambda({});
+  const lambda = new Lambda({ region });
 
   try {
     const { AliasArn: arn } = await lambda.getAlias({

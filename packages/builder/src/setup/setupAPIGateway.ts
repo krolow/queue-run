@@ -13,8 +13,6 @@ import { Lambda } from "@aws-sdk/client-lambda";
 import ora from "ora";
 import invariant from "tiny-invariant";
 
-const apiGateway = new ApiGatewayV2({});
-const lambda = new Lambda({});
 const wsStage = "prod";
 
 // See https://docs.aws.amazon.com/lambda/latest/dg/services-apigateway.html#apigateway-permissions
@@ -26,13 +24,20 @@ const wsStage = "prod";
  * @returns HTTP and WS URLs
  * @throws If API Gateway not configured yet
  */
-export async function getAPIGatewayURLs(project: string): Promise<{
+export async function getAPIGatewayURLs({
+  project,
+  region,
+}: {
+  project: string;
+  region: string;
+}): Promise<{
   httpUrl: string;
   wsUrl: string;
 }> {
+  const apiGateway = new ApiGatewayV2({ region });
   const [http, ws] = await Promise.all([
-    findGatewayAPI({ protocol: ProtocolType.HTTP, project }),
-    findGatewayAPI({ protocol: ProtocolType.WEBSOCKET, project }),
+    findGatewayAPI({ apiGateway, protocol: ProtocolType.HTTP, project }),
+    findGatewayAPI({ apiGateway, protocol: ProtocolType.WEBSOCKET, project }),
   ]);
   if (!(http?.ApiEndpoint && ws?.ApiEndpoint))
     throw new Error("Project has not been deployed successfully");
@@ -59,29 +64,38 @@ export async function getAPIGatewayURLs(project: string): Promise<{
 
 // Setup API Gateway. We need the endpoint URLs before we can deploy the project
 // for the first time.
-export async function setupAPIGateway(project: string): Promise<{
+export async function setupAPIGateway({
+  project,
+  region,
+}: {
+  project: string;
+  region: string;
+}): Promise<{
   httpUrl: string;
   wsUrl: string;
   wsApiId: string;
 }> {
+  const apiGateway = new ApiGatewayV2({ region });
   const [, ws] = await Promise.all([
-    createApi(project, { ProtocolType: ProtocolType.HTTP }),
-    createApi(project, {
+    createApi(apiGateway, project, { ProtocolType: ProtocolType.HTTP }),
+    createApi(apiGateway, project, {
       ProtocolType: ProtocolType.WEBSOCKET,
       RouteSelectionExpression: "*",
     }),
   ]);
   invariant(ws.ApiId);
 
-  const { httpUrl, wsUrl } = await getAPIGatewayURLs(project);
+  const { httpUrl, wsUrl } = await getAPIGatewayURLs({ project, region });
   return { httpUrl, wsUrl, wsApiId: ws.ApiId };
 }
 
 async function createApi(
+  apiGateway: ApiGatewayV2,
   project: string,
   args: Omit<CreateApiRequest, "Name"> & { ProtocolType: ProtocolType }
 ) {
   const existing = await findGatewayAPI({
+    apiGateway,
     project,
     protocol: args.ProtocolType,
   });
@@ -104,47 +118,63 @@ async function createApi(
 export async function setupIntegrations({
   project,
   lambdaArn,
+  region,
 }: {
   project: string;
   lambdaArn: string;
+  region: string;
 }) {
+  const apiGateway = new ApiGatewayV2({ region });
   const spinner = ora("Updating API Gateway").start();
-  await addInvokePermission(lambdaArn);
+  await addInvokePermission({ lambdaArn, region });
   await Promise.all([
-    setupHTTPIntegrations(project, lambdaArn),
-    setupWSIntegrations(project, lambdaArn),
+    setupHTTPIntegrations(apiGateway, project, lambdaArn),
+    setupWSIntegrations(apiGateway, project, lambdaArn),
   ]);
 
   spinner.succeed();
 }
 
-async function setupHTTPIntegrations(project: string, lambdaArn: string) {
-  const api = await findGatewayAPI({ protocol: ProtocolType.HTTP, project });
+async function setupHTTPIntegrations(
+  apiGateway: ApiGatewayV2,
+  project: string,
+  lambdaArn: string
+) {
+  const api = await findGatewayAPI({
+    apiGateway,
+    protocol: ProtocolType.HTTP,
+    project,
+  });
   if (!api) throw new Error("Missing API Gateway for HTTP");
 
-  const http = await createIntegration({
+  const http = await createIntegration(apiGateway, {
     ApiId: api.ApiId,
     IntegrationType: IntegrationType.AWS_PROXY,
     IntegrationUri: lambdaArn,
     PayloadFormatVersion: "2.0",
     TimeoutInMillis: 30000,
   });
-  await createRoute({
+  await createRoute(apiGateway, {
     ApiId: api.ApiId,
     RouteKey: "ANY /{proxy+}",
     Target: `integrations/${http}`,
   });
-  await deployAPI(api, "$default");
+  await deployAPI(apiGateway, api, "$default");
 }
 
-async function setupWSIntegrations(project: string, lambdaArn: string) {
+async function setupWSIntegrations(
+  apiGateway: ApiGatewayV2,
+  project: string,
+  lambdaArn: string
+) {
   const api = await findGatewayAPI({
+    apiGateway,
     protocol: ProtocolType.WEBSOCKET,
     project,
   });
   if (!api) throw new Error("Missing API Gateway for WebSocket");
 
-  const ws = await createIntegration({
+  const ws = await createIntegration(apiGateway, {
     ApiId: api.ApiId,
     ContentHandlingStrategy: "CONVERT_TO_BINARY",
     IntegrationMethod: "POST",
@@ -155,18 +185,18 @@ async function setupWSIntegrations(project: string, lambdaArn: string) {
   });
 
   await Promise.all([
-    createRoute({
+    createRoute(apiGateway, {
       ApiId: api.ApiId,
       AuthorizationType: "NONE",
       RouteKey: "$connect",
       Target: `integrations/${ws}`,
     }),
-    createRoute({
+    createRoute(apiGateway, {
       ApiId: api.ApiId,
       RouteKey: "$disconnect",
       Target: `integrations/${ws}`,
     }),
-    createRoute({
+    createRoute(apiGateway, {
       ApiId: api.ApiId,
       RouteKey: "$default",
       Target: `integrations/${ws}`,
@@ -175,10 +205,11 @@ async function setupWSIntegrations(project: string, lambdaArn: string) {
 
   // API Gateway insists on WS having a non-empty stage name, and that stage
   // name is used in the URL, so the URL would end with _ws.
-  await deployAPI(api, wsStage);
+  await deployAPI(apiGateway, api, wsStage);
 }
 
 async function createIntegration(
+  apiGateway: ApiGatewayV2,
   args: CreateIntegrationRequest
 ): Promise<string> {
   const { Items: items } = await apiGateway.getIntegrations({
@@ -201,7 +232,10 @@ async function createIntegration(
   }
 }
 
-async function createRoute(args: CreateRouteRequest): Promise<string> {
+async function createRoute(
+  apiGateway: ApiGatewayV2,
+  args: CreateRouteRequest
+): Promise<string> {
   const { Items: routes } = await apiGateway.getRoutes({ ApiId: args.ApiId });
   const route = routes?.find(({ RouteKey }) => RouteKey === args.RouteKey);
   const id = route?.RouteId;
@@ -218,7 +252,11 @@ async function createRoute(args: CreateRouteRequest): Promise<string> {
   }
 }
 
-async function deployAPI(api: Api, stageName: string): Promise<void> {
+async function deployAPI(
+  apiGateway: ApiGatewayV2,
+  api: Api,
+  stageName: string
+): Promise<void> {
   const { DeploymentId, DeploymentStatus } = await apiGateway.createDeployment({
     ApiId: api.ApiId,
   });
@@ -238,8 +276,15 @@ async function deployAPI(api: Api, stageName: string): Promise<void> {
   else await apiGateway.createStage(stage);
 }
 
-async function addInvokePermission(lambdaArn: string) {
+async function addInvokePermission({
+  lambdaArn,
+  region,
+}: {
+  lambdaArn: string;
+  region: string;
+}) {
   const statementId = "qr-api-gateway";
+  const lambda = new Lambda({ region });
   try {
     await lambda.addPermission({
       Action: "lambda:InvokeFunction",
@@ -254,10 +299,12 @@ async function addInvokePermission(lambdaArn: string) {
 }
 
 async function findGatewayAPI({
+  apiGateway,
   nextToken,
   project,
   protocol,
 }: {
+  apiGateway: ApiGatewayV2;
   nextToken?: string;
   project: string;
   protocol: ProtocolType;
@@ -271,7 +318,12 @@ async function findGatewayAPI({
   );
   if (api) return api;
   return result.NextToken
-    ? await findGatewayAPI({ nextToken: result.NextToken, project, protocol })
+    ? await findGatewayAPI({
+        apiGateway,
+        nextToken: result.NextToken,
+        project,
+        protocol,
+      })
     : null;
 }
 
@@ -279,33 +331,39 @@ export async function addAPIGatewayDomain({
   certificateArn,
   domain,
   project,
+  region,
 }: {
   certificateArn: string;
   domain: string;
   project: string;
+  region: string;
 }): Promise<{
   httpUrl: string;
   wsUrl: string;
 }> {
+  const apiGateway = new ApiGatewayV2({ region });
   const [http, ws] = await Promise.all([
-    findGatewayAPI({ protocol: ProtocolType.HTTP, project }),
-    findGatewayAPI({ protocol: ProtocolType.WEBSOCKET, project }),
+    findGatewayAPI({ apiGateway, protocol: ProtocolType.HTTP, project }),
+    findGatewayAPI({ apiGateway, protocol: ProtocolType.WEBSOCKET, project }),
   ]);
 
   await Promise.all([
     addDomainMapping({
+      apiGateway,
       apiId: http?.ApiId!,
       certificateArn,
       domain: domain,
       stage: "$default",
     }),
     addDomainMapping({
+      apiGateway,
       apiId: http?.ApiId!,
       certificateArn,
       domain: `*.${domain}`,
       stage: "$default",
     }),
     await addDomainMapping({
+      apiGateway,
       apiId: ws?.ApiId!,
       certificateArn,
       domain: `ws.${domain}`,
@@ -319,11 +377,13 @@ export async function addAPIGatewayDomain({
 }
 
 async function addDomainMapping({
+  apiGateway,
   apiId,
   certificateArn,
   domain,
   stage,
 }: {
+  apiGateway: ApiGatewayV2;
   apiId: string;
   certificateArn: string;
   domain: string;
@@ -362,21 +422,26 @@ async function addDomainMapping({
 export async function removeAPIGatewayDomain({
   domain,
   project,
+  region,
 }: {
   domain: string;
   project: string;
+  region: string;
 }) {
+  const apiGateway = new ApiGatewayV2({ region });
   const [http, ws] = await Promise.all([
-    findGatewayAPI({ protocol: ProtocolType.HTTP, project }),
-    findGatewayAPI({ protocol: ProtocolType.WEBSOCKET, project }),
+    findGatewayAPI({ apiGateway, protocol: ProtocolType.HTTP, project }),
+    findGatewayAPI({ apiGateway, protocol: ProtocolType.WEBSOCKET, project }),
   ]);
   await Promise.all([
     removeDomainMapping({
+      apiGateway,
       apiId: http?.ApiId!,
       domain: `*.${domain}`,
       stage: "$default",
     }),
     removeDomainMapping({
+      apiGateway,
       apiId: ws?.ApiId!,
       domain: `ws.${domain}`,
       stage: wsStage,
@@ -385,10 +450,12 @@ export async function removeAPIGatewayDomain({
 }
 
 async function removeDomainMapping({
+  apiGateway,
   apiId,
   domain,
   stage,
 }: {
+  apiGateway: ApiGatewayV2;
   apiId: string;
   domain: string;
   stage: string;

@@ -7,13 +7,15 @@ import invariant from "tiny-invariant";
 export async function createQueues({
   prefix,
   queues,
+  region,
 }: {
   prefix: string;
   queues: Manifest["queues"];
+  region: string;
 }): Promise<string[]> {
   if (queues.length === 0) return [];
 
-  const sqs = new SQS({});
+  const sqs = new SQS({ region });
   const queueTimeout = Math.max(
     ...Array.from(queues.values()).map((queue) => queue.timeout * 6)
   );
@@ -60,11 +62,13 @@ export async function createQueues({
 export async function deleteOldQueues({
   prefix,
   queueArns,
+  region,
 }: {
   prefix: string;
   queueArns: string[];
+  region: string;
 }) {
-  const sqs = new SQS({});
+  const sqs = new SQS({ region });
   const { QueueUrls: queueURLs } = await sqs.listQueues({
     QueueNamePrefix: prefix,
   });

@@ -3,11 +3,13 @@ import { Lambda } from "@aws-sdk/client-lambda";
 export async function addTriggers({
   lambdaArn,
   sourceArns,
+  region,
 }: {
   lambdaArn: string;
   sourceArns: string[];
+  region: string;
 }) {
-  const lambda = new Lambda({});
+  const lambda = new Lambda({ region });
 
   if (sourceArns.length === 0) return;
   const { EventSourceMappings } = await lambda.listEventSourceMappings({
@@ -46,11 +48,13 @@ export async function addTriggers({
 export async function removeTriggers({
   lambdaArn,
   sourceArns,
+  region,
 }: {
   lambdaArn: string;
   sourceArns: string[];
+  region: string;
 }) {
-  const lambda = new Lambda({});
+  const lambda = new Lambda({ region });
 
   const { EventSourceMappings } = await lambda.listEventSourceMappings({
     FunctionName: lambdaArn,

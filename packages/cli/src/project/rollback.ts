@@ -7,16 +7,25 @@ const command = new Command("rollback")
   .description("roll back to previous version")
   .argument("[version]", "version to roll back to")
   .action(async (version?: string) => {
-    const { name } = await loadProject();
-    const arn = await chooseVersion(name, version);
+    const { name, region } = await loadProject();
+    const arn = await chooseVersion({ region, slug: name, selected: version });
     await updateAlias({
       aliasArn: arn.replace(/:\d+$/, ":latest"),
+      region,
       versionArn: arn,
     });
     console.log({ arn });
   });
 
-async function chooseVersion(slug: string, selected?: string): Promise<string> {
+async function chooseVersion({
+  region,
+  slug,
+  selected,
+}: {
+  region: string;
+  slug: string;
+  selected: string | undefined;
+}): Promise<string> {
   console.warn(
     "NOTE: Rolling back does not restore queues or update schedules."
   );
@@ -24,7 +33,10 @@ async function chooseVersion(slug: string, selected?: string): Promise<string> {
     "If you changed queues or schedules, deploy an older version of the code instead."
   );
 
-  const versions = await getRecentVersions(slug);
+  const versions = await getRecentVersions({
+    region,
+    slug,
+  });
   if (selected) {
     const { confirm } = await inquirer.prompt([
       {

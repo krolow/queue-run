@@ -73,6 +73,7 @@ export async function deployLambda({
   if (!/^wss:\/\//.test(wsUrl))
     throw new Error('WS URL must start with "https://"');
 
+  const region = config.region;
   const lambdaName = `qr-${slug}`;
   debug('Lamba name: "%s"', lambdaName);
   const queuePrefix = `${lambdaName}__`;
@@ -94,7 +95,7 @@ export async function deployLambda({
 
   // DDB tables are referenced in the Lambda policy, so we need these to exist
   // before we can deploy.
-  await createTables();
+  await createTables(region);
   if (signal?.aborted) throw new Error();
 
   const envVars = await loadEnvVars({
@@ -107,7 +108,7 @@ export async function deployLambda({
 
   if (signal?.aborted) throw new Error();
 
-  const cw = new CloudWatchLogs({});
+  const cw = new CloudWatchLogs({ region });
   const logGroupName = `/aws/lambda/${lambdaName}`;
   const logStreamName = `deploy/${crypto.randomUUID()}`;
 
@@ -127,7 +128,7 @@ export async function deployLambda({
     lambdaName,
     lambdaTimeout,
     lambdaRuntime,
-    region: config.region,
+    region,
     wsApiId: config.wsApiId,
     zip,
   });
@@ -146,6 +147,7 @@ export async function deployLambda({
   const aliasArn = await switchOver({
     queues: manifest.queues,
     queuePrefix,
+    region,
     versionArn,
   });
 
@@ -208,10 +210,12 @@ function getLambdaTimeout(manifest: Manifest) {
 async function switchOver({
   queues,
   queuePrefix,
+  region,
   versionArn,
 }: {
   queuePrefix: string;
   queues: Manifest["queues"];
+  region: string;
   versionArn: string;
 }): Promise<string> {
   const aliasArn = versionArn.replace(/(\d+)$/, "current");
@@ -220,10 +224,11 @@ async function switchOver({
   // sources that new version does not understand.
   const queueArns = await createQueues({
     queues,
+    region,
     prefix: queuePrefix,
   });
 
-  await removeTriggers({ lambdaArn: aliasArn, sourceArns: queueArns });
+  await removeTriggers({ lambdaArn: aliasArn, sourceArns: queueArns, region });
 
   // Update alias to point to new version.
   //
@@ -232,22 +237,28 @@ async function switchOver({
   // versions:
   //
   //    {projectId}-{branch} => {projectId}:{version}
-  await updateAlias({ aliasArn, versionArn });
+  await updateAlias({ aliasArn, versionArn, region });
 
   // Add triggers for queues that new version can handle.  We do that for the
   // alias, so we only need to add new triggers, existing triggers carry over:
   //
   //   trigger {projectId}-{branch}__{queueName} => {projectId}-{branch}
-  await addTriggers({ lambdaArn: aliasArn, sourceArns: queueArns });
+  await addTriggers({ lambdaArn: aliasArn, sourceArns: queueArns, region });
   console.info("  This is version %s", versionArn.split(":").slice(-1)[0]);
 
   // Delete any queues that are no longer needed.
-  await deleteOldQueues({ prefix: queuePrefix, queueArns });
+  await deleteOldQueues({ prefix: queuePrefix, queueArns, region });
 
   return aliasArn;
 }
 
-export async function getRecentVersions(slug: string): Promise<
+export async function getRecentVersions({
+  region,
+  slug,
+}: {
+  region: string;
+  slug: string;
+}): Promise<
   Array<{
     arn: string;
     isCurrent: boolean;
@@ -257,7 +268,7 @@ export async function getRecentVersions(slug: string): Promise<
   }>
 > {
   const lambdaName = `qr-${slug}`;
-  const lambda = new Lambda({});
+  const lambda = new Lambda({ region });
 
   const { FunctionVersion: currentVersion } = await lambda.getAlias({
     FunctionName: lambdaName,
