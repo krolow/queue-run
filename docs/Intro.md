@@ -70,11 +70,11 @@ export async function post({ body, user }) {
 
 :::info ESM, JavaScript, and TypeScript
 
-All the examples are in TypeScript. Regardless, when using ESM imports, file imports must include the proper extension (`.js`, `.jsc`, or `.jsm`).
+All the examples are in TypeScript. Regardless, when using ESM imports, file imports must include the proper extension (`.js`, `.cjs`, or `.mjs`).
 
 If your project is ESM (`package.json` contains `type: "module"`), then imports would use the filename extension `.js`.
 
-If your project is CommonJS, then imports would use the filename extension `.jsm`, as your project is compiled to support ESM.
+If your project is CommonJS, then imports would use the filename extension `.mjs`, as your project is compiled to support ESM.
 :::
 
 You can also fetch (GET), update (PUT), and delete (DELETE) an individual resource:
