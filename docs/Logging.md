@@ -45,15 +45,15 @@ For example, to use with LogTail:
 
 ```ts title=_middleware.ts
 import { format } from "node:util";
-import { logging } from "queue-run";
+import { logger } from "queue-run";
 import { Logtail } from "@logtail/node";
 
-const logger = logging();
 const logtail = new Logtail(process.env.LOGTAIL_TOKEN);
+const _logger = logger();
 
-logging(function(level, args) {
+logger(function(level, ...args) {
   // Output to stdout/stderr
-  logger(level, args);
+  _logger(level, ...args);
   
   // Format messsage, pass argument list as rest parameters
   const message = format(...args);

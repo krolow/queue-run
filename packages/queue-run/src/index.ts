@@ -17,7 +17,7 @@ export { default as queues } from "./queue/queues.js";
 export { default as authenticated } from "./shared/authenticated.js";
 export * from "./shared/logError.js";
 export { logError, OnError } from "./shared/logError.js";
-export { default as logging } from "./shared/logging.js";
+export { default as logger } from "./shared/logger.js";
 export { default as TimeoutError } from "./shared/TimeoutError.js";
 export { default as warmup } from "./shared/warmup.js";
 export * from "./ws/exports.js";

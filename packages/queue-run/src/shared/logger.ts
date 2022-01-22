@@ -12,11 +12,11 @@ import { formatWithOptions } from "node:util";
  * @param args The log arguments
  */
 // eslint-disable-next-line no-unused-vars
-type LoggingFunction = (level: LogLevel, args: unknown[]) => void;
+type LoggingFunction = (level: LogLevel, ...args: unknown[]) => void;
 
 type LogLevel = "debug" | "verbose" | "info" | "warn" | "error";
 
-let logger: LoggingFunction = stdio;
+let _logger: LoggingFunction = stdio;
 
 const showDebug =
   process.env.NODE_ENV === "development"
@@ -24,11 +24,11 @@ const showDebug =
     : process.env.DEBUG === "true";
 
 global.console.debug = (...args: unknown[]) =>
-  showDebug ? logger("debug", args) : undefined;
-global.console.log = (...args: unknown[]) => logger("verbose", args);
-global.console.info = (...args: unknown[]) => logger("info", args);
-global.console.warn = (...args: unknown[]) => logger("warn", args);
-global.console.error = (...args: unknown[]) => logger("error", args);
+  showDebug ? _logger("debug", ...args) : undefined;
+global.console.log = (...args: unknown[]) => _logger("verbose", ...args);
+global.console.info = (...args: unknown[]) => _logger("info", ...args);
+global.console.warn = (...args: unknown[]) => _logger("warn", ...args);
+global.console.error = (...args: unknown[]) => _logger("error", ...args);
 
 /**
  * Use this to replace the logging function, or intercept logging calls.
@@ -41,12 +41,12 @@ global.console.error = (...args: unknown[]) => logger("error", args);
  * @param newLogger The new logger function
  * @returns The current/previous logger function
  */
-export default function logging(newLogger?: LoggingFunction) {
+export default function logger(newLogger?: LoggingFunction) {
   if (newLogger) {
-    const previous = logger;
-    logger = newLogger;
+    const previous = _logger;
+    _logger = newLogger;
     return previous;
-  } else return logger;
+  } else return _logger;
 }
 
 const colors: Record<LogLevel, ChalkInstance> = {
@@ -63,7 +63,7 @@ const formatOptions = {
 };
 
 // Default logger uses stdout/stderr, supports colors when running in terminal
-function stdio(level: LogLevel, args: unknown[]) {
+function stdio(level: LogLevel, ...args: unknown[]) {
   const [message, ...rest] = args;
   // we want to apply a color to the message, but not if the user is doing
   // console.log({ variable }).

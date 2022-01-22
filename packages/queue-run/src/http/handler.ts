@@ -1,7 +1,6 @@
 import { AbortController } from "node-abort-controller";
 import { createHash } from "node:crypto";
 import { URL, URLSearchParams } from "node:url";
-import { RouteConfig, RouteMiddleware } from "queue-run";
 import { XMLElement } from "xmlbuilder";
 import { isElement, render } from "../jsx-runtime.js";
 import { loadMiddleware } from "../shared/loadModule.js";
@@ -17,7 +16,9 @@ import {
   AuthenticatedUser,
   HTTPRequest,
   RequestHandler,
+  RouteConfig,
   RouteExports,
+  RouteMiddleware,
 } from "./exports.js";
 import { Headers, Request, Response } from "./fetch.js";
 import findRoute from "./findRoute.js";
