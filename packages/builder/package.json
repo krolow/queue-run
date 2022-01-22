@@ -31,6 +31,7 @@
     "jszip": "^3.7.1",
     "node-abort-controller": "^3.0.1",
     "ora": "^6.0.1",
+    "path-to-regexp": "^6.2.0",
     "pirates": "^4.0.4",
     "queue-run": "^0.8.0",
     "queue-run-lambda": "^0.8.0",
@@ -44,5 +45,5 @@
     "node": "14.x"
   },
   "homepage": "https://queue.run",
-  "gitHead": "90ca033cb51caf3821e248a99e0857a344b06154"
+  "gitHead": "0a3bc1c3fa6f11aba92105741673c4d448380c69"
 }

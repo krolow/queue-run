@@ -34,7 +34,6 @@
     "fetch-blob": "^3.1.4",
     "node-abort-controller": "^3.0.1",
     "node-fetch": "3.2.0",
-    "parse-multipart-data": "^1.2.1",
     "path-to-regexp": "^6.2.0",
     "source-map-support": "^0.5.21",
     "tiny-invariant": "^1.2.0",
@@ -58,5 +57,5 @@
     "api",
     "websocket"
   ],
-  "gitHead": "90ca033cb51caf3821e248a99e0857a344b06154"
+  "gitHead": "0a3bc1c3fa6f11aba92105741673c4d448380c69"
 }
