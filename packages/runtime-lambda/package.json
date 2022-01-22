@@ -18,7 +18,7 @@
     "src"
   ],
   "devDependencies": {
-    "@aws-sdk/client-sqs": "^3.47.0",
+    "@aws-sdk/client-sqs": "^3.48.0",
     "queue-run": "^0.7.0",
     "tiny-invariant": "^1.2.0"
   },
@@ -28,7 +28,7 @@
   "homepage": "https://queue.run",
   "gitHead": "90ca033cb51caf3821e248a99e0857a344b06154",
   "dependencies": {
-    "@aws-sdk/client-apigatewaymanagementapi": "^3.47.0",
-    "@aws-sdk/client-dynamodb": "^3.47.0"
+    "@aws-sdk/client-apigatewaymanagementapi": "^3.48.0",
+    "@aws-sdk/client-dynamodb": "^3.48.0"
   }
 }
