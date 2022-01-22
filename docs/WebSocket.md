@@ -158,6 +158,7 @@ The most specific middleware is picked in this order:
 
 - Middleware exported by the request handler file itself
 - Middleware exported by `_middleware.ts` in the current directory
+- Middleware exported by `_middleware.ts` in the parent directory
 - The default middleware
 
 If you don't want to use the default middleware, or disable middleware for one route, you can export `null`.

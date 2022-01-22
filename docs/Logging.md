@@ -43,7 +43,7 @@ You can provide your own logging function. This is useful if you want to send al
 
 For example, to use with LogTail:
 
-```ts title=index.ts
+```ts title=_middleware.ts
 import { format } from "node:util";
 import { logging } from "queue-run";
 import { Logtail } from "@logtail/node";
@@ -82,17 +82,22 @@ The `onError` middleware helps you track errors. This middleware is called with 
 The reference object depends on the task:
 
 * HTTP — The `Request` object
-* WebSocket — Request object passed the handler
-* Queues — The job metadata
+* WebSocket — Same object passed to request handler
+* Queues — The job metadata (second argument for job handler)
+* Other would be `undefined`
 
 For example, to send errors to Sentry:
 
-```ts title=api/_middleware.ts
+```ts title=_middleware.ts
 import { logError } from "queue-run";
 import * as Sentry from "@sentry/node";
 
-export async function logError(error, request) {
-  logError(error, request);
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+});
+
+export async function logError(error, reference) {
+  logError(error, reference);
   Sentry.captureException(error);
 }
 ```
