@@ -120,8 +120,14 @@ async function upsertRole(iam: IAM, roleName: string): Promise<Role> {
   return newRole;
 }
 
-export async function deleteLambdaRole({ lambdaName }: { lambdaName: string }) {
-  const iam = new IAM({});
+export async function deleteLambdaRole({
+  lambdaName,
+  region,
+}: {
+  lambdaName: string;
+  region: string;
+}) {
+  const iam = new IAM({ region });
   await iam.deleteRole({
     RoleName: lambdaName,
   });

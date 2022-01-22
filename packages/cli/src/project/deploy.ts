@@ -14,7 +14,7 @@ const command = new Command("deploy")
   .description("deploy your project")
   .action(async () => {
     const { name, region } = await loadProject();
-    const accountId = await getAccountId();
+    const accountId = await getAccountId(region);
 
     const spinner = ora("Setting up API Gateway...").start();
     const { httpUrl, wsUrl, wsApiId } = await setupAPIGateway({
@@ -45,8 +45,8 @@ const command = new Command("deploy")
 
 export default command;
 
-async function getAccountId(): Promise<string> {
-  const iam = new IAM({});
+async function getAccountId(region: string): Promise<string> {
+  const iam = new IAM({ region });
   const { User: user } = await iam.getUser({});
   const accountId = user?.Arn?.split(":")[4];
   invariant(accountId, "Could not determine account ID");

@@ -154,5 +154,5 @@ export async function deleteLambda({
 }) {
   const lambda = new Lambda({ region });
   await lambda.deleteFunction({ FunctionName: lambdaName });
-  await deleteLambdaRole({ lambdaName });
+  await deleteLambdaRole({ lambdaName, region });
 }
