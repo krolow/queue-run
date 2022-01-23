@@ -86,9 +86,6 @@ async function updateCNames({
   domain: string;
   region: string;
 }) {
-  console.info(
-    "Please update your DNS by adding the following CNAME records:\n"
-  );
   const cnames = (
     await Promise.all([
       getCNames({ domain, region }),
@@ -97,13 +94,7 @@ async function updateCNames({
     ])
   ).flat();
 
-  console.info(
-    "%s",
-    cnames
-      .map(({ cname, value }) => `${cname.padEnd(domain.length + 4)}\t${value}`)
-      .join("\n")
-  );
-  console.info("");
+  displayCNames(cnames);
   await waitForCNames(cnames);
 }
 
@@ -140,6 +131,21 @@ async function waitForCNames(cnames: { cname: string; value: string }[]) {
     }
   }
   spinner.stop();
+}
+
+function displayCNames(cnames: { cname: string; value: string }[]) {
+  console.info(
+    "Please update your DNS by adding the following CNAME records:\n"
+  );
+  const left = Math.max(...cnames.map(({ cname }) => cname.length));
+  const right = Math.max(...cnames.map(({ value }) => value.length));
+  console.log("┌─%s─┬─%s─┐", "─".repeat(left), "─".repeat(right));
+  console.log("│ %s │ %s │", "CNAME".padEnd(left), "VALUE".padEnd(right));
+  console.log("├─%s─┼─%s─┤", "─".repeat(left), "─".repeat(right));
+  for (const { cname, value } of cnames)
+    console.log("│ %s │ %s │", cname.padEnd(left), value.padEnd(right));
+  console.log("└─%s─┴─%s─┘", "─".repeat(left), "─".repeat(right));
+  console.info("");
 }
 
 command
