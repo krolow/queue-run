@@ -40,6 +40,7 @@ export default async function uploadLambda({
     Environment: { Variables: aliasAWSEnvVars(envVars) },
     FunctionName: lambdaName,
     Handler: handler,
+    MemorySize: 1024,
     Role: roleArn,
     Runtime: lambdaRuntime,
     Timeout: lambdaTimeout,
