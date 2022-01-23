@@ -181,10 +181,18 @@ async function useDNSVerification({
 
   invariant(validation.ResourceRecord);
   const { Name, Value } = validation.ResourceRecord;
+  invariant(Name && Value);
 
   console.info("Update your DNS and add the following CNAME record:");
-  console.info("CNAME name:\t%s", Name);
-  console.info("CNAME value:\t%s", Value);
+  const left = Name.length;
+  const right = Value.length;
+  console.log("┌─%s─┬─%s─┐", "─".repeat(left), "─".repeat(right));
+  console.log("│ %s │ %s │", "CNAME".padEnd(left), "VALUE".padEnd(right));
+  console.log("├─%s─┼─%s─┤", "─".repeat(left), "─".repeat(right));
+  console.log("│ %s │ %s │", Name.padEnd(left), Value.padEnd(right));
+  console.log("└─%s─┴─%s─┘", "─".repeat(left), "─".repeat(right));
+  console.info("");
+
   console.info(
     "\nWaiting for DNS changes to propagate, this could take a while ..."
   );

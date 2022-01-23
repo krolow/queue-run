@@ -74,9 +74,8 @@ async function addDomain({
     project,
     region,
   });
-  spinner.succeed();
-  console.info("API:\t\t%s", httpUrl);
-  console.info("WebSocket:\t%s", wsUrl);
+  spinner.succeed(`HTTP API:\t${httpUrl}`);
+  spinner.succeed(`WebSocket:\t${wsUrl}`);
 }
 
 async function updateCNames({
