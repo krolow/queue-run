@@ -11,39 +11,86 @@ export default async function updateAlias({
   versionArn: string;
 }): Promise<string> {
   const [lambdaName, alias] = aliasArn.match(/([^:]+):([^:]+)$/)!.slice(1);
-  const version = versionArn.match(/\d+$/)?.[0];
   invariant(alias && lambdaName);
+  const version = versionArn.match(/\d+$/)?.[0];
+  invariant(version);
   const lambda = new Lambda({ region });
 
-  try {
-    const { AliasArn: arn } = await lambda.getAlias({
+  const { AliasArn: arn } = await lambda
+    .getAlias({
       FunctionName: lambdaName,
       Name: alias,
+    })
+    .catch(() => ({ AliasArn: undefined }));
+
+  if (!arn) {
+    const { AliasArn: arn } = await lambda.createAlias({
+      FunctionName: lambdaName,
+      FunctionVersion: version,
+      Name: alias,
     });
-    if (arn) {
-      invariant(version);
-      const { AliasArn: arn } = await lambda.updateAlias({
+    invariant(arn, "Failed to create alias");
+    return arn;
+  }
+
+  await retainProvisionedConcurrency(
+    {
+      lambda,
+      lambdaName,
+    },
+    () =>
+      lambda.updateAlias({
         FunctionName: lambdaName,
         FunctionVersion: version,
         Name: alias,
-        RoutingConfig: {
-          AdditionalVersionWeights: {},
-        },
-      });
-      if (!arn) throw new Error("Could not update alias");
-      return arn;
-    }
-  } catch (error) {
-    if (!(error instanceof Error && error.name === "ResourceNotFoundException"))
-      throw error;
-  }
-
-  const { AliasArn: arn } = await lambda.createAlias({
-    FunctionName: lambdaName,
-    FunctionVersion: version,
-    Name: alias,
-  });
-  if (!arn) throw new Error("Could not create alias");
+      })
+  );
 
   return arn;
+}
+
+// Say we have provisioned concurrency setup from a previous deployment (latest
+// = 5). We make a new deployment and set an alias (latesst = 6).  That alias
+// has weight traffic 0% to version 6 and 100% to version 5, which has
+// provisioned instance. And attempting to set the provisioned concurrency for
+// latest will fail with:
+//
+// "InvalidParameterValueException: Alias with weights can not be used with Provisioned Concurrency"
+//
+// So we're going to delete the provisioned concurrency and recreate it after we
+// update the alias.
+async function retainProvisionedConcurrency(
+  {
+    lambda,
+    lambdaName,
+  }: {
+    lambda: Lambda;
+    lambdaName: string;
+  },
+  callback: () => Promise<T>
+): Promise<T> {
+  const { ProvisionedConcurrencyConfigs: configs } =
+    await lambda.listProvisionedConcurrencyConfigs({
+      FunctionName: lambdaName,
+    });
+  const provisioned = configs?.[0]?.RequestedProvisionedConcurrentExecutions;
+
+  if (provisioned) {
+    await lambda.deleteProvisionedConcurrencyConfig({
+      FunctionName: lambdaName,
+      Qualifier: "current",
+    });
+  }
+
+  const result = await callback();
+
+  if (provisioned) {
+    await lambda.putProvisionedConcurrencyConfig({
+      FunctionName: lambdaName,
+      Qualifier: "current",
+      ProvisionedConcurrentExecutions: provisioned,
+    });
+  }
+
+  return result;
 }

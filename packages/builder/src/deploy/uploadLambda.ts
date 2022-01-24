@@ -84,6 +84,13 @@ export default async function uploadLambda({
       ZipFile: zip,
       RevisionId: updatedConfigRevisionId,
     });
+    invariant(updatedCode.RevisionId);
+    await waitForNewRevision({
+      lambda,
+      lambdaName,
+      revisionId: updatedCode.RevisionId,
+    });
+
     // FunctionArn includes version number
     arn = updatedCode.FunctionArn;
     invariant(arn);
