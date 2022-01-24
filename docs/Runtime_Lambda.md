@@ -6,19 +6,26 @@ sidebar_label: "AWS Lambda"
 
 ## AWS Credentials
 
-You have to think in terms of three permission models:
+QueueRun backends deal with three different policies:
 
-* **Deploy** — Permissions necessary to deploy the project
-* **Runtime** — Permissions available to the QueueRun runtime
-* **Backend** — Permissions available to your backend
+* **Deploy** — For deploying projects, setting up custom domains, updating secrets, etc
+* **Runtime** — Your backend uses this to access queues, database, etc
+* **Backend** — This is up to you for any resources you need to use
 
-QueueRun uses your AWS access key to deploy the backend. That access key needs to be able to deploy Lambda function, setup API Gateway, create SQS queues, and manage DynamoDB tables.
+To deploy a new project you will need an AWS user with the full deploy policy. You can create such a user and assign them the policy:
 
-The backend deploys as a Lambda function. That function needs read/write access to SQS queues, select DynamoDB tables (WebSockets), and logging to CloudWatch.
+```bash
+npx queue-run policy --output policy.json
+export policy=$(cat policy.json)
+aws iam put-user-policy --user-name myname \
+  --policy-name queue.run --policy-document '$policy' 
+```
 
-The QueueRun runtime uses an AWS access key that's limited to this policy. It cannot access other AWS resources on your account.
+When you deploy a backend, QueueRun creates a runtime policy specifically for that backend. You don't have to manage this policy yourself, but you can audit it using the AWS console.
 
-By default, your backend does not have an AWS access key. For your backend to use AWS resources, create a policy and the appropriate AWS access key. Then set the apporpriate environment variables.
+If you want to use additional AWS resources — S3 buckets, DynamoDB tables, etc — then you need a separate IAM user and policy.
+
+The AWS SDK will need the access key ID and secret, as well as region. You can set these as environment variables.
 
 For example:
 
