@@ -14,7 +14,7 @@ import { createQueues, deleteOldQueues } from "./prepareQueues.js";
 import updateAlias from "./updateAlias.js";
 import uploadLambda from "./uploadLambda.js";
 
-type LambdaConfig = {
+export type LambdaConfig = {
   /**  AWS account ID  */
   accountId: string;
 
@@ -22,6 +22,20 @@ type LambdaConfig = {
 
   /**  Misc environment variables to add */
   envVars?: Record<string, string>;
+
+  /** The full URL for this backend's HTTP API. Available to the backed as the
+   *  environment variable QUEUE_RUN_URL. */
+  httpUrl: string;
+
+  /**
+   * Provisioned concurrency. Default undefined.
+   */
+  provisioned: number | undefined;
+
+  /**
+   * The reserved concurrency. Default undefined.
+   */
+  reserved: number | undefined;
 
   /** AWS region */
   region: string;
@@ -31,16 +45,12 @@ type LambdaConfig = {
    *  It should be unique for each project/branch. */
   slug: string;
 
-  /** The full URL for this backend's HTTP API. Available to the backed as the
-   *  environment variable QUEUE_RUN_URL. */
-  httpUrl: string;
+  /**  WebSocket Gateway API ID. */
+  wsApiId: string;
 
   /** The full URL for this backend's WebSocket. Available to the backed as the
    *  environment variable QUEUE_RUN_WS. */
   wsUrl: string;
-
-  /**  WebSocket Gateway API ID. */
-  wsApiId: string;
 };
 
 const debug = debuglog("queue-run:deploy");
@@ -117,17 +127,23 @@ export async function deployLambda({
     .createLogStream({ logGroupName, logStreamName })
     .catch(() => undefined);
 
+  const limits = {
+    memory: manifest.limits.memory,
+    timeout: manifest.limits.timeout,
+    provisioned: config.provisioned,
+    reserved: config.reserved,
+  };
+
   // Upload new Lambda function and publish a new version.
   // This doesn't make any difference yet: event sources are tied to an alias,
   // and the alias points to an earlier version (or no version on first deploy).
-  const lambdaTimeout = getLambdaTimeout(manifest);
-  debug("Lambda timeout %d seconds", lambdaTimeout);
   const versionArn = await uploadLambda({
+    config,
     envVars,
     accountId: config.accountId,
     lambdaName,
-    lambdaTimeout,
     lambdaRuntime,
+    limits,
     region,
     wsApiId: config.wsApiId,
     zip,
@@ -198,13 +214,6 @@ async function loadEnvVars({
     QUEUE_RUN_WS_API_ID: wsApiId,
     QUEUE_RUN_WS: wsUrl,
   };
-}
-
-function getLambdaTimeout(manifest: Manifest) {
-  return Math.max(
-    ...Array.from(manifest.queues.values()).map((queue) => queue.timeout),
-    ...Array.from(manifest.routes.values()).map((route) => route.timeout)
-  );
 }
 
 async function switchOver({

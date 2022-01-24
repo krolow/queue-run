@@ -1,3 +1,4 @@
+import { Lambda } from "@aws-sdk/client-lambda";
 import { Command } from "commander";
 import filesize from "filesize";
 import { getAPIGatewayURLs, getRecentVersions } from "queue-run-builder";
@@ -18,7 +19,11 @@ const command = new Command("info")
 
     console.info("Version:\t%s", current.version);
     console.info("Deployed:\t%s", current.modified.toLocaleString());
-    console.info("Size:\t\t%s", filesize(current.size));
+    console.info("Code size:\t%s", filesize(current.size));
+
+    const lambda = new Lambda({ region });
+    await showMemory(lambda, current.arn);
+    await showConcurrency(lambda, current.arn);
 
     const { httpUrl, wsUrl } = await getAPIGatewayURLs({
       project: name,
@@ -27,5 +32,49 @@ const command = new Command("info")
     console.info("API:\t\t%s", httpUrl);
     console.info("WebSocket:\t%s", wsUrl);
   });
+
+async function showMemory(lambda: Lambda, arn: string): Promise<void> {
+  const { MemorySize } = await lambda.getFunctionConfiguration({
+    FunctionName: arn,
+  });
+  const memory = MemorySize ?? 128;
+  const size =
+    memory > 1000 ? (memory / 1000).toFixed(2) + " GB" : memory + " MB";
+  console.info("Avail memory:\t%s", size);
+}
+
+async function showConcurrency(lambda: Lambda, arn: string): Promise<void> {
+  const { ReservedConcurrentExecutions } = await lambda.getFunctionConcurrency({
+    FunctionName: arn.replace(/:\d+$/, ""),
+  });
+  if (ReservedConcurrentExecutions)
+    console.log(
+      "Reserved inst:\t%s",
+      ReservedConcurrentExecutions ?? "no limit"
+    );
+
+  const [fnName, version] = arn.match(/^(.*):(\d+?)$/)!;
+  const provisioned = await lambda
+    .getProvisionedConcurrencyConfig({
+      FunctionName: fnName,
+      Qualifier: version,
+    })
+    .catch(() => null);
+  console.log("Provisioned:\t%s", provisioned?.Status ?? "None");
+  if (provisioned) {
+    console.log(
+      "  Requested:\t%s",
+      provisioned.RequestedProvisionedConcurrentExecutions
+    );
+    console.log(
+      "  Allocated:\t%s",
+      provisioned.AllocatedProvisionedConcurrentExecutions
+    );
+    console.log(
+      "  Available:\t%s",
+      provisioned.AvailableProvisionedConcurrentExecutions
+    );
+  }
+}
 
 export default command;

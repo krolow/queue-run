@@ -39,6 +39,8 @@ export async function loadProject(): Promise<Project> {
   if (project.runtime !== "lambda")
     throw new Error(`Unsupported runtime: ${project.runtime}`);
 
+  if (!project.region) project.region = "us-east-1";
+
   return project;
 }
 

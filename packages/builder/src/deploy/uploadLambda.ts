@@ -1,9 +1,24 @@
 import { FunctionConfiguration, Lambda } from "@aws-sdk/client-lambda";
 import ora from "ora";
 import invariant from "tiny-invariant";
+import { LambdaConfig } from "./deployLambda.js";
 import { deleteLambdaRole, getLambdaRole } from "./lambdaRole.js";
 
 export const handler = "runtime.handler";
+
+export type Limits = {
+  /** Maximum number of concurrent Lambda invocations  */
+  reserved: number | undefined;
+
+  /** Provisioned instances  */
+  provisioned: number | undefined;
+
+  /** Memory size in MBs. Default: 128. */
+  memory: number;
+
+  /** Lambda timeout in seconds. This should be the maximum of all task.  */
+  timeout: number;
+};
 
 // Creates or updates Lambda function with latest configuration and code.
 // Publishes the new version and returns the published version ARN.
@@ -12,16 +27,17 @@ export default async function uploadLambda({
   envVars,
   lambdaName,
   lambdaRuntime,
-  lambdaTimeout,
+  limits,
   region,
   wsApiId,
   zip,
 }: {
   accountId: string;
+  config: LambdaConfig;
   envVars: Record<string, string>;
   lambdaName: string;
-  lambdaTimeout: number;
   lambdaRuntime: string;
+  limits: Limits;
   region: string;
   wsApiId: string;
   zip: Uint8Array;
@@ -40,13 +56,15 @@ export default async function uploadLambda({
     Environment: { Variables: aliasAWSEnvVars(envVars) },
     FunctionName: lambdaName,
     Handler: handler,
-    MemorySize: 1024,
+    MemorySize: limits.memory ?? 128,
     Role: roleArn,
     Runtime: lambdaRuntime,
     // Allow up to 10 seconds for loading code/warmup
-    Timeout: lambdaTimeout + 10,
+    Timeout: limits.timeout + 10,
     TracingConfig: { Mode: "Active" },
   };
+
+  let arn;
 
   const existing = await getFunction({ lambda, lambdaName });
   if (existing) {
@@ -73,11 +91,8 @@ export default async function uploadLambda({
       RevisionId: updatedConfigRevisionId,
     });
     // FunctionArn includes version number
-    invariant(updatedCode.FunctionArn && updatedCode.RevisionId);
-
-    spinner.succeed();
-
-    return updatedCode.FunctionArn;
+    arn = updatedCode.FunctionArn;
+    invariant(arn);
   } else {
     const newLambda = await lambda.createFunction({
       ...configuration,
@@ -85,12 +100,17 @@ export default async function uploadLambda({
       PackageType: "Zip",
       Publish: true,
     });
-
-    spinner.succeed();
-
     // FunctionArn does not include version number
-    return `${newLambda.FunctionArn}:${newLambda.Version}`;
+    arn = `${newLambda.FunctionArn}:${newLambda.Version}`;
   }
+
+  await updateConcurrency({ arn, lambda, limits });
+  spinner.succeed();
+
+  console.info("Available memory: %s MB", configuration.MemorySize);
+  if (limits.reserved)
+    console.info("Reserved concurrency: %s", limits.reserved);
+  return arn;
 }
 
 async function getFunction({
@@ -110,6 +130,39 @@ async function getFunction({
       return null;
     else throw error;
   }
+}
+
+async function updateConcurrency({
+  arn,
+  lambda,
+  limits,
+}: {
+  arn: string;
+  lambda: Lambda;
+  limits: Limits;
+}) {
+  const unqualified = arn.replace(/:\d+$/, "");
+  if (limits.reserved) {
+    await lambda.putFunctionConcurrency({
+      FunctionName: unqualified,
+      ReservedConcurrentExecutions: limits.reserved,
+    });
+  } else await lambda.deleteFunctionConcurrency({ FunctionName: unqualified });
+  /*
+
+  if (limits.provisioned) {
+    await lambda.putProvisionedConcurrencyConfig({
+      FunctionName: unqualified,
+      Qualifier: "$LATEST",
+      ProvisionedConcurrentExecutions: limits.provisioned,
+    });
+  } else {
+    await lambda.deleteProvisionedConcurrencyConfig({
+      FunctionName: unqualified,
+      Qualifier: "$LATEST",
+    });
+  }
+  */
 }
 
 async function waitForNewRevision({

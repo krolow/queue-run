@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import ora from "ora";
-import { Manifest } from "queue-run";
+import type { BackendConfig, BackendExports } from "queue-run";
+import { loadModule, Manifest } from "queue-run";
 import compileSourceFiles from "./compileSourceFiles.js";
 import createBuildDirectory from "./createBuildDirectory.js";
 import getRuntime from "./getRuntime.js";
@@ -61,7 +62,15 @@ async function createManifest(dirname: string) {
     const routes = await mapRoutes();
     const socket = await mapSocket();
     const queues = await mapQueues();
-    const manifest: Manifest = { queues, routes, socket };
+    const config = (await loadModule<BackendExports, never>("index"))?.module
+      .config;
+
+    const limits = {
+      memory: getMemory({ config, queues, routes, socket }),
+      timeout: getTimeout({ config, queues, routes, socket }),
+    };
+
+    const manifest: Manifest = { limits, queues, routes, socket };
     await fs.writeFile("manifest.json", JSON.stringify(manifest), "utf-8");
     spinner.succeed("Created manifest");
 
@@ -74,4 +83,39 @@ async function createManifest(dirname: string) {
   } finally {
     process.chdir(cwd);
   }
+}
+
+function getTimeout({
+  queues,
+  routes,
+  socket,
+}: {
+  config: BackendConfig | undefined;
+  queues: Manifest["queues"];
+  routes: Manifest["routes"];
+  socket: Manifest["socket"];
+}) {
+  return Math.max(
+    ...Array.from(queues.values()).map((queue) => queue.timeout),
+    ...Array.from(routes.values()).map((route) => route.timeout),
+    ...Array.from(socket.values()).map((socket) => socket.timeout)
+  );
+}
+
+function getMemory({
+  config,
+}: {
+  config: BackendConfig | undefined;
+  queues: Manifest["queues"];
+  routes: Manifest["routes"];
+  socket: Manifest["socket"];
+}) {
+  const memory = config?.memory ?? 128;
+  if (typeof memory === "number") return memory;
+  const match = memory.trim().match(/^(\d+)\s*([MG]B?)$/i);
+  if (!match) throw new Error(`Invalid memory limit: ${memory}`);
+  const [, amount, unit] = match;
+  return unit === "GB" || unit === "G"
+    ? parseFloat(amount!) * 1000
+    : parseInt(amount!);
 }

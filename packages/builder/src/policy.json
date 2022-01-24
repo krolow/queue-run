@@ -30,18 +30,7 @@
     },
     {
       "Effect": "Allow",
-      "Action": [
-        "lambda:AddPermission",
-        "lambda:CreateAlias",
-        "lambda:CreateFunction",
-        "lambda:GetAlias",
-        "lambda:GetFunction",
-        "lambda:ListVersionsByFunction",
-        "lambda:PutFunctionConcurrency",
-        "lambda:UpdateAlias",
-        "lambda:UpdateFunctionCode",
-        "lambda:UpdateFunctionConfiguration"
-      ],
+      "Action": ["lambda:*"],
       "Resource": "arn:aws:lambda:*:*:function:qr-*"
     },
     {
@@ -93,10 +82,10 @@
     },
     {
       "Action": [
-        "sqs:GetQueueUrl",
         "sqs:CreateQueue",
         "sqs:DeleteQueue",
         "sqs:GetQueueAttributes",
+        "sqs:GetQueueUrl",
         "sqs:SetQueueAttributes"
       ],
       "Effect": "Allow",

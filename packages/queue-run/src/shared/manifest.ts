@@ -2,6 +2,11 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { match, MatchFunction } from "path-to-regexp";
 
+export type BackendLimits = {
+  memory: number; // Memory size in MB
+  timeout: number; // Timeout in seconds
+};
+
 export type HTTPRoute = {
   accepts: Set<string>;
   cors: boolean;
@@ -30,6 +35,10 @@ export type WebSocketRoute = {
 //
 // This is loaded and converted into HTTPRoute, QueueService, etc
 export type Manifest = {
+  limits: {
+    memory: number;
+    timeout: number;
+  };
   queues: Array<{
     filename: string;
     isFifo: boolean;
@@ -55,6 +64,7 @@ export type Manifest = {
 };
 
 export async function loadManifest(dirname = process.cwd()): Promise<{
+  limits: BackendLimits;
   queues: Map<string, QueueService>;
   routes: Map<string, HTTPRoute>;
   socket: Map<string, WebSocketRoute>;
@@ -62,6 +72,8 @@ export async function loadManifest(dirname = process.cwd()): Promise<{
   const manifest = JSON.parse(
     await fs.readFile(path.resolve(dirname, "manifest.json"), "utf-8")
   ) as Manifest;
+
+  const { limits } = manifest;
 
   const queues = new Map(
     manifest.queues.map((queue) => [
@@ -102,5 +114,5 @@ export async function loadManifest(dirname = process.cwd()): Promise<{
     ])
   );
 
-  return { queues, routes, socket };
+  return { limits, queues, routes, socket };
 }
