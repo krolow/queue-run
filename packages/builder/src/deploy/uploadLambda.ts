@@ -43,7 +43,8 @@ export default async function uploadLambda({
     MemorySize: 1024,
     Role: roleArn,
     Runtime: lambdaRuntime,
-    Timeout: lambdaTimeout,
+    // Allow up to 10 seconds for loading code/warmup
+    Timeout: lambdaTimeout + 10,
     TracingConfig: { Mode: "Active" },
   };
 
