@@ -8,17 +8,37 @@ const command = new Command("provisioned")
   .argument("<instances>", "Number of instances (0 to turn off)")
   .action(async (instances: string) => {
     const { name, region } = await loadProject();
-    const slug = `qr-${name}`;
 
-    const spinner = ora("Updating provisioned concurrency").start();
-    const lambda = new Lambda({ region });
     const number = parseInt(instances, 10);
     if (isNaN(number)) throw new Error('Must be a number or "off"');
-    await lambda.putProvisionedConcurrencyConfig({
-      FunctionName: slug,
-      Qualifier: "current",
-      ProvisionedConcurrentExecutions: number,
-    });
+    const lambda = new Lambda({ region });
+    const lambdaName = `qr-${name}`;
+
+    const spinner = ora("Updating provisioned concurrency").start();
+    const { ProvisionedConcurrencyConfigs: configs } =
+      await lambda.listProvisionedConcurrencyConfigs({
+        FunctionName: lambdaName,
+      });
+
+    await Promise.all(
+      (configs ?? [])
+        .map(({ FunctionArn: arn }) => arn!.match(/(.*):(\w+)$/)!.slice(1))
+        .map(
+          async ([fnName, qualifier]) =>
+            await lambda.deleteProvisionedConcurrencyConfig({
+              FunctionName: fnName,
+              Qualifier: qualifier,
+            })
+        )
+    );
+
+    if (number > 0) {
+      await lambda.putProvisionedConcurrencyConfig({
+        FunctionName: lambdaName,
+        Qualifier: "current",
+        ProvisionedConcurrentExecutions: number,
+      });
+    }
     spinner.succeed("Updated provisioned concurrency");
   });
 

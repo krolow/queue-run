@@ -55,26 +55,24 @@ async function showConcurrency(lambda: Lambda, arn: string): Promise<void> {
     reserved === 0 ? "0 (no instances)" : reserved ?? "no limit"
   );
 
-  const provisioned = await lambda
-    .getProvisionedConcurrencyConfig({
+  const { ProvisionedConcurrencyConfigs: configs } =
+    await lambda.listProvisionedConcurrencyConfigs({
       FunctionName: arn.replace(/:\w+$/, ""),
-      Qualifier: "current",
-    })
-    .catch(() => null);
-  console.log("└─ Provisioned:\t%s", provisioned?.Status ?? "NONE");
+    });
+  for (const config of configs ?? []) {
+    console.log("└─ Provisioned:\t%s", config.Status);
 
-  if (provisioned) {
     console.log(
       "  ├─ Requested:\t%s",
-      provisioned.RequestedProvisionedConcurrentExecutions
+      config.RequestedProvisionedConcurrentExecutions
     );
     console.log(
       "  ├─ Allocated:\t%s",
-      provisioned.AllocatedProvisionedConcurrentExecutions
+      config.AllocatedProvisionedConcurrentExecutions
     );
     console.log(
       "  └─ Available:\t%s",
-      provisioned.AvailableProvisionedConcurrentExecutions
+      config.AvailableProvisionedConcurrentExecutions
     );
   }
 }

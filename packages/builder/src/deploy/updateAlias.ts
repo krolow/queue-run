@@ -26,6 +26,9 @@ export default async function updateAlias({
         FunctionName: lambdaName,
         FunctionVersion: version,
         Name: alias,
+        RoutingConfig: {
+          AdditionalVersionWeights: {},
+        },
       });
       if (!arn) throw new Error("Could not update alias");
       return arn;
