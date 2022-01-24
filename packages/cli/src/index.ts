@@ -10,6 +10,7 @@ import domainCommand from "./project/domain.js";
 import infoCommand from "./project/info.js";
 import initCommand from "./project/init.js";
 import logsCommand from "./project/logs.js";
+import provisionedCommand from "./project/provisioned.js";
 import reservedCommand from "./project/reserved.js";
 import rollbackCommand from "./project/rollback.js";
 
@@ -25,6 +26,7 @@ program.addCommand(logsCommand);
 program.addCommand(policyCommand);
 program.addCommand(rollbackCommand);
 program.addCommand(reservedCommand);
+program.addCommand(provisionedCommand);
 
 program.showSuggestionAfterError();
 program.addHelpCommand();

@@ -44,8 +44,6 @@ You can use reserved concurrency to limit how many instances of your backend are
 * Limit concurrency to avoid unexpected usage charges
 * Pause your backend by setting the reserved concurrency to zero, eg during database maintenance
 
-You use provisioned concurrency to keep instances warmed up and ready to serve, ahead of expected traffic spikes. [See warm up function](#warm-up-function).
-
 To use provisioned and/or reserved concurrency, you have to set them up during deployment:
 
 ```bash
@@ -63,6 +61,19 @@ npx queue-run reserved 50
 # This backend is temporarily not available
 npx queue-run reserved 0
 # Good time for database maintenance
+```
+
+You use provisioned concurrency to keep instances warmed up and ready to serve, ahead of expected traffic spikes. [See warm up function](#warm-up-function).
+
+```bash
+# Keep 5 instances warmed up even if there's no traffic
+npx queue-run provisioned 5
+```
+
+```bash
+
+# Shutdown the provisioned instances
+npx queue-run provisioned 0
 ```
 
 

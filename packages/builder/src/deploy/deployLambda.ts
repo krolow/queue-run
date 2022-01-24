@@ -5,7 +5,6 @@ import dotenv from "dotenv";
 import { AbortSignal } from "node-abort-controller";
 import fs from "node:fs/promises";
 import { debuglog } from "node:util";
-import ora from "ora";
 import { Manifest } from "queue-run";
 import invariant from "tiny-invariant";
 import { buildProject, displayManifest } from "../build/index.js";
@@ -251,36 +250,6 @@ async function switchOver({
   await deleteOldQueues({ prefix: queuePrefix, queueArns, region });
 
   return aliasArn;
-}
-
-async function provisionConcurrency({
-  arn,
-  provisioned,
-  region,
-}: {
-  arn: string;
-  provisioned: number | undefined;
-  region: string;
-}) {
-  const lambda = new Lambda({ region });
-  const spinner = ora("Provisioning concurrency").start();
-  await lambda.deleteProvisionedConcurrencyConfig({
-    FunctionName: arn.replace(/:\w+$/, ""),
-    Qualifier: currentVersionAlias,
-  });
-
-  /*
-
-  if (provisioned) {
-    await lambda.putProvisionedConcurrencyConfig({
-      FunctionName: arn.replace(/:\w+$/, ""),
-      Qualifier: currentVersionAlias,
-      ProvisionedConcurrentExecutions: provisioned,
-    });
-    spinner.succeed(`Provisioned concurrency: ${provisioned}`);
-  } else spinner.succeed(`Provisioned concurrency: off`);
-  */
-  spinner.stop();
 }
 
 export async function getRecentVersions({
