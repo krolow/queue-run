@@ -18,8 +18,8 @@ const command = new Command("info")
     if (!current) throw new Error("No current version");
 
     console.info("Version:\t%s", current.version);
-    console.info("Deployed:\t%s", current.modified.toLocaleString());
-    console.info("Code size:\t%s", filesize(current.size));
+    console.info("├─ Code size:\t%s", filesize(current.size));
+    console.info("└─ Deployed:\t%s", current.modified.toLocaleString());
 
     const lambda = new Lambda({ region });
     await showMemory(lambda, current.arn);
@@ -44,34 +44,36 @@ async function showMemory(lambda: Lambda, arn: string): Promise<void> {
 }
 
 async function showConcurrency(lambda: Lambda, arn: string): Promise<void> {
-  const { ReservedConcurrentExecutions } = await lambda.getFunctionConcurrency({
-    FunctionName: arn.replace(/:\d+$/, ""),
-  });
-  if (ReservedConcurrentExecutions)
-    console.log(
-      "Reserved inst:\t%s",
-      ReservedConcurrentExecutions ?? "no limit"
-    );
+  console.log("Concurrency:");
 
-  const [fnName, version] = arn.match(/^(.*):(\d+?)$/)!;
+  const { ReservedConcurrentExecutions: reserved } =
+    await lambda.getFunctionConcurrency({
+      FunctionName: arn.replace(/:\d+$/, ""),
+    });
+  console.log(
+    "├─ Reserved:\t%s",
+    reserved === 0 ? "0 (no instances)" : reserved ?? "no limit"
+  );
+
   const provisioned = await lambda
     .getProvisionedConcurrencyConfig({
-      FunctionName: fnName,
-      Qualifier: version,
+      FunctionName: arn.replace(/:\w+$/, ""),
+      Qualifier: "current",
     })
     .catch(() => null);
-  console.log("Provisioned:\t%s", provisioned?.Status ?? "None");
+  console.log("└─ Provisioned:\t%s", provisioned?.Status ?? "NONE");
+
   if (provisioned) {
     console.log(
-      "  Requested:\t%s",
+      "  ├─ Requested:\t%s",
       provisioned.RequestedProvisionedConcurrentExecutions
     );
     console.log(
-      "  Allocated:\t%s",
+      "  ├─ Allocated:\t%s",
       provisioned.AllocatedProvisionedConcurrentExecutions
     );
     console.log(
-      "  Available:\t%s",
+      "  └─ Available:\t%s",
       provisioned.AvailableProvisionedConcurrentExecutions
     );
   }

@@ -7,12 +7,6 @@ import { deleteLambdaRole, getLambdaRole } from "./lambdaRole.js";
 export const handler = "runtime.handler";
 
 export type Limits = {
-  /** Maximum number of concurrent Lambda invocations  */
-  reserved: number | undefined;
-
-  /** Provisioned instances  */
-  provisioned: number | undefined;
-
   /** Memory size in MBs. Default: 128. */
   memory: number;
 
@@ -104,12 +98,8 @@ export default async function uploadLambda({
     arn = `${newLambda.FunctionArn}:${newLambda.Version}`;
   }
 
-  await updateConcurrency({ arn, lambda, limits });
   spinner.succeed();
-
   console.info("Available memory: %s MB", configuration.MemorySize);
-  if (limits.reserved)
-    console.info("Reserved concurrency: %s", limits.reserved);
   return arn;
 }
 
@@ -130,39 +120,6 @@ async function getFunction({
       return null;
     else throw error;
   }
-}
-
-async function updateConcurrency({
-  arn,
-  lambda,
-  limits,
-}: {
-  arn: string;
-  lambda: Lambda;
-  limits: Limits;
-}) {
-  const unqualified = arn.replace(/:\d+$/, "");
-  if (limits.reserved) {
-    await lambda.putFunctionConcurrency({
-      FunctionName: unqualified,
-      ReservedConcurrentExecutions: limits.reserved,
-    });
-  } else await lambda.deleteFunctionConcurrency({ FunctionName: unqualified });
-  /*
-
-  if (limits.provisioned) {
-    await lambda.putProvisionedConcurrencyConfig({
-      FunctionName: unqualified,
-      Qualifier: "$LATEST",
-      ProvisionedConcurrentExecutions: limits.provisioned,
-    });
-  } else {
-    await lambda.deleteProvisionedConcurrencyConfig({
-      FunctionName: unqualified,
-      Qualifier: "$LATEST",
-    });
-  }
-  */
 }
 
 async function waitForNewRevision({

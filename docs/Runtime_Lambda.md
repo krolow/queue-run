@@ -31,13 +31,48 @@ AWS_REGION="us-east-1"
 ```
 
 
-## Lambda Warm Up
+## Concurrency Control
+
+You have two ways to control concurrency:
+
+* [Reserved concurrency](https://docs.aws.amazon.com/lambda/latest/operatorguide/reserved-concurrency.html) places an upper limit on the number of active instances
+* [Provisioned concurrency](https://docs.aws.amazon.com/lambda/latest/dg/provisioned-concurrency.html) maintains a pool of warmed up instances
+
+You can use reserved concurrency to limit how many instances of your backend are active at once. Some use cases:
+
+* Reserved concurrency guranteed to this backend, not affected by load on other Lambda functions
+* Limit concurrency to avoid unexpected usage charges
+* Pause your backend by setting the reserved concurrency to zero, eg during database maintenance
+
+You use provisioned concurrency to keep instances warmed up and ready to serve, ahead of expected traffic spikes. [See warm up function](#warm-up-function).
+
+To use provisioned and/or reserved concurrency, you have to set them up during deployment:
+
+```bash
+# This backend splits available instances with
+# other Lambda in the same AWS account
+npx queue-run reserve off
+```
+
+```bash
+# This backend has a guaranteed capacity of 50 instances
+npx queue-run reserved 50
+```
+
+```bash
+# This backend is temporarily not available
+npx queue-run reserved 0
+# Good time for database maintenance
+```
+
+
+## Warm-Up Function
 
 Lambda performance is solid for most applications.
 
 The most noticeable issue is the warm up time. It needs at least 3 seconds to warm up a new instance, and it could be much longer depending on what the code does.
 
-[Provisioned concurrency](https://docs.aws.amazon.com/lambda/latest/dg/provisioned-concurrency.html) can help by keeping instances around, in a state ready to respond to new requests.
+[Provisioned concurrency](#concurrency-control) can help by keeping instances around, in a state ready to respond to new requests.
 
 If you opted into provisioned concurrency, you will want to do warm up work before the request handler gets involved. For things like opening database connections, downloading dynamic resources and data, etc.
 
@@ -93,6 +128,7 @@ Warm up code should only be concerned with resources used by HTTP and WebSocket 
 :::
 
 
+
 ## Concurrency/Isolation
 
 When it comes to HTTP/WS requests, Lambda will run as many instances as there are current requests. This means your node Node is likely only handling one request at a time.
@@ -103,15 +139,4 @@ Also, if one request times out, the Lambda may start handling the next request. 
 
 :::tip Abort Signal
 Use the [abort signal](Timeout) to detect when your handler ran out of time.
-:::
-
-:::tip Connection Pools
-
-If your backend is mostly handling HTTP/WS requests, it may not benefit much from having a database connection pool, and you may get around with a single connection, or pool size of 1.
-
-It would open as many database connections as there are concurrent requests. Many database servers cannot manage multiple open connections, and you need to consider using a database proxy.
-:::
-
-:::info Reserved Concurrency
-[Reserved concurrency](https://docs.aws.amazon.com/lambda/latest/operatorguide/reserved-concurrency.html) can help limit the number of active instances, but you should still consider a database proxy.
 :::

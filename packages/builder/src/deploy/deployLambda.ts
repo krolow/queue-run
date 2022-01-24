@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import { AbortSignal } from "node-abort-controller";
 import fs from "node:fs/promises";
 import { debuglog } from "node:util";
+import ora from "ora";
 import { Manifest } from "queue-run";
 import invariant from "tiny-invariant";
 import { buildProject, displayManifest } from "../build/index.js";
@@ -13,6 +14,8 @@ import { addTriggers, removeTriggers } from "./eventSource.js";
 import { createQueues, deleteOldQueues } from "./prepareQueues.js";
 import updateAlias from "./updateAlias.js";
 import uploadLambda from "./uploadLambda.js";
+
+const currentVersionAlias = "current";
 
 export type LambdaConfig = {
   /**  AWS account ID  */
@@ -26,16 +29,6 @@ export type LambdaConfig = {
   /** The full URL for this backend's HTTP API. Available to the backed as the
    *  environment variable QUEUE_RUN_URL. */
   httpUrl: string;
-
-  /**
-   * Provisioned concurrency. Default undefined.
-   */
-  provisioned: number | undefined;
-
-  /**
-   * The reserved concurrency. Default undefined.
-   */
-  reserved: number | undefined;
 
   /** AWS region */
   region: string;
@@ -84,6 +77,7 @@ export async function deployLambda({
     throw new Error('WS URL must start with "https://"');
 
   const region = config.region;
+
   const lambdaName = `qr-${slug}`;
   debug('Lamba name: "%s"', lambdaName);
   const queuePrefix = `${lambdaName}__`;
@@ -130,8 +124,6 @@ export async function deployLambda({
   const limits = {
     memory: manifest.limits.memory,
     timeout: manifest.limits.timeout,
-    provisioned: config.provisioned,
-    reserved: config.reserved,
   };
 
   // Upload new Lambda function and publish a new version.
@@ -227,7 +219,7 @@ async function switchOver({
   region: string;
   versionArn: string;
 }): Promise<string> {
-  const aliasArn = versionArn.replace(/(\d+)$/, "current");
+  const aliasArn = versionArn.replace(/(\d+)$/, currentVersionAlias);
 
   // Create queues that new version expects, and remove triggers for event
   // sources that new version does not understand.
@@ -261,6 +253,36 @@ async function switchOver({
   return aliasArn;
 }
 
+async function provisionConcurrency({
+  arn,
+  provisioned,
+  region,
+}: {
+  arn: string;
+  provisioned: number | undefined;
+  region: string;
+}) {
+  const lambda = new Lambda({ region });
+  const spinner = ora("Provisioning concurrency").start();
+  await lambda.deleteProvisionedConcurrencyConfig({
+    FunctionName: arn.replace(/:\w+$/, ""),
+    Qualifier: currentVersionAlias,
+  });
+
+  /*
+
+  if (provisioned) {
+    await lambda.putProvisionedConcurrencyConfig({
+      FunctionName: arn.replace(/:\w+$/, ""),
+      Qualifier: currentVersionAlias,
+      ProvisionedConcurrentExecutions: provisioned,
+    });
+    spinner.succeed(`Provisioned concurrency: ${provisioned}`);
+  } else spinner.succeed(`Provisioned concurrency: off`);
+  */
+  spinner.stop();
+}
+
 export async function getRecentVersions({
   region,
   slug,
@@ -281,7 +303,7 @@ export async function getRecentVersions({
 
   const { FunctionVersion: currentVersion } = await lambda.getAlias({
     FunctionName: lambdaName,
-    Name: "current",
+    Name: currentVersionAlias,
   });
   const versions = (await getAllVersions(lambdaName))
     .filter(({ version }) => version !== "$LATEST")

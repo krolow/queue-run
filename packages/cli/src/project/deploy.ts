@@ -12,9 +12,7 @@ import { loadProject } from "./project.js";
 
 const command = new Command("deploy")
   .description("deploy your project")
-  .option("--provisioned <provisioned>", "provisioned concurrency", undefined)
-  .option("--reserved <reserved>", "reserved concurrency", undefined)
-  .action(async ({ provisioned, reserved }) => {
+  .action(async () => {
     const { name, region } = await loadProject();
     const accountId = await getAccountId(region);
 
@@ -32,8 +30,6 @@ const command = new Command("deploy")
         accountId,
         env: "production",
         httpUrl,
-        reserved: reserved ? parseInt(reserved) : undefined,
-        provisioned: provisioned ? parseInt(provisioned) : undefined,
         region,
         slug: name,
         wsApiId,
