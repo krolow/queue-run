@@ -41,7 +41,7 @@ Since JSON is the most common use case, this is also the default. If you want to
 
 Clients can still connect and you can send them messages.
 
-If the request handler throws any error, or the request times out, the server sends back a JSON object of the form `{ error: string }`. That error is also logged by the [Logging Middleware](#logging-middleware).
+If the request handler throws any error, or the request times out, the server sends back a JSON object of the form `{ error: string }`. That error is also logged by the [Logging Middleware](Logging.md).
 
 You can change the timeout using `export const config = { timeout: inSeconds };`.
 
@@ -95,7 +95,7 @@ await socket.push(message).catch(() => undefined);
 
 ## Authentication
 
-To authenticate users, export the `authenticate` method from either `socket/index.ts` or `socket/_middleware.ts`. (`socket/_middleware.ts` is also used for [logging](#logging-middleware))
+To authenticate users, export the `authenticate` method from either `socket/index.ts` or `socket/_middleware.ts`. (`socket/_middleware.ts` is also used for [logging](/Logging.md))
 
 The `authenticate` method receives the HTTP request for opening a WebSocket connection, so has access to the HTTP headers (eg `Authentication`) and cookies.
 
@@ -140,48 +140,3 @@ export async function onOffline(userId) {
   await db.leaveAllRooms({ userId });
 }
 ```
-
-
-## Logging Middleware
-
-WebSocket support the following logging middleware:
-
-- `onMessageReceived(request)` — Called on every request
-- `onMessageSent(message)` — Called for every message sent
-- `onError(error, request)` — Called if the request handler or any middleware throws an error
-
-The default middleware logs messages received and errors, but not messages sent.
-
-You can change the middleware for any given route by exporting the functions you want to add, just like you export request handlers.
-
-The most specific middleware is picked in this order:
-
-- Middleware exported by the request handler file itself
-- Middleware exported by `_middleware.ts` in the current directory
-- Middleware exported by `_middleware.ts` in the parent directory
-- The default middleware
-
-If you don't want to use the default middleware, or disable middleware for one route, you can export `null`.
-
-Your middleware can also wrap the default middleware.
-
-For example:
-
-```ts title=socket/_middleware.ts
-export async function onMessageReceived({ connection, data }) {
-  console.log('%s: <= %s', connection, data);
-}
-
-export async function onMessageSent({ connection, data }) {
-  console.log('%s: => %s', connection, data);
-}
-```
-
-:::note Middleware Context
-
-* `onAuthenticate` is called once for every new connection before accepting the connection
-* `onAuthenticate` is loaded from either `socket/index.ts` or `socket/_middleware.ts`
-* `onMessageReceived` is called for every message received, loaded from the specific request, or from `socket/_middleware.ts`
-* If the request handler responds, `onMessageSent` associated with that request handler is called
-* For every other message sent, `onMessageSent` is called, loaded from either `socket/index.ts` or `socket/_middleware.ts`
-:::

@@ -37,31 +37,6 @@ console.log({ value });
 :::
 
 
-## Using a Logging Service
-
-You can provide your own logging function. This is useful if you want to send all logged message to a 3rd party logging service.
-
-For example, to use with LogTail:
-
-```ts title=_middleware.ts
-import { format } from "node:util";
-import { logger } from "queue-run";
-import { Logtail } from "@logtail/node";
-
-const logtail = new Logtail(process.env.LOGTAIL_TOKEN);
-const _logger = logger();
-
-logger(function(level, ...args) {
-  // Output to stdout/stderr
-  _logger(level, ...args);
-  
-  // Format messsage, pass argument list as rest parameters
-  const message = format(...args);
-  logtail.log(message);
-});
-```
-
-
 ## Logging Middleware
 
 Since logging is such a common use case, QueueRun includes default logging middleware. It will log:
@@ -72,7 +47,51 @@ Since logging is such a common use case, QueueRun includes default logging middl
 * Scheduled job started and finished
 * Errors when handling HTTP/WebSocket request, or queued/scheduled job
 
-You can change the default middleware by exporting your own middleware. And you can wrap the default middleware.
+QueueRun calls the following middleware:
+
+- `onRequest(request)` — Called on every HTTP request
+- `onResponse(request, response)` — Called on every HTTP response
+- `onMessageReceived(request)` — Called on every WebSocket request
+- `onMessageSent(message)` — Called for every WebSocket message sent
+- `onJobStarted(metadata)` — Called each time a job starts running
+- `onJobFinished(metadata)` — Called each time a job finishes running (not error or timeout)
+- `onError(error, reference)` — Called for errors, see [Logging Errors](#logging-errors)
+
+Middleware loads in the following order:
+
+* Middleware exported from the module itself (HTTP request handler, job handler, etc)
+* Middleware exported from `_middleware.ts` in the current directory
+* Middleware exported from `_middleware.ts` in the parent directory (recursive)
+* The default middleware
+
+You can change the default middleware by exporting different middleware. You can disable middleware by exporting `null`. And you can wrap middleware.
+
+For example:
+
+```ts title=api/_middleware.ts
+// We're going to use the default middleware for logging
+import { logResponse } from "queue-run";
+// Metrics package for counting request/responeses
+import { metrics } from "metrics";
+
+export async function onRequest(request, response) {
+  await metrics.increment(`request.${request.method}`);
+}
+
+export async function onResponse(request, response) {
+  await logResponse(request, response);
+  await metrics.increment(`response.${response.status}`);
+}
+```
+
+:::note Throwing Errors and Responses
+
+* `onRequest` is called first (before authentication) so does not have access to the current user
+* `onRequest` can prevent the request from being handled by throwing a `Response` object (eg 404, or redirect to different URL)
+* `onResponse` can change the response by throwing a new `Response` body (eg hide errors in 500 responses)
+* If the request handler throws an `Error`, then the 500 response is logged (`onResponse`) as well as the error object (`onError`).
+* If `onResponse` throws an `Error`, then the server responds with 500 and calls `onError`
+:::
 
 
 ## Logging Errors
@@ -100,4 +119,29 @@ export async function logError(error, reference) {
   logError(error, reference);
   Sentry.captureException(error);
 }
+```
+
+
+## Using a Logging Service
+
+You can provide your own logging function. This is useful if you want to send all logged message to a 3rd party logging service.
+
+For example, to use with LogTail:
+
+```ts title=_middleware.ts
+import { format } from "node:util";
+import { logger } from "queue-run";
+import { Logtail } from "@logtail/node";
+
+const logtail = new Logtail(process.env.LOGTAIL_TOKEN);
+const _logger = logger();
+
+logger(function(level, ...args) {
+  // Output to stdout/stderr
+  _logger(level, ...args);
+  
+  // Format messsage, pass argument list as rest parameters
+  const message = format(...args);
+  logtail.log(message);
+});
 ```

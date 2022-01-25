@@ -64,7 +64,7 @@ They return a single value, which can be one of:
 
 The request handler can also throw a `Response` object. This is used to "break from" further processing, eg the [authenticate](Authenticate.md) middleware uses this.
 
-If the request handler throws any other error, the server responds with 500. That error is also logged by the [Logging Middleware](#logging-middleware).
+If the request handler throws any other error, the server responds with 500. That error is also logged by the [Logging Middleware](Logging.md).
 
 If the request times out, the server responds with 500. You can use the abort signal to tell if the request timed out.
 
@@ -326,61 +326,3 @@ export const config =  {
   etag: (task) => task.version
 };
 ```
-
-
-## Logging Middleware
-
-Routes support the following logging middleware:
-
-- `onRequest(request)` — Called on every request
-- `onResponse(request, response)` — Called on every response
-- `onError(error, request)` — Called if the request handler or any middleware throws an error
-
-The default middleware logs responses and errors.
-
-You can change the middleware for any given route by exporting the functions you want to add, just like you export request handlers.
-
-You can use the same middleware across all routes by exporting it from a `_middleware.ts` file in the same directory, or a parent directory.
-
-The most specific middleware is picked in this order:
-
-- Middleware exported by the request handler file itself
-- Middleware exported by `_middleware.ts` in the current directory
-- Middleware exported by `_middleware.ts` in the parent directory
-- The default middleware
-
-If you don't want to use the default middleware, or disable middleware for one route, you can export `null`.
-
-Your middleware can also wrap the default middleware.
-
-For example:
-
-```ts title=api/_middleware.ts
-// We're going to use the default middleware for logging
-import { logResponse, logError } from "queue-run";
-// And count running/failed requests
-import { metrics } from "metrics";
-
-export async function onRequest(request, response) {
-  await metrics.increment(`request.${request.method}`);
-}
-
-export async function onResponse(request, response) {
-  await logResponse(request, response);
-  await metrics.increment(`response.${response.status}`);
-}
-
-export async function onError(error, request) {
-  await logError(error, request);
-  await metrics.increment("error");
-}
-```
-
-:::note Throwing Error or Response
-
-* `onRequest` is called first (before authentication) so does not have access to the current user
-* `onRequest` can prevent the request from being handled by throwing a `Response` object (eg 404, or redirect to different URL)
-* `onResponse` can change the response by throwing a new `Response` body (eg hide errors in 500 responses)
-* If the request handler throws an `Error`, then the 500 response is logged (`onResponse`) as well as the error object (`onError`).
-* If `onResponse` throws an `Error`, then the server responds with 500 and calls `onError`
-:::
