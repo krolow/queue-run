@@ -1,3 +1,4 @@
+import filesize from "filesize";
 /**
  * Default middleware for WebSocket logs all received messages.
  */
@@ -12,9 +13,15 @@ export async function logMessageReceived({
 }) {
   const message =
     typeof data === "string"
-      ? `${data.length} bytes`
+      ? filesize(data.length)
       : Buffer.isBuffer(data)
-      ? `${data.byteLength} bytes`
+      ? filesize(data.byteLength)
       : "json";
-  console.info("%s: %s from %s", connection, message, user?.id ?? "anonymous");
+
+  console.info(
+    "connection: %s user: %s message: %s",
+    connection,
+    user?.id ?? "anonymous",
+    message
+  );
 }

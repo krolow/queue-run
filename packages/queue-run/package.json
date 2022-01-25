@@ -32,6 +32,7 @@
     "chalk": "5.0.0",
     "fast-glob": "^3.2.11",
     "fetch-blob": "^3.1.4",
+    "filesize": "^8.0.7",
     "node-abort-controller": "^3.0.1",
     "node-fetch": "3.2.0",
     "path-to-regexp": "^6.2.0",
