@@ -14,7 +14,6 @@ const command = new Command("rollback")
       region,
       versionArn: arn,
     });
-    console.log({ arn });
   });
 
 async function chooseVersion({

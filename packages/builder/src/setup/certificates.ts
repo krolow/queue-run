@@ -186,11 +186,11 @@ async function useDNSVerification({
   console.info("Update your DNS and add the following CNAME record:");
   const left = Name.length;
   const right = Value.length;
-  console.log("┌─%s─┬─%s─┐", "─".repeat(left), "─".repeat(right));
-  console.log("│ %s │ %s │", "CNAME".padEnd(left), "VALUE".padEnd(right));
-  console.log("├─%s─┼─%s─┤", "─".repeat(left), "─".repeat(right));
-  console.log("│ %s │ %s │", Name.padEnd(left), Value.padEnd(right));
-  console.log("└─%s─┴─%s─┘", "─".repeat(left), "─".repeat(right));
+  console.info("┌─%s─┬─%s─┐", "─".repeat(left), "─".repeat(right));
+  console.info("│ %s │ %s │", "CNAME".padEnd(left), "VALUE".padEnd(right));
+  console.info("├─%s─┼─%s─┤", "─".repeat(left), "─".repeat(right));
+  console.info("│ %s │ %s │", Name.padEnd(left), Value.padEnd(right));
+  console.info("└─%s─┴─%s─┘", "─".repeat(left), "─".repeat(right));
   console.info("");
 
   console.info(

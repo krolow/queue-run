@@ -44,13 +44,13 @@ async function showMemory(lambda: Lambda, arn: string): Promise<void> {
 }
 
 async function showConcurrency(lambda: Lambda, arn: string): Promise<void> {
-  console.log("Concurrency:");
+  console.info("Concurrency:");
 
   const { ReservedConcurrentExecutions: reserved } =
     await lambda.getFunctionConcurrency({
       FunctionName: arn.replace(/:\d+$/, ""),
     });
-  console.log(
+  console.info(
     "├─ Reserved:\t%s",
     reserved === 0 ? "0 (no instances)" : reserved ?? "no limit"
   );
@@ -60,17 +60,17 @@ async function showConcurrency(lambda: Lambda, arn: string): Promise<void> {
       FunctionName: arn.replace(/:\w+$/, ""),
     });
   for (const config of configs ?? []) {
-    console.log("└─ Provisioned:\t%s", config.Status);
+    console.info("└─ Provisioned:\t%s", config.Status);
 
-    console.log(
+    console.info(
       "  ├─ Requested:\t%s",
       config.RequestedProvisionedConcurrentExecutions
     );
-    console.log(
+    console.info(
       "  ├─ Allocated:\t%s",
       config.AllocatedProvisionedConcurrentExecutions
     );
-    console.log(
+    console.info(
       "  └─ Available:\t%s",
       config.AvailableProvisionedConcurrentExecutions
     );

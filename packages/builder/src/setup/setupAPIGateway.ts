@@ -460,7 +460,6 @@ async function removeDomainMapping({
   domain: string;
   stage: string;
 }) {
-  console.log("remove mapping", domain);
   const { Items } = await apiGateway
     .getApiMappings({
       DomainName: domain,

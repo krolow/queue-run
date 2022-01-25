@@ -47,6 +47,6 @@ try {
   console.info(chalk.bold.green("🐇 Done in %s"), ms(process.uptime() * 1000));
 } catch (error) {
   console.error(String(error));
-  if (error instanceof Error) console.log(error.stack!);
+  if (error instanceof Error) console.error(error.stack!);
   process.exit(-1);
 }

@@ -1,5 +1,5 @@
 export async function onMessageSent({ data }: { data: Buffer }) {
-  console.log("WebSocket sending:", data.toString());
+  console.info("WebSocket sending:", data.toString());
 }
 
 export async function onOnline(userId: string) {

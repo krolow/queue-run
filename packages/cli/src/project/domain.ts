@@ -138,12 +138,12 @@ function displayCNames(cnames: { cname: string; value: string }[]) {
   );
   const left = Math.max(...cnames.map(({ cname }) => cname.length));
   const right = Math.max(...cnames.map(({ value }) => value.length));
-  console.log("┌─%s─┬─%s─┐", "─".repeat(left), "─".repeat(right));
-  console.log("│ %s │ %s │", "CNAME".padEnd(left), "VALUE".padEnd(right));
-  console.log("├─%s─┼─%s─┤", "─".repeat(left), "─".repeat(right));
+  console.info("┌─%s─┬─%s─┐", "─".repeat(left), "─".repeat(right));
+  console.info("│ %s │ %s │", "CNAME".padEnd(left), "VALUE".padEnd(right));
+  console.info("├─%s─┼─%s─┤", "─".repeat(left), "─".repeat(right));
   for (const { cname, value } of cnames)
-    console.log("│ %s │ %s │", cname.padEnd(left), value.padEnd(right));
-  console.log("└─%s─┴─%s─┘", "─".repeat(left), "─".repeat(right));
+    console.info("│ %s │ %s │", cname.padEnd(left), value.padEnd(right));
+  console.info("└─%s─┴─%s─┘", "─".repeat(left), "─".repeat(right));
   console.info("");
 }
 

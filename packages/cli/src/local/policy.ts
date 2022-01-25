@@ -7,7 +7,7 @@ const command = new Command("policy")
   .option("-o, --output <filename>", "save to file")
   .action(async ({ output }: { output: string }) => {
     if (output) await fs.writeFile(output, JSON.stringify(policy, null, 2));
-    else console.log(JSON.stringify(policy, null, 2));
+    else process.stdout.write(JSON.stringify(policy, null, 2) + "\n");
   });
 
 export default command;

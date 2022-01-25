@@ -10,7 +10,7 @@ import type { OnError } from "../shared/logError.js";
  *
  * ```
  * const handler : QueueHandler<{ id: string; amount: number }> = (payload) => {
- *   console.log("Payload: %s %n", payload.id, payload.amount);
+ *   console.info("Payload: %s %n", payload.id, payload.amount);
  * };
  *
  * export default handler;

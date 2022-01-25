@@ -531,7 +531,6 @@ async function bodyFromRequest(
       try {
         return await form(request);
       } catch (error) {
-        console.log(error);
         throw new Response(String(error), { status: 422 });
       }
     }

@@ -1,4 +1,4 @@
-export default async function () {
+export async function warmup() {
   console.debug("Connecting to database …");
 }
 
