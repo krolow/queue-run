@@ -2,25 +2,25 @@ import { AbortController } from "node-abort-controller";
 import { createHash } from "node:crypto";
 import { URL, URLSearchParams } from "node:url";
 import { XMLElement } from "xmlbuilder";
+import { AuthenticatedUser } from "../index.js";
 import { isElement, render } from "../jsx-runtime.js";
 import { loadMiddleware } from "../shared/loadModule.js";
 import {
   getLocalStorage,
   LocalStorage,
-  withLocalStorage,
+  withLocalStorage
 } from "../shared/localStorage";
 import { logError } from "../shared/logError.js";
 import { HTTPRoute } from "../shared/manifest";
 import TimeoutError from "../shared/TimeoutError.js";
 import {
-  AuthenticatedUser,
   HTTPRequest,
   RequestHandler,
   RouteConfig,
   RouteExports,
-  RouteMiddleware,
+  RouteMiddleware
 } from "./exports.js";
-import { Headers, Request, Response } from "./fetch.js";
+import { Headers } from "./fetch.js";
 import findRoute from "./findRoute.js";
 import form from "./form.js";
 
@@ -161,11 +161,12 @@ async function handleRoute({
       runWithMiddleware({
         config,
         corsHeaders,
+        filename,
         handler,
+        metadata,
         middleware,
         request,
-        filename,
-        metadata,
+        requestId,
       })
     );
   } finally {
@@ -211,6 +212,7 @@ async function runWithMiddleware({
   middleware,
   metadata,
   request,
+  requestId,
 }: {
   config: RouteConfig;
   corsHeaders: Headers | undefined;
@@ -219,6 +221,7 @@ async function runWithMiddleware({
   metadata: Omit<HTTPRequest, "request" | "user">;
   middleware: RouteMiddleware;
   request: Request;
+  requestId: string;
 }): Promise<Response> {
   try {
     const { signal } = metadata;
@@ -228,12 +231,12 @@ async function runWithMiddleware({
         const { onRequest } = middleware;
         if (onRequest) await onRequest(request);
 
-        await getAuthenticatedUser({
-          cookies: metadata.cookies,
+        const user = await getAuthenticatedUser({
+          ...metadata,
           middleware,
           request,
+          requestId,
         });
-        const user = getLocalStorage().user ?? null;
 
         return await handler({ ...metadata, request, user });
       })(),
@@ -259,17 +262,41 @@ async function runWithMiddleware({
 
 async function getAuthenticatedUser({
   cookies,
+  query,
   middleware,
   request,
+  requestId,
 }: {
   cookies: { [key: string]: string };
+  query: { [key: string]: string | string[] };
   middleware: RouteMiddleware;
   request: Request;
-}): Promise<AuthenticatedUser | null> {
+  requestId: string;
+}): Promise<AuthenticatedUser | null > {
   const { authenticate } = middleware;
   if (!authenticate) return null;
-  const user = await authenticate(request, cookies);
-  if (user === null || user?.id) return user;
+
+  const authorization = request.headers.get("Authorization");
+  const bearerToken = authorization?.match(/^Bearer\s+(\S+)$/)?.[1];
+  const basic = authorization?.match(/^Basic\s+(\S+)$/)?.[1];
+  const [username, password] = basic
+    ? Buffer.from(basic, "base64").toString().split(":")
+    : [];
+
+  const user = await authenticate({
+    bearerToken,
+    cookies,
+    password,
+    query,
+    request,
+    requestId,
+    username,
+  });
+  if (user?.id) {
+    await getLocalStorage().authenticated(user);
+    return user;
+  }
+  if (user === null) return null;
 
   const concern =
     user === undefined
@@ -293,10 +320,12 @@ async function resultToResponse({
 }): Promise<Response> {
   if (result instanceof Response) {
     const status = result.status ?? 200;
-    const headers = new Headers({
-      ...(corsHeaders ? Object.fromEntries(corsHeaders.entries()) : undefined),
-      ...Object.fromEntries(result.headers.entries()),
-    });
+
+    const headers = new Headers();
+    if (corsHeaders)
+      corsHeaders.forEach((value, key) => headers.append(key, value));
+    result.headers.forEach((value, key) => headers.append(key, value));
+
     if (status === 200) {
       const body = Buffer.from(await result.clone().arrayBuffer());
       addCacheControl(headers, result, body);

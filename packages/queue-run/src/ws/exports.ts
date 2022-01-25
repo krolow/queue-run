@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 import type { AbortSignal } from "node-abort-controller";
-import { AuthenticateMethod } from "../http/exports.js";
 import type { JSONValue } from "../json";
+import { AuthenticatedUser } from "../shared/authenticated";
 import type { OnError } from "../shared/logError.js";
 
 /**
@@ -16,13 +16,13 @@ import type { OnError } from "../shared/logError.js";
 export type WebSocketHandler<
   Data extends JSONValue | string | Buffer = JSONValue | string | Buffer
 > = (
-  reques: WebSocketRequest<Data> & {
+  request: WebSocketRequest<Data> & {
     signal: AbortSignal;
   }
 ) => void | Promise<void>;
 
 export type WebSocketRequest<
-  Data extends JSONValue | string | Buffer = JSONValue
+  Data extends JSONValue | string | Buffer = JSONValue | string | Buffer
 > = {
   connection: string;
   data: Data;
@@ -47,6 +47,25 @@ export type WebSocketConfig = {
    */
   timeout?: number;
 };
+
+/**
+ * Middleware that's called for every HTTP request, to authenticate the user.
+ *
+ * @param cookies Cookies sent by the browser
+ * @param request The HTTP request
+ * @param requestId The unique request ID
+ * @param message The WebSocket message
+ * @return The authenticated user, or null if the user is not authenticated
+ */
+export type WebSocketAuthenticateMethod = (
+  params:
+    | {
+        cookies: { [key: string]: string };
+        request: Request;
+        requestId: string;
+      }
+    | WebSocketRequest
+) => AuthenticatedUser | Promise<AuthenticatedUser | null> | null;
 
 /**
  * Middleware that's called the first time the user connects with WebSocket.
@@ -90,7 +109,7 @@ export type OnMessageSent = (args: {
  * Middleware exported from the route module, or socket/_middleware.ts.
  */
 export type WebSocketMiddleware = {
-  authenticate?: AuthenticateMethod | null;
+  authenticate?: WebSocketAuthenticateMethod | null;
   onError?: OnError | null;
   onOnline?: OnOnline | null;
   onOffline?: OnOffline | null;

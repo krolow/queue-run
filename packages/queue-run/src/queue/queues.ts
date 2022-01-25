@@ -158,7 +158,7 @@ function newQueue<T extends Payload>(
       params: params ?? {},
       payload: payload as unknown as object,
       queueName,
-      user: local.user ?? undefined,
+      user: local.userId ? { id: local.userId } : null,
     });
   };
 

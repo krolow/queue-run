@@ -1,5 +1,5 @@
-import { AsyncLocalStorage } from "async_hooks";
-import { AuthenticatedUser } from "../http/exports";
+import { AsyncLocalStorage } from "node:async_hooks";
+import { AuthenticatedUser } from "../shared/authenticated.js";
 
 /* eslint-disable no-unused-vars */
 /**
@@ -16,14 +16,18 @@ import { AuthenticatedUser } from "../http/exports";
 export abstract class LocalStorage {
   public readonly urls: { http: string; ws: string };
 
-  public user?: AuthenticatedUser | null = null;
+  /**
+   * String — Identified for authenicated user
+   * null — Anonymous user
+   * undefined — Not authenticated
+   */
+  public userId?: string | null | undefined;
 
   /** WebSocket connection ID */
   public connectionId: string | undefined;
 
   constructor({ urls }: { urls: { http: string; ws: string } }) {
     this.urls = urls;
-    this.user;
   }
 
   queueJob(message: {
@@ -57,7 +61,7 @@ export abstract class LocalStorage {
    */
   async authenticated(user: AuthenticatedUser | null) {
     if (user && !user.id) throw new TypeError("User ID is required");
-    this.user = user ?? null;
+    this.userId = user?.id ?? null;
   }
 
   /**

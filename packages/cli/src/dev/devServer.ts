@@ -10,15 +10,12 @@ import path from "node:path";
 import process from "node:process";
 import { URL } from "node:url";
 import {
-  AuthenticatedUser,
   authenticateWebSocket,
   handleHTTPRequest,
   handleQueuedJob,
   handleWebSocketMessage,
   Headers,
   LocalStorage,
-  Request,
-  Response,
   warmup,
 } from "queue-run";
 import { buildProject } from "queue-run-builder";
@@ -27,6 +24,7 @@ import invariant from "tiny-invariant";
 import { WebSocket, WebSocketServer } from "ws";
 import {
   DevLocalStorage,
+  getUser as getUserId,
   onWebSocketAccepted,
   onWebSocketClosed,
 } from "./state.js";
@@ -217,7 +215,9 @@ async function onRequest(
     request,
     requestId: crypto.randomUUID(),
   });
-  res.writeHead(response.status, Array.from(response.headers.entries()));
+  const resHeaders: Record<string, string> = {};
+  response.headers.forEach((value, name) => (resHeaders[name] = value));
+  res.writeHead(response.status, resHeaders);
   const buffer = await response.arrayBuffer();
   res.end(Buffer.from(buffer));
 }
@@ -298,8 +298,9 @@ async function onUpgrade(
       }
     );
 
-    const user = await authenticateWebSocket({
+    await authenticateWebSocket({
       request,
+      requestId: crypto.randomUUID(),
       newLocalStorage,
     });
     const connection = req.headers["sec-websocket-key"]!;
@@ -309,10 +310,10 @@ async function onUpgrade(
         connection,
         newLocalStorage,
         socket,
-        user,
       })
     );
   } catch (error) {
+    console.log({ error });
     if (error instanceof Response) {
       console.info("   Authentication rejected: %d", error.status);
       socket.write(`HTTP/1.1 ${error.status} ${await error.text()}\r\n\r\n`);
@@ -328,19 +329,12 @@ async function onConnection({
   connection,
   newLocalStorage,
   socket,
-  user,
 }: {
   connection: string;
   newLocalStorage: () => LocalStorage;
   socket: WebSocket;
-  user: AuthenticatedUser | null;
 }) {
-  onWebSocketAccepted({
-    connection,
-    newLocalStorage,
-    socket,
-    userId: user?.id ?? null,
-  });
+  onWebSocketAccepted({ connection, socket });
 
   socket.on("message", async (rawData) => {
     const data =
@@ -355,7 +349,7 @@ async function onConnection({
         data,
         newLocalStorage,
         requestId: crypto.randomUUID(),
-        userId: user?.id ?? null,
+        userId: getUserId(connection),
       });
     } catch (error) {
       socket.send(JSON.stringify({ error: String(error) }));

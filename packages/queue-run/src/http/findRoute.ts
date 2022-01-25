@@ -4,7 +4,6 @@ import { loadModule } from "../shared/loadModule.js";
 import { logError } from "../shared/logError.js";
 import { HTTPRoute, loadManifest } from "../shared/manifest.js";
 import { RouteExports, RouteMiddleware } from "./exports.js";
-import { Response } from "./fetch.js";
 import { logResponse } from "./middleware.js";
 
 /**

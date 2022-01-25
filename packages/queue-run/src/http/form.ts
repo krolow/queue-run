@@ -1,7 +1,7 @@
 import type { TranscodeEncoding } from "node:buffer";
 import { URLSearchParams } from "node:url";
 import invariant from "tiny-invariant";
-import { File, Request, Response } from "./fetch.js";
+import { File } from "./fetch.js";
 
 /**
  * Handle HTML forms: multipart/form-data and application/x-www-form-urlencoded,

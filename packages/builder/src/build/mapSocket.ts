@@ -1,8 +1,9 @@
 import glob from "fast-glob";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { loadModule, Manifest, WebSocketMiddleware } from "queue-run";
-import { RouteMiddleware, WebSocketExports } from "queue-run/";
+import { loadModule, Manifest } from "queue-run";
+import { WebSocketExports } from "queue-run/";
+import { WebSocketMiddleware } from "./../../../queue-run/src/ws/exports";
 
 const maxTimeout = 30;
 const defaultTimeout = 10;
@@ -46,11 +47,16 @@ function getTimeout({ timeout }: { timeout?: number }): number {
   return timeout;
 }
 
-function validateMiddleware(middleware: RouteMiddleware): void {
+function validateMiddleware(middleware: WebSocketMiddleware): void {
   (
-    ["authenticate", "onError", "onMessageReceived", "onMessageSent"] as Array<
-      keyof RouteMiddleware
-    >
+    [
+      "authenticate",
+      "onError",
+      "onMessageReceived",
+      "onMessageSent",
+      "onOffline",
+      "onOnline",
+    ] as Array<keyof WebSocketMiddleware>
   ).forEach((key) => {
     if (middleware[key] && typeof middleware[key] !== "function")
       throw new Error(`Exported ${key} must be a function`);

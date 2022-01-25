@@ -1,6 +1,8 @@
 import ms from "ms";
 import { EventEmitter } from "node:events";
 import {
+  AuthenticatedUser,
+  getLocalStorage,
   handleQueuedJob,
   handleUserOffline,
   handleUserOnline,
@@ -98,6 +100,26 @@ export class DevLocalStorage extends LocalStorage {
     return jobId;
   }
 
+  async authenticated(user: AuthenticatedUser | null) {
+    super.authenticated(user);
+    const { connectionId, userId } = this;
+    if (userId && connectionId) {
+      const connections = userIdToConnectionId.get(userId) ?? [];
+      connectionIdToUserId.set(connectionId, userId);
+      userIdToConnectionId.set(userId, [...connections, connectionId]);
+
+      const wentOnline = connections.length === 0;
+      if (wentOnline) {
+        getLocalStorage().exit(() =>
+          handleUserOnline({
+            userId,
+            newLocalStorage: () => new DevLocalStorage(this.port),
+          })
+        );
+      }
+    }
+  }
+
   async sendWebSocketMessage(message: Buffer, connection: string) {
     const socket = sockets.get(connection);
     if (socket) {
@@ -128,23 +150,16 @@ export function onIdleOnce(cb: () => void) {
 
 export function onWebSocketAccepted({
   connection,
-  newLocalStorage,
   socket,
-  userId,
 }: {
   connection: string;
-  newLocalStorage: () => LocalStorage;
   socket: WebSocket;
-  userId: string | null;
 }) {
   sockets.set(connection, socket);
+}
 
-  if (userId) {
-    const connections = userIdToConnectionId.get(userId) ?? [];
-    connectionIdToUserId.set(connection, userId);
-    userIdToConnectionId.set(userId, [...connections, connection]);
-    if (connections.length === 0) handleUserOnline({ userId, newLocalStorage });
-  }
+export function getUser(connection: string) {
+  return connectionIdToUserId.get(connection);
 }
 
 export function onWebSocketClosed({

@@ -25,7 +25,7 @@ For example:
 import { socket } from "queue-run";
 
 export default async function({ data }) {
-  console.log("Message from client: %o", data);
+  console.info("Message from client: %o", data);
   await socket.send({ reply: "👋 Welcome!" });
 }
 ```

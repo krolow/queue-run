@@ -1,8 +1,9 @@
 import { AbortController } from "node-abort-controller";
-import { Request } from "../http/fetch.js";
-import { AuthenticatedUser } from "../index.js";
+import { getLocalStorage } from "..";
+import { authenticated, AuthenticatedUser } from "../shared/authenticated.js";
 import { loadMiddleware, loadModule } from "../shared/loadModule.js";
 import { LocalStorage, withLocalStorage } from "../shared/localStorage.js";
+import { logError } from "../shared/logError.js";
 import TimeoutError from "../shared/TimeoutError.js";
 import type { JSONValue } from "./../json";
 import {
@@ -12,22 +13,28 @@ import {
   WebSocketRequest,
 } from "./exports.js";
 import findRoute from "./findRoute.js";
+import { logMessageReceived } from "./middleware.js";
+import socket from "./socket";
 
 // eslint-disable-next-line sonarjs/cognitive-complexity
 export async function authenticateWebSocket({
   newLocalStorage,
   request,
+  requestId,
 }: {
   newLocalStorage: () => LocalStorage;
   request: Request;
+  requestId: string;
 }): Promise<AuthenticatedUser | null> {
   const { authenticate, onError } = await getCommonMiddleware();
   if (!authenticate) return null;
 
   return await withLocalStorage(newLocalStorage(), async () => {
-    let user;
     try {
-      user = await authenticate(request, getCookies(request));
+      const cookies = getCookies(request);
+      const user = await authenticate({ cookies, request, requestId });
+      if (user) await authenticated(user);
+      return user;
     } catch (error) {
       if (error instanceof Response) throw error;
 
@@ -42,15 +49,6 @@ export async function authenticateWebSocket({
       }
       throw error;
     }
-
-    if (user === null || user?.id) return user;
-
-    const concern =
-      user === undefined
-        ? 'Authenticate function returned "undefined", was this intentional?'
-        : "Authenticate function returned user object without an ID";
-    console.error(concern);
-    throw new Response("Forbidden", { status: 403 });
   });
 }
 
@@ -70,10 +68,21 @@ function getCookies(request: Request): { [key: string]: string } {
 }
 
 async function getCommonMiddleware() {
-  return (
-    (await loadModule<never, WebSocketMiddleware>("socket/index", {}))
-      ?.middleware ?? (await loadMiddleware<WebSocketMiddleware>("socket", {}))
+  const defaultMiddleware = {
+    onError: logError,
+    onMessageReceived: logMessageReceived,
+  };
+  const main = await loadModule<never, WebSocketMiddleware>(
+    "socket/index",
+    defaultMiddleware
   );
+  if (main) return main.middleware;
+  else {
+    return await loadMiddleware<WebSocketMiddleware>(
+      "socket",
+      defaultMiddleware
+    );
+  }
 }
 
 export async function handleWebSocketMessage({
@@ -87,7 +96,7 @@ export async function handleWebSocketMessage({
   data: Buffer;
   newLocalStorage: () => LocalStorage;
   requestId: string;
-  userId: string | null;
+  userId: string | null | undefined;
 }) {
   try {
     let found;
@@ -143,7 +152,7 @@ async function handleRoute({
   newLocalStorage: () => LocalStorage;
   requestId: string;
   timeout: number;
-  userId: string | null;
+  userId: string | null | undefined;
 }) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout * 1000);
@@ -157,7 +166,7 @@ async function handleRoute({
 
   try {
     const localStorage = newLocalStorage();
-    localStorage.user = userId ? { id: userId } : null;
+    localStorage.userId = userId;
     await withLocalStorage(localStorage, async () => {
       localStorage.connectionId = connection;
       await runWithMiddleware({
@@ -192,7 +201,15 @@ async function runWithMiddleware({
 }) {
   const { signal } = metadata;
   const request = { data: bufferToData(data, config), ...metadata };
+
   try {
+    if (getLocalStorage().userId === undefined && middleware.authenticate) {
+      const user = await middleware.authenticate(request);
+      if (user === undefined) socket.close();
+      else await getLocalStorage().authenticated(user);
+      return;
+    }
+
     await Promise.race([
       (async () => {
         const { onMessageReceived } = middleware;

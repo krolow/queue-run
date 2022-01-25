@@ -21,8 +21,7 @@ export default async function mapQueues(): Promise<Manifest["queues"]> {
         if (typeof handler !== "function")
           throw new Error("Expected queue handler to export a function");
 
-        if (middleware.onError && typeof middleware.onError !== "function")
-          throw new Error("Expected onError export to be a function");
+        validateMiddleware(middleware);
 
         const queueName = queueNameFromFilename(filename);
         const isFifo = queueName.endsWith(".fifo");
@@ -67,4 +66,13 @@ function getTimeout({ timeout }: { timeout?: number }): number {
 async function getOriginalFilename(filename: string) {
   const { sources } = JSON.parse(await fs.readFile(`${filename}.map`, "utf-8"));
   return sources[0];
+}
+
+function validateMiddleware(middleware: QueueMiddleware): void {
+  (
+    ["onError", "onJobStarted", "onJobFinished"] as Array<keyof QueueMiddleware>
+  ).forEach((key) => {
+    if (middleware[key] && typeof middleware[key] !== "function")
+      throw new Error(`Exported ${key} must be a function`);
+  });
 }

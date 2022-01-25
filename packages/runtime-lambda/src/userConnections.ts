@@ -73,14 +73,14 @@ async function getAuthenticatedUserId({
 }: {
   dynamoDB: DynamoDBClient;
   connectionId: string;
-}): Promise<string | null> {
+}): Promise<string | null | undefined> {
   const user = await dynamoDB.send(
     new GetItemCommand({
       TableName: connectionsTable,
       Key: { id: { S: connectionId } },
     })
   );
-  return user?.Item?.user_id?.S ?? null;
+  return user?.Item?.user_id?.S;
 }
 
 async function onAuthenticated({

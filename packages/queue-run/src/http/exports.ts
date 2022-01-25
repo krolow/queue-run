@@ -1,8 +1,8 @@
 /* eslint-disable no-unused-vars */
 import type { AbortSignal } from "node-abort-controller";
+import { AuthenticatedUser } from "../shared/authenticated.js";
 import { OnError } from "../shared/logError.js";
 import { JSONValue } from "./../json.d";
-import type { Request, Response } from "./fetch.js";
 
 /**
  * HTTP request handler.
@@ -117,23 +117,26 @@ type HTTPMethod =
   | "PUT";
 
 /**
- * Authenticated user returned from the authenticate middleware.
- *
- * The `id` property is required.
- */
-export type AuthenticatedUser = { id: string; [key: string]: unknown };
-
-/**
  * Middleware that's called for every HTTP request, to authenticate the user.
  *
+ * @param bearerToken The bearer token, if using Authorization: Bearer <token>
+ * @param cookies Cookies sent by the browser
+ * @param password The password, if using Authorization: Basic
+ * @param query The query parameters
  * @param request The HTTP request
- * @param cookies Cookies from the request
+ * @param requestId The unique request ID
+ * @param username The username, if using Authorization: Basic
  * @return The authenticated user, or null if the user is not authenticated
  */
-export type AuthenticateMethod = (
-  request: Request,
-  cookies: { [key: string]: string }
-) => AuthenticatedUser | Promise<AuthenticatedUser | null> | null;
+export type HTTPAuthenticateMethod = (params: {
+  bearerToken: string | undefined;
+  cookies: { [key: string]: string };
+  password: string | undefined;
+  query: { [key: string]: string | string[] };
+  request: Request;
+  requestId: string;
+  username: string | undefined;
+}) => AuthenticatedUser | Promise<AuthenticatedUser | null> | null;
 
 /**
  * Middleware that's called for every HTTP request.
@@ -157,7 +160,7 @@ export type OnResponse = (
  * Middleware exported from the route module, or api/_middleware.ts.
  */
 export type RouteMiddleware = {
-  authenticate?: AuthenticateMethod | null;
+  authenticate?: HTTPAuthenticateMethod | null;
   onError?: OnError | null;
   onRequest?: OnRequest | null;
   onResponse?: OnResponse | null;

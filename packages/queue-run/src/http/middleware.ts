@@ -1,5 +1,4 @@
 import { URL } from "node:url";
-import { Request, Response } from "./fetch.js";
 
 /**
  * Default middleware for HTTP routes logs the response.

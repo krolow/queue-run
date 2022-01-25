@@ -1,12 +1,9 @@
 import {
   authenticateWebSocket,
   handleUserOffline,
-  handleUserOnline,
   handleWebSocketMessage,
   Headers,
   LocalStorage,
-  Request,
-  Response,
 } from "queue-run";
 import { APIGatewayResponse } from "./handleHTTPRequest";
 import type userConnections from "./userConnections";
@@ -35,18 +32,13 @@ async function authenticate(
   const request = new Request(url, {
     headers: new Headers(event.headers),
   });
+  const { requestId } = event.requestContext;
   try {
-    const user = await authenticateWebSocket({ newLocalStorage, request });
-
-    if (user) {
-      const { connectionId } = event.requestContext;
-      const { wentOnline } = await connections.onAuthenticated({
-        connectionId,
-        userId: user.id,
-      });
-      if (wentOnline)
-        await handleUserOnline({ userId: user.id, newLocalStorage });
-    }
+    await authenticateWebSocket({
+      newLocalStorage,
+      request,
+      requestId,
+    });
 
     return {
       headers: {},
@@ -57,7 +49,7 @@ async function authenticate(
     if (error instanceof Response) {
       return {
         body: await error.text(),
-        headers: Object.fromEntries(Array.from(error.headers.entries())),
+        headers: {},
         isBase64Encoded: false,
         statusCode: error.status ?? 403,
       };

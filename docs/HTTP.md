@@ -262,8 +262,8 @@ type Fields = {
 
 export aync function post({ body }: { body: Fields }) {
   const { name, photo } = body;
-  console.log("Name:  %s", name);
-  console.log("Photo: %s type %s size %s", photo.name, photo,type, filesize(photo.size));
+  console.info("Name:  %s", name);
+  console.info("Photo: %s type %s size %s", photo.name, photo,type, filesize(photo.size));
   await fs.writeFile(photo.filename, photo);
   return null;
 }

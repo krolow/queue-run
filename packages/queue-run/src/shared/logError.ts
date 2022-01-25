@@ -1,5 +1,4 @@
 import { URL } from "node:url";
-import { Request } from "../http/fetch.js";
 import { WebSocketRequest } from "../index.js";
 import { JobMetadata } from "../queue/exports.js";
 
