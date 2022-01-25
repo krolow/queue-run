@@ -11,8 +11,8 @@
   "private": true,
   "devDependencies": {
     "@tsconfig/node14": "^1.0.1",
-    "@typescript-eslint/eslint-plugin": "^5.10.0",
-    "@typescript-eslint/parser": "^5.10.0",
+    "@typescript-eslint/eslint-plugin": "^5.10.1",
+    "@typescript-eslint/parser": "^5.10.1",
     "concurrently": "^7.0.0",
     "esbuild": "^0.14.13",
     "eslint": "8.7.0",
