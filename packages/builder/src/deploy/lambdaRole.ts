@@ -38,7 +38,7 @@ const LambdaPolicy = {
     {
       Effect: "Allow",
       Action: ["execute-api:ManageConnections", "execute-api:Invoke"],
-      Resource: ["arn:aws:execute-api:$region:$accountId:$wsApiId/*"],
+      Resource: ["arn:aws:execute-api:$region:$accountId:$wsApiId/prod/*"],
     },
     {
       Effect: "Allow",

@@ -204,7 +204,7 @@ async function setupWSIntegrations(
   ]);
 
   // API Gateway insists on WS having a non-empty stage name, and that stage
-  // name is used in the URL, so the URL would end with _ws.
+  // name is used in the URL, so the URL would end with /prod.
   await deployAPI(apiGateway, api, wsStage);
 }
 

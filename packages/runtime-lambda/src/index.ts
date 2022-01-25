@@ -46,7 +46,7 @@ const { slug, region, wsApiId, ...clientConfig } = swapAWSEnvVars();
 const dynamoDB = new DynamoDBClient({ ...clientConfig, region });
 const gateway = new ApiGatewayManagementApiClient({
   ...clientConfig,
-  endpoint: `https://${wsApiId}.execute-api.${region}.amazonaws.com/_ws`,
+  endpoint: `https://${wsApiId}.execute-api.${region}.amazonaws.com/prod`,
   region,
 });
 const sqs = new SQSClient({ ...clientConfig, region });
