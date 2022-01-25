@@ -12,6 +12,7 @@ const command = new Command("logs")
   .action(async ({ hours, once }: { hours: string; once: boolean }) => {
     const { name, region } = await loadProject();
 
+    keystrokes();
     const cw = new CloudWatchLogs({ region });
     let nextToken = await showEvents({ cw, name, hours: Number(hours) });
     while (!once) nextToken = await showEvents({ cw, name, nextToken });
@@ -58,6 +59,40 @@ async function showEvents({
     process.stdout.write(`${chalk.dim(timestamp)}: ${color(message)}\n`);
   }
   return await showEvents({ cw, name, nextToken: result.nextToken });
+}
+
+function keystrokes() {
+  process.stdin.on("data", (data) => {
+    const key = data[0]!;
+    switch (key) {
+      case 3: {
+        // Ctrl+C
+        process.exit(0);
+        break;
+      }
+      case 12: {
+        // Ctrl+L
+        // ANSI code to clear terminal
+        process.stdout.write("\u001B[2J\u001B[0;0f");
+        break;
+      }
+      case 13: {
+        // Enter
+        process.stdout.write("\n");
+        break;
+      }
+      default: {
+        if (key < 32)
+          console.info(
+            "   %s",
+            chalk.gray(["Ctrl+C to exit", "Ctrl+L to clear screen"].join(", "))
+          );
+        process.stdout.write(String.fromCharCode(key));
+      }
+    }
+  });
+  process.stdin.setRawMode(true);
+  process.stdin.resume();
 }
 
 export default command;
