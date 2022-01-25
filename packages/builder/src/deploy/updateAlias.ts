@@ -59,7 +59,7 @@ export default async function updateAlias({
 //
 // So we're going to delete the provisioned concurrency and recreate it after we
 // update the alias.
-async function retainProvisionedConcurrency(
+async function retainProvisionedConcurrency<T>(
   {
     lambda,
     lambdaName,
