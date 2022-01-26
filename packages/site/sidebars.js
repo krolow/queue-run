@@ -14,7 +14,7 @@ module.exports = {
       ],
     },
     {
-      Using: ["Deploying", "DevServer", "Runtime_Lambda"],
+      Production: ["Developing", "Deploying", "Optimizing"],
     },
     {
       type: "link",

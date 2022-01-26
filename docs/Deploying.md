@@ -1,6 +1,3 @@
----
-sidebar_label: "Deploying"
----
 
 # Deploying Your Project
 
@@ -10,7 +7,11 @@ If you've never used QueueRun before, follow this two steps:
 npx queue-run init
 ```
 
+The `init` command will ask you for the project name and other settings and store them in `.queue-run.json`.
+
 ```bash
+export AWS_ACCESS_KEY_ID="AKI..."
+export AWS_SECRET_ACCESS_KEY="v…"
 npx queue-run deploy
 ```
 
@@ -31,42 +32,29 @@ curl https://qfulfyb2aj.execute-api.us-east-1.amazonaws.com
 => { message: "👋 Hello world!" };
 ```
 
-```
-npx queue-run logs
-```
-
-:::info AWS Credentials
-
-Right now QueueRun is self-hosted and the only supported runtime is AWS Lambda.
-
-To deploy your project you'll need to use your AWS account credentials:
+To watch the logs:
 
 ```bash
-export AWS_ACCESS_KEY_ID="AKI..."
-export AWS_SECRET_ACCESS_KEY="v…"
-export AWS_REGION="us-east-1"
-npx queue-run deploy
+npx queue-run logs
 ```
-:::
 
 
 ## Deployment Commands
 
-If you run `npx queue-run init` in an empty project, it will create `pacakge.json` for you, along with a project template.
+The following commands are available to deploy and manage your project:
 
-If you already setup a project, you still need to use `npx queue-run init` to choose the project name and runtime.
-
-These are stored in the file `.queue-run.json` in the current working directory. Deployment commands (`deploy`, `logs`, etc) need this file.
-
-* `init` - Configure your project and update `.queue-run.json`
 * `deploy` — Deploy your project
 * `domain` — Add and remove custom domains
-* `info` — See information about your deployed project (eg HTTP and WebSocket URLs)
+* `info` — See information about your deployed project (eg HTTP and WebSocket URLs, concurrency)
+* `init` - Configure your project and update `.queue-run.json`
 * `logs` — Watch server logs
+* `policy` — Print out [the AWS policy](#credentials-and-policies) for deploying a project 
+* `provisioned` — Change the [provisioned concurrency](Optimizing.md#provisioned-concurrency)
+* `reserved` — Change the [reserved concurrency](Optimizing.md#reserved-concurrency)
 * `rollback` — Broke something? Rollback to a previous version
 
-:::note
 
+:::note
 To keep the `queue-run` module lean, the CLI tools include are available as a separate module. You don't have to add them in `package.json`. They are loaded on demand when you run `npx queue-run` for the first time.
 :::
 
@@ -81,12 +69,12 @@ npx queue-run domain add example.com
 
 You can verify your domain in one of two ways:
 
-- dns — Recommended but could take a while to verify
-- email — Usually quicker you will receive an email immediately
+- dns — Recommended, expect this to take a few minutes (DNS propagation)
+- email — You need to be able to receive email on the domain you're verifying
 
-QueueRun will create a TLS certificate for you. Your HTTP API will be available on the main domain, while WebSocket are available a sub domain.
+QueueRun will create a TLS certificate for you. Your HTTP API will be available on the main domain, while WebSocket use the sub-domain `ws`.
 
-Your backend is not aware of the new domain until you deploy again it will use the old URLs.
+Your backend is not aware of the new domain until you re-deploy the project.
 
 
 ## Environment Variables
@@ -111,79 +99,41 @@ The following environment variabels are always available:
 
 QueueRun understands the following environment variables:
 
-* `DEBUG` — Set to `true` to see `console.debug` messages in production, and `false` to hide `console.debug` messags in development (see [Logging](Logging))
+* `DEBUG` — Set to `true` to see `console.debug` messages in production, and `false` to hide `console.debug` messags in development (see [Logging](Logging.md))
 * `QUEUE_RUN_INDENT` — Indentation level for JSON and XML output, default to 2 in development, 0 in production
 
 :::tip Keep .env Secret
 
 We don't recommend committing your production `.env` file to version control.
-
-There are many products that work better when you connect them to your GitHub/GitLab/etc repository. In doing so, you're giving them access to your source code, and any secrets contained there. If these services get hacked … well then …
 :::
 
 
-## Configuration Files
+## Credentials and Policies
 
-Use `npx queue-run init` to generate configuration files for a new project.
+In order to deploy a project, set custom domain, watch the logs, etc you need an IAM account with a policy that has all the deploy permissions.
 
-### package.json
+If you're using an account with broad permissions, not a problem. If you want to create an IAM account with a specific policy, use the `npx queue-run policy` command:
 
-You don't need to have a `package.json`, but if you do:
+```bash
+npx queue-run policy --output policy.json --project grumpy-sunshine
 
-* Set `private: true` unless you intend to publish it to the NPM registry
-* Set `type: "module"` so you can use CommonJS **and** ESM modules
-* You can add `queue-run` as peer dependency, since it's needed to run the project and already available as part of the runtime
-* You can set `engines.node` to the specific Node runtime
-* The `imports` are a convenience for using absolute instead of relative paths
-
-```json
-{
-  "engines": {
-    "node": "14.x"
-  },
-  "imports": {
-    "#api/*": "./api/*",
-    "#lib/*": "./lib/*",
-    "#queues/*": "./queues/*",
-    "#socket/*": "./socket/*"
-  },
-  "peerDependencies": {
-    "queue-run": "^0.0.0"
-  },
-  "private": true,
-  "scripts": {
-    "build": "queue-run build",
-    "dev": "queue-run dev",
-    "deploy": "queue-run deploy",
-    "lint": "eslint **/*.{ts,tsx}"
-  },
-  "type": "module",
-}
+export policy=$(cat policy.json)
+aws iam put-user-policy --user-name assaf \
+  --policy-name queue.run --policy-document '$policy' 
 ```
 
-### tsconfig.json
+The project you deploy will have its own role and policy. This policy is even narrower, it only grants the backend necessary access to queues, database, logs, etc.
 
-QueueRun does not use `tsconfig.json`: it only uses `pacakge.json`.
+In your backend, you may want to use other AWS services — S3, DynamoDB, SES, etc. Creating and managing these users/roles is up to you.
 
-If you're using an IDE like Visual Studio Code, it uses `tsconfig.json` to understand the structure of your TypeScript project.
+The AWS SDK will need the access key ID and secret, as well as region. You can set these as environment variables.
 
-`npx queue-run init` will generate this file for you, which you can change to add more strict checks.  For example:
+For example:
 
-```json
-{
-  "compilerOptions": {
-    "esModuleInterop": true,
-    "jsx": "react-jsx",
-    "jsxImportSource": "queue-run",
-    "paths": {
-      "#api/*": ["./api/*"],
-      "#lib/*": ["./lib/*"],
-      "#queues/*": ["./queues/*"],
-      "#socket/*": ["./socket/*"]
-    },
-    // highlight-next-line
-    "strict": true,
-  },
-  "include": ["queue-run.env.d.ts", "**/*.ts", "**/*.tsx"]
-}
+```bash
+cat .env.production
+# Backend needs access to DynamoDB and S3
+AWS_ACCESS_KEY_ID="AKI..."
+AWS_SECRET_ACCESS_KEY="v…"
+AWS_REGION="us-east-1"
 ```
