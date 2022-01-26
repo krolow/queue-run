@@ -8,12 +8,12 @@ import {
   setupIntegrations,
 } from "queue-run-builder";
 import invariant from "tiny-invariant";
-import { loadProject } from "./project.js";
+import { loadCredentials } from "./project.js";
 
 const command = new Command("deploy")
   .description("deploy your project")
   .action(async () => {
-    const { name, region } = await loadProject();
+    const { name, awsRegion: region } = await loadCredentials();
     const accountId = await getAccountId(region);
 
     const spinner = ora("Setting up API Gateway...").start();
@@ -36,7 +36,7 @@ const command = new Command("deploy")
         wsUrl,
       },
     });
-    await setupIntegrations({ project: name, lambdaArn, region });
+    await setupIntegrations({ project: name, lambdaArn, region: region });
 
     console.info(chalk.bold.green(`Your API is available at:\t%s`), httpUrl);
     console.info(chalk.bold.green(`WebSocket available at:\t\t%s`), wsUrl);

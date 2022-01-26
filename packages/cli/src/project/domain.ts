@@ -10,7 +10,7 @@ import {
   requestCertificate,
 } from "queue-run-builder";
 import invariant from "tiny-invariant";
-import { loadProject } from "./project.js";
+import { loadCredentials } from "./project.js";
 
 const command = new Command("domain");
 
@@ -31,7 +31,7 @@ command
         verifyDomain?: string;
       }
     ) => {
-      const { name, region } = await loadProject();
+      const { name, awsRegion: region } = await loadCredentials();
 
       console.info(
         chalk.green.bold("\n1. Let's get you a new TLS certificate\n")
@@ -152,7 +152,7 @@ command
   .description("remove custom domain")
   .argument("<domain>", "domain name, eg example.com")
   .action(async (domain: string) => {
-    const { name, region } = await loadProject();
+    const { name, awsRegion: region } = await loadCredentials();
 
     const spinner = ora(`Removing domain ${domain}`).start();
     await removeAPIGatewayDomain({ domain, project: name, region });

@@ -1,4 +1,3 @@
-import glob from "fast-glob";
 import inquirer from "inquirer";
 import fs from "node:fs/promises";
 import generate from "project-name-generator";
@@ -6,98 +5,105 @@ import generate from "project-name-generator";
 const filename = ".queue-run.json";
 
 type Project = {
-  domain?: string;
   name: string;
-  region: string;
   runtime: "lambda";
+} & Partial<Credentials>;
+
+type Credentials = {
+  awsAccessKeyId: string;
+  awsSecretAccessKey: string;
+  awsRegion: string;
 };
 
 export async function loadProject(): Promise<Project> {
-  let source;
-  try {
-    source = await fs.readFile(filename, "utf-8");
-  } catch {
-    throw new Error(`Missing ${filename}, please run npx queue-run init`);
-  }
-
-  let project;
-  try {
-    project = JSON.parse(source);
-  } catch (error) {
-    throw new Error(`Syntax error in ${filename}: ${String(error)}`);
-  }
-
-  if (!project.name)
-    throw new Error("Missing project name, please run npx queue-run init");
-  if (!/^[a-zA-Z0-9-_]+$/.test(project.name))
-    throw new Error(
-      "Project name must be alphanumeric, dashes and underscores alowed"
-    );
-
-  if (!project.runtime)
-    throw new Error("Missing project name, please run npx queue-run init");
-  if (project.runtime !== "lambda")
-    throw new Error(`Unsupported runtime: ${project.runtime}`);
-
-  if (!project.region) project.region = "us-east-1";
-
-  return project;
-}
-
-export async function saveProject({ name, runtime }: Project) {
-  const project = { name, runtime };
-  await fs.writeFile(filename, JSON.stringify(project, null, 2));
-}
-
-export async function initProject() {
-  let project;
-  try {
-    project = await loadProject();
-  } catch {
-    // No .queue-run.json, we'll create one
-    project = {};
-  }
-
-  const suggestedName = project.name ?? (await getSuggestedName());
-
-  const isTypescript = (await glob("**/*.{ts,tsx}")).length > 0;
-  const isJavascript = (await glob("**/*.{js,mjs,cjs,jsx}")).length > 0;
+  const project = JSON.parse(
+    await fs.readFile(filename, "utf-8").catch(() => "{}")
+  );
 
   const answers = await inquirer.prompt([
     {
-      default: suggestedName,
+      default: async () => project.name ?? (await getSuggestedName()),
       message: "Project name (alphanumeric + dashes)",
       name: "name",
       type: "input",
+      when: !project.name,
       validate: (input: string) =>
         /^[a-zA-Z0-9-]{1,40}$/.test(input)
           ? true
           : "Project name must be 1-40 characters long and can only contain letters, numbers, and dashes",
     },
     {
-      default: isTypescript || !isJavascript ? "typescript" : "javascript",
-      message: "JavaScript or TypeScript?",
-      name: "language",
-      type: "list",
-      choices: [
-        { name: "JavaScript", value: "javascript" },
-        { name: "TypeScript", value: "typescript" },
-      ],
-    },
-    {
       default: "lambda",
       name: "runtime",
       message: "Which Runtime?",
       type: "list",
+      when: !project.runtime,
       choices: [
         { name: "AWS: Lambda + API Gateway + SQS + DynamoDB", value: "lambda" },
       ],
     },
   ]);
-  const { name, runtime } = answers;
-  const region = process.env.AWS_REGION ?? "us-east-1";
-  await saveProject({ name, region, runtime });
-  return answers;
+
+  const merged = { ...project, ...answers };
+  if (Object.keys(answers).length > 0) await saveProject(merged);
+  return merged;
+}
+
+export async function loadCredentials(): Promise<Project & Credentials> {
+  const project = await loadProject();
+
+  const answers = await inquirer.prompt([
+    {
+      default: project.awsAccessKeyId,
+      message: "AWS Access Key ID",
+      name: "awsAccessKeyId",
+      type: "input",
+      validate: (value) => /^[A-Z0-9]{20}$/.test(value),
+      when: !(project.awsAccessKeyId ?? process.env.AWS_ACCESS_KEY_ID),
+    },
+    {
+      default: project.awsSecretAccessKey,
+      message: "AWS Secret Access Key",
+      name: "awsSecretAccessKey",
+      type: "password",
+      validate: (value) => /^[a-z0-9=]{30,}$/i.test(value),
+      when: !(project.awsSecretAccessKey ?? process.env.AWS_SECRET_ACCESS_KEY),
+    },
+    {
+      default: project.awsRegion ?? "us-east-1",
+      message: "AWS Region",
+      name: "region",
+      type: "text",
+      validate: (value) => /^[a-z]{2}-[a-z]+-[0-9]+$/.test(value),
+      when: !(project.awsRegion ?? process.env.AWS_REGION),
+    },
+  ]);
+
+  process.env.AWS_ACCESS_KEY_ID =
+    answers.awsAccessKeyId ??
+    project.awsAccessKeyId ??
+    process.env.AWS_ACCESS_KEY_ID;
+  process.env.AWS_SECRET_ACCESS_KEY =
+    answers.awsSecretAccessKey ??
+    project.awsSecretAccessKey ??
+    process.env.AWS_SECRET_ACCESS_KEY;
+  process.env.AWS_REGION =
+    answers.region ?? project.awsRegion ?? process.env.AWS_REGION;
+
+  const merged = {
+    ...project,
+    awsAccessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    awsSecretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+    awsRegion: process.env.AWS_REGION!,
+  };
+
+  if (Object.keys(answers).length > 0) await saveProject(merged);
+  return merged;
+}
+
+async function saveProject(project: Project) {
+  console.info("Saving %s", filename);
+  await fs.writeFile(filename, JSON.stringify(project, null, 2));
 }
 
 async function getSuggestedName() {

@@ -10,8 +10,7 @@
       "#queues/*": ["./queues/*"],
       "#socket/*": ["./socket/*"]
     },
-    "target": "esnext",
-    "strict": true
+    "target": "esnext"
   },
   "include": ["queue-run.env.d.ts", "**/*.ts", "**/*.tsx"]
 }

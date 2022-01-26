@@ -1,13 +1,13 @@
 import { Lambda } from "@aws-sdk/client-lambda";
 import { Command } from "commander";
 import ora from "ora";
-import { loadProject } from "./project.js";
+import { loadCredentials } from "./project.js";
 
 const command = new Command("provisioned")
   .description("set provisioned concurrency")
   .argument("<instances>", "Number of instances (0 to turn off)")
   .action(async (instances: string) => {
-    const { name, region } = await loadProject();
+    const { name, awsRegion: region } = await loadCredentials();
 
     const number = parseInt(instances, 10);
     if (isNaN(number)) throw new Error('Must be a number or "off"');

@@ -1,13 +1,13 @@
 import { Command } from "commander";
 import inquirer from "inquirer";
 import { getRecentVersions, updateAlias } from "queue-run-builder";
-import { loadProject } from "./project.js";
+import { loadCredentials } from "./project.js";
 
 const command = new Command("rollback")
   .description("roll back to previous version")
   .argument("[version]", "version to roll back to")
   .action(async (version?: string) => {
-    const { name, region } = await loadProject();
+    const { name, awsRegion: region } = await loadCredentials();
     const arn = await chooseVersion({ region, slug: name, selected: version });
     await updateAlias({
       aliasArn: arn.replace(/:\d+$/, ":latest"),

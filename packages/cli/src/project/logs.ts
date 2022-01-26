@@ -3,17 +3,17 @@ import chalk from "chalk";
 import { Command } from "commander";
 import ms from "ms";
 import ora from "ora";
-import { loadProject } from "./project.js";
+import { loadCredentials } from "./project.js";
 
 const command = new Command("logs")
   .description("view server logs (Ctrl+C to stop)")
   .option("-h --hours <n>", "number of hours to look back", "1")
   .option("--once", "show most recent logs and stop")
   .action(async ({ hours, once }: { hours: string; once: boolean }) => {
-    const { name, region } = await loadProject();
+    const { name, awsRegion } = await loadCredentials();
 
     keystrokes();
-    const cw = new CloudWatchLogs({ region });
+    const cw = new CloudWatchLogs({ region: awsRegion });
     let nextToken = await showEvents({ cw, name, hours: Number(hours) });
     while (!once) nextToken = await showEvents({ cw, name, nextToken });
   });

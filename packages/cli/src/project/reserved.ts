@@ -1,13 +1,13 @@
 import { Lambda } from "@aws-sdk/client-lambda";
 import { Command } from "commander";
 import ora from "ora";
-import { loadProject } from "./project.js";
+import { loadCredentials } from "./project.js";
 
 const command = new Command("reserved")
   .description("set reserved concurrency")
   .argument("<instances>", 'Number of instances, or "off"')
   .action(async (instances: string) => {
-    const { name, region } = await loadProject();
+    const { name, awsRegion: region } = await loadCredentials();
     const slug = `qr-${name}`;
 
     const spinner = ora("Updating reserved concurrency").start();

@@ -10,8 +10,6 @@ npx queue-run init
 The `init` command will ask you for the project name and other settings and store them in `.queue-run.json`.
 
 ```bash
-export AWS_ACCESS_KEY_ID="AKI..."
-export AWS_SECRET_ACCESS_KEY="v…"
 npx queue-run deploy
 ```
 
@@ -37,6 +35,12 @@ To watch the logs:
 ```bash
 npx queue-run logs
 ```
+
+:::tip Keep Credentials Secret
+For convenience, QueueRun stores the AWS deploy credentials in `.queue-run.json`. Do not check this file into source control.
+
+To automate deployment, set `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_REGION` secrets in your GitHub/Gitlab project.
+:::
 
 
 ## Deployment Commands

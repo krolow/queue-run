@@ -1,20 +1,41 @@
 import { Command } from "commander";
 import glob from "fast-glob";
+import inquirer from "inquirer";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { URL } from "node:url";
 import ora from "ora";
-import { initProject } from "./project.js";
+import { loadProject } from "./project.js";
 
 const command = new Command("init")
   .description("setup a new project")
   .action(async () => {
-    const { language } = await initProject();
+    const language = await chooseLanguage();
     await copyTemplates(language);
     await updatePackageJSON();
+    await loadProject();
   });
 
 export default command;
+
+async function chooseLanguage() {
+  const isTypescript = (await glob("**/*.{ts,tsx}")).length > 0;
+  const isJavascript = (await glob("**/*.{js,mjs,cjs,jsx}")).length > 0;
+
+  const { language } = await inquirer.prompt([
+    {
+      default: isTypescript || !isJavascript ? "typescript" : "javascript",
+      message: "JavaScript or TypeScript?",
+      name: "language",
+      type: "list",
+      choices: [
+        { name: "JavaScript", value: "javascript" },
+        { name: "TypeScript", value: "typescript" },
+      ],
+    },
+  ]);
+  return language;
+}
 
 async function copyTemplates(language: "javascript" | "typescript") {
   await createBaseDirectories();
