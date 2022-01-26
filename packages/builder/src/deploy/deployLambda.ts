@@ -5,7 +5,7 @@ import dotenv from "dotenv";
 import { AbortSignal } from "node-abort-controller";
 import fs from "node:fs/promises";
 import { debuglog } from "node:util";
-import { Manifest } from "queue-run";
+import type { Manifest } from "queue-run";
 import invariant from "tiny-invariant";
 import { buildProject, displayManifest } from "../build/index.js";
 import { createTables } from "./createTables.js";

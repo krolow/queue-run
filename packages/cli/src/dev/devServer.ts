@@ -173,17 +173,15 @@ if (cluster.isWorker) {
     })
     .listen(port);
 
-  // Make sure we exit if buildProject fails
-  try {
-    await ready;
-  } catch (error) {
-    console.error("💥 Build failed!", error);
-    process.exit(1);
-  }
-
   process.on("disconnect", function () {
     http.close();
     ws.close();
+  });
+
+  // Make sure we exit if buildProject fails
+  ready.catch((error) => {
+    console.error("💥 Build failed!", error);
+    process.exit(1);
   });
 }
 

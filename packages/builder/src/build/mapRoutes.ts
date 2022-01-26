@@ -2,7 +2,8 @@ import glob from "fast-glob";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { Key, pathToRegexp } from "path-to-regexp";
-import { loadModule, Manifest, RouteExports, RouteMiddleware } from "queue-run";
+import type { Manifest, RouteExports, RouteMiddleware } from "queue-run";
+import { loadModule } from "queue-run";
 
 const maxTimeout = 120;
 const defaultTimeout = 10;

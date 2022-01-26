@@ -6,7 +6,11 @@
     "build:builder": "yarn workspace queue-run-builder build",
     "build:cli": "yarn workspace queue-run-cli build",
     "docs": "yarn workspace site dev",
-    "lint": "lerna run lint"
+    "lint": "lerna run lint",
+    "watch:queue-run": "yarn workspace queue-run watch",
+    "watch:runtime": "yarn workspace queue-run-lambda watch",
+    "watch:builder": "yarn workspace queue-run-builder watch",
+    "watch:cli": "yarn workspace queue-run-cli watch"
   },
   "private": true,
   "devDependencies": {

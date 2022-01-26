@@ -1,7 +1,8 @@
 import glob from "fast-glob";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { loadModule, Manifest, QueueExports, QueueMiddleware } from "queue-run";
+import type { Manifest, QueueExports, QueueMiddleware } from "queue-run";
+import { loadModule } from "queue-run";
 
 const maxTimeout = 900; // 15 minute (Lambda maximum)
 const defaultTimeout = 300; // 5 minutes

@@ -1,7 +1,7 @@
 import chalk from "chalk";
 import { Command } from "commander";
 import ms from "ms";
-import fs from "node:fs/promises";
+import fs from "node:fs";
 import devCommand from "./dev/index.js";
 import buildCommand from "./local/build.js";
 import policyCommand from "./local/policy.js";
@@ -28,6 +28,11 @@ program.addCommand(rollbackCommand);
 program.addCommand(reservedCommand);
 program.addCommand(provisionedCommand);
 
+const { version } = JSON.parse(
+  fs.readFileSync(new URL("../package.json", import.meta.url).pathname, "utf-8")
+);
+program.version(version);
+
 program.showSuggestionAfterError();
 program.addHelpCommand();
 program.configureHelp({
@@ -35,18 +40,17 @@ program.configureHelp({
   sortOptions: true,
 });
 
-try {
-  const { version } = JSON.parse(
-    await fs.readFile(
-      new URL("../package.json", import.meta.url).pathname,
-      "utf-8"
-    )
-  );
-  program.version(version);
-  await program.parseAsync(process.argv);
-  console.info(chalk.bold.green("🐇 Done in %s"), ms(process.uptime() * 1000));
-} catch (error) {
-  console.error(String(error));
-  if (error instanceof Error) console.error(error.stack!);
-  process.exit(-1);
-}
+program
+  .parseAsync(process.argv)
+  .then(() => {
+    console.info(
+      chalk.bold.green("🐇 Done in %s"),
+      ms(process.uptime() * 1000)
+    );
+    return undefined;
+  })
+  .catch((error) => {
+    console.error(String(error));
+    if (error instanceof Error) console.error(error.stack!);
+    process.exit(-1);
+  });

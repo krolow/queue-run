@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import ora from "ora";
-import type { BackendConfig, BackendExports } from "queue-run";
-import { loadModule, Manifest } from "queue-run";
+import type { BackendConfig, BackendExports, Manifest } from "queue-run";
+import { loadModule } from "queue-run";
 import compileSourceFiles from "./compileSourceFiles.js";
 import createBuildDirectory from "./createBuildDirectory.js";
 import getRuntime from "./getRuntime.js";
