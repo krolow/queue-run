@@ -94,7 +94,10 @@ const ws = new WebSocket("wss://ws.grumpy-sunshine.queue.run");
 // Connection opens, we immediately send user's token
 ws.onopen = () => ws.send({ jwtToken });
 // Wait for OK from server
-await new Promise((resolve) => ws.onmessage = resolve);
+await new Promise((resolve, reject) => {
+  ws.onmessage = resolve;
+  ws.onclose = reject;
+});
 ```
 
 On the server, we're going to ignore the first call to `authenticate` (HTTP request), and act on the second call (WebSocket message). We can:
@@ -112,11 +115,11 @@ export async function authenticate({ message }) {
   const { jwtToken } = message;
   try {
     const { sub, email } = await jwt.verify(bearerToken, process.env.JWT_SECRET);
-    socket.send('Accepted');
+    await socket.send('Accepted');
     return { id: sub, email };
   } catch {
-    // Not an HTTP request, close socket instead
-    socket.close();
+    // Not an HTTP request, reject by closing socket
+    await socket.close();
   }
 }
 ```

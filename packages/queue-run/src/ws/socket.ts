@@ -19,7 +19,7 @@ type Payload = object | string | ArrayBuffer | Blob | Buffer;
  * await socket.to(users).send(updates);
  * ```
  */
-class WebSocket<T extends Payload = object> {
+class WebSocket {
   private _userIds: string[] | null;
 
   constructor(userIds: string[] | null) {
@@ -54,7 +54,7 @@ class WebSocket<T extends Payload = object> {
    * string, or a blob/buffer
    * @throws Error if the message cannot be sent, connection closed, or if no user specified
    */
-  async send(data: T): Promise<void> {
+  async send<T extends Payload = object>(data: T): Promise<void> {
     const local = getLocalStorage();
     const connections = await this.getConnections();
     const message = await payloadToBuffer(data as unknown as Payload);
@@ -101,7 +101,7 @@ class WebSocket<T extends Payload = object> {
    * @param userIds One or more user IDs, as returned from the authenticate middleware
    * @returns The web socket set with the specified users
    */
-  to(userIds: string | string[]): WebSocket<T> {
+  to(userIds: string | string[]): WebSocket {
     if (!userIds) throw new Error("User ID is required");
     return new WebSocket(Array.isArray(userIds) ? userIds : [userIds]);
   }

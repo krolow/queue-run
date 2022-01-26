@@ -14,7 +14,6 @@ import {
 } from "./exports.js";
 import findRoute from "./findRoute.js";
 import { logMessageReceived } from "./middleware.js";
-import socket from "./socket";
 
 // eslint-disable-next-line sonarjs/cognitive-complexity
 export async function authenticateWebSocket({
@@ -205,8 +204,7 @@ async function runWithMiddleware({
   try {
     if (getLocalStorage().userId === undefined && middleware.authenticate) {
       const user = await middleware.authenticate(request);
-      if (user === undefined) socket.close();
-      else await getLocalStorage().authenticated(user);
+      if (user) await getLocalStorage().authenticated(user);
       return;
     }
 

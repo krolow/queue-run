@@ -76,16 +76,29 @@ class LambdaLocalStorage extends LocalStorage {
 
   async sendWebSocketMessage(
     message: Buffer,
-    connection: string
+    connectionId: string
   ): Promise<void> {
-    await gateway.send(
-      new PostToConnectionCommand({ ConnectionId: connection, Data: message })
-    );
+    try {
+      await gateway.send(
+        new PostToConnectionCommand({
+          ConnectionId: connectionId,
+          Data: message,
+        })
+      );
+    } catch (error) {
+      if (error && typeof error === "object" && "$metadata" in error) {
+        const metadata = (error as { $metadata: { httpStatusCode: number } })
+          .$metadata;
+        console.log("metadata", metadata);
+        if (metadata.httpStatusCode === 410)
+          connections.onDisconnected(connectionId);
+      } else throw error;
+    }
   }
 
-  async closeWebSocket(connection: string): Promise<void> {
+  async closeWebSocket(connectionId: string): Promise<void> {
     await gateway.send(
-      new DeleteConnectionCommand({ ConnectionId: connection })
+      new DeleteConnectionCommand({ ConnectionId: connectionId })
     );
   }
 
