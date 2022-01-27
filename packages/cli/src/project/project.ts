@@ -14,13 +14,17 @@ type Credentials = {
   awsRegion: string;
 };
 
-export async function loadProject(
-  provided: Partial<Project> = {}
-): Promise<Project> {
+export async function loadProject(provided?: {
+  name?: string;
+  awsRegion?: string;
+}): Promise<Project> {
   const loaded = JSON.parse(
     await fs.readFile(filename, "utf-8").catch(() => "{}")
   );
-  const project = { ...loaded, ...provided };
+  const project = {
+    ...loaded,
+    ...(provided?.name ? { name: provided.name } : undefined),
+  };
 
   const answers = await inquirer.prompt([
     {
@@ -36,16 +40,31 @@ export async function loadProject(
     },
   ]);
 
-  const merged = { ...project, ...answers };
+  const merged = {
+    ...project,
+    ...(answers?.name ? { name: answers.name } : undefined),
+  };
   if (Object.keys(answers).length > 0) await saveProject(merged);
   return merged;
 }
 
-export async function loadCredentials(
-  provided: Partial<Project> = {}
-): Promise<Project & Credentials> {
+export async function loadCredentials(provided?: {
+  name?: string;
+  awsAccessKeyId?: string;
+  awsSecretAccessKey?: string;
+  awsRegion?: string;
+}): Promise<Project & Credentials> {
   const loaded = await loadProject(provided);
-  const project = { ...loaded, ...provided };
+  const project = {
+    ...loaded,
+    ...(provided?.awsAccessKeyId
+      ? { awsAccessKeyId: provided.awsAccessKeyId }
+      : undefined),
+    ...(provided?.awsSecretAccessKey
+      ? { awsSecretAccessKey: provided.awsSecretAccessKey }
+      : undefined),
+    ...(provided?.awsRegion ? { awsRegion: provided.awsRegion } : undefined),
+  };
 
   const answers = await inquirer.prompt([
     {

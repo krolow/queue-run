@@ -31,7 +31,7 @@ export type LambdaConfig = {
   /** The slug is used as the Lambda function name, queue prefix name, etc.
    *  Limited to 40 characters, alphanumeric, and dashes, eg "my-project-pr-13".
    *  It should be unique for each project/branch. */
-  slug: string;
+  project: string;
 
   /**  WebSocket Gateway API ID. */
   wsApiId: string;
@@ -54,15 +54,14 @@ export async function deployLambda({
   signal?: AbortSignal;
   sourceDir: string;
 }): Promise<string> {
-  const { slug } = config;
+  const { project } = config;
 
   // Note: queue names have 80 characters limit, when we combine
   // {qrPrefix}{project}_{branch}__{queueName} we have a total of 27 characters
   // available.
-
-  if (!/^[a-zA-Z0-9-]{1,40}$/.test(slug))
+  if (!project && /^[a-zA-Z0-9-]{1,40}$/.test(project))
     throw new Error(
-      "Slug must be 40 characters or less, alphanumeric and dashes"
+      "Project name must be 40 characters or less, alphanumeric and dashes"
     );
 
   const { httpUrl, wsUrl } = config;
@@ -73,12 +72,12 @@ export async function deployLambda({
 
   const region = config.region;
 
-  const lambdaName = `qr-${slug}`;
+  const lambdaName = `qr-${project}`;
   debug('Lamba name: "%s"', lambdaName);
   const queuePrefix = `${lambdaName}__`;
   debug('Queue prefix: "%s"', queuePrefix);
 
-  console.info(chalk.bold.green("🐇 Deploying %s to %s"), slug, httpUrl);
+  console.info(chalk.bold.green("🐇 Deploying %s to %s"), project, httpUrl);
 
   const { lambdaRuntime, zip, manifest } = await buildProject({
     buildDir,
@@ -100,7 +99,7 @@ export async function deployLambda({
   const envVars = await loadEnvVars({
     environment: config.env,
     httpUrl,
-    project: slug,
+    project,
     region,
     wsUrl,
     wsApiId: config.wsApiId,

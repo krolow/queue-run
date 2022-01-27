@@ -47,7 +47,7 @@ Deploying from your devbox:
         env: "production",
         httpUrl,
         region: project.awsRegion,
-        slug: project.name,
+        project: project.name,
         wsApiId,
         wsUrl,
       },
