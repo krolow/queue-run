@@ -7,7 +7,7 @@ QueueRun makes HTTP APIs as easy as:
 * Will parse request documents for you: JSON, HTML forms, text, and binary
 * Easy access to path parameters, query string parameters, and cookies
 * Generate JSON, XML/HTML, plain text, and binary responses
-* Middleware for authentication and logging
+* Middleware for [authentication](Authenticate.md) and [logging](Logging.md)
 * Handles CORS for you and response caching
 * Verify accepted content types and HTTP methods
 

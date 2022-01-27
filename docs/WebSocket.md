@@ -12,7 +12,7 @@ They allow you to do many interesting things:
 
 WebSocket make that possible by allowing you to send a message to the client at any time, during an HTTP/WebSocket request, or from a queued or scheduled job.
 
-You can send messages to specific users, for example, all members of a chat room, or all users actively editing a document.
+You can send messages to specific users, for example, all members of a chat room, or all users actively editing a document. Read [more about authentication](Authentication.md).
 
 
 ## Request Handlers
@@ -93,28 +93,6 @@ await socket.push(message).catch(() => undefined);
 :::
 
 
-## Authentication
-
-To authenticate users, export the `authenticate` method from either `socket/index.ts` or `socket/_middleware.ts`. (`socket/_middleware.ts` is also used for [logging](/Logging.md))
-
-The `authenticate` method receives the HTTP request for opening a WebSocket connection, so has access to the HTTP headers (eg `Authentication`) and cookies.
-
-Typically you use the same authentication for HTTP and WebSocket, so your middleware would look like:
-
-```ts title=socket/_middleware.ts
-export { authenticate } from '#api/_middleware.js';
-```
-
-From an HTTP/WebSocket request or queued job that's already authenticated, you can always send a message to the user with `socket.send(message)`.
-
-:::info Why Authenticate?
-
-Authentication allows you to send messages to the user across all their devices and from queued jobs. Without authentication, you only get request/response for WebSocket.
-
-If users are not signed in, the browser can still create a unique identifier. This allows WebSocket to receive messages even after a reconnect, or reloading the page.
-:::
-
-
 ## Presence
 
 If you want to track whether a user is online (has an active WebSocket connection):
@@ -140,3 +118,8 @@ export async function onOffline(userId) {
   await db.leaveAllRooms({ userId });
 }
 ```
+
+:::note Authentication
+
+Presence relies on [authentication](Authenticate.md) and having a persisent user ID.
+:::
