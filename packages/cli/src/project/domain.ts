@@ -6,6 +6,7 @@ import ora from "ora";
 import {
   addAPIGatewayDomain,
   discardCertificateRequest,
+  displayTable,
   removeAPIGatewayDomain,
   requestCertificate,
 } from "queue-run-builder";
@@ -136,14 +137,10 @@ function displayCNames(cnames: { cname: string; value: string }[]) {
   console.info(
     "Please update your DNS by adding the following CNAME records:\n"
   );
-  const left = Math.max(...cnames.map(({ cname }) => cname.length));
-  const right = Math.max(...cnames.map(({ value }) => value.length));
-  console.info("┌─%s─┬─%s─┐", "─".repeat(left), "─".repeat(right));
-  console.info("│ %s │ %s │", "CNAME".padEnd(left), "VALUE".padEnd(right));
-  console.info("├─%s─┼─%s─┤", "─".repeat(left), "─".repeat(right));
-  for (const { cname, value } of cnames)
-    console.info("│ %s │ %s │", cname.padEnd(left), value.padEnd(right));
-  console.info("└─%s─┴─%s─┘", "─".repeat(left), "─".repeat(right));
+  displayTable(
+    ["CNAME", "VALUE"],
+    cnames.map(({ cname, value }) => [cname, value])
+  );
   console.info("");
 }
 

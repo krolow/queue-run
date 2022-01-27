@@ -1,6 +1,7 @@
 import { Command } from "commander";
 import {
   deleteEnvVariable,
+  displayTable,
   getEnvVariables,
   setEnvVariable,
 } from "queue-run-builder";
@@ -70,20 +71,7 @@ command
 
 function display(envVars: Map<string, string>) {
   if (process.stdout.isTTY) {
-    const left = Math.max(
-      ...Array.from(envVars.keys()).map((k) => k.length),
-      10
-    );
-    const right = Math.max(
-      ...Array.from(envVars.values()).map((k) => k.length),
-      30
-    );
-    console.info("┌─%s─┬─%s─┐", "─".repeat(left), "─".repeat(right));
-    console.info("│ %s │ %s │", "NAME".padEnd(left), "VALUE".padEnd(right));
-    console.info("├─%s─┼─%s─┤", "─".repeat(left), "─".repeat(right));
-    for (const [name, value] of Array.from(envVars.entries()))
-      console.info("│ %s │ %s │", name.padEnd(left), value.padEnd(right));
-    console.info("└─%s─┴─%s─┘", "─".repeat(left), "─".repeat(right));
+    displayTable(["NAME", "VALUE"], Array.from(envVars.entries()));
   } else {
     for (const [name, value] of Array.from(envVars.entries()))
       console.info("%s=%s", name, value);

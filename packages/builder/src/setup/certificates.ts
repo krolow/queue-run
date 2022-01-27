@@ -2,6 +2,7 @@ import { ACM, CertificateDetail } from "@aws-sdk/client-acm";
 import inquirer from "inquirer";
 import ora from "ora";
 import invariant from "tiny-invariant";
+import displayTable from "../displayTable.js";
 
 const acm = new ACM({});
 
@@ -184,13 +185,7 @@ async function useDNSVerification({
   invariant(Name && Value);
 
   console.info("Update your DNS and add the following CNAME record:");
-  const left = Name.length;
-  const right = Value.length;
-  console.info("┌─%s─┬─%s─┐", "─".repeat(left), "─".repeat(right));
-  console.info("│ %s │ %s │", "CNAME".padEnd(left), "VALUE".padEnd(right));
-  console.info("├─%s─┼─%s─┤", "─".repeat(left), "─".repeat(right));
-  console.info("│ %s │ %s │", Name.padEnd(left), Value.padEnd(right));
-  console.info("└─%s─┴─%s─┘", "─".repeat(left), "─".repeat(right));
+  displayTable(["CNAME", "VALUE"], [[Name, Value]]);
   console.info("");
 
   console.info(
