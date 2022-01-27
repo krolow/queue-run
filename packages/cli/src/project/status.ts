@@ -4,8 +4,8 @@ import filesize from "filesize";
 import { getAPIGatewayURLs, getRecentVersions } from "queue-run-builder";
 import { loadCredentials } from "./project.js";
 
-const command = new Command("info")
-  .description("info about your project")
+const command = new Command("status")
+  .description("status of your project")
   .action(async () => {
     const { name, awsRegion: region, runtime } = await loadCredentials();
 

@@ -50,13 +50,13 @@ The following commands are available to deploy and manage your project:
 * `deploy` — Deploy your project
 * `domain` — Add and remove custom domains
 * `env` — Add and remove environment variables
-* `info` — See information about your deployed project (eg HTTP and WebSocket URLs, concurrency)
 * `init` - Configure your project and update `.queue-run.json`
 * `logs` — Watch server logs
 * `policy` — Print out [the AWS policy](#credentials-and-policies) for deploying a project 
 * `provisioned` — Change the [provisioned concurrency](Optimizing.md#provisioned-concurrency)
 * `reserved` — Change the [reserved concurrency](Optimizing.md#reserved-concurrency)
 * `rollback` — Broke something? Rollback to a previous version
+* `status` — See information about your deployed project (eg HTTP and WebSocket URLs, concurrency)
 
 :::note
 To keep the `queue-run` module lean, the CLI tools include are available as a separate module. You don't have to add them in `package.json`. They are loaded on demand when you run `npx queue-run` for the first time.
