@@ -13,14 +13,29 @@ import { loadCredentials } from "./project.js";
 
 const command = new Command("deploy")
   .description("deploy your project")
-  .action(async () => {
-    const { name, awsRegion: region } = await loadCredentials();
-    const accountId = await getAccountId(region);
+  .argument("[name]", "the project name")
+  .option("--region <region>", "AWS region", "us-east-1")
+  .addHelpText(
+    "after",
+    `
+Automated deployment:
+- Use command line options to specify the project name, region, etc
+- CI server should supply the environment variables AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
+
+Deploying from your devbox:
+- Run npx queue-run deploy without any options
+- It will ask you for project name, AWS credentials, etc
+- These are stored in .queue-run.json, also used for view logs, managing env variables, etc
+`
+  )
+  .action(async (name, { region: awsRegion }: { region: string }) => {
+    const project = await loadCredentials({ name, awsRegion });
+    const accountId = await getAccountId(project.awsRegion);
 
     const spinner = ora("Setting up API Gateway...").start();
     const { httpUrl, wsUrl, wsApiId } = await setupAPIGateway({
-      project: name,
-      region,
+      project: project.name,
+      region: project.awsRegion,
     });
     spinner.succeed("Created API Gateway endpoints");
 
@@ -31,13 +46,17 @@ const command = new Command("deploy")
         accountId,
         env: "production",
         httpUrl,
-        region,
-        slug: name,
+        region: project.awsRegion,
+        slug: project.name,
         wsApiId,
         wsUrl,
       },
     });
-    await setupIntegrations({ project: name, lambdaArn, region: region });
+    await setupIntegrations({
+      project: project.name,
+      lambdaArn,
+      region: project.awsRegion,
+    });
 
     console.info(chalk.bold.green(`Your API is available at:\t%s`), httpUrl);
     console.info(chalk.bold.green(`WebSocket available at:\t\t%s`), wsUrl);

@@ -9,6 +9,12 @@ const command = new Command("logs")
   .description("view server logs (Ctrl+C to stop)")
   .option("-h --hours <n>", "number of hours to look back", "1")
   .option("--once", "show most recent logs and stop")
+  .addHelpText(
+    "after",
+    `
+🧘 We're using CloudWatch here. It takes few seconds before logs are available.
+`
+  )
   .action(async ({ hours, once }: { hours: string; once: boolean }) => {
     const { name, awsRegion } = await loadCredentials();
 

@@ -6,7 +6,6 @@ const filename = ".queue-run.json";
 
 type Project = {
   name: string;
-  runtime: "lambda";
 } & Partial<Credentials>;
 
 type Credentials = {
@@ -15,10 +14,13 @@ type Credentials = {
   awsRegion: string;
 };
 
-export async function loadProject(): Promise<Project> {
-  const project = JSON.parse(
+export async function loadProject(
+  provided: Partial<Project> = {}
+): Promise<Project> {
+  const loaded = JSON.parse(
     await fs.readFile(filename, "utf-8").catch(() => "{}")
   );
+  const project = { ...loaded, ...provided };
 
   const answers = await inquirer.prompt([
     {
@@ -32,16 +34,6 @@ export async function loadProject(): Promise<Project> {
           ? true
           : "Project name must be 1-40 characters long and can only contain letters, numbers, and dashes",
     },
-    {
-      default: "lambda",
-      name: "runtime",
-      message: "Which Runtime?",
-      type: "list",
-      when: !project.runtime,
-      choices: [
-        { name: "AWS: Lambda + API Gateway + SQS + DynamoDB", value: "lambda" },
-      ],
-    },
   ]);
 
   const merged = { ...project, ...answers };
@@ -49,8 +41,11 @@ export async function loadProject(): Promise<Project> {
   return merged;
 }
 
-export async function loadCredentials(): Promise<Project & Credentials> {
-  const project = await loadProject();
+export async function loadCredentials(
+  provided: Partial<Project> = {}
+): Promise<Project & Credentials> {
+  const loaded = await loadProject(provided);
+  const project = { ...loaded, ...provided };
 
   const answers = await inquirer.prompt([
     {

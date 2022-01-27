@@ -37,9 +37,11 @@ npx queue-run logs
 ```
 
 :::tip Keep Credentials Secret
-For convenience, QueueRun stores the AWS deploy credentials in `.queue-run.json`. This is for personal deployment. Do not check this file into source control.
+For convenience, QueueRun stores the AWS deploy credentials in `.queue-run.json`.  Use this for deployment from your own machine, viewing logs, managing environment variables, etc.
 
-To automate deployment, use command line arguments and set `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_REGION` secrets in your GitHub/Gitlab project.
+We recommend you do not check this file into source control.
+
+For automated deployment, use command line arguments and have your CI provide the environment variables `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`.
 :::
 
 

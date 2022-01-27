@@ -7,11 +7,10 @@ import { loadCredentials } from "./project.js";
 const command = new Command("status")
   .description("status of your project")
   .action(async () => {
-    const { name, awsRegion: region, runtime } = await loadCredentials();
+    const { name, awsRegion: region } = await loadCredentials();
 
     console.info("Name:\t\t%s", name);
     console.info("Region:\t\t%s", region);
-    console.info("Runtime:\t%s", runtime);
 
     const versions = await getRecentVersions({ region, slug: name });
     const current = versions.find(({ isCurrent }) => isCurrent);
