@@ -124,7 +124,7 @@ export class DevLocalStorage extends LocalStorage {
     const socket = sockets.get(connection);
     if (socket) {
       await new Promise((resolve, reject) =>
-        socket.send(message, (error) => {
+        socket.send(message, { binary: false }, (error) => {
           if (error) reject(error);
           else resolve(undefined);
         })

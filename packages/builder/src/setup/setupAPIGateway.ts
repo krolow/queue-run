@@ -176,7 +176,7 @@ async function setupWSIntegrations(
 
   const ws = await createIntegration(apiGateway, {
     ApiId: api.ApiId,
-    ContentHandlingStrategy: "CONVERT_TO_BINARY",
+    ContentHandlingStrategy: "CONVERT_TO_TEXT",
     IntegrationMethod: "POST",
     IntegrationType: IntegrationType.AWS_PROXY,
     IntegrationUri: `arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/${lambdaArn}/invocations`,

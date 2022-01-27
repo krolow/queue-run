@@ -349,7 +349,9 @@ async function onConnection({
         userId: getUserId(connection),
       });
     } catch (error) {
-      socket.send(JSON.stringify({ error: String(error) }));
+      socket.send(JSON.stringify({ error: String(error) }), {
+        binary: false,
+      });
     }
   });
   socket.on("close", () =>
