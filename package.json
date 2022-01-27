@@ -10,7 +10,8 @@
     "watch:queue-run": "yarn workspace queue-run watch",
     "watch:runtime": "yarn workspace queue-run-lambda watch",
     "watch:builder": "yarn workspace queue-run-builder watch",
-    "watch:cli": "yarn workspace queue-run-cli watch"
+    "watch:cli": "yarn workspace queue-run-cli watch",
+    "publish": "yarn build && yarn lint && lerna publish"
   },
   "private": true,
   "devDependencies": {
