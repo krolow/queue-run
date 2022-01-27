@@ -1,6 +1,7 @@
 import { IAM } from "@aws-sdk/client-iam";
 import chalk from "chalk";
 import { Command } from "commander";
+import ms from "ms";
 import ora from "ora";
 import {
   deployLambda,
@@ -41,6 +42,11 @@ const command = new Command("deploy")
     console.info(chalk.bold.green(`Your API is available at:\t%s`), httpUrl);
     console.info(chalk.bold.green(`WebSocket available at:\t\t%s`), wsUrl);
     console.info(`Try:\n  curl ${httpUrl}`);
+
+    console.info(
+      chalk.bold.green("🐇 Done in %s"),
+      ms(process.uptime() * 1000)
+    );
   });
 
 export default command;

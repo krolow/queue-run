@@ -37,9 +37,9 @@ npx queue-run logs
 ```
 
 :::tip Keep Credentials Secret
-For convenience, QueueRun stores the AWS deploy credentials in `.queue-run.json`. Do not check this file into source control.
+For convenience, QueueRun stores the AWS deploy credentials in `.queue-run.json`. This is for personal deployment. Do not check this file into source control.
 
-To automate deployment, set `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_REGION` secrets in your GitHub/Gitlab project.
+To automate deployment, use command line arguments and set `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_REGION` secrets in your GitHub/Gitlab project.
 :::
 
 
@@ -49,6 +49,7 @@ The following commands are available to deploy and manage your project:
 
 * `deploy` — Deploy your project
 * `domain` — Add and remove custom domains
+* `env` — Add and remove environment variables
 * `info` — See information about your deployed project (eg HTTP and WebSocket URLs, concurrency)
 * `init` - Configure your project and update `.queue-run.json`
 * `logs` — Watch server logs
@@ -56,7 +57,6 @@ The following commands are available to deploy and manage your project:
 * `provisioned` — Change the [provisioned concurrency](Optimizing.md#provisioned-concurrency)
 * `reserved` — Change the [reserved concurrency](Optimizing.md#reserved-concurrency)
 * `rollback` — Broke something? Rollback to a previous version
-
 
 :::note
 To keep the `queue-run` module lean, the CLI tools include are available as a separate module. You don't have to add them in `package.json`. They are loaded on demand when you run `npx queue-run` for the first time.
@@ -83,15 +83,12 @@ Your backend is not aware of the new domain until you re-deploy the project.
 
 ## Environment Variables
 
-You can deploy your project with environment variables using an `.env.*` file.
+Use `npx queue-run env` to manage environment variables in production.
 
-Use `.env.production` for production and `.env.local` for development.
-
-The `.env.*` file would look something like:
-
-```
-DATABASE_URL=postgresql://localhost/main
-API_TOKEN=eyBob3cgYXJlIHlvdSBkb2luZyB0b2RheT8gfQ==
+```bash
+npx queue-run env add DATABASE_URL postgres://...
+npx queue-run env add API_TOKEN eyBob3...
+npx queue-run env list
 ```
 
 The following environment variabels are always available:
@@ -103,12 +100,19 @@ The following environment variabels are always available:
 
 QueueRun understands the following environment variables:
 
-* `DEBUG` — Set to `true` to see `console.debug` messages in production, and `false` to hide `console.debug` messags in development (see [Logging](Logging.md))
+* `DEBUG` — Set to `true` to see `console.debug` messages in production, and `false` to hide them in development (see [Logging](Logging.md))
 * `QUEUE_RUN_INDENT` — Indentation level for JSON and XML output, default to 2 in development, 0 in production
 
-:::tip Keep .env Secret
+:::tip
+You can dump server environment variables to use locally:
 
-We don't recommend committing your production `.env` file to version control.
+```bash
+npx queue-run env list > .env
+```
+:::
+
+:::warning Don't Forget To Re-deploy
+After changing environment variables, you need to redeploy your project to use the new environment variables.
 :::
 
 
@@ -135,9 +139,8 @@ The AWS SDK will need the access key ID and secret, as well as region. You can s
 For example:
 
 ```bash
-cat .env.production
 # Backend needs access to DynamoDB and S3
-AWS_ACCESS_KEY_ID="AKI..."
-AWS_SECRET_ACCESS_KEY="v…"
-AWS_REGION="us-east-1"
+npx queue-run env add AWS_ACCESS_KEY_ID "AKI..."
+npx queue-run env add AWS_SECRET_ACCESS_KEY "v…"
+npx queue-run env add AWS_REGION "us-east-1"
 ```

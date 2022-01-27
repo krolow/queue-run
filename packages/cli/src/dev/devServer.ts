@@ -2,12 +2,13 @@ import { Sema } from "async-sema";
 import chalk from "chalk";
 import * as chokidar from "chokidar";
 import dotenv from "dotenv";
-import fs from "fs/promises";
 import ms from "ms";
 import cluster from "node:cluster";
+import fs from "node:fs/promises";
 import { createServer, IncomingMessage, ServerResponse } from "node:http";
 import path from "node:path";
 import process from "node:process";
+import { Duplex } from "node:stream";
 import { URL } from "node:url";
 import {
   authenticateWebSocket,
@@ -19,7 +20,6 @@ import {
   warmup,
 } from "queue-run";
 import { buildProject } from "queue-run-builder";
-import { Duplex } from "stream";
 import invariant from "tiny-invariant";
 import { WebSocket, WebSocketServer } from "ws";
 import {
@@ -109,9 +109,9 @@ async function newWorker(port: number) {
     worker.on("disconnect", () => clearTimeout(timeout));
   }
 
-  const fromFile = await fs.readFile(`.env.local`, "utf-8").then(
+  const fromFile = await fs.readFile(`.env`, "utf-8").then(
     (file) => dotenv.parse(file),
-    () => undefined
+    () => ({})
   );
 
   const worker = cluster.fork({
@@ -311,7 +311,6 @@ async function onUpgrade(
       })
     );
   } catch (error) {
-    console.log({ error });
     if (error instanceof Response) {
       console.info("   Authentication rejected: %d", error.status);
       socket.write(`HTTP/1.1 ${error.status} ${await error.text()}\r\n\r\n`);

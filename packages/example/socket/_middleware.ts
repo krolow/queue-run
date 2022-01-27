@@ -2,7 +2,6 @@ import { socket } from "queue-run";
 
 export async function authenticate({ data }: { data: any }) {
   if (!data) return;
-  console.log({ data });
   if (data.trim() === "secret") {
     await socket.send<string>("✅ Authenticated!");
     return { id: "user-id" };

@@ -1,12 +1,11 @@
-import chalk from "chalk";
 import { Command } from "commander";
-import ms from "ms";
 import fs from "node:fs";
 import devCommand from "./dev/index.js";
 import buildCommand from "./local/build.js";
 import policyCommand from "./local/policy.js";
 import deployCommand from "./project/deploy.js";
 import domainCommand from "./project/domain.js";
+import envvarsCommand from "./project/envvars.js";
 import infoCommand from "./project/info.js";
 import initCommand from "./project/init.js";
 import logsCommand from "./project/logs.js";
@@ -20,13 +19,14 @@ program.addCommand(buildCommand);
 program.addCommand(deployCommand);
 program.addCommand(devCommand);
 program.addCommand(domainCommand);
+program.addCommand(envvarsCommand);
 program.addCommand(infoCommand);
 program.addCommand(initCommand);
 program.addCommand(logsCommand);
 program.addCommand(policyCommand);
-program.addCommand(rollbackCommand);
-program.addCommand(reservedCommand);
 program.addCommand(provisionedCommand);
+program.addCommand(reservedCommand);
+program.addCommand(rollbackCommand);
 
 const { version } = JSON.parse(
   fs.readFileSync(new URL("../package.json", import.meta.url).pathname, "utf-8")
@@ -40,17 +40,8 @@ program.configureHelp({
   sortOptions: true,
 });
 
-program
-  .parseAsync(process.argv)
-  .then(() => {
-    console.info(
-      chalk.bold.green("🐇 Done in %s"),
-      ms(process.uptime() * 1000)
-    );
-    return undefined;
-  })
-  .catch((error) => {
-    console.error(String(error));
-    if (error instanceof Error) console.error(error.stack!);
-    process.exit(-1);
-  });
+program.parseAsync(process.argv).catch((error) => {
+  console.error(String(error));
+  if (error instanceof Error) console.error(error.stack!);
+  process.exit(-1);
+});

@@ -1,14 +1,13 @@
 import { CloudWatchLogs } from "@aws-sdk/client-cloudwatch-logs";
 import { Lambda } from "@aws-sdk/client-lambda";
 import chalk from "chalk";
-import dotenv from "dotenv";
 import { AbortSignal } from "node-abort-controller";
-import fs from "node:fs/promises";
 import { debuglog } from "node:util";
 import type { Manifest } from "queue-run";
 import invariant from "tiny-invariant";
 import { buildProject, displayManifest } from "../build/index.js";
 import { createTables } from "./createTables.js";
+import { getEnvVariables } from "./envVars.js";
 import { addTriggers, removeTriggers } from "./eventSource.js";
 import { createQueues, deleteOldQueues } from "./prepareQueues.js";
 import updateAlias from "./updateAlias.js";
@@ -21,9 +20,6 @@ export type LambdaConfig = {
   accountId: string;
 
   env: "production" | "preview";
-
-  /**  Misc environment variables to add */
-  envVars?: Record<string, string>;
 
   /** The full URL for this backend's HTTP API. Available to the backed as the
    *  environment variable QUEUE_RUN_URL. */
@@ -102,9 +98,10 @@ export async function deployLambda({
   if (signal?.aborted) throw new Error();
 
   const envVars = await loadEnvVars({
-    envVars: config.envVars ?? {},
     environment: config.env,
     httpUrl,
+    project: slug,
+    region,
     wsUrl,
     wsApiId: config.wsApiId,
   });
@@ -175,36 +172,31 @@ export async function deployLambda({
 
 async function loadEnvVars({
   environment,
-  envVars,
   httpUrl,
+  project,
+  region,
   wsUrl,
   wsApiId,
 }: {
   environment: "production" | "preview";
-  envVars?: Record<string, string>;
   httpUrl: string;
+  project: string;
+  region: string;
   wsUrl: string;
   wsApiId: string;
 }) {
-  const fromFile = await fs.readFile(`.env.${environment}`, "utf-8").then(
-    (file) => dotenv.parse(file),
-    () => undefined
-  );
-  debug(
-    'Loaded %d env vars from file "%s"',
-    Object.keys(fromFile ?? {}).length,
-    ".env"
-  );
+  const envVars = await getEnvVariables({
+    environment,
+    project,
+    region,
+  });
 
-  return {
-    ...fromFile,
-    ...envVars,
-    NODE_ENV: "production",
-    QUEUE_RUN_ENV: environment,
-    QUEUE_RUN_URL: httpUrl,
-    QUEUE_RUN_WS_API_ID: wsApiId,
-    QUEUE_RUN_WS: wsUrl,
-  };
+  envVars.set("NODE_ENV", "production");
+  envVars.set("QUEUE_RUN_ENV", environment);
+  envVars.set("QUEUE_RUN_URL", httpUrl);
+  envVars.set("QUEUE_RUN_WS", wsUrl);
+  envVars.set("QUEUE_RUN_WS_API_ID", wsApiId);
+  return envVars;
 }
 
 async function switchOver({

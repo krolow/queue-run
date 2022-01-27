@@ -98,10 +98,17 @@ export default function policy(slug?: string) {
         Resource: "*",
       },
       {
-        Action: ["dynamodb:CreateTable", "dynamodb:DescribeTable"],
+        Action: [
+          "dynamodb:CreateTable",
+          "dynamodb:DeleteItem",
+          "dynamodb:DescribeTable",
+          "dynamodb:GetItem",
+          "dynamodb:UpdateItem",
+        ],
         Effect: "Allow",
         Resource: [
           "arn:aws:dynamodb:*:*:table/qr-connections",
+          "arn:aws:dynamodb:*:*:table/qr-env-vars",
           "arn:aws:dynamodb:*:*:table/qr-user-connections",
         ],
       },

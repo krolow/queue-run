@@ -7,7 +7,7 @@
     "build": "rm -rf dist && yarn esbuild src/*.ts src/**/*.ts --platform=node --target=node14 --outdir=dist --format=esm --sourcemap",
     "lint": "yarn eslint src/**/*.ts",
     "prepare": "yarn build",
-    "watch": "yarn build --watch"
+    "watch": "rm -rf dist && yarn build --watch"
   },
   "files": [
     "dist",
@@ -20,6 +20,7 @@
     "chalk": "5.0.0",
     "chokidar": "^3.5.3",
     "commander": "^8.3.0",
+    "dotenv": "^14.3.2",
     "fast-glob": "^3.2.11",
     "filesize": "^8.0.7",
     "inquirer": "^8.2.0",

@@ -28,7 +28,7 @@ export default async function uploadLambda({
 }: {
   accountId: string;
   config: LambdaConfig;
-  envVars: Record<string, string>;
+  envVars: Map<string, string>;
   lambdaName: string;
   lambdaRuntime: string;
   limits: Limits;
@@ -152,12 +152,10 @@ async function waitForNewRevision({
   }
 }
 
-function aliasAWSEnvVars(
-  envVars: Record<string, string>
-): Record<string, string> {
+function aliasAWSEnvVars(envVars: Map<string, string>): Record<string, string> {
   const aliasPrefix = "ALIASED_FOR_CLIENT__";
   const aliased: Record<string, string> = {};
-  for (const [key, value] of Object.entries(envVars)) {
+  for (const [key, value] of Array.from(envVars.entries())) {
     if (key.startsWith("AWS_")) aliased[`${aliasPrefix}${key}`] = value;
     else aliased[key] = value;
   }

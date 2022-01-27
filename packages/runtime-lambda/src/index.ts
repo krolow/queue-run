@@ -89,7 +89,6 @@ class LambdaLocalStorage extends LocalStorage {
       if (error && typeof error === "object" && "$metadata" in error) {
         const metadata = (error as { $metadata: { httpStatusCode: number } })
           .$metadata;
-        console.log("metadata", metadata);
         if (metadata.httpStatusCode === 410)
           connections.onDisconnected(connectionId);
       } else throw error;
