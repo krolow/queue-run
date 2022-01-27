@@ -11,7 +11,7 @@
     "watch:runtime": "yarn workspace queue-run-lambda watch",
     "watch:builder": "yarn workspace queue-run-builder watch",
     "watch:cli": "yarn workspace queue-run-cli watch",
-    "publish": "yarn build && yarn lint && lerna publish"
+    "release": "yarn build && yarn lint && lerna publish && open https://github.com/assaf/queue-run/releases"
   },
   "private": true,
   "devDependencies": {
@@ -19,7 +19,7 @@
     "@typescript-eslint/eslint-plugin": "^5.10.1",
     "@typescript-eslint/parser": "^5.10.1",
     "concurrently": "^7.0.0",
-    "esbuild": "^0.14.13",
+    "esbuild": "^0.14.14",
     "eslint": "8.7.0",
     "eslint-config-prettier": "^8.3.0",
     "eslint-plugin-import": "^2.25.4",
