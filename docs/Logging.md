@@ -105,19 +105,19 @@ The reference object depends on the task:
 * Queues — The job metadata (second argument for job handler)
 * Other would be `undefined`
 
-For example, to send errors to Sentry:
+For example, to send errors to Sentry in production:
 
 ```ts title=_middleware.ts
 import { logError } from "queue-run";
 import * as Sentry from "@sentry/node";
 
-Sentry.init({
-  dsn: process.env.SENTRY_DSN,
-});
+if (process.env.SENTRY_DSN)
+  Sentry.init({ dsn: process.env.SENTRY_DSN });
 
 export async function logError(error, reference) {
   logError(error, reference);
-  Sentry.captureException(error);
+  if (process.env.SENTRY_DSN)
+    Sentry.captureException(error);
 }
 ```
 
@@ -139,7 +139,7 @@ const _logger = logger();
 logger(function(level, ...args) {
   // Output to stdout/stderr
   _logger(level, ...args);
-  
+ 
   // Format messsage, pass argument list as rest parameters
   const message = format(...args);
   logtail.log(message);
