@@ -13,7 +13,7 @@ try {
     console.info("First run: installing %s ...\n", cliModule);
     execFileSync(
       "npm",
-      ["install", cliModule, "--no-save", "--no-audit", "--no-fund"],
+      ["install", cliModule, "--development", "--no-audit", "--no-fund"],
       {
         stdio: "inherit",
       }
