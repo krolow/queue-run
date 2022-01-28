@@ -1,11 +1,5 @@
 import { URL } from "node:url";
-import {
-  handleHTTPRequest,
-  Headers,
-  LocalStorage,
-  Request,
-  Response,
-} from "queue-run";
+import { handleHTTPRequest, Headers, LocalStorage } from "queue-run";
 
 // https://docs.aws.amazon.com/lambda/latest/dg/services-apigateway.html#apigateway-example-event
 export type APIGatewayHTTPEvent = {
@@ -146,13 +140,16 @@ async function fromFetchResponse(
   request: Request,
   response: Response
 ): Promise<APIGatewayResponse> {
+  const headers: Record<string, string> = {};
+  response.headers.forEach((value, key) => (headers[key] = value));
+
   return {
     body:
       response.status === 204
         ? ""
         : Buffer.from(await response.arrayBuffer()).toString("base64"),
     isBase64Encoded: true,
-    headers: Object.fromEntries(Array.from(response.headers.entries())),
+    headers,
     statusCode: response.status ?? 200,
   };
 }

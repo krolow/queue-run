@@ -57,7 +57,7 @@ export class DevLocalStorage extends LocalStorage {
     params?: { [key: string]: string | string[] };
     user?: { id: string };
   }) {
-    const jobId = crypto.randomUUID();
+    const jobId = crypto.randomUUID!();
     const serializedPayload =
       typeof payload === "string" || Buffer.isBuffer(payload)
         ? payload
@@ -102,17 +102,17 @@ export class DevLocalStorage extends LocalStorage {
 
   async authenticated(user: AuthenticatedUser | null) {
     super.authenticated(user);
-    const { connectionId, userId } = this;
-    if (userId && connectionId) {
-      const connections = userIdToConnectionId.get(userId) ?? [];
-      connectionIdToUserId.set(connectionId, userId);
-      userIdToConnectionId.set(userId, [...connections, connectionId]);
+    const { connectionId } = this;
+    if (user && connectionId) {
+      const connections = userIdToConnectionId.get(user.id) ?? [];
+      connectionIdToUserId.set(connectionId, user.id);
+      userIdToConnectionId.set(user.id, [...connections, connectionId]);
 
       const wentOnline = connections.length === 0;
       if (wentOnline) {
         getLocalStorage().exit(() =>
           handleUserOnline({
-            userId,
+            userId: user.id,
             newLocalStorage: () => new DevLocalStorage(this.port),
           })
         );
@@ -163,10 +163,10 @@ export function getUser(connection: string) {
 }
 
 export function onWebSocketClosed({
-  connection,
+  connectionId: connection,
   newLocalStorage,
 }: {
-  connection: string;
+  connectionId: string;
   newLocalStorage: () => LocalStorage;
 }) {
   sockets.delete(connection);

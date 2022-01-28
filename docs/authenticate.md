@@ -57,69 +57,84 @@ export async function authenticate(params) {
 
 ## WebSocket
 
-The `authenticate` method is a bit more complicated here, as it needs to support two scenarios:
+Without authentication you can only use WebSocket as request/response protocol, which you can already do with HTTP.
 
-* Authenticating users based on cookies, or rejecting clients based on origin/IP
-* Authenticating users based on the first message (JWT token, API key, etc)
+With authentication you can send messages to the user at any point in time, including when handling request from other users (eg collaborative editing), or from queued and scheduled job that execute in the background.
 
-### Authenticating With Cookies
+The message will be sent to every device the user is logged in from, so a way to deliver real time notification, and synchronize state between devices and the database.
 
-Every WebSocket connection starts with an HTTP request. The server has access to that request, with some limitations:
 
-* The [WebSocket](https://developer.mozilla.org/en-US/docs/Web/API/WebSocket) API supported by most browser does not allow sending HTTP headers
-* The server has access to cookies sent by the browser
-* The server has no access to the URL path or query string
-* The server has no access to username:password from the URL
-* The server has access to the `Origin` and `X-Forwarded-For` HTTP headers
+### Authenticating First Message
 
-At this stage, you can authenticate the user based on browser or cookies, or you can reject clients based on their origin/IP.
+This is the more common form of authentication. Once the browser established a WebSocket connection, the first message it sends is used for authentication.
 
-```ts title=socket/_middleware.ts
-export async function authenticate({ cookies }) {
-  const { session, sign } = cookies;
-  const id = verify(session, sign);
-  if (!id) throw new Response("Session expired", { status: 403 });
-  return { id };
-}
-```
-
-### Authenticating With Message
-
-If you don't want to use browser cookies, you can have the client send an authentication message. This message can contain a session token, JWT identity token, API key, etc.
-
-This browser code would send an authentication request as soon as it opens a WebSocket connection to the server:
+If helps, but not necessary, to acknowledge successful notification, as in this example:
 
 ```ts title=web/client.ts
 const ws = new WebSocket("wss://ws.grumpy-sunshine.queue.run");
-// Connection opens, we immediately send user's token
+
+// Connection opens, we immediately attempt to authenticate
 ws.onopen = () => ws.send({ jwtToken });
-// Wait for OK from server
+
+// Wait for the server to either accept (message) or deny (close socket)
 await new Promise((resolve, reject) => {
   ws.onmessage = resolve;
   ws.onclose = reject;
 });
 ```
 
-On the server, we're going to ignore the first call to `authenticate` (HTTP request), and act on the second call (WebSocket message). We can:
+On the server, the `authenticate` middleware is called if it exists, and the connection is not associated with a user.
 
-* If successfully authenticated, return an object representing the user
-* If we allow unauthenticated access, return `null`
-* Otherwise, reject this connection with `socket.close`
+If if successfully authenticates the user, it should return an object with the user ID (`{ user: id }`). This user ID will be available to request handlers.
+
+If anonymous access is allowed, it may return `null`. Request handlers will be called without a user ID.
+
+Otherwise, the user is not authenticated, and the next WebSocket message will also go to the `authenticate` middleware. Recommended that in this case you call `socket.close`.
+
 
 ```ts title=socket/_middleware.ts
-export async function authenticate({ message }) {
-  // Called first with request + cookies, ignore
-  if (!message) return;
-
-  // Called next with message
-  const { jwtToken } = message;
+export async function authenticate({ data }) {
+  // Typically the request would be a JSON object
+  const { jwtToken } = data;
   try {
     const { sub, email } = await jwt.verify(bearerToken, process.env.JWT_SECRET);
     await socket.send('Accepted');
     return { id: sub, email };
   } catch {
-    // Not an HTTP request, reject by closing socket
+    // Reject by closing the WebSocket
     await socket.close();
   }
 }
 ```
+
+
+### Authenticating HTTP Connection
+
+Every WebSoekct connection starts with an HTTP request. You can use the `onConnect` middleware to authenticate or reject requests based on that HTTP request.
+
+* The [WebSocket](https://developer.mozilla.org/en-US/docs/Web/API/WebSocket) API supported by most browsers does not allow sending HTTP headers
+* The server has no access to the URL path or query string
+* The server has no access to username:password from the URL
+* The server has access to the `Origin` and `X-Forwarded-For` HTTP headers
+
+The server has access to cookies sent by the browser, so you can use these to authenticate the user. To use cookies, the back-end and front-end must share a parent domain.
+
+For example:
+
+```ts title=socket/_middleware.ts
+import { authenticated } from 'queue-run';
+
+export async function onConnect({ cookies }) {
+  const { session, sign } = cookies;
+  const user = verify(session, sign);
+  // At this stage we're dealing with HTTP request/response
+  if (!user) throw new Response("Session expired", { status: 403 });
+  // Have to call this explicitly
+  await authenticated(user);
+}
+```
+
+You can also use the `onConnect` method to reject clients based on IP address or origin, in combination with `authenticate` for authenticating and authorizing access.
+
+You can use the `Authenticate` header with other clients, such as Node WebSocket libraries (eg [ws](https://github.com/websockets/ws)) or [websocat](https://github.com/vi/websocat).
+

@@ -17,11 +17,11 @@ export abstract class LocalStorage {
   public readonly urls: { http: string; ws: string };
 
   /**
-   * String — Identified for authenicated user
+   * object — Authenticated user
    * null — Anonymous user
-   * undefined — Not authenticated
+   * undefined — Not authenticated yet
    */
-  public userId?: string | null | undefined;
+  public user?: AuthenticatedUser | null | undefined;
 
   /** WebSocket connection ID */
   public connectionId: string | undefined;
@@ -59,9 +59,12 @@ export abstract class LocalStorage {
    *
    * Set the user property, to associated the (previously) authenticated user.
    */
-  async authenticated(user: AuthenticatedUser | null) {
+  async authenticated(user: AuthenticatedUser | null): Promise<void> {
+    if (typeof user === "string") return await this.authenticated({ id: user });
+    if (typeof user !== "object")
+      throw new TypeError("User must be an object or null");
     if (user && !user.id) throw new TypeError("User ID is required");
-    this.userId = user?.id ?? null;
+    this.user = user;
   }
 
   /**

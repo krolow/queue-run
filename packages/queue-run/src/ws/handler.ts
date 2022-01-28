@@ -1,13 +1,11 @@
 import { AbortController } from "node-abort-controller";
 import { getLocalStorage } from "..";
-import { authenticated, AuthenticatedUser } from "../shared/authenticated.js";
 import { loadMiddleware, loadModule } from "../shared/loadModule.js";
 import { LocalStorage, withLocalStorage } from "../shared/localStorage.js";
 import { logError } from "../shared/logError.js";
 import TimeoutError from "../shared/TimeoutError.js";
 import type { JSONValue } from "./../json";
 import {
-  WebSocketConfig,
   WebSocketHandler,
   WebSocketMiddleware,
   WebSocketRequest,
@@ -16,26 +14,31 @@ import findRoute from "./findRoute.js";
 import { logMessageReceived } from "./middleware.js";
 
 // eslint-disable-next-line sonarjs/cognitive-complexity
-export async function authenticateWebSocket({
+export async function handleWebSocketConnect({
+  connectionId,
   newLocalStorage,
   request,
   requestId,
 }: {
+  connectionId: string;
   newLocalStorage: () => LocalStorage;
   request: Request;
   requestId: string;
-}): Promise<AuthenticatedUser | null> {
-  const { authenticate, onError } = await getCommonMiddleware();
-  if (!authenticate) return null;
+}): Promise<Response> {
+  const { onConnect, onError } = await getCommonMiddleware();
+  if (!onConnect) return new Response("", { status: 202 });
 
   return await withLocalStorage(newLocalStorage(), async () => {
     try {
-      const cookies = getCookies(request);
-      const user = await authenticate({ cookies, request, requestId });
-      if (user) await authenticated(user);
-      return user;
+      await onConnect({
+        connectionId,
+        cookies: getCookies(request),
+        request,
+        requestId,
+      });
+      return new Response("", { status: 202 });
     } catch (error) {
-      if (error instanceof Response) throw error;
+      if (error instanceof Response) return error;
 
       if (onError) {
         try {
@@ -46,7 +49,7 @@ export async function authenticateWebSocket({
           console.error(error);
         }
       }
-      throw error;
+      return new Response("Internal Server Error", { status: 500 });
     }
   });
 }
@@ -84,97 +87,91 @@ async function getCommonMiddleware() {
   }
 }
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
 export async function handleWebSocketMessage({
-  connection,
+  connectionId,
   data,
   newLocalStorage,
   requestId,
   userId,
 }: {
-  connection: string;
+  connectionId: string;
   data: Buffer;
   newLocalStorage: () => LocalStorage;
   requestId: string;
   userId: string | null | undefined;
 }) {
   try {
-    let found;
-    try {
-      found = await findRoute(data);
-    } catch (error) {
-      const { onError } = await getCommonMiddleware();
-      if (onError) {
-        await onError(
-          error instanceof Error ? error : new Error(String(error))
-        );
-      }
-      throw new Error("Not available");
+    const { module, middleware, route } = await findRoute(data);
+
+    const request = {
+      connectionId,
+      data: bufferToData(data, module?.config?.type ?? "json"),
+      requestId,
+    };
+
+    if (userId === undefined && middleware.authenticate) {
+      const { authenticate } = middleware;
+      const localStorage = newLocalStorage();
+      localStorage.connectionId = request.connectionId;
+      await withLocalStorage(localStorage, async () => {
+        const authenticated = await authenticate(request);
+        // The authenticate middleware may have called authenticated directly
+        if (!getLocalStorage().user && authenticated)
+          await getLocalStorage().authenticated(authenticated);
+      });
+      return;
     }
 
-    const { middleware, module, route } = found;
+    if (!(module && route))
+      throw new Error("No available handler for this request");
+
     await handleRoute({
-      config: module.config ?? {},
-      connection,
-      data,
       filename: route.filename,
       handler: module.default,
       middleware,
       newLocalStorage,
-      requestId,
+      request: { ...request, user: userId ? { id: userId } : null },
       timeout: route.timeout,
-      userId,
     });
   } catch (error) {
-    console.error("Internal processing error %s", connection, error);
+    console.error("Internal processing error %s", connectionId, error);
+    const { onError } = await getCommonMiddleware();
+    if (onError) {
+      await onError(error instanceof Error ? error : new Error(String(error)));
+    }
     throw error;
   }
 }
 
 async function handleRoute({
-  config,
-  connection,
-  data,
   filename,
   handler,
   middleware,
   newLocalStorage,
-  requestId,
+  request,
   timeout,
-  userId,
 }: {
-  config: WebSocketConfig;
-  connection: string;
-  data: Buffer;
   filename: string;
   handler: WebSocketHandler;
   middleware: WebSocketMiddleware;
   newLocalStorage: () => LocalStorage;
-  requestId: string;
+  request: WebSocketRequest;
   timeout: number;
-  userId: string | null | undefined;
 }) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout * 1000);
 
-  const metadata = {
-    connection,
-    requestId,
-    signal: controller.signal,
-    user: userId ? { id: userId } : null,
-  };
-
   try {
     const localStorage = newLocalStorage();
-    localStorage.userId = userId;
+    localStorage.user = request.user;
+    localStorage.connectionId = request.connectionId;
     await withLocalStorage(localStorage, async () => {
-      localStorage.connectionId = connection;
       await runWithMiddleware({
-        config,
-        data,
+        filename,
         handler,
         middleware,
-        metadata,
-        filename,
+        request: { ...request, signal: controller.signal },
       });
     });
   } finally {
@@ -184,30 +181,18 @@ async function handleRoute({
 }
 
 async function runWithMiddleware({
-  config,
-  data,
   filename,
   handler,
-  metadata,
   middleware,
+  request,
 }: {
-  config: WebSocketConfig;
-  data: Buffer;
   filename: string;
   handler: WebSocketHandler;
-  metadata: Omit<Parameters<WebSocketHandler>[0], "data">;
   middleware: WebSocketMiddleware;
+  request: Parameters<WebSocketHandler>[0];
 }) {
-  const { signal } = metadata;
-  const request = { data: bufferToData(data, config), ...metadata };
-
   try {
-    if (getLocalStorage().userId === undefined && middleware.authenticate) {
-      const user = await middleware.authenticate(request);
-      if (user) await getLocalStorage().authenticated(user);
-      return;
-    }
-
+    const { signal } = request;
     await Promise.race([
       (async () => {
         const { onMessageReceived } = middleware;
@@ -235,9 +220,9 @@ async function runWithMiddleware({
 
 function bufferToData(
   data: Buffer,
-  config: WebSocketConfig
+  type: "json" | "text" | "binary"
 ): JSONValue | string | Buffer {
-  switch (config.type ?? "json") {
+  switch (type) {
     case "json":
       return JSON.parse(data.toString("utf-8")) as JSONValue;
     case "text":

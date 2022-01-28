@@ -1,6 +1,6 @@
 import {
-  authenticateWebSocket,
   handleUserOffline,
+  handleWebSocketConnect,
   handleWebSocketMessage,
   Headers,
   LocalStorage,
@@ -15,7 +15,7 @@ export default async function handleWebSocketRequest(
 ): Promise<APIGatewayResponse | void> {
   switch (event.requestContext.eventType) {
     case "CONNECT":
-      return await authenticate(event, connections, newLocalStorage);
+      return await connect(event, connections, newLocalStorage);
     case "DISCONNECT":
       return await disconnect(event, connections, newLocalStorage);
     case "MESSAGE":
@@ -23,7 +23,7 @@ export default async function handleWebSocketRequest(
   }
 }
 
-async function authenticate(
+async function connect(
   event: APIGatewayWebSocketEvent,
   connections: ReturnType<typeof userConnections>,
   newLocalStorage: () => LocalStorage
@@ -32,36 +32,31 @@ async function authenticate(
   const request = new Request(url, {
     headers: new Headers(event.headers),
   });
-  const { requestId } = event.requestContext;
+  const { connectionId, requestId } = event.requestContext;
   try {
-    await authenticateWebSocket({
+    const response = await handleWebSocketConnect({
+      connectionId,
       newLocalStorage,
       request,
       requestId,
     });
 
+    const headers: Record<string, string> = {};
+    response.headers.forEach((value, key) => (headers[key] = value));
     return {
-      headers: {},
+      body: await response.text(),
+      headers,
       isBase64Encoded: false,
-      statusCode: 204,
+      statusCode: response.status,
     };
   } catch (error) {
-    if (error instanceof Response) {
-      return {
-        body: await error.text(),
-        headers: {},
-        isBase64Encoded: false,
-        statusCode: error.status ?? 403,
-      };
-    } else {
-      console.error(error);
-      return {
-        body: "Internal Server Error",
-        headers: {},
-        isBase64Encoded: false,
-        statusCode: 500,
-      };
-    }
+    console.error(error);
+    return {
+      body: "Internal Server Error",
+      headers: {},
+      isBase64Encoded: false,
+      statusCode: 500,
+    };
   }
 }
 
@@ -79,7 +74,7 @@ async function onMessage(
     const userId = await connections.getAuthenticatedUserId(connectionId);
 
     await handleWebSocketMessage({
-      connection: connectionId,
+      connectionId: connectionId,
       data,
       newLocalStorage,
       requestId: event.requestContext.requestId,

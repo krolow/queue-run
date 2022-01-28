@@ -8,7 +8,7 @@ import { loadMiddleware } from "../shared/loadModule.js";
 import {
   getLocalStorage,
   LocalStorage,
-  withLocalStorage
+  withLocalStorage,
 } from "../shared/localStorage";
 import { logError } from "../shared/logError.js";
 import { HTTPRoute } from "../shared/manifest";
@@ -18,7 +18,7 @@ import {
   RequestHandler,
   RouteConfig,
   RouteExports,
-  RouteMiddleware
+  RouteMiddleware,
 } from "./exports.js";
 import { Headers } from "./fetch.js";
 import findRoute from "./findRoute.js";
@@ -237,7 +237,6 @@ async function runWithMiddleware({
           request,
           requestId,
         });
-
         return await handler({ ...metadata, request, user });
       })(),
 
@@ -272,7 +271,7 @@ async function getAuthenticatedUser({
   middleware: RouteMiddleware;
   request: Request;
   requestId: string;
-}): Promise<AuthenticatedUser | null > {
+}): Promise<AuthenticatedUser | null> {
   const { authenticate } = middleware;
   if (!authenticate) return null;
 
@@ -283,7 +282,7 @@ async function getAuthenticatedUser({
     ? Buffer.from(basic, "base64").toString().split(":")
     : [];
 
-  const user = await authenticate({
+  const authenticated = await authenticate({
     bearerToken,
     cookies,
     password,
@@ -292,17 +291,15 @@ async function getAuthenticatedUser({
     requestId,
     username,
   });
-  if (user?.id) {
-    await getLocalStorage().authenticated(user);
-    return user;
-  }
-  if (user === null) return null;
+  // The authenticate middleware may have called authenticated directly
+  if (!getLocalStorage().user && authenticated)
+    await getLocalStorage().authenticated(authenticated);
+  const { user } = getLocalStorage();
+  if (user !== undefined) return user;
 
-  const concern =
-    user === undefined
-      ? 'Authenticate function returned "undefined", was this intentional?'
-      : "Authenticate function returned user object without an ID";
-  console.warn(concern);
+  console.warn(
+    'Authenticate function returned "undefined", was this intentional?'
+  );
   throw new Response("Forbidden", { status: 403 });
 }
 

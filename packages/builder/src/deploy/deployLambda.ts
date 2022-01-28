@@ -109,7 +109,7 @@ export async function deployLambda({
 
   const cw = new CloudWatchLogs({ region });
   const logGroupName = `/aws/lambda/${lambdaName}`;
-  const logStreamName = `deploy/${crypto.randomUUID()}`;
+  const logStreamName = `deploy/${crypto.randomUUID!()}`;
 
   await cw.createLogGroup({ logGroupName }).catch(() => undefined);
   await cw

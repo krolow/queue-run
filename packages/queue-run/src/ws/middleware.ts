@@ -3,11 +3,11 @@ import filesize from "filesize";
  * Default middleware for WebSocket logs all received messages.
  */
 export async function logMessageReceived({
-  connection,
+  connectionId,
   data,
   user,
 }: {
-  connection: string;
+  connectionId: string;
   data: unknown;
   user: { id: string; [key: string]: unknown } | null;
 }) {
@@ -20,7 +20,7 @@ export async function logMessageReceived({
 
   console.info(
     "connection: %s user: %s message: %s",
-    connection,
+    connectionId,
     user?.id ?? "anonymous",
     message
   );

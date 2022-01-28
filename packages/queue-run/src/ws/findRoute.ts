@@ -1,9 +1,14 @@
 import invariant from "tiny-invariant";
-import { loadModule } from "../shared/loadModule.js";
+import { loadMiddleware, loadModule } from "../shared/loadModule.js";
 import { logError } from "../shared/logError.js";
 import { loadManifest, WebSocketRoute } from "../shared/manifest.js";
 import { WebSocketExports, WebSocketMiddleware } from "./exports.js";
 import { logMessageReceived } from "./middleware.js";
+
+const defaultMiddleware = {
+  onMessageReceived: logMessageReceived,
+  onError: logError,
+};
 
 /**
  * Load the WebSocket handler for the given message.
@@ -15,20 +20,24 @@ import { logMessageReceived } from "./middleware.js";
  */
 // eslint-disable-next-line no-unused-vars
 export default async function findRoute(data: Buffer): Promise<{
-  module: WebSocketExports;
+  module?: WebSocketExports;
   middleware: WebSocketMiddleware;
-  route: WebSocketRoute;
+  route?: WebSocketRoute;
 }> {
   const { socket } = await loadManifest();
   const route = socket.get("/");
-  if (!route) throw new Error("No route matching request");
+  if (!route) {
+    const middleware = await loadMiddleware<WebSocketMiddleware>(
+      "socket",
+      defaultMiddleware
+    );
+    return { middleware };
+  }
 
   const loaded = await loadModule<WebSocketExports, WebSocketMiddleware>(
     route.filename,
-    { onMessageReceived: logMessageReceived, onError: logError }
+    defaultMiddleware
   );
-  invariant(loaded, "Could not load request handler");
-  const { module, middleware } = loaded;
-
-  return { module, middleware, route: route };
+  invariant(loaded, "Could not load module");
+  return { ...loaded, route };
 }

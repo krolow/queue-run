@@ -77,7 +77,7 @@ class WebSocket {
     // - All connections for current user
     // - Current connection
     if (this._userIds) return await local.getConnections(this._userIds);
-    if (local.userId) return await local.getConnections([local.userId]);
+    if (local.user?.id) return await local.getConnections([local.user.id]);
     if (local.connectionId) return [local.connectionId];
 
     throw new Error(

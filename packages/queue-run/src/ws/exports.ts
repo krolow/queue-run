@@ -7,7 +7,7 @@ import type { OnError } from "../shared/logError.js";
 /**
  * WebSocket message handler.
  *
- * @param connection Connection identifier
+ * @param connectionId Connection identifier
  * @param data The message data, type depends on `config.type`
  * @param requestId Unique ID for this message
  * @param signal The abort signal
@@ -24,7 +24,7 @@ export type WebSocketHandler<
 export type WebSocketRequest<
   Data extends JSONValue | string | Buffer = JSONValue | string | Buffer
 > = {
-  connection: string;
+  connectionId: string;
   data: Data;
   requestId: string;
   user: { id: string; [key: string]: unknown } | null;
@@ -51,21 +51,16 @@ export type WebSocketConfig = {
 /**
  * Middleware that's called for every HTTP request, to authenticate the user.
  *
- * @param cookies Cookies sent by the browser
- * @param request The HTTP request
- * @param requestId The unique request ID
- * @param message The WebSocket message
+ * @param connectionId Connection identifier
+ * @param data The message data, type depends on `config.type`
+ * @param requestId Unique ID for this message
  * @return The authenticated user, or null if the user is not authenticated
  */
-export type WebSocketAuthenticateMethod = (
-  params:
-    | {
-        cookies: { [key: string]: string };
-        request: Request;
-        requestId: string;
-      }
-    | WebSocketRequest
-) => AuthenticatedUser | Promise<AuthenticatedUser | null> | null;
+export type WebSocketAuthenticateMethod = (params: {
+  connectionId: string;
+  data: JSONValue | string | Buffer;
+  requestId: string;
+}) => AuthenticatedUser | Promise<AuthenticatedUser | null> | null;
 
 /**
  * Middleware that's called the first time the user connects with WebSocket.
@@ -80,6 +75,23 @@ export type OnOnline = (userId: string) => void | Promise<void>;
  * @param userId The user ID
  */
 export type OnOffline = (userId: string) => void | Promise<void>;
+
+/**
+ * Middleware that's called when client makes the HTTP request to open a
+ * WebSocket connection.
+ *
+ * @param cookies Cookies sent by the browser
+ * @param connectionId The connection ID
+ * @param request The HTTP request
+ * @param requestId The unique request ID
+ * @throws Throw a Response object if you want to terminate the connection
+ */
+export type OnConnect = (params: {
+  connectionId: string;
+  cookies: { [key: string]: string };
+  request: Request;
+  requestId: string;
+}) => Promise<void> | void;
 
 /**
  * Middleware that's called for every WebSocket message received.
@@ -110,6 +122,7 @@ export type OnMessageSent = (args: {
  */
 export type WebSocketMiddleware = {
   authenticate?: WebSocketAuthenticateMethod | null;
+  onConnect?: OnConnect | null;
   onError?: OnError | null;
   onOnline?: OnOnline | null;
   onOffline?: OnOffline | null;

@@ -11,9 +11,9 @@ import process from "node:process";
 import { Duplex } from "node:stream";
 import { URL } from "node:url";
 import {
-  authenticateWebSocket,
   handleHTTPRequest,
   handleQueuedJob,
+  handleWebSocketConnect,
   handleWebSocketMessage,
   Headers,
   LocalStorage,
@@ -211,7 +211,7 @@ async function onRequest(
   const response = await handleHTTPRequest({
     newLocalStorage,
     request,
-    requestId: crypto.randomUUID(),
+    requestId: crypto.randomUUID!(),
   });
   const resHeaders: Record<string, string> = {};
   response.headers.forEach((value, name) => (resHeaders[name] = value));
@@ -256,7 +256,7 @@ async function queueJob(
       metadata: {
         queueName,
         groupId,
-        jobId: crypto.randomUUID(),
+        jobId: crypto.randomUUID!(),
         params: {},
         receivedCount: 1,
         queuedAt: new Date(),
@@ -296,42 +296,47 @@ async function onUpgrade(
       }
     );
 
-    await authenticateWebSocket({
+    const connectionId = req.headers["sec-websocket-key"]!;
+    const response = await handleWebSocketConnect({
+      connectionId,
       request,
-      requestId: crypto.randomUUID(),
+      requestId: crypto.randomUUID!(),
       newLocalStorage,
     });
-    const connection = req.headers["sec-websocket-key"]!;
+
+    if (response.status > 299) {
+      console.info("   Authentication rejected: %d", response.status);
+      socket.write(
+        `HTTP/1.1 ${response.status} ${await response.text()}\r\n\r\n`
+      );
+      socket.destroy();
+      return;
+    }
 
     wss.handleUpgrade(req, socket, head, (socket) =>
       onConnection({
-        connection,
+        connectionId,
         newLocalStorage,
         socket,
       })
     );
   } catch (error) {
-    if (error instanceof Response) {
-      console.info("   Authentication rejected: %d", error.status);
-      socket.write(`HTTP/1.1 ${error.status} ${await error.text()}\r\n\r\n`);
-    } else {
-      console.error("💥 Authentication failed!");
-      socket.write("HTTP/1.1 500 Internal Server Error\r\n\r\n");
-    }
+    console.error("💥 Authentication failed!");
+    socket.write("HTTP/1.1 500 Internal Server Error\r\n\r\n");
     socket.destroy();
   }
 }
 
 async function onConnection({
-  connection,
+  connectionId,
   newLocalStorage,
   socket,
 }: {
-  connection: string;
+  connectionId: string;
   newLocalStorage: () => LocalStorage;
   socket: WebSocket;
 }) {
-  onWebSocketAccepted({ connection, socket });
+  onWebSocketAccepted({ connection: connectionId, socket });
 
   socket.on("message", async (rawData) => {
     const data =
@@ -342,11 +347,11 @@ async function onConnection({
         : rawData;
     try {
       await handleWebSocketMessage({
-        connection,
+        connectionId,
         data,
         newLocalStorage,
-        requestId: crypto.randomUUID(),
-        userId: getUserId(connection),
+        requestId: crypto.randomUUID!(),
+        userId: getUserId(connectionId),
       });
     } catch (error) {
       socket.send(JSON.stringify({ error: String(error) }), {
@@ -356,7 +361,7 @@ async function onConnection({
   });
   socket.on("close", () =>
     onWebSocketClosed({
-      connection,
+      connectionId,
       newLocalStorage,
     })
   );
