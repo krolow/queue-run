@@ -13,7 +13,7 @@ import { Lambda } from "@aws-sdk/client-lambda";
 import ora from "ora";
 import invariant from "tiny-invariant";
 
-const wsStage = "prod";
+const wsStage = "_prod";
 
 // See https://docs.aws.amazon.com/lambda/latest/dg/services-apigateway.html#apigateway-permissions
 
