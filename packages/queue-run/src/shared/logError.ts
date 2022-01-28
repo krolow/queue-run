@@ -1,6 +1,6 @@
 import { URL } from "node:url";
-import { WebSocketRequest } from "../index.js";
 import { JobMetadata } from "../queue/exports.js";
+import { WebSocketRequest } from "./../ws/exports";
 
 /* eslint-disable no-unused-vars */
 /**
@@ -44,5 +44,16 @@ export async function logError(error: Error, reference: unknown) {
       String(error),
       error.stack
     );
+  } else if (reference instanceof Object && "connectionId" in reference) {
+    const { connectionId, user } = reference as WebSocketRequest;
+    console.error(
+      "connection: %s user: %s error: %s",
+      connectionId,
+      user?.id ?? "anonymous",
+      String(error),
+      error.stack
+    );
+  } else {
+    console.error("Error: %s", String(error), error.stack);
   }
 }
