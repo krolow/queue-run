@@ -34,6 +34,7 @@
     "path-to-regexp": "^6.2.0",
     "queue-run": "^0.10.3",
     "queue-run-lambda": "^0.10.3",
+    "semver": "^7.3.5",
     "tiny-invariant": "^1.2.0"
   },
   "devDependencies": {
