@@ -7,11 +7,10 @@
   },
   "type": "module",
   "scripts": {
-    "build": "rm -rf dist && yarn build:bundle",
-    "build:bundle": "yarn esbuild src/index.ts --bundle --platform=node --target=node15 --outfile=dist/index.mjs --format=esm  --inject:./src/require_shim.js --sourcemap --external:queue-run",
+    "build": "rm -rf dist && yarn esbuild src/index.ts --bundle --platform=node --target=node15 --outfile=dist/index.mjs --format=esm  --inject:./src/require_shim.js --sourcemap --external:queue-run",
     "lint": "yarn eslint src/**/*.ts",
     "prepare": "yarn build",
-    "watch": "rm -rf dist && yarn build:bundle --watch"
+    "watch": "rm -rf dist && yarn build --watch"
   },
   "files": [
     "dist",
@@ -26,7 +25,7 @@
     "node": "14.x"
   },
   "homepage": "https://queue.run",
-  "gitHead": "b8c86d364d783458b30eff5a06c680356db1bd01",
+  "gitHead": "8fd7f66958b6b030362b2d96946cfd804c015f70",
   "dependencies": {
     "@aws-sdk/client-apigatewaymanagementapi": "^3.48.0",
     "@aws-sdk/client-dynamodb": "^3.48.0"

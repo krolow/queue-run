@@ -12,12 +12,10 @@
     "queue-run": "./bin/cli.js"
   },
   "scripts": {
-    "build": "rm -rf dist && yarn build:bundle && yarn build:types",
-    "build:bundle": "yarn esbuild src/index.ts src/jsx-runtime.ts --bundle --platform=node --target=node14 --outdir=dist --format=esm  --inject:./src/require_shim.js --sourcemap",
-    "build:types": "tsc -p tsconfig.json",
+    "build": "rm -rf dist && yarn esbuild src/index.ts src/jsx-runtime.ts --bundle --platform=node --target=node14 --outdir=dist --format=esm  --inject:./src/require_shim.js --sourcemap",
     "lint": "yarn eslint src/**/*.ts",
     "prepare": "yarn build",
-    "watch": "rm -rf dist && concurrently \"yarn build:bundle --watch\" \"yarn build:types --watch\""
+    "watch": "rm -rf dist && yarn build --watch"
   },
   "files": [
     "bin",
@@ -58,5 +56,5 @@
     "api",
     "websocket"
   ],
-  "gitHead": "b8c86d364d783458b30eff5a06c680356db1bd01"
+  "gitHead": "8fd7f66958b6b030362b2d96946cfd804c015f70"
 }

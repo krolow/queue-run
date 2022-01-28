@@ -5,12 +5,10 @@
   "types": "dist/index.d.ts",
   "type": "module",
   "scripts": {
-    "build": "rm -rf dist && yarn build:bundle && yarn build:types",
-    "build:bundle": "yarn esbuild src/*.ts src/**/*.ts --platform=node --target=node14 --outdir=dist --format=esm --sourcemap",
-    "build:types": "tsc -p tsconfig.json",
+    "build": "rm -rf dist && yarn esbuild src/*.ts src/**/*.ts --platform=node --target=node14 --outdir=dist --format=esm --sourcemap",
     "lint": "yarn eslint src/**/*.ts",
     "prepare": "yarn build",
-    "watch": "rm -rf dist && concurrently \"yarn build:bundle --watch\" \"yarn build:types --watch\""
+    "watch": "rm -rf dist && yarn build"
   },
   "files": [
     "dist",
@@ -46,5 +44,5 @@
     "node": "14.x"
   },
   "homepage": "https://queue.run",
-  "gitHead": "b8c86d364d783458b30eff5a06c680356db1bd01"
+  "gitHead": "8fd7f66958b6b030362b2d96946cfd804c015f70"
 }
