@@ -60,8 +60,20 @@ The following commands are available to deploy and manage your project:
 * `rollback` — Broke something? Rollback to a previous version
 * `status` — See information about your deployed project (eg HTTP and WebSocket URLs, concurrency)
 
-:::note
-To keep the `queue-run` module lean, the CLI tools include are available as a separate module. You don't have to add them in `package.json`. They are loaded on demand when you run `npx queue-run` for the first time.
+:::tip Dev Dependencies
+To keep the `queue-run` module lean, the CLI tools are available as a separate module. When you run `npx queue-run`, it downloads `queue-run` into a temporary directory, and then downloads `queue-run-cli`.
+
+You can speed up the `npx queue-run` command by installing these two dependencies:
+
+```bash title=npm
+npm install -D queue-run queue-run-cli
+```
+
+```bash title=yarn
+yarn add -D queue-run queue-run-cli
+```
+
+DO NOT install these as runtime dependencies. The runtime already includes `queue-run`, and `queue-run-cli` is over the code size limit.
 :::
 
 

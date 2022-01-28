@@ -185,6 +185,20 @@ curl http://localhost:8000/bookmarks/74e83d43
 curl http://localhost:8000/bookmarks
 ```
 
+:::tip Install Dependencies
+
+To speed up `npx queue-run` you can install these two development dependencies:
+
+```bash title=npm
+npm install -D queue-run queue-run-cli
+```
+
+```bash title=yarn
+yarn add -D queue-run queue-run-cli
+```
+:::
+
+
 ## Deploy To Production
 
 We'll start by initializing the project. You only need to do this once, when you start working on a new project (recommended) or before the first deploy.
