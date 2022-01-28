@@ -7,6 +7,7 @@ const cliModule = "queue-run-cli";
 try {
   createRequire(import.meta.url).resolve(cliModule);
 } catch (error) {
+  console.log(error.code);
   if (error instanceof Error && error.code === "MODULE_NOT_FOUND") {
     // On first use, we install queue-run-cli. We don't update package.json, if you
     // nuke node_modules, we'll just install again.
@@ -21,11 +22,8 @@ try {
   } else throw error;
 }
 
-const child = spawn(
-  "node",
-  [`node_modules/${cliModule}`, ...process.argv.slice(2)],
-  {
-    stdio: "inherit",
-  }
-);
+const path = createRequire(import.meta.url).resolve(cliModule);
+const child = spawn("node", [path, ...process.argv.slice(2)], {
+  stdio: "inherit",
+});
 await new Promise(() => child.on("exit", (code) => process.exit(code)));
