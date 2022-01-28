@@ -46,7 +46,7 @@ const { slug, region, wsApiId, ...clientConfig } = swapAWSEnvVars();
 const dynamoDB = new DynamoDBClient({ ...clientConfig, region });
 const gateway = new ApiGatewayManagementApiClient({
   ...clientConfig,
-  endpoint: `https://${wsApiId}.execute-api.${region}.amazonaws.com/prod`,
+  endpoint: `https://${wsApiId}.execute-api.${region}.amazonaws.com/_ws`,
   region,
 });
 const sqs = new SQSClient({ ...clientConfig, region });
@@ -86,9 +86,13 @@ class LambdaLocalStorage extends LocalStorage {
       );
     } catch (error) {
       if (error && typeof error === "object" && "$metadata" in error) {
-        const metadata = (error as { $metadata: { httpStatusCode: number } })
-          .$metadata;
-        if (metadata.httpStatusCode === 410)
+        const { httpStatusCode } = (
+          error as { $metadata: { httpStatusCode: number } }
+        ).$metadata;
+        // 410 Gone: this connection has been closed
+        // 403 Forbidden: this connection belongs to different API
+        // (this could happend if you add/remove domain)
+        if (httpStatusCode === 410 || httpStatusCode === 403)
           connections.onDisconnected(connectionId);
       } else throw error;
     }

@@ -13,7 +13,7 @@ import { Lambda } from "@aws-sdk/client-lambda";
 import ora from "ora";
 import invariant from "tiny-invariant";
 
-const wsStage = "_prod";
+const wsStage = "_ws";
 
 // See https://docs.aws.amazon.com/lambda/latest/dg/services-apigateway.html#apigateway-permissions
 
@@ -204,7 +204,7 @@ async function setupWSIntegrations(
   ]);
 
   // API Gateway insists on WS having a non-empty stage name, and that stage
-  // name is used in the URL, so the URL would end with /prod.
+  // name is used in the URL, so the URL would end with /_ws.
   await deployAPI(apiGateway, api, wsStage);
 }
 
@@ -372,7 +372,7 @@ export async function addAPIGatewayDomain({
   ]);
   return {
     httpUrl: `https://${domain}`,
-    wsUrl: `wss://ws.${domain}/${wsStage}`,
+    wsUrl: `wss://ws.${domain}`,
   };
 }
 
