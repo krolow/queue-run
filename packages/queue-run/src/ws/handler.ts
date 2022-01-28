@@ -5,6 +5,7 @@ import { LocalStorage, withLocalStorage } from "../shared/localStorage.js";
 import { logError } from "../shared/logError.js";
 import TimeoutError from "../shared/TimeoutError.js";
 import type { JSONValue } from "./../json";
+import { AuthenticatedUser } from "./../shared/authenticated";
 import {
   WebSocketHandler,
   WebSocketMiddleware,
@@ -282,17 +283,17 @@ export async function onMessageSentAsync({
 
 export async function handleUserOnline({
   newLocalStorage,
-  userId,
+  user,
 }: {
   newLocalStorage: () => LocalStorage;
-  userId: string;
+  user: AuthenticatedUser;
 }) {
   const { onOnline, onError } = await getCommonMiddleware();
   if (!onOnline) return null;
 
   return await withLocalStorage(newLocalStorage(), async () => {
     try {
-      await onOnline(userId);
+      await onOnline(user);
     } catch (error) {
       if (onError) {
         try {
@@ -309,17 +310,17 @@ export async function handleUserOnline({
 
 export async function handleUserOffline({
   newLocalStorage,
-  userId,
+  user,
 }: {
   newLocalStorage: () => LocalStorage;
-  userId: string;
+  user: AuthenticatedUser;
 }) {
   const { onOffline, onError } = await getCommonMiddleware();
   if (!onOffline) return null;
 
   return await withLocalStorage(newLocalStorage(), async () => {
     try {
-      await onOffline(userId);
+      await onOffline(user);
     } catch (error) {
       if (onError) {
         try {

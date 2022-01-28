@@ -65,16 +65,16 @@ export type WebSocketAuthenticateMethod = (params: {
 /**
  * Middleware that's called the first time the user connects with WebSocket.
  *
- * @param userId The user ID
+ * @param user.id The user ID
  */
-export type OnOnline = (userId: string) => void | Promise<void>;
+export type OnOnline = (user: AuthenticatedUser) => void | Promise<void>;
 
 /**
  * Middleware that's called after the user has closed all WebSocket connections.
  *
- * @param userId The user ID
+ * @param user.id The user ID
  */
-export type OnOffline = (userId: string) => void | Promise<void>;
+export type OnOffline = (user: AuthenticatedUser) => void | Promise<void>;
 
 /**
  * Middleware that's called when client makes the HTTP request to open a

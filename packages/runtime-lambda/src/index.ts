@@ -69,8 +69,7 @@ class LambdaLocalStorage extends LocalStorage {
       queueName,
       sqs,
       slug,
-      user:
-        user === undefined ? (this.userId ? { id: this.userId } : null) : user,
+      user: user === undefined ? this.user ?? null : user,
     });
   }
 
@@ -108,16 +107,16 @@ class LambdaLocalStorage extends LocalStorage {
 
   async authenticated(user: AuthenticatedUser | null) {
     super.authenticated(user);
-    const { connectionId, userId } = this;
-    if (userId && connectionId) {
+    const { connectionId } = this;
+    if (user && connectionId) {
       const { wentOnline } = await connections.onAuthenticated({
         connectionId,
-        userId,
+        userId: user.id,
       });
       if (wentOnline) {
         getLocalStorage().exit(() =>
           handleUserOnline({
-            userId,
+            user,
             newLocalStorage: () => new LambdaLocalStorage(),
           })
         );

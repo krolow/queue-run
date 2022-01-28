@@ -105,7 +105,7 @@ async function disconnect(
     connectionId
   );
   if (wentOffline && userId)
-    await handleUserOffline({ userId, newLocalStorage });
+    await handleUserOffline({ user: { id: userId }, newLocalStorage });
   return {
     headers: {},
     isBase64Encoded: false,

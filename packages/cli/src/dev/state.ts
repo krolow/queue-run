@@ -112,7 +112,7 @@ export class DevLocalStorage extends LocalStorage {
       if (wentOnline) {
         getLocalStorage().exit(() =>
           handleUserOnline({
-            userId: user.id,
+            user,
             newLocalStorage: () => new DevLocalStorage(this.port),
           })
         );
@@ -178,7 +178,7 @@ export function onWebSocketClosed({
     );
     if (connections.length === 0) {
       userIdToConnectionId.delete(userId);
-      handleUserOffline({ userId, newLocalStorage });
+      handleUserOffline({ user: { id: userId }, newLocalStorage });
     } else userIdToConnectionId.set(userId, connections);
   }
 }
