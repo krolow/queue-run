@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-import { spawn } from "node:child_process";
+import program from "queue-run-cli";
 
-const child = spawn("npx", ["queue-run-cli", ...process.argv.slice(2)], {
-  stdio: "inherit",
+program.parseAsync(process.argv).catch((error) => {
+  console.error(String(error));
+  if (error instanceof Error) console.error(error.stack);
+  process.exit(-1);
 });
-await new Promise(() => child.on("exit", (code) => process.exit(code)));
