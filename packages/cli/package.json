@@ -9,7 +9,11 @@
     "prepare": "yarn build",
     "watch": "rm -rf dist && yarn build --watch"
   },
+  "bin": {
+    "queue-run-cli": "./bin/cli.js"
+  },
   "files": [
+    "bin",
     "dist",
     "src",
     "templates"

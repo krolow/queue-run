@@ -13,7 +13,7 @@ import reservedCommand from "./project/reserved.js";
 import rollbackCommand from "./project/rollback.js";
 import statusCommand from "./project/status.js";
 
-const program = new Command();
+const program = new Command("npx queue-run");
 
 program.addCommand(buildCommand);
 program.addCommand(deployCommand);
@@ -40,8 +40,4 @@ program.configureHelp({
   sortOptions: true,
 });
 
-program.parseAsync(process.argv).catch((error) => {
-  console.error(String(error));
-  if (error instanceof Error) console.error(error.stack!);
-  process.exit(-1);
-});
+export default program;
