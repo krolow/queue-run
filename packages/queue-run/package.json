@@ -1,7 +1,7 @@
 {
   "name": "queue-run",
   "description": "👋 Backends for JAMstack apps: APIs, job queues, scheduled jobs, WebSocket notifications, and more …",
-  "version": "0.10.5",
+  "version": "0.10.6",
   "exports": {
     ".": "./dist/index.js",
     "./jsx-runtime": "./dist/jsx-runtime.js"
@@ -58,6 +58,6 @@
   ],
   "gitHead": "8fd7f66958b6b030362b2d96946cfd804c015f70",
   "dependencies": {
-    "queue-run-cli": "^0.10.5"
+    "queue-run-cli": "^0.10.6"
   }
 }
