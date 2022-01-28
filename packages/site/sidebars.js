@@ -1,20 +1,20 @@
 module.exports = {
   docs: [
-    "Intro",
+    "intro",
     {
       Developing: [
-        "HTTP",
-        "WebSocket",
-        "Queues",
-        "Authenticate",
-        "URLs",
-        "Logging",
-        "Timeout",
-        "XML",
+        "http",
+        "websocket",
+        "queues",
+        "authenticate",
+        "urls",
+        "logging",
+        "timeout",
+        "xml",
       ],
     },
     {
-      Production: ["Developing", "Deploying", "Optimizing"],
+      Production: ["developing", "deploying", "optimizing"],
     },
     {
       type: "link",

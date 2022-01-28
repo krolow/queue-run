@@ -7,7 +7,7 @@ QueueRun makes HTTP APIs as easy as:
 * Will parse request documents for you: JSON, HTML forms, text, and binary
 * Easy access to path parameters, query string parameters, and cookies
 * Generate JSON, XML/HTML, plain text, and binary responses
-* Middleware for [authentication](Authenticate.md) and [logging](Logging.md)
+* Middleware for [authentication](authenticate.md) and [logging](logging.md)
 * Handles CORS for you and response caching
 * Verify accepted content types and HTTP methods
 
@@ -51,7 +51,7 @@ They take a single argument with named parameters:
 - `request` - The HTTP [`Request`](https://developer.mozilla.org/en-US/docs/Web/API/Request) object
 - `requestId` - Unique request ID, used for tracing
 - `signal` — The [abort signal](https://developer.mozilla.org/en-US/docs/Web/API/AbortController)
-- `user` — User object returned from the [authenticate](Authenticate.md) middleware
+- `user` — User object returned from the [authenticate](authenticate.md) middleware
 
 They return a single value, which can be one of:
 
@@ -62,9 +62,9 @@ They return a single value, which can be one of:
 - `string` — Respond with content type `text/plain` (UTF-8 encoded)
 - [`Response`](https://developer.mozilla.org/en-US/docs/Web/API/Response) — Any HTTP response you want
 
-The request handler can also throw a `Response` object. This is used to "break from" further processing, eg the [authenticate](Authenticate.md) middleware uses this.
+The request handler can also throw a `Response` object. This is used to "break from" further processing, eg the [authenticate](authenticate.md) middleware uses this.
 
-If the request handler throws any other error, the server responds with 500. That error is also logged by the [Logging Middleware](Logging.md).
+If the request handler throws any other error, the server responds with 500. That error is also logged by the [Logging Middleware](logging.md).
 
 If the request times out, the server responds with 500. You can use the abort signal to tell if the request timed out.
 

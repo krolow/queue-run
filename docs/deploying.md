@@ -55,8 +55,8 @@ The following commands are available to deploy and manage your project:
 * `init` - Configure your project and update `.queue-run.json`
 * `logs` — Watch server logs
 * `policy` — Print out [the AWS policy](#credentials-and-policies) for deploying a project 
-* `provisioned` — Change the [provisioned concurrency](Optimizing.md#provisioned-concurrency)
-* `reserved` — Change the [reserved concurrency](Optimizing.md#reserved-concurrency)
+* `provisioned` — Change the [provisioned concurrency](optimizing.md#provisioned-concurrency)
+* `reserved` — Change the [reserved concurrency](optimizing.md#reserved-concurrency)
 * `rollback` — Broke something? Rollback to a previous version
 * `status` — See information about your deployed project (eg HTTP and WebSocket URLs, concurrency)
 
