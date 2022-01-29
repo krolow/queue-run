@@ -70,7 +70,7 @@ For example:
 
 ```ts title=api/_middleware.ts
 // We're going to use the default middleware for logging
-import { logResponse } from "queue-run";
+import { logging } from "queue-run";
 // Metrics package for counting request/responeses
 import { metrics } from "metrics";
 
@@ -79,7 +79,7 @@ export async function onRequest(request, response) {
 }
 
 export async function onResponse(request, response) {
-  await logResponse(request, response);
+  await logging.logResponse(request, response);
   await metrics.increment(`response.${response.status}`);
 }
 ```
@@ -108,14 +108,14 @@ The reference object depends on the task:
 For example, to send errors to Sentry in production:
 
 ```ts title=_middleware.ts
-import { logError } from "queue-run";
+import { logging } from "queue-run";
 import * as Sentry from "@sentry/node";
 
 if (process.env.SENTRY_DSN)
   Sentry.init({ dsn: process.env.SENTRY_DSN });
 
 export async function logError(error, reference) {
-  logError(error, reference);
+  logging.logError(error, reference);
   if (process.env.SENTRY_DSN)
     Sentry.captureException(error);
 }
@@ -130,13 +130,13 @@ For example, to use with LogTail:
 
 ```ts title=_middleware.ts
 import { format } from "node:util";
-import { logger } from "queue-run";
+import { logging } from "queue-run";
 import { Logtail } from "@logtail/node";
 
 const logtail = new Logtail(process.env.LOGTAIL_TOKEN);
-const _logger = logger();
+const _logger = logging.logger();
 
-logger(function(level, ...args) {
+logging.logger(function(level, ...args) {
   // Output to stdout/stderr
   _logger(level, ...args);
  

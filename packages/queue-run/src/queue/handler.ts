@@ -7,11 +7,10 @@ import {
   LocalStorage,
   withLocalStorage,
 } from "../shared/localStorage.js";
-import { logError } from "../shared/logError.js";
+import { logError, logJobFinished, logJobStarted } from "../shared/logging.js";
 import { loadManifest } from "../shared/manifest.js";
 import TimeoutError from "../shared/TimeoutError.js";
 import { JobMetadata, QueueExports, QueueMiddleware } from "./exports.js";
-import { logJobFinished, logJobStarted } from "./middleware.js";
 
 export default async function handleQueuedJob({
   metadata,

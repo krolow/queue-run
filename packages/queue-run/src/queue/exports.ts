@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 import type { AbortSignal } from "node-abort-controller";
 import type { JSONObject, JSONValue } from "../json";
-import type { OnError } from "../shared/logError.js";
+import type { OnError } from "../shared/onError.js";
 
 /**
  * Queued job handler.

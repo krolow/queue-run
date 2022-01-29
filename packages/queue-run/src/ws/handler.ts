@@ -2,7 +2,7 @@ import { AbortController } from "node-abort-controller";
 import { getLocalStorage } from "..";
 import { loadMiddleware, loadModule } from "../shared/loadModule.js";
 import { LocalStorage, withLocalStorage } from "../shared/localStorage.js";
-import { logError } from "../shared/logError.js";
+import { logError, logMessageReceived } from "../shared/logging.js";
 import TimeoutError from "../shared/TimeoutError.js";
 import type { JSONValue } from "./../json";
 import { AuthenticatedUser } from "./../shared/authenticated";
@@ -12,7 +12,6 @@ import {
   WebSocketRequest,
 } from "./exports.js";
 import findRoute from "./findRoute.js";
-import { logMessageReceived } from "./middleware.js";
 
 // eslint-disable-next-line sonarjs/cognitive-complexity
 export async function handleWebSocketConnect({

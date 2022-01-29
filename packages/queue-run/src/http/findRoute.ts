@@ -1,10 +1,9 @@
 import { URL } from "node:url";
 import invariant from "tiny-invariant";
 import { loadModule } from "../shared/loadModule.js";
-import { logError } from "../shared/logError.js";
+import { logError, logResponse } from "../shared/logging.js";
 import { HTTPRoute, loadManifest } from "../shared/manifest.js";
 import { RouteExports, RouteMiddleware } from "./exports.js";
-import { logResponse } from "./middleware.js";
 
 /**
  * Load the route handler for the given URL.

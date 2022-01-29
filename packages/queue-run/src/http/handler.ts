@@ -10,7 +10,7 @@ import {
   LocalStorage,
   withLocalStorage,
 } from "../shared/localStorage";
-import { logError } from "../shared/logError.js";
+import { logError } from "../shared/logging.js";
 import { HTTPRoute } from "../shared/manifest";
 import TimeoutError from "../shared/TimeoutError.js";
 import {

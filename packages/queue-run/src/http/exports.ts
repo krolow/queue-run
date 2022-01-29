@@ -2,7 +2,7 @@
 import type { AbortSignal } from "node-abort-controller";
 import { JSONValue } from "../json";
 import { AuthenticatedUser } from "../shared/authenticated.js";
-import { OnError } from "../shared/logError.js";
+import { OnError } from "../shared/onError.js";
 
 /**
  * HTTP request handler.

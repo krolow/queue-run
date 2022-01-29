@@ -2,7 +2,7 @@
 import type { AbortSignal } from "node-abort-controller";
 import type { JSONValue } from "../json";
 import { AuthenticatedUser } from "../shared/authenticated";
-import type { OnError } from "../shared/logError.js";
+import type { OnError } from "../shared/onError.js";
 
 /**
  * WebSocket message handler.
