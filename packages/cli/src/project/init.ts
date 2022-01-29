@@ -1,6 +1,7 @@
 import { Command } from "commander";
 import glob from "fast-glob";
 import inquirer from "inquirer";
+import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { URL } from "node:url";
@@ -50,8 +51,12 @@ async function copyTemplates(language: "javascript" | "typescript") {
 }
 
 async function createBaseDirectories() {
-  await fs.mkdir("api", { recursive: true });
-  await fs.mkdir("queues", { recursive: true });
+  const spinner = ora("Creating base directories").start();
+  const dirs = ["api", "queues", "socket"];
+  for (const dir of dirs) {
+    await fs.mkdir(dir, { recursive: true });
+    spinner.succeed(`Created directory: ${dir}`);
+  }
 }
 
 async function prepareForTypeScript(templates: string) {
@@ -67,11 +72,10 @@ async function prepareForTypeScript(templates: string) {
 
 async function replaceFile(src: string, dest: string) {
   try {
+    const spinner = ora(`Updating ${dest}`).start();
     const current = await fs.readFile(dest, "utf-8");
     const template = await fs.readFile(src, "utf-8");
-    if (current === template) return;
-    const spinner = ora(`Updating ${dest}`).start();
-    await fs.copyFile(src, dest);
+    if (current !== template) await fs.copyFile(src, dest);
     spinner.succeed();
   } catch {
     const spinner = ora(`Adding ${dest}`).start();
@@ -91,22 +95,53 @@ async function copySample(src: string) {
 }
 
 async function updatePackageJSON() {
-  const { version } = JSON.parse(
-    await fs.readFile(
-      new URL("../../package.json", import.meta.url).pathname,
-      "utf-8"
-    )
-  );
-
   try {
     // eslint-disable-next-line sonarjs/no-duplicate-string
     await fs.access("package.json");
   } catch {
     const templates = new URL("../../templates", import.meta.url).pathname;
-    const pkg = JSON.parse(
-      await fs.readFile(path.join(templates, "package.json"), "utf-8")
-    );
-    pkg.peerDependencies["queue-run"] = `^${version}`;
-    await fs.writeFile("package.json", JSON.stringify(pkg, null, 2));
+    await fs.copyFile(path.join(templates, "package.json"), "package.json");
   }
+
+  try {
+    await fs.access("yarn.lock");
+  } catch {
+    return await yarnInstall();
+  }
+
+  try {
+    await fs.access("package-lock.json");
+    return await npmInstall(true);
+  } catch {
+    return await npmInstall(false);
+  }
+}
+
+async function yarnInstall() {
+  const child = spawn("yarn", ["add", "--dev", "queue-run", "queue-run-cli"], {
+    stdio: "inherit",
+  });
+  await new Promise((resolve, reject) =>
+    child.on("exit", (code) => (code === 0 ? resolve(undefined) : reject(code)))
+  );
+}
+
+async function npmInstall(lock: boolean) {
+  const child = spawn(
+    "npm",
+    [
+      "install",
+      "--save-dev",
+      "queue-run",
+      "queue-run-cli",
+      "--package-lock",
+      lock.toString(),
+    ],
+    {
+      stdio: "inherit",
+    }
+  );
+  await new Promise((resolve, reject) =>
+    child.on("exit", (code) => (code === 0 ? resolve(undefined) : reject(code)))
+  );
 }

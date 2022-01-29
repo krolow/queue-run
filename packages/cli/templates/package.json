@@ -1,6 +1,4 @@
 {
-  "private": true,
-  "type": "module",
   "imports": {
     "#api/*": "./api/*",
     "#lib/*": "./lib/*",
@@ -9,13 +7,12 @@
   },
   "scripts": {
     "build": "queue-run build",
-    "dev": "queue-run dev",
-    "deploy": "queue-run deploy"
-  },
-  "peerDependencies": {
-    "queue-run": "^3.0.0"
+    "dev": "queue-run dev"
   },
   "engines": {
     "node": "14.x"
-  }
+  },
+  "private": true,
+  "type": "module",
+  "version": "0.0.0"
 }
