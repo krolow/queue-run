@@ -35,10 +35,23 @@ const blockOnBuild = new Sema(1);
 const sourceDir = process.cwd();
 const buildDir = path.resolve(".queue-run");
 
-export default async function devServer({ port }: { port: number }) {
+export default async function devServer({
+  envVars,
+  port,
+}: {
+  envVars: Map<string, string>;
+  port: number;
+}) {
   cluster.setupMaster({
     exec: new URL(import.meta.url).pathname,
   });
+
+  const fromFile = await fs.readFile(`.env`, "utf-8").then(
+    (file) => dotenv.parse(file),
+    () => ({})
+  );
+  for (const [key, value] of Object.entries(fromFile))
+    if (!envVars.has(key)) envVars.set(key, value);
 
   console.info(
     chalk.bold.green("👋 Dev server listening on:\n   %s\n   %s"),
@@ -46,7 +59,7 @@ export default async function devServer({ port }: { port: number }) {
     `ws://localhost:${port}`
   );
 
-  await newWorker(port);
+  await newWorker({ envVars, port });
 
   console.info(chalk.gray("   Watching for changes (Crtl+R to reload) …"));
   chokidar
@@ -54,7 +67,9 @@ export default async function devServer({ port }: { port: number }) {
       ignored: ["**/node_modules/**", buildDir, "**/.*/**"],
       ignoreInitial: true,
     })
-    .on("all", (event, filename) => onFileChange(event, filename, port));
+    .on("all", (event, filename) =>
+      onFileChange({ envVars, event, filename, port })
+    );
 
   process.stdin.on("data", (data) => {
     const key = data[0]!;
@@ -72,7 +87,7 @@ export default async function devServer({ port }: { port: number }) {
       }
       case 18: {
         // Ctrl+R
-        newWorker(port);
+        newWorker({ envVars, port });
         break;
       }
       case 13: {
@@ -99,7 +114,13 @@ export default async function devServer({ port }: { port: number }) {
   await new Promise(() => {});
 }
 
-async function newWorker(port: number) {
+async function newWorker({
+  envVars,
+  port,
+}: {
+  envVars: Map<string, string>;
+  port: number;
+}) {
   const token = await blockOnBuild.acquire();
 
   for (const worker of Object.values(cluster.workers!)) {
@@ -109,13 +130,8 @@ async function newWorker(port: number) {
     worker.on("disconnect", () => clearTimeout(timeout));
   }
 
-  const fromFile = await fs.readFile(`.env`, "utf-8").then(
-    (file) => dotenv.parse(file),
-    () => ({})
-  );
-
   const worker = cluster.fork({
-    ...fromFile,
+    ...Object.fromEntries(envVars.entries()),
     NODE_ENV: "development",
     PORT: port,
     QUEUE_RUN_ENV: "development",
@@ -138,7 +154,17 @@ async function newWorker(port: number) {
   blockOnBuild.release(token);
 }
 
-function onFileChange(event: string, filename: string, port: number) {
+function onFileChange({
+  event,
+  envVars,
+  filename,
+  port,
+}: {
+  event: string;
+  envVars: Map<string, string>;
+  filename: string;
+  port: number;
+}) {
   if (!(event === "add" || event === "change")) return;
   if (!/\.(tsx?|jsx?|json)$/.test(filename)) return;
 
@@ -147,7 +173,7 @@ function onFileChange(event: string, filename: string, port: number) {
     event === "add" ? "New file" : "Changed",
     filename
   );
-  newWorker(port);
+  newWorker({ envVars, port });
 }
 
 if (cluster.isWorker) {

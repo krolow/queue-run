@@ -14,9 +14,11 @@ import { loadCredentials } from "./project.js";
 const command = new Command("deploy")
   .description("deploy your project")
   .argument("[name]", "the project name")
-  .option(
-    "-e, --environment <environment...>",
-    'environment variables (format: "name=value")'
+  .addOption(
+    new Option(
+      "-e, --environment <environment...>",
+      "environment variables (format: name=value)"
+    ).default([])
   )
   .addOption(
     new Option("--region <region>", "AWS region")
@@ -38,7 +40,7 @@ Deploying from
   )
   .action(
     async (
-      name,
+      name: string | undefined,
       {
         environment,
         region: awsRegion,

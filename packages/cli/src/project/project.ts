@@ -15,8 +15,7 @@ type Credentials = {
 };
 
 export async function loadProject(provided?: {
-  name?: string;
-  awsRegion?: string;
+  name?: string | undefined;
 }): Promise<Project> {
   const loaded = JSON.parse(
     await fs.readFile(filename, "utf-8").catch(() => "{}")
@@ -49,10 +48,10 @@ export async function loadProject(provided?: {
 }
 
 export async function loadCredentials(provided?: {
-  name?: string;
-  awsAccessKeyId?: string;
-  awsSecretAccessKey?: string;
-  awsRegion?: string;
+  name?: string | undefined;
+  awsAccessKeyId?: string | undefined;
+  awsSecretAccessKey?: string | undefined;
+  awsRegion?: string | undefined;
 }): Promise<Project & Credentials> {
   const loaded = await loadProject(provided);
   const project = {
