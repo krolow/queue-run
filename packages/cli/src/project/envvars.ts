@@ -56,10 +56,24 @@ command
   .command("set")
   .alias("add")
   .description("add or update an environment variable")
-  .arguments("<name> <value>")
-  .action(async (varName, varValue) => {
-    const { name, awsRegion: region } = await loadCredentials();
+  .argument("name", "name of the environment variable")
+  .argument("[value]", "value of the environment variable")
+  .addHelpText(
+    "after",
+    `\n
+Either of these will work:
 
+$ npx queue-run env set MY_VAR=my-value
+$ npx queue-run env set MY_VAR my-value
+`
+  )
+  .action(async (varName, varValue) => {
+    const match = varName.match(/^(.+?)=(.*)$/)?.slice(1);
+    if (match) {
+      varName = match[0];
+      varValue = match[1];
+    }
+    const { name, awsRegion: region } = await loadCredentials();
     await setEnvVariable({
       environment: "production",
       project: name,
