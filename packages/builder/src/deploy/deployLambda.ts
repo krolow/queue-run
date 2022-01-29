@@ -19,7 +19,11 @@ export type LambdaConfig = {
   /**  AWS account ID  */
   accountId: string;
 
+  /** Deployment environment */
   env: "production" | "preview";
+
+  /** Environment variables from command line */
+  envVars: Map<string, string>;
 
   /** The full URL for this backend's HTTP API. Available to the backed as the
    *  environment variable QUEUE_RUN_URL. */
@@ -98,6 +102,7 @@ export async function deployLambda({
 
   const envVars = await loadEnvVars({
     environment: config.env,
+    envVars: config.envVars,
     httpUrl,
     project,
     region,
@@ -171,6 +176,7 @@ export async function deployLambda({
 
 async function loadEnvVars({
   environment,
+  envVars,
   httpUrl,
   project,
   region,
@@ -178,18 +184,24 @@ async function loadEnvVars({
   wsApiId,
 }: {
   environment: "production" | "preview";
+  envVars: Map<string, string>;
   httpUrl: string;
   project: string;
   region: string;
   wsUrl: string;
   wsApiId: string;
 }) {
-  const envVars = await getEnvVariables({
+  // Environment from database
+  const merged = await getEnvVariables({
     environment,
     project,
     region,
   });
 
+  // Command line environment variables over-ride database
+  for (const [key, value] of envVars.entries()) merged.set(key, value);
+
+  // These always take precedence
   envVars.set("NODE_ENV", "production");
   envVars.set("QUEUE_RUN_ENV", environment);
   envVars.set("QUEUE_RUN_URL", httpUrl);
