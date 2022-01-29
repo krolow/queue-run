@@ -7,10 +7,23 @@ import {
 } from "queue-run-builder";
 import { loadCredentials } from "./project.js";
 
-const command = new Command("env").description("manage environment variables");
+const command = new Command("env")
+  .description("manage environment variables")
+  .addHelpText(
+    "after",
+    `\n
+To download environment variables from the server to use locally:
+$ npx queue-run env ls > .env
 
+You can change environment variables when deploying:
+$ npx queue-run deploy --environment DEBUG=true
+
+⚠️  You need to re-deploy your project after changing environment variables.
+`
+  );
 command
-  .command("list", { isDefault: true })
+  .command("list")
+  .alias("ls")
   .description("list environment variables")
   .action(async () => {
     const { name, awsRegion: region } = await loadCredentials();
@@ -40,7 +53,8 @@ command
   });
 
 command
-  .command("add")
+  .command("set")
+  .alias("add")
   .description("add or update an environment variable")
   .arguments("<name> <value>")
   .action(async (varName, varValue) => {
@@ -56,7 +70,9 @@ command
   });
 
 command
-  .command("delete")
+  .command("remove")
+  .alias("rm")
+  .alias("delete")
   .description("delete an environment variable")
   .arguments("<name>")
   .action(async (varName) => {

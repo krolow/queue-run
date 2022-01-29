@@ -1,6 +1,6 @@
 import { IAM } from "@aws-sdk/client-iam";
 import chalk from "chalk";
-import { Command } from "commander";
+import { Command, Option } from "commander";
 import ms from "ms";
 import ora from "ora";
 import {
@@ -16,20 +16,24 @@ const command = new Command("deploy")
   .argument("[name]", "the project name")
   .option(
     "-e, --environment <environment...>",
-    'environment variables ("name=value")'
+    'environment variables (format: "name=value")'
   )
-  .option("--region <region>", "AWS region", "us-east-1")
+  .addOption(
+    new Option("--region <region>", "AWS region")
+      .env("AWS_REGION")
+      .default("us-east-1")
+  )
   .addHelpText(
     "after",
-    `
-Automated deployment:
-- Use command line options to specify the project name, region, etc
+    `\n
+Deploying from CI:
 - CI server should supply the environment variables AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
+- Use command line to specify the project name, region, etc
 
-Deploying from your devbox:
+Deploying from 
 - Run npx queue-run deploy without any options
 - It will ask you for project name, AWS credentials, etc
-- These are stored in .queue-run.json, also used for view logs, managing env variables, etc
+- These are stored in .queue-run.json, also used by other commands (logs, env, etc)
 `
   )
   .action(

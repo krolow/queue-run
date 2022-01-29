@@ -6,6 +6,19 @@ import { loadCredentials } from "./project.js";
 const command = new Command("reserved")
   .description("set reserved concurrency")
   .argument("<instances>", 'Number of instances, or "off"')
+  .addHelpText(
+    "after",
+    `\n
+This backend has a reserved concurrency of 5 instances:
+$ npx queue-run reserved 5
+
+This backend has no reserved concurrency:
+$ npx queue-run reserved off
+
+This backend is not available:
+$ npx queue-run reserved 0
+`
+  )
   .action(async (instances: string) => {
     const { name, awsRegion: region } = await loadCredentials();
     const slug = `qr-${name}`;
@@ -19,6 +32,7 @@ const command = new Command("reserved")
     } else {
       const number = parseInt(instances, 10);
       if (isNaN(number)) throw new Error('Must be a number or "off"');
+      if (number < 0) throw new Error("Must be a positive number");
       await lambda.putFunctionConcurrency({
         FunctionName: slug,
         ReservedConcurrentExecutions: number,

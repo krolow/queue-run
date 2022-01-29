@@ -35,6 +35,8 @@ program.version(version);
 
 program.showSuggestionAfterError();
 program.addHelpCommand();
+program.showHelpAfterError();
+
 program.configureHelp({
   sortSubcommands: true,
   sortOptions: true,

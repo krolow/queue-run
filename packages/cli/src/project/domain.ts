@@ -1,6 +1,6 @@
 import { ApiGatewayV2 } from "@aws-sdk/client-apigatewayv2";
 import chalk from "chalk";
-import { Command } from "commander";
+import { Command, Option } from "commander";
 import dns from "node:dns";
 import ora from "ora";
 import {
@@ -18,9 +18,18 @@ const command = new Command("domain");
 command
   .command("add")
   .description("add custom domain")
-  .argument("<domain>", "domain name, eg example.com")
-  .option("--method [email|dns]", "verification method")
-  .option("--verify [verify]", "email verification domain")
+  .argument("<domain>", 'domain name (example: "example.com")')
+  .addOption(
+    new Option("-m --method <method>", "verification method")
+      .choices(["email", "dns"])
+      .default("dns")
+  )
+  .addOption(
+    new Option("-v --verify <domain>", "email verification domain").default(
+      null,
+      "same as <domain>"
+    )
+  )
   .action(
     async (
       domain: string,
@@ -147,7 +156,7 @@ function displayCNames(cnames: { cname: string; value: string }[]) {
 command
   .command("remove")
   .description("remove custom domain")
-  .argument("<domain>", "domain name, eg example.com")
+  .argument("<domain>", 'domain name (example: "example.com")')
   .action(async (domain: string) => {
     const { name, awsRegion: region } = await loadCredentials();
 

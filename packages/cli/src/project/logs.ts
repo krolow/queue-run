@@ -1,27 +1,35 @@
 import { CloudWatchLogs } from "@aws-sdk/client-cloudwatch-logs";
 import chalk from "chalk";
-import { Command } from "commander";
+import { Command, Option } from "commander";
 import ms from "ms";
 import ora from "ora";
 import { loadCredentials } from "./project.js";
 
 const command = new Command("logs")
-  .description("view server logs (Ctrl+C to stop)")
-  .option("-h --hours <n>", "number of hours to look back", "1")
-  .option("--once", "show most recent logs and stop")
+  .description("view server logs")
+  .addOption(
+    new Option("-h --hours <hours>", "how many hours to look back").default(
+      0.5,
+      "30 minutes"
+    )
+  )
+  .option("--watch", "continuously watch logs", true)
+  .option("--no-watch", "show most recent logs and stop")
   .addHelpText(
     "after",
-    `
-🧘 We're using CloudWatch here. It takes few seconds before logs are available.
+    `\n
+🧘 We're using CloudWatch here. There's a few seconds delay between when the logs are written and when they appear here.
+
+💡 You can use Ctrl+C to stop, or Ctrl+L to clear the screen
 `
   )
-  .action(async ({ hours, once }: { hours: string; once: boolean }) => {
+  .action(async ({ hours, watch }: { hours: string; watch: boolean }) => {
     const { name, awsRegion } = await loadCredentials();
 
     keystrokes();
     const cw = new CloudWatchLogs({ region: awsRegion });
     let nextToken = await showEvents({ cw, name, hours: Number(hours) });
-    while (!once) nextToken = await showEvents({ cw, name, nextToken });
+    while (watch) nextToken = await showEvents({ cw, name, nextToken });
   });
 
 async function showEvents({

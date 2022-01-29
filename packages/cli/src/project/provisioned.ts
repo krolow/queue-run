@@ -5,12 +5,13 @@ import { loadCredentials } from "./project.js";
 
 const command = new Command("provisioned")
   .description("set provisioned concurrency")
-  .argument("<instances>", "Number of instances (0 to turn off)")
+  .argument("<instances>", 'Number of instances, or "off"')
   .action(async (instances: string) => {
     const { name, awsRegion: region } = await loadCredentials();
 
     const number = parseInt(instances, 10);
-    if (isNaN(number)) throw new Error('Must be a number or "off"');
+    if (instances !== "off" && isNaN(number))
+      throw new Error('Must be a number or "off"');
     const lambda = new Lambda({ region });
     const lambdaName = `qr-${name}`;
 
