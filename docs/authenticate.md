@@ -138,3 +138,52 @@ You can also use the `onConnect` method to reject clients based on IP address or
 
 You can use the `Authenticate` header with other clients, such as Node WebSocket libraries (eg [ws](https://github.com/websockets/ws)) or [websocat](https://github.com/vi/websocat).
 
+
+## JWT Identity Tokens
+
+```ts title=api/_middleware.ts
+import { jwt } from "queue-run";
+import { googleCerts } from "../index.js";
+
+export async function authenticate({ bearerToken }) {
+  if (!bearerToken)
+    throw new Response("No bearer token", { status: 401 });
+
+  try {
+    const profile = await jwt.verify(bearerToken, googleCerts, {
+      issuer: "https://accounts.google.com",
+      audience: "...apps.googleusercontent.com',
+    });
+    return { id: profile.sub, email: profile.email };
+  } catch (error) {
+    throw new Response("Token expired or not valid", { status: 403 });
+  }
+}
+```
+
+```ts title=index.ts
+export let googleCerts;
+
+export async function warmup() {
+  googleCerts = await (
+    await fetch("https://www.googleapis.com/oauth2/v1/certs")
+  ).json();
+}
+```
+
+```ts title=socket/_middleware.ts
+import { socket, jwt } from "queue-run";
+import { googleCerts } from "../index.js";
+
+export async function authenticate({ data }) {
+  try {
+    const profile = await jwt.verify(data.token, googleCerts, {
+      issuer: "https://accounts.google.com",
+      audience: "...apps.googleusercontent.com',
+    });
+    return { id: profile.sub, email: profile.email };
+  } catch (error) {
+    await socket.close();
+  }
+}
+```

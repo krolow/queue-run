@@ -14,6 +14,7 @@ export * from "./queue/exports.js";
 export { default as queues } from "./queue/queues.js";
 export * from "./shared/authenticated.js";
 export * from "./shared/exports.js";
+export * as jwt from "./shared/jwt.js";
 export { loadModule } from "./shared/loadModule.js";
 export * as logging from "./shared/logging";
 export type { Manifest } from "./shared/manifest.js";
