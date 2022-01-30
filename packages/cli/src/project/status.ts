@@ -1,79 +1,105 @@
 import { Lambda } from "@aws-sdk/client-lambda";
 import { Command } from "commander";
 import filesize from "filesize";
+import ora from "ora";
 import { getAPIGatewayURLs, getRecentVersions } from "queue-run-builder";
 import { loadCredentials } from "./project.js";
 
 const command = new Command("status")
   .description("status of your project")
   .action(async () => {
-    const { name, awsRegion: region } = await loadCredentials();
+    const {
+      name,
+      region,
+      current,
+      memory,
+      reserved,
+      provisioned,
+      httpUrl,
+      wsUrl,
+    } = await loadStatus();
 
     console.info("Name:\t\t%s", name);
     console.info("Region:\t\t%s", region);
+    console.info("Version:\t%s", current?.version ?? "NONE");
+    if (current) {
+      console.info("├─ Code size:\t%s", filesize(current.size));
+      console.info("└─ Deployed:\t%s", current.modified.toLocaleString());
+    }
 
-    const versions = await getRecentVersions({ region, slug: name });
-    const current = versions.find(({ isCurrent }) => isCurrent);
-    if (!current) throw new Error("No current version");
+    const size =
+      memory > 1000 ? (memory / 1000).toFixed(2) + " GB" : memory + " MB";
+    console.info("Avail memory:\t%s", size);
 
-    console.info("Version:\t%s", current.version);
-    console.info("├─ Code size:\t%s", filesize(current.size));
-    console.info("└─ Deployed:\t%s", current.modified.toLocaleString());
+    console.info(
+      "├─ Reserved:\t%s",
+      reserved === 0 ? "0 (no instances)" : reserved ?? "no limit"
+    );
 
-    const lambda = new Lambda({ region });
-    await showMemory(lambda, current.arn);
-    await showConcurrency(lambda, current.arn);
+    if (provisioned?.length) {
+      provisioned.forEach(
+        ({ status, requested, allocated, available }, index) => {
+          const last = index === provisioned.length - 1;
+          console.info("%s Provisioned:\t%s", last ? "└─" : "├─", status);
+          console.info("   ├─ Requested:\t%s", requested);
+          console.info("   ├─ Allocated:\t%s", allocated);
+          console.info("   └─ Available:\t%s", available);
+        }
+      );
+    } else console.info("└─ Provisioned:\tNONE");
 
-    const { httpUrl, wsUrl } = await getAPIGatewayURLs({
-      project: name,
-      region,
-    });
     console.info("API:\t\t%s", httpUrl);
     console.info("WebSocket:\t%s", wsUrl);
   });
 
-async function showMemory(lambda: Lambda, arn: string): Promise<void> {
-  const { MemorySize } = await lambda.getFunctionConfiguration({
-    FunctionName: arn,
-  });
-  const memory = MemorySize ?? 128;
-  const size =
-    memory > 1000 ? (memory / 1000).toFixed(2) + " GB" : memory + " MB";
-  console.info("Avail memory:\t%s", size);
-}
+async function loadStatus() {
+  const spinner = ora("Loading project …").start();
+  const { name, awsRegion: region } = await loadCredentials();
 
-async function showConcurrency(lambda: Lambda, arn: string): Promise<void> {
-  console.info("Concurrency:");
+  const [versions, { httpUrl, wsUrl }] = await Promise.all([
+    getRecentVersions({ region, slug: name }),
+    getAPIGatewayURLs({ project: name, region }),
+  ]);
 
-  const { ReservedConcurrentExecutions: reserved } =
-    await lambda.getFunctionConcurrency({
-      FunctionName: arn.replace(/:\d+$/, ""),
-    });
-  console.info(
-    "├─ Reserved:\t%s",
-    reserved === 0 ? "0 (no instances)" : reserved ?? "no limit"
-  );
+  const current = versions.find(({ isCurrent }) => isCurrent);
+  if (!current)
+    throw new Error("No current version found: did you deploy this project?");
 
-  const { ProvisionedConcurrencyConfigs: configs } =
-    await lambda.listProvisionedConcurrencyConfigs({
-      FunctionName: arn.replace(/:\w+$/, ""),
-    });
-  for (const config of configs ?? []) {
-    console.info("└─ Provisioned:\t%s", config.Status);
+  const lambda = new Lambda({ region });
+  const [
+    { MemorySize: memory },
+    { ReservedConcurrentExecutions: reserved },
+    { ProvisionedConcurrencyConfigs: provisioned },
+  ] = await Promise.all([
+    lambda.getFunctionConfiguration({
+      FunctionName: current.arn,
+    }),
+    lambda.getFunctionConcurrency({
+      FunctionName: current.arn.replace(/:\d+$/, ""),
+    }),
+    lambda.listProvisionedConcurrencyConfigs({
+      FunctionName: current.arn.replace(/:\w+$/, ""),
+    }),
+  ]);
 
-    console.info(
-      "  ├─ Requested:\t%s",
-      config.RequestedProvisionedConcurrentExecutions
-    );
-    console.info(
-      "  ├─ Allocated:\t%s",
-      config.AllocatedProvisionedConcurrentExecutions
-    );
-    console.info(
-      "  └─ Available:\t%s",
-      config.AvailableProvisionedConcurrentExecutions
-    );
-  }
+  spinner.stop();
+  return {
+    name,
+    region,
+    current,
+    memory: memory ?? 128,
+    reserved,
+    provisioned: provisioned?.map(
+      ({
+        Status: status,
+        RequestedProvisionedConcurrentExecutions: requested,
+        AllocatedProvisionedConcurrentExecutions: allocated,
+        AvailableProvisionedConcurrentExecutions: available,
+      }) => ({ requested, allocated, available, status })
+    ),
+    httpUrl,
+    wsUrl,
+  };
 }
 
 export default command;
