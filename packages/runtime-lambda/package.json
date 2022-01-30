@@ -7,10 +7,12 @@
   },
   "type": "module",
   "scripts": {
-    "build": "rm -rf dist && yarn esbuild src/index.ts --bundle --platform=node --target=node15 --outfile=dist/index.mjs --format=esm  --inject:./src/require_shim.js --sourcemap --external:queue-run",
+    "build": "yarn clean && yarn build:bundle",
+    "build:bundle": "yarn esbuild src/index.ts --bundle --platform=node --target=node15 --outfile=dist/index.mjs --format=esm  --inject:./src/require_shim.js --sourcemap --external:queue-run",
+    "clean": "rm -rf dist",
     "lint": "yarn eslint src/**/*.ts",
     "prepare": "yarn build",
-    "watch": "rm -rf dist && yarn build --watch"
+    "watch": "yarn clean && yarn build --watch"
   },
   "files": [
     "dist"

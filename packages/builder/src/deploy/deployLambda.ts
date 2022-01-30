@@ -279,7 +279,7 @@ export async function getRecentVersions({
   });
   const versions = (await getAllVersions(lambdaName))
     .filter(({ version }) => version !== "$LATEST")
-    .sort((a, b) => b.version.localeCompare(a.version));
+    .sort((a, b) => +b.version - +a.version);
 
   return versions.map((version) => ({
     ...version,

@@ -12,10 +12,13 @@
     "queue-run": "./bin/cli.js"
   },
   "scripts": {
-    "build": "rm -rf dist && yarn esbuild src/index.ts src/jsx-runtime.ts --bundle --platform=node --target=node14 --outdir=dist --format=esm --inject:./src/require_shim.js --sourcemap",
+    "build": "yarn clean && yarn build:bundle && yarn build:types",
+    "build:bundle": "yarn esbuild src/index.ts src/jsx-runtime.ts --bundle --platform=node --target=node14 --outdir=dist --format=esm --inject:./src/require_shim.js --sourcemap",
+    "build:types": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
     "lint": "yarn eslint src/**/*.ts",
-    "prepare": "yarn build && sleep 0.5",
-    "watch": "yarn build --watch"
+    "prepare": "yarn build",
+    "watch": "yarn clean && concurrently \"yarn build:bundle --watch\" \"yarn build:types --watch\""
   },
   "files": [
     "bin",
