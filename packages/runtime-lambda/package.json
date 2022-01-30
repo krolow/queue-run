@@ -9,10 +9,11 @@
   "scripts": {
     "build": "yarn clean && yarn build:bundle",
     "build:bundle": "yarn esbuild src/index.ts --bundle --platform=node --target=node15 --outfile=dist/index.mjs --format=esm  --inject:./src/require_shim.js --sourcemap --external:queue-run",
+    "build:types": "tsc --noEmit",
     "clean": "rm -rf dist",
-    "lint": "yarn eslint src/**/*.ts",
+    "lint": "yarn eslint src/**/*.ts && tsc --noEmit",
     "prepare": "yarn build",
-    "watch": "yarn clean && yarn build --watch"
+    "watch": "yarn clean && concurrently \"yarn build:bundle --watch\" \"yarn build:types --watch\""
   },
   "files": [
     "dist"

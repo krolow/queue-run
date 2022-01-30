@@ -11,7 +11,7 @@ import {
   getLocalStorage,
   handleUserOnline,
   LocalStorage,
-  logger,
+  logging,
   warmup,
 } from "queue-run";
 import swapAWSEnvVars from "./environment";
@@ -30,7 +30,7 @@ import handleWebSocketRequest, {
 import queueJob from "./queueJob";
 import userConnections from "./userConnections";
 
-logger((level, ...args) => {
+logging.logger((level, ...args) => {
   const formatted = format(...args);
   process.stdout.write(
     `[${level.toUpperCase()}] ${formatted.replace(/\n/g, "\r")}\n`
