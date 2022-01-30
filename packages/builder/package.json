@@ -7,12 +7,11 @@
   "scripts": {
     "build": "rm -rf dist && yarn esbuild src/*.ts src/**/*.ts --platform=node --target=node14 --outdir=dist --format=esm --sourcemap",
     "lint": "yarn eslint src/**/*.ts",
-    "prepare": "yarn build",
+    "prepare": "yarn build && sleep 0.5",
     "watch": "yarn build --watch"
   },
   "files": [
     "dist",
-    "src",
     "types"
   ],
   "dependencies": {

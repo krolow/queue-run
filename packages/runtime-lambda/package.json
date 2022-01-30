@@ -13,8 +13,7 @@
     "watch": "rm -rf dist && yarn build --watch"
   },
   "files": [
-    "dist",
-    "src"
+    "dist"
   ],
   "devDependencies": {
     "@aws-sdk/client-sqs": "^3.49.0",

@@ -15,7 +15,6 @@
   "files": [
     "bin",
     "dist",
-    "src",
     "templates"
   ],
   "dependencies": {

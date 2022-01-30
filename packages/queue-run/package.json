@@ -14,13 +14,12 @@
   "scripts": {
     "build": "rm -rf dist && yarn esbuild src/index.ts src/jsx-runtime.ts --bundle --platform=node --target=node14 --outdir=dist --format=esm --inject:./src/require_shim.js --sourcemap",
     "lint": "yarn eslint src/**/*.ts",
-    "prepare": "yarn build",
+    "prepare": "yarn build && sleep 0.5",
     "watch": "yarn build --watch"
   },
   "files": [
     "bin",
     "dist",
-    "src",
     "README.md"
   ],
   "devDependencies": {
