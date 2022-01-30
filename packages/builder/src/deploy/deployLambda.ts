@@ -199,15 +199,16 @@ async function loadEnvVars({
   });
 
   // Command line environment variables over-ride database
-  for (const [key, value] of envVars.entries()) merged.set(key, value);
+  for (const [key, value] of Array.from(envVars.entries()))
+    merged.set(key, value);
 
   // These always take precedence
-  envVars.set("NODE_ENV", "production");
-  envVars.set("QUEUE_RUN_ENV", environment);
-  envVars.set("QUEUE_RUN_URL", httpUrl);
-  envVars.set("QUEUE_RUN_WS", wsUrl);
-  envVars.set("QUEUE_RUN_WS_API_ID", wsApiId);
-  return envVars;
+  merged.set("NODE_ENV", "production");
+  merged.set("QUEUE_RUN_ENV", environment);
+  merged.set("QUEUE_RUN_URL", httpUrl);
+  merged.set("QUEUE_RUN_WS", wsUrl);
+  merged.set("QUEUE_RUN_WS_API_ID", wsApiId);
+  return merged;
 }
 
 async function switchOver({
