@@ -1,9 +1,13 @@
 # 🐇 QueueRun
 
-* Unapologitecally Web 2.0 framework for buildng back-ends and APIs
-* Designed for serverless deployments
-* You don't have to know any CloudFormation
-* Of the web: HTTP and WebSocket, REST resources, Fetch API, console.log, HTML forms
-* For the backend: routing, standard and FIFO job queues, scheduled jobs
-* Batteries included: logging, authentication, multipart/form-data, etc
-* TypeScript and JSX if you're so inclined
+Unapologitecally Web 2.0 framework for buildng back-ends and APIs:
+
+* HTTP APIs, WebSocket, FIFO queues, and (coming) scheduled jobs
+* Focus on developer experience and simplicity
+* Serverless: deploy and let it worry about scaling up/down 
+* Made for the web: REST resources, Fetch API, HTML forms, console.log
+* Batteries included: logging, authentication, custom domains, URL constructors
+* No need to mess CloudFormation or edit YAML files
+* TypeScript and ESM (JavaScript and CommonJS also supported)
+
+[Read the docs](https://queue.run) and [check out the sample backend](packages/example)
