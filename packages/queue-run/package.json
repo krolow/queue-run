@@ -1,7 +1,7 @@
 {
   "name": "queue-run",
   "description": "👋 Backends for JAMstack apps: APIs, job queues, scheduled jobs, WebSocket notifications, and more …",
-  "version": "0.10.12",
+  "version": "0.10.13",
   "exports": {
     ".": "./dist/index.js",
     "./jsx-runtime": "./dist/jsx-runtime.js"
@@ -35,14 +35,14 @@
     "fast-glob": "^3.2.11",
     "fetch-blob": "^3.1.4",
     "filesize": "^8.0.7",
+    "jws": "^4.0.0",
     "node-abort-controller": "^3.0.1",
     "node-fetch": "3.2.0",
     "path-to-regexp": "^6.2.0",
     "source-map-support": "^0.5.21",
     "tiny-invariant": "^1.2.0",
     "uuid": "^8.3.2",
-    "xmlbuilder": "^15.1.1",
-    "jws": "^4.0.0"
+    "xmlbuilder": "^15.1.1"
   },
   "engines": {
     "node": "14.x"
