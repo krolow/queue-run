@@ -218,16 +218,12 @@ It will ask you a few question: project name, JavaScript or TypeScript, runtime.
 And then we deploy!
 
 ```bash
-npx queue-run init
-```
-
-```bash
 npx queue-run deploy
 ```
 
 You'll see the URL for your new backend. You can try and make HTTP requests against it, open WebSocket connection, etc.
 
-Learn more about commands to [deploy your code, setup custom domains, watch logs, rollback, and more](Deploying).
+Learn more about commands to [deploy your code, setup custom domains, watch logs, rollback, and more](deploying.md).
 
 :::tip
 If you used [our example](https://github.com/assaf/queue-run/tree/main/packages/example), then you can open the URL in your browser, and it will show you `curl` commands for testing your the backend.
