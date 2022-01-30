@@ -191,6 +191,7 @@ export async function authenticate({ bearerToken }) {
     clientId: process.env.GOOGLE_CLIENT_ID,
     domain: process.env.GOOGLE_DOMAIN
   });
-  return { id: profile.sub };
+  const { sub, email, name, picture } = profile;
+  return { id: sub, email, name, picture };
 }
 ```

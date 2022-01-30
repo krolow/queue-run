@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
+import { RouteMiddleware } from "../http/exports";
 import { QueueMiddleware } from "../queue/exports";
-import { RouteMiddleware } from "./../http/exports";
-import { WebSocketMiddleware } from "./../ws/exports";
+import { WebSocketMiddleware } from "../ws/exports";
 
 /**
  * The warmup function is called before any requests are handled.

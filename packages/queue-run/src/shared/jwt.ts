@@ -1,10 +1,34 @@
-import type {
-  JwtHeader,
-  JwtPayload,
-  Secret,
-  SigningKeyCallback,
-} from "jsonwebtoken";
-import jsonwebtoken from "jsonwebtoken";
+import jws from "jws";
+
+type Header = {
+  alg: string;
+  kid?: string;
+  typ: "JWT";
+  [key: string]: any;
+};
+type Secret = string | Buffer | ArrayBuffer;
+
+export type Payload = {
+  iss?: string | undefined;
+  sub?: string | undefined;
+  aud?: string | string[] | undefined;
+  exp?: number | undefined;
+  nbf?: number | undefined;
+  iat?: number | undefined;
+  jti?: string | undefined;
+  [key: string]: any;
+};
+
+export type GoogleProfile = Payload & {
+  email_verified: boolean;
+  email: string;
+  family_name: string;
+  given_name: string;
+  hd?: string;
+  iss: "https://accounts.google.com";
+  name: string;
+  picture: string;
+};
 
 /**
  * Verify JWT identity token.
@@ -16,18 +40,13 @@ import jsonwebtoken from "jsonwebtoken";
  * @returns The payload of the JWT token (sub, email, image, etc)
  * @throws Response with status code 401 (no token) or 403 (token not valid or expired)
  *
- * The secret is either the HMAC secret of the RSA/ESCDA public key. It can be a
- * string or a buffer.
+ * The secret is either the HMAC secret of the RSA/ESCDA public key.
  *
- * It can also be an object, with multiple secrets for each key ID (kid). Some
- * services use multiple secrets and this will pick the right secret based on
- * the key ID contained in the JWT header.
+ * It can be an object, mapping key IDs (`header.kid`) to secrets.
  *
- * It can also be a function that returns the secret. For example, the Google
- * helper loads all the certificate and returns the correct one based on the key
- * ID.
+ * It can be a function that resolves to one of the above.
  */
-export async function verify<Payload = JwtPayload>({
+export async function verify<T extends Payload = Payload>({
   audience,
   issuer,
   secret,
@@ -40,64 +59,50 @@ export async function verify<Payload = JwtPayload>({
     | Secret
     | { [key: string]: Secret }
     // eslint-disable-next-line no-unused-vars
-    | ((header: JwtHeader) => Secret | Promise<Secret>);
-}): Promise<Payload> {
+    | ((header: Header) => Secret | Promise<Secret>);
+}): Promise<T> {
   if (!token) throw new Response("No JWT token", { status: 401 });
   try {
-    return await new Promise((resolve, reject) => {
-      jsonwebtoken.verify(
-        token,
-        resolveSecret(secret),
-        { complete: false, audience, issuer },
-        (error: Error | null, decoded: unknown) => {
-          if (decoded) resolve(decoded as Payload);
-          else reject(error);
-        }
-      );
-    });
-  } catch {
+    const { header, payload } = jws.decode(token);
+    if (header.typ !== "JWT") throw new Error("Only JWT tokens are supported");
+
+    const hashOrCert = await resolveSecret(header as Header, secret);
+    const verified = jws.verify(token, header.alg, hashOrCert);
+    if (!verified) throw new Error("Invalid signature");
+
+    if (audience && payload.aud !== audience)
+      throw new Error("Audience does not match");
+
+    if (issuer && payload.iss !== issuer)
+      throw new Error("Issuer does not match");
+
+    return payload;
+  } catch (error) {
+    console.warn("Authentication: %s", String(error));
     throw new Response("Invalid or expired JWT token", { status: 403 });
   }
 }
 
-function resolveSecret(
+async function resolveSecret(
+  header: Header,
   secret:
     | Secret
     | Record<string, Secret>
     // eslint-disable-next-line no-unused-vars
-    | ((header: JwtHeader) => Secret | Promise<Secret>)
-) {
-  return async function (header: JwtHeader, callback: SigningKeyCallback) {
-    if (typeof secret === "string" || Buffer.isBuffer(secret)) {
-      callback(null, secret);
-    } else if (typeof secret === "function") {
-      try {
-        const value = await secret(header);
-        if (!value) throw new Error("Function did not return a secret");
-        callback(null, value);
-      } catch (error) {
-        callback(error);
-      }
-    } else if (typeof secret === "object") {
-      const value =
-        header.kid && (secret as Record<string, Secret>)[header.kid];
-      if (value) callback(null, value);
-      else callback(new Error(`No key found for kid "${header.kid}"`));
-    } else return secret;
-  };
+    | ((header: Header) => Secret | Promise<Secret>)
+): Promise<Buffer> {
+  if (Buffer.isBuffer(secret)) return secret;
+  else if (typeof secret === "string") return Buffer.from(secret);
+  else if (secret instanceof ArrayBuffer) return Buffer.from(secret);
+  else if (typeof secret === "object" && secret)
+    return await resolveSecret(header, secret[header.kid!]!);
+  else if (typeof secret === "function") {
+    const resolved = await resolveSecret(header, await secret(header));
+    if (typeof resolved === "function")
+      throw new Error("Function returned a function");
+    return resolved;
+  } else throw new Error("Invalid secret");
 }
-
-type GoogleProfile = JwtPayload & {
-  aud: string;
-  email_verified: boolean;
-  email: string;
-  family_name: string;
-  given_name: string;
-  hd?: string;
-  iss: "https://accounts.google.com";
-  name: string;
-  picture: string;
-};
 
 /**
  * Authenticates JWT token issued by Google OAuth.
@@ -132,7 +137,7 @@ export async function google({
   return profile;
 }
 
-async function googleCertificate(header: JwtHeader) {
+async function googleCertificate(header: Header) {
   if (!googleCertificates) {
     googleCertificates = (async () => {
       const response = await fetch(
