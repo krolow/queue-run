@@ -45,7 +45,7 @@ global.console.error = (...args: unknown[]) => _logger("error", ...args);
  * @param newLogger The new logger function
  * @returns The current/previous logger function
  */
-export default function logger(newLogger?: LoggingFunction) {
+export function logger(newLogger?: LoggingFunction) {
   if (newLogger) {
     const previous = _logger;
     _logger = newLogger;
