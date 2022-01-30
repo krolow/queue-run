@@ -139,51 +139,58 @@ You can also use the `onConnect` method to reject clients based on IP address or
 You can use the `Authenticate` header with other clients, such as Node WebSocket libraries (eg [ws](https://github.com/websockets/ws)) or [websocat](https://github.com/vi/websocat).
 
 
-## JWT Identity Tokens
+## Using JWT Tokens
+
+Authenticate JWT identity token based on the user's identity:
 
 ```ts title=api/_middleware.ts
 import { jwt } from "queue-run";
-import { googleCerts } from "../index.js";
 
+// HTTP Authorization: Bearer <token>
 export async function authenticate({ bearerToken }) {
-  if (!bearerToken)
-    throw new Response("No bearer token", { status: 401 });
-
-  try {
-    const profile = await jwt.verify(bearerToken, googleCerts, {
-      issuer: "https://accounts.google.com",
-      audience: "...apps.googleusercontent.com',
-    });
-    return { id: profile.sub, email: profile.email };
-  } catch (error) {
-    throw new Response("Token expired or not valid", { status: 403 });
-  }
+  // We store the user ID as sub (subject)
+  const { sub } = await jwt.verify({
+    token: bearerToken,
+    secret: process.env.JWT_SECRET
+  });
+  const user = await users.findOne({ id: sub });
+  if (!user) throw new Response("No such user", { status: 403 });
+  return user;
 }
 ```
 
-```ts title=index.ts
-export let googleCerts;
-
-export async function warmup() {
-  googleCerts = await (
-    await fetch("https://www.googleapis.com/oauth2/v1/certs")
-  ).json();
-}
-```
+WebSocket authentication based on client sending token as the first message:
 
 ```ts title=socket/_middleware.ts
 import { socket, jwt } from "queue-run";
-import { googleCerts } from "../index.js";
 
+// First message is JSON { token: <token> }
 export async function authenticate({ data }) {
   try {
-    const profile = await jwt.verify(data.token, googleCerts, {
-      issuer: "https://accounts.google.com",
-      audience: "...apps.googleusercontent.com',
+    const { sub } = await jwt.verify({
+      token: data.token,
+      secret: process.env.JWT_SECRET
     });
-    return { id: profile.sub, email: profile.email };
+    const user = await users.findOne({ id: sub });
+    if (!user) throw new Error("No such user");
+    return user;
   } catch (error) {
     await socket.close();
   }
+}
+```
+
+Using Google OAuth for single sign-on, we'll accept any user from our Google Workspace domain:
+
+```ts title=api/_middleware.ts
+import { jwt } from "queue-run";
+
+export async function authenticate({ bearerToken }) {
+  const profile = await jwt.google({
+    token: bearerToken,
+    clientId: process.env.GOOGLE_CLIENT_ID,
+    domain: process.env.GOOGLE_DOMAIN
+  });
+  return { id: profile.sub };
 }
 ```
