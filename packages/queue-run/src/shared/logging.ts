@@ -3,8 +3,6 @@ import { URL } from "node:url";
 import { JobMetadata } from "../queue/exports.js";
 import { WebSocketRequest } from "../ws/exports.js";
 
-export { default as logger } from "./logger.js";
-
 /**
  * Default middleware for HTTP routes logs the response.
  *
