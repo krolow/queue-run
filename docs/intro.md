@@ -126,15 +126,23 @@ We'll need some common middleware to authenticate requests, so we can tie them t
 ```ts title=api/_middleware.ts
 import { form } from "queue-run";
 
-export async function authenticate(request) {
-  ... TBD
+export async function authenticate({ bearerToken }) {
+  const profile = await jwt.verify({
+    token: bearerToken,
+    secret: process.env.JWT_SECRET
+  });
+  const user = await users.findOne(profile.sub);
+  if (!user) throw new Response("No such user", { status: 403 });
+  return user;
 }
 ```
+
+Learn more [about authentication](authenticate.md).
 
 Our bookmarks service takes screenshots, and these could take several seconds, and even fail intermittently. We'll use a queue for that:
 
 ```ts title=queues/screenshots.ts
-import { queues } from "queue-run";
+import { queues, socket } from "queue-run";
 import db from "#lib/db.js";
 import capture from "#lib/capture.js";
 
