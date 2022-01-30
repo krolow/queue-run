@@ -1,6 +1,6 @@
 {
   "name": "queue-run-lambda",
-  "version": "0.10.13",
+  "version": "0.10.14",
   "module": "dist/index.mjs",
   "exports": {
     ".": "./dist/index.mjs"
