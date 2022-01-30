@@ -11,3 +11,4 @@ packages/site/build
 packages/site/.docusaurus
 
 .vercel
+tsconfig.tsbuildinfo

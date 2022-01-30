@@ -11,14 +11,11 @@
   },
   "scripts": {
     "build": "queue-run build",
+    "lint": "",
     "dev": "queue-run dev"
   },
   "engines": {
     "node": "14.x"
-  },
-  "dependencies": {
-    "queue-run": "^0.10.13",
-    "queue-run-cli": "^0.10.13"
   },
   "devDependencies": {
     "queue-run": "^0.10.7",
