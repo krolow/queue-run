@@ -1,6 +1,6 @@
 # 🐇 QueueRun
 
-Unapologitecally Web 2.0 framework for buildng back-ends and APIs:
+Web 2.0 framework to make building back-ends and APIs easy and fun:
 
 * HTTP APIs, WebSocket, FIFO queues, and (coming) scheduled jobs
 * Focus on developer experience and simplicity
