@@ -4,27 +4,29 @@ slug: /
 
 # Introduction
 
-* Unapologitecally Web 2.0 framework for buildng back-ends and APIs
-* Designed for serverless deployments
-* Write code and instantly deploy, no need to learn CloudFormation
-* Of the web: HTTP and WebSocket, REST resources, Fetch API, console.log, HTML forms, Blob
-* For the backend: routing, standard and FIFO job queues, scheduled jobs
-* Batteries included: logging, authentication, multipart/form-data, etc
-* TypeScript and JSX if you're so inclined
+Unapologitecally Web 2.0 framework for buildng back-ends and APIs:
+
+* HTTP APIs, WebSocket, FIFO queues, and (coming) scheduled jobs
+* Focus on developer experience and simplicity
+* Serverless: deploy and let it worry about scaling up/down 
+* Made for the web: REST resources, Fetch API, HTML forms, console.log
+* Batteries included: logging, authentication, custom domains, URL constructors
+* No need to mess CloudFormation or edit YAML files
+* TypeScript and ESM (JavaScript and CommonJS also supported)
+
 
 ## Why QueueRun?
 
-Lambda has all the right building blocks — HTTP, WS, SQS, CloudWatch — but you drown in YAML trying to set it up. And the AWS APIs were not designed for JavaScript developers.
+AWS Lambda has all the right building blocks — HTTPS, WebSocket, SQS queues, CloudWatch logs — but the developer experience is not there. I wanted a framework that can go from idea to deploy in minutes not weeks.
 
-Next, Remix, Nuxt, et al are a joy to use — and a source of influence — but they're designed for front-end applications and don't pay enough attention to backend tasks.
+Next, Remix, Nuxt, et al solves that for developing front-end applications. I wanted something as easy and fun for building the back-end: the APIs, presence and real-time updates (WebSocket), queued and scheduled jobs, etc. 
 
-QueueRun is for building the back-end of the application, from the HTTP/WS API to the queued and scheduled jobs that run in the background.
+Every back-end needs authentication, logging, environment variables, URL construction, etc. The framework should take care of that.
 
-QueueRun is designed for building APIs or backends, and deploying to serverless environments. AWS Lambda by default, but GPC, CloudFlare Workers, Fly.io are all options.
+Deployment should take one minute or less. Setting up a new project in under five minutes. Don't want to worry about provisioning servers, scaling up/down, CloudFormation, or that thing they call YAML.
 
-Your code is the configuration. You don't need to write boilerplate YAML, we can figure out the URL path for the file `api/todo/[id].ts`, and the queue name from `queues/update.fifo.ts`. Forget about CloudFormation, or don't learn it to begin with.
+Above all, the developer experience! Common tasks should be as easy as writing a few lines of code. Whether you're building a REST API, real time collaboration (WebSocket), responsive UIs (queues), running background tasks on a schedule.
 
-Stuff you need in every single project — logging, authentication, form handling, etc — included by default. Use what you like, or replace with your own implementation. No dependency injection either, just export from the module.
 
 ## See An Example
 
