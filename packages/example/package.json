@@ -1,6 +1,6 @@
 {
   "name": "example",
-  "version": "0.10.9",
+  "version": "0.10.10",
   "private": true,
   "type": "module",
   "imports": {
@@ -17,8 +17,8 @@
     "node": "14.x"
   },
   "dependencies": {
-    "queue-run": "^0.10.9",
-    "queue-run-cli": "^0.10.9"
+    "queue-run": "^0.10.10",
+    "queue-run-cli": "^0.10.10"
   },
   "devDependencies": {
     "queue-run": "^0.10.7",
