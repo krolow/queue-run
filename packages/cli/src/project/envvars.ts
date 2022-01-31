@@ -1,4 +1,5 @@
 import { Command } from "commander";
+import ora from "ora";
 import {
   deleteEnvVariable,
   displayTable,
@@ -27,11 +28,13 @@ command
   .description("list environment variables")
   .action(async () => {
     const { name, awsRegion: region } = await loadCredentials();
+    const spinner = ora("Loading environment variables").start();
     const envVars = await getEnvVariables({
       environment: "production",
       project: name,
       region,
     });
+    spinner.stop();
     display(envVars);
   });
 
@@ -41,11 +44,13 @@ command
   .arguments("<name>")
   .action(async (varName) => {
     const { name, awsRegion: region } = await loadCredentials();
+    const spinner = ora("Loading environment variables").start();
     const envVars = await getEnvVariables({
       environment: "production",
       project: name,
       region,
     });
+    spinner.stop();
     if (envVars.has(varName)) {
       const varValue = envVars.get(varName) ?? "";
       display(new Map([[varName, varValue]]));
@@ -74,6 +79,7 @@ $ npx queue-run env set MY_VAR my-value
       varValue = match[1];
     }
     const { name, awsRegion: region } = await loadCredentials();
+    const spinner = ora("Updating environment variables").start();
     await setEnvVariable({
       environment: "production",
       project: name,
@@ -81,6 +87,7 @@ $ npx queue-run env set MY_VAR my-value
       varName,
       varValue,
     });
+    spinner.succeed("Updated environment variable");
   });
 
 command
@@ -91,17 +98,20 @@ command
   .arguments("<name>")
   .action(async (varName) => {
     const { name, awsRegion: region } = await loadCredentials();
+    const spinner = ora("Updating environment variables").start();
     await deleteEnvVariable({
       environment: "production",
       project: name,
       region,
       varName,
     });
+    spinner.succeed("Updated environment variable");
   });
 
 function display(envVars: Map<string, string>) {
   if (process.stdout.isTTY) {
     displayTable(["NAME", "VALUE"], Array.from(envVars.entries()));
+    console.info("");
   } else {
     for (const [name, value] of Array.from(envVars.entries()))
       console.info("%s=%s", name, value);
