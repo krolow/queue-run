@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "yarn clean && yarn build:dist && yarn build:types",
-    "build:dist": "yarn clean && yarn esbuild src/*.ts src/**/*.ts --platform=node --target=node14 --outdir=dist --format=esm --sourcemap",
+    "build:dist": "yarn esbuild src/*.ts src/**/*.ts --platform=node --target=node14 --outdir=dist --format=esm --sourcemap",
     "build:types": "tsc -p tsconfig.json",
     "clean": "rm -rf dist",
     "lint": "yarn eslint src/**/*.ts",

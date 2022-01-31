@@ -1,4 +1,5 @@
 import { Lambda } from "@aws-sdk/client-lambda";
+import chalk from "chalk";
 import { Command } from "commander";
 import filesize from "filesize";
 import ora from "ora";
@@ -19,37 +20,45 @@ const command = new Command("status")
       wsUrl,
     } = await loadStatus();
 
-    console.info("Name:\t\t%s", name);
-    console.info("Region:\t\t%s", region);
-    console.info("Version:\t%s", current?.version ?? "NONE");
-    if (current) {
-      console.info("├─ Code size:\t%s", filesize(current.size));
-      console.info("└─ Deployed:\t%s", current.modified.toLocaleString());
-    }
-
-    const size =
-      memory > 1000 ? (memory / 1000).toFixed(2) + " GB" : memory + " MB";
-    console.info("Avail memory:\t%s", size);
-
+    console.info("  Name\t\t: %s", name);
     console.info(
-      "├─ Reserved:\t%s",
-      reserved === 0 ? "0 (no instances)" : reserved ?? "no limit"
+      chalk.dim("%s"),
+      "─".repeat(process.stdout.getWindowSize()[0])
     );
 
-    if (provisioned?.length) {
-      provisioned.forEach(
-        ({ status, requested, allocated, available }, index) => {
-          const last = index === provisioned.length - 1;
-          console.info("%s Provisioned:\t%s", last ? "└─" : "├─", status);
-          console.info("   ├─ Requested:\t%s", requested);
-          console.info("   ├─ Allocated:\t%s", allocated);
-          console.info("   └─ Available:\t%s", available);
-        }
-      );
-    } else console.info("└─ Provisioned:\tNONE");
+    console.info("  Version\t: %s", current?.version ?? "NONE");
+    if (current) {
+      console.info("  Code size\t: %s (compressed)", filesize(current.size));
+      console.info("  Deployed\t: %s", current.modified.toLocaleString());
+    }
+    console.info("");
 
-    console.info("API:\t\t%s", httpUrl);
-    console.info("WebSocket:\t%s", wsUrl);
+    console.info("  Region\t: %s", region);
+    const size =
+      memory > 1000 ? (memory / 1000).toFixed(2) + " GB" : memory + " MB";
+    console.info("  Avail memory\t: %s", size);
+    console.info("");
+
+    console.info(
+      "  Reserved\t: %s",
+      reserved === 0
+        ? "0 (no instances)"
+        : typeof reserved === "number"
+        ? reserved.toLocaleString()
+        : "no reserve"
+    );
+    if (provisioned?.length) {
+      provisioned.forEach(({ status, requested, allocated, available }) => {
+        console.info("  Provisioned\t: %s", status);
+        console.info("  ├─ Requested\t: %s", requested);
+        console.info("  ├─ Allocated\t: %s", allocated);
+        console.info("  └─ Available\t: %s", available);
+      });
+    } else console.info("  Provisioned\t: no");
+    console.info("");
+
+    console.info("  HTTP\t\t: %s", httpUrl);
+    console.info("  WebSocket\t: %s", wsUrl);
   });
 
 async function loadStatus() {

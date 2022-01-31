@@ -4,13 +4,12 @@
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
-    "build": "yarn clean && yarn build:dist && yarn build:types",
-    "build:dist": "yarn clean && yarn esbuild src/*.ts src/**/*.ts --platform=node --target=node14 --outdir=dist --format=esm --sourcemap",
-    "build:types": "tsc --noEmit",
+    "build": "yarn clean && yarn build:dist",
+    "build:dist": "yarn esbuild src/*.ts src/**/*.ts --platform=node --target=node14 --outdir=dist --format=esm --sourcemap",
     "clean": "rm -rf dist",
-    "lint": "yarn eslint src/**/*.ts",
+    "lint": "yarn eslint src/**/*.ts && tsc --noEmit",
     "prepare": "yarn build",
-    "watch": "yarn clean && concurrently \"yarn build:bundle --watch\" \"yarn build:types --watch\""
+    "watch": "yarn clean && yarn build:dist --watch"
   },
   "bin": {
     "queue-run-cli": "./bin/cli.js"
