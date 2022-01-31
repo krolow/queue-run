@@ -20,7 +20,7 @@ url("/items/[id]", { id: 123 })
 => https://example.com/items/123
 
 // You can have multiple path parameters
-url("/reports/[month]/[day]", { year: 2022, month: "01" })
+url("/reports/[year]/[month]", { year: 2022, month: "01" })
 => https://example.com/reports/2022/01
 
 // Rest parameter also works
