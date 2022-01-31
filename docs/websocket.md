@@ -12,7 +12,7 @@ They allow you to do many interesting things:
 
 WebSocket make that possible by allowing you to send a message to the client at any time, during an HTTP/WebSocket request, or from a queued or scheduled job.
 
-You can send messages to specific users, for example, all members of a chat room, or all users actively editing a document. Read [more about authentication](Authentication.md).
+You can send messages to specific users, for example, all members of a chat room, or all users actively editing a document. Read [more about authentication](authenticate.md).
 
 
 ## Request Handlers
@@ -35,13 +35,13 @@ The request handler receives a single argument with the properties:
 - `connection` — The connection ID for this WebSocket
 - `data` — The request is either a JavaScript object (JSON), string, or `Buffer`
 - `requestId` - Unique request ID
-- `user` — User object returned from the [authenticate](#authentication) middleware
+- `user` — User object returned from the [authenticate](authenticate.md) middleware
 
 Since JSON is the most common use case, this is also the default. If you want to receive the raw text string, use `export const config = { type: "string" };`. To receive the raw `Buffer`, set `type: "binary"`;
 
 Clients can still connect and you can send them messages.
 
-If the request handler throws any error, or the request times out, the server sends back a JSON object of the form `{ error: string }`. That error is also logged by the [Logging Middleware](Logging.md).
+If the request handler throws any error, or the request times out, the server sends back a JSON object of the form `{ error: string }`. That error is also logged by the [Logging Middleware](logging.md).
 
 You can change the timeout using `export const config = { timeout: inSeconds };`.
 
@@ -121,5 +121,5 @@ export async function onOffline(userId) {
 
 :::note Authentication
 
-Presence relies on [authentication](Authenticate.md) and having a persisent user ID.
+Presence relies on [authentication](authenticate.md) and having a persisent user ID.
 :::

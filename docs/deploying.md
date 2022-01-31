@@ -114,7 +114,7 @@ The following environment variabels are always available:
 
 QueueRun understands the following environment variables:
 
-* `DEBUG` — Set to `true` to see `console.debug` messages in production, and `false` to hide them in development (see [Logging](Logging.md))
+* `DEBUG` — Set to `true` to see `console.debug` messages in production, and `false` to hide them in development (see [Logging](logging.md))
 * `QUEUE_RUN_INDENT` — Indentation level for JSON and XML output, default to 2 in development, 0 in production
 
 :::tip
