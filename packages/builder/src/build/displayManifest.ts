@@ -1,3 +1,4 @@
+import chalk from "chalk";
 import { loadManifest } from "queue-run";
 
 export default async function displayManifest(dirname: string) {
@@ -9,7 +10,12 @@ export default async function displayManifest(dirname: string) {
 
   const widths = calculate(routes, socket, queues);
 
-  displayTable({ missing: "No routes", rows: routes, title: "API", widths });
+  displayTable({
+    missing: "No routes",
+    rows: routes,
+    title: "HTTP API",
+    widths,
+  });
   displayTable({
     missing: "No WebSocket",
     rows: socket,
@@ -28,7 +34,7 @@ function tabulate(map: Map<string, { original: string }>): [string, string][] {
 
 function calculate(...tables: [string, string][][]): [number, number] {
   const rows = tables.flat(1);
-  const available = process.stdout.columns - 10;
+  const available = process.stdout.columns - 7;
   const min = 10;
   const max = [
     Math.max(...rows.map(([left]) => left.length), min),
@@ -51,19 +57,20 @@ function displayTable({
   widths: [number, number];
 }) {
   if (rows.length === 0) {
-    console.info("λ: %s", missing);
+    process.stdout.write(`  ${missing}\n`);
     return;
   }
 
-  console.info("λ: %s:", title);
-  console.info(
-    "%s",
-    rows
-      .sort()
-      .map(([left, right]) => [fit(left, widths[0]), fit(right, widths[1])])
-      .map(([left, right]) => `   ${left}  →  ${right}`)
-      .join("\n")
+  process.stdout.write(`  ${title}\n`);
+  process.stdout.write(
+    `  ${chalk.dim("─".repeat(widths[0] + widths[1] + 5))}\n`
   );
+  for (const [left, right] of rows) {
+    process.stdout.write(
+      `  ${fit(left, widths[0])}  ${chalk.dim("→")}  ${fit(right, widths[1])}\n`
+    );
+  }
+  process.stdout.write("\n");
 }
 
 function fit(path: string, width: number) {

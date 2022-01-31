@@ -1,6 +1,5 @@
 import { CloudWatchLogs } from "@aws-sdk/client-cloudwatch-logs";
 import { Lambda } from "@aws-sdk/client-lambda";
-import chalk from "chalk";
 import { AbortSignal } from "node-abort-controller";
 import { debuglog } from "node:util";
 import type { Manifest } from "queue-run";
@@ -81,8 +80,6 @@ export async function deployLambda({
   const queuePrefix = `${lambdaName}__`;
   debug('Queue prefix: "%s"', queuePrefix);
 
-  console.info(chalk.bold.green("🐇 Deploying %s to %s"), project, httpUrl);
-
   const { lambdaRuntime, zip, manifest } = await buildProject({
     buildDir,
     full: true,
@@ -91,6 +88,7 @@ export async function deployLambda({
   });
   invariant(zip);
   if (signal?.aborted) throw new Error("Timeout");
+
   await displayManifest(buildDir);
 
   console.info("λ: Deploying Lambda function and queues");

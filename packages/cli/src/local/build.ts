@@ -16,6 +16,7 @@ const command = new Command("build")
         sourceDir: source,
         full,
       });
+      console.info("");
       await displayManifest(output);
     }
   );

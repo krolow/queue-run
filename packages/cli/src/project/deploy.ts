@@ -5,6 +5,7 @@ import ms from "ms";
 import ora from "ora";
 import {
   deployLambda,
+  displayTable,
   setupAPIGateway,
   setupIntegrations,
 } from "queue-run-builder";
@@ -55,7 +56,13 @@ Deploying from
         project: project.name,
         region: project.awsRegion,
       });
-      spinner.succeed("Created API Gateway endpoints");
+      spinner.stop();
+
+      console.info(
+        chalk.bold.green('🐇 Deploying "%s" to %s\n'),
+        project.name,
+        new URL(httpUrl).origin
+      );
 
       const lambdaArn = await deployLambda({
         buildDir: ".queue-run",
@@ -77,7 +84,17 @@ Deploying from
         region: project.awsRegion,
       });
 
-      showSummary({ httpUrl, wsUrl });
+      displayTable(
+        ["Protocol", "URL"],
+        [
+          ["HTTP", httpUrl],
+          ["WebSocket", wsUrl],
+        ]
+      );
+      console.info("");
+      console.info(`Try:\n  %s\n`, chalk.blueBright(`curl ${httpUrl}`));
+
+      console.info("🐇 Done in %s", ms(process.uptime() * 1000));
     }
   );
 
@@ -99,18 +116,4 @@ async function getAccountId(region: string): Promise<string> {
   const accountId = user?.Arn?.split(":")[4];
   invariant(accountId, "Could not determine account ID");
   return accountId;
-}
-
-function showSummary({
-  httpUrl,
-  wsUrl,
-}: {
-  httpUrl: string;
-  wsUrl: string;
-}): void {
-  console.info(chalk.bold.green(`Your API is available at:\t%s`), httpUrl);
-  console.info(chalk.bold.green(`WebSocket available at:\t\t%s`), wsUrl);
-  console.info(`Try:\n  curl ${httpUrl}`);
-
-  console.info(chalk.bold.green("🐇 Done in %s"), ms(process.uptime() * 1000));
 }
