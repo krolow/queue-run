@@ -1,8 +1,7 @@
 import { socket } from "queue-run";
 
-export async function authenticate({ data }: { data: any }) {
-  if (!data) return;
-  if (data.trim() === "secret") {
+export async function authenticate({ data }: { data: { token: string } }) {
+  if (data.token === "secret") {
     await socket.send<string>("✅ Authenticated!");
     return { id: "user-id" };
   } else await socket.close();

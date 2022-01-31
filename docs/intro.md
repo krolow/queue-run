@@ -40,6 +40,8 @@ npm install -D queue-run
 yarn add --dev queue-run
 ```
 
+### HTTP Requests
+
 Next we'll write a simple backend. Start with a resource for listing all bookmarks (GET) and creating a new bookmark (POST):
 
 :::tip Clone Our Example
@@ -121,6 +123,8 @@ export const urlForBookmark = url.self<{ id: string }>();
 
 Learn more about [handling HTTP requests and routing](HTTP).
 
+### Authentication
+
 We'll need some common middleware to authenticate requests, so we can tie them to a user:
 
 ```ts title=api/_middleware.ts
@@ -138,6 +142,8 @@ export async function authenticate({ bearerToken }) {
 ```
 
 Learn more [about authentication](authenticate.md).
+
+### Queues
 
 Our bookmarks service takes screenshots, and these could take several seconds, and even fail intermittently. We'll use a queue for that:
 
@@ -166,7 +172,49 @@ export default async function ({ id }, { user }) {
 export const queue = queues.self<{ id: string }>();
 ```
 
-Learn more about [standard and FIFO queues](Queues) and [how to use WebSocket](WebSocket).
+Learn more about [standard and FIFO queues](queues.md).
+
+### WebSocket
+
+In this example we're using WebSocket to notify the browser when we're done capturing the screenshot.
+
+So we only need two pieces of code. From the browser, open a WebSocket connection and authenticate it:
+
+```ts title=web/client.ts
+const ws = new WebSocket("wss://ws.grumpy-sunshine.queue.run");
+
+// Connection opens, we immediately attempt to authenticate
+ws.onopen = () => ws.send({ jwtToken });
+
+// Wait for the server to either accept (message) or deny (close socket)
+await new Promise((resolve, reject) => {
+  ws.onmessage = resolve;
+  ws.onclose = reject;
+});
+```
+
+From the server, handle the authentication request and acknowledge it:
+
+```ts title=socket/_middleware.ts
+export async function authenticate({ data }) {
+  try {
+    const profile = await jwt.verify({
+      token: data.token,
+      secret: process.env.JWT_SECRET
+    });
+    return await users.findOne(profile.sub);
+    return { id: sub, email };
+  } catch {
+    // Reject by closing the WebSocket
+    await socket.close();
+  }
+}
+```
+
+Learn [more about WebSocket](websocket.md).
+
+
+## Use Locally
 
 Let's run this backend using the development server:
 
