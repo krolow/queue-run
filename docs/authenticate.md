@@ -1,5 +1,17 @@
 # Authentication
 
+Authentication is not just another middleware:
+
+* You can use cookies, query parameters, or HTTP headers for authenticating HTTP requests
+* You can use the first message, or cookies, for authenticating WebSocket requests
+* Authentication allows you to send a WebSocket message to that user (on all their devices)
+* When you queue a job, it's associated with the current user
+* You can send a message from HTTP or WebSocket request handler, or queued job
+
+The idea here is that an HTTP request can authenticate a user. Then send a WebSocket message to the user updating all their devices that have an open connection. And you can do that from the HTTP/WebSocket request handler, or later on from a queued job.
+
+You can also send to a group of users if you know their user ID. See [Sending Messages](websocket.md#sending-messages).
+
 
 ## HTTP
 
@@ -54,6 +66,19 @@ export async function authenticate(params) {
 }
 ```
 
+The user object returned from the `authenticate` method will be available to the [HTTP request handler](http#request-handler).
+
+WebSocket and queued jobs have access only to the user ID. This is since authentication happens much earlier and the user record may have changed since.
+
+:::tip Routes and Opt-out
+
+You can authenticate the entire API or a route by exporting the `authenticate` method from `_middleware.ts`.
+
+You can disble authentication for specific route by exporting `export const authenticate = null;` from that route only.
+
+For example, you may want to authenticate the entire API, except for the request to sign in a new user, or public resources like RSS feeds and Sitemaps.
+:::
+
 
 ## WebSocket
 
@@ -95,9 +120,11 @@ Otherwise, the user is not authenticated, and the next WebSocket message will al
 ```ts title=socket/_middleware.ts
 export async function authenticate({ data }) {
   // Typically the request would be a JSON object
-  const { jwtToken } = data;
   try {
-    const { sub, email } = await jwt.verify(bearerToken, process.env.JWT_SECRET);
+    const { sub, email } = await jwt.verify({
+      token: data.jwt,
+      secret: process.env.JWT_SECRET
+    });
     await socket.send('Accepted');
     return { id: sub, email };
   } catch {
@@ -122,14 +149,15 @@ The server has access to cookies sent by the browser, so you can use these to au
 For example:
 
 ```ts title=socket/_middleware.ts
-import { authenticated } from 'queue-run';
+import { authenticated, jwt } from 'queue-run';
 
 export async function onConnect({ cookies }) {
-  const { session, sign } = cookies;
-  const user = verify(session, sign);
-  // At this stage we're dealing with HTTP request/response
-  if (!user) throw new Response("Session expired", { status: 403 });
-  // Have to call this explicitly
+  // If authentication fails, this throws a response with status code 401/403
+  const { sub, email } = await jwt.verify({
+    token: cookies.jwt,
+    secret: process.env.JWT_SECRET
+  });
+  // You have to call this explicitly
   await authenticated(user);
 }
 ```
@@ -141,7 +169,16 @@ You can use the `Authenticate` header with other clients, such as Node WebSocket
 
 ## Using JWT Tokens
 
-Authenticate JWT identity token based on the user's identity:
+You can use the `jwt` object to authenticate with JWT identity tokens:
+
+- `audience` — Verify the token audience, typically the client ID (optional)
+- `issuer` — Verify the token issuer (optional)
+- `secret` — HMAC secret or RSA/ESCDA public key
+- `token` – The token string
+
+The contents of the token depends on the authentication service. Typically the `sub` (subject) would contain the user ID. Other fields are optional.
+
+For example:
 
 ```ts title=api/_middleware.ts
 import { jwt } from "queue-run";
@@ -153,34 +190,18 @@ export async function authenticate({ bearerToken }) {
     token: bearerToken,
     secret: process.env.JWT_SECRET
   });
-  const user = await users.findOne({ id: sub });
+  const user = await users.findById(sub);
+  // 403 if the user does not exist
   if (!user) throw new Response("No such user", { status: 403 });
   return user;
 }
 ```
 
-WebSocket authentication based on client sending token as the first message:
+There's a convenience method for using Google OAuth. It takes the client ID, and uses it to verify the token's audience field. It will grab the public key certificate from Google's servers.
 
-```ts title=socket/_middleware.ts
-import { socket, jwt } from "queue-run";
+The payload will include the user's name, email address, profile photo, etc.
 
-// First message is JSON { token: <token> }
-export async function authenticate({ data }) {
-  try {
-    const { sub } = await jwt.verify({
-      token: data.token,
-      secret: process.env.JWT_SECRET
-    });
-    const user = await users.findOne({ id: sub });
-    if (!user) throw new Error("No such user");
-    return user;
-  } catch (error) {
-    await socket.close();
-  }
-}
-```
-
-Using Google OAuth for single sign-on, we'll accept any user from our Google Workspace domain:
+The optional `domain` property will verify the user belongs to that domain. This works for Google Workspace accounts only, an easy way to add single sign-on for all users from that domain:
 
 ```ts title=api/_middleware.ts
 import { jwt } from "queue-run";
@@ -189,7 +210,7 @@ export async function authenticate({ bearerToken }) {
   const profile = await jwt.google({
     token: bearerToken,
     clientId: process.env.GOOGLE_CLIENT_ID,
-    domain: process.env.GOOGLE_DOMAIN
+    domain: process.env.GOOGLE_DOMAIN // eg example.com
   });
   const { sub, email, name, picture } = profile;
   return { id: sub, email, name, picture };
