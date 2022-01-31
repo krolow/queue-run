@@ -1,4 +1,5 @@
 import { FunctionConfiguration, Lambda } from "@aws-sdk/client-lambda";
+import filesize from "filesize";
 import ora from "ora";
 import invariant from "tiny-invariant";
 import { LambdaConfig } from "./deployLambda.js";
@@ -106,7 +107,10 @@ export default async function uploadLambda({
   }
 
   spinner.succeed();
-  console.info("Available memory: %s MB", configuration.MemorySize);
+
+  ora(
+    `Available memory: ${filesize(configuration.MemorySize * 1000 * 1000)}`
+  ).succeed();
   return arn;
 }
 

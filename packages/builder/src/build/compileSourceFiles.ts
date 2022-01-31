@@ -15,7 +15,7 @@ export default async function compileSourceFiles({
   sourceDir: string;
   targetDir: string;
 }) {
-  const spinner = ora("Compiling source files …").start();
+  const spinner = ora("Compiling source files").start();
   try {
     const ignore = (
       await fs

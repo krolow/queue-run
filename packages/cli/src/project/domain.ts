@@ -126,7 +126,7 @@ async function getCNames({
 }
 
 async function waitForCNames(cnames: { cname: string; value: string }[]) {
-  let spinner = ora(`Checking DNS for updates …`).start();
+  let spinner = ora(`Checking DNS for updates`).start();
   while (cnames.length > 0) {
     for (const { cname, value } of cnames) {
       const resolved = await dns.promises
@@ -135,7 +135,7 @@ async function waitForCNames(cnames: { cname: string; value: string }[]) {
       if (resolved?.includes(value)) {
         spinner.succeed(cname);
         cnames = cnames.filter(({ cname: name }) => name !== cname);
-        spinner = ora(`Checking DNS for updates …`).start();
+        spinner = ora(`Checking DNS for updates`).start();
       }
     }
   }

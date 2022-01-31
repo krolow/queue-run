@@ -5,7 +5,6 @@ import ms from "ms";
 import ora from "ora";
 import {
   deployLambda,
-  displayTable,
   setupAPIGateway,
   setupIntegrations,
 } from "queue-run-builder";
@@ -84,13 +83,9 @@ Deploying from
         region: project.awsRegion,
       });
 
-      displayTable(
-        ["Protocol", "URL"],
-        [
-          ["HTTP", httpUrl],
-          ["WebSocket", wsUrl],
-        ]
-      );
+      console.info("");
+      console.info(chalk.bold(" HTTP\t\t: %s"), httpUrl);
+      console.info(chalk.bold(" WebSocket\t: %s"), wsUrl);
       console.info("");
       console.info(`Try:\n  %s\n`, chalk.blueBright(`curl ${httpUrl}`));
 

@@ -54,7 +54,7 @@ export default async function buildProject({
 }
 
 async function createManifest(dirname: string) {
-  const spinner = ora("Creating manifest …").start();
+  const spinner = ora("Creating manifest").start();
   const cwd = process.cwd();
   try {
     process.chdir(dirname);

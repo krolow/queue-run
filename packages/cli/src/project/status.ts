@@ -20,49 +20,56 @@ const command = new Command("status")
       wsUrl,
     } = await loadStatus();
 
-    console.info("  Name\t\t: %s", name);
-    console.info(
-      chalk.dim("%s"),
-      "─".repeat(process.stdout.getWindowSize()[0])
+    process.stdout.write(` Name\t\t: ${name}\n`);
+
+    if (process.stdout.isTTY) {
+      process.stdout.write(
+        chalk.dim(
+          "─".repeat(
+            Math.min(wsUrl.length + 18, process.stdout.getWindowSize()[0])
+          )
+        ) + "\n"
+      );
+    }
+
+    process.stdout.write(` Version\t: ${current?.version ?? "NONE"}\n`);
+    if (!current) return;
+
+    process.stdout.write(
+      ` Code size\t: ${filesize(current.size)} (compressed)\n`
+    );
+    process.stdout.write(` Deployed\t: ${current.modified.toLocaleString()}\n`);
+
+    process.stdout.write(` Region\t\t: ${region}\n`);
+    process.stdout.write(
+      ` Avail memory\t: ${filesize(memory * 10000 * 1000)}\n`
     );
 
-    console.info("  Version\t: %s", current?.version ?? "NONE");
-    if (current) {
-      console.info("  Code size\t: %s (compressed)", filesize(current.size));
-      console.info("  Deployed\t: %s", current.modified.toLocaleString());
-    }
-    console.info("");
-
-    console.info("  Region\t: %s", region);
-    const size =
-      memory > 1000 ? (memory / 1000).toFixed(2) + " GB" : memory + " MB";
-    console.info("  Avail memory\t: %s", size);
-    console.info("");
-
-    console.info(
-      "  Reserved\t: %s",
-      reserved === 0
-        ? "0 (no instances)"
-        : typeof reserved === "number"
-        ? reserved.toLocaleString()
-        : "no reserve"
+    process.stdout.write(
+      ` Reserved\t: ${
+        reserved === 0
+          ? "0 (no instances)"
+          : typeof reserved === "number"
+          ? reserved.toLocaleString()
+          : "no reserve"
+      }\n`
     );
     if (provisioned?.length) {
       provisioned.forEach(({ status, requested, allocated, available }) => {
-        console.info("  Provisioned\t: %s", status);
-        console.info("  ├─ Requested\t: %s", requested);
-        console.info("  ├─ Allocated\t: %s", allocated);
-        console.info("  └─ Available\t: %s", available);
+        process.stdout.write(` Provisioned\t: ${status}\n`);
+        process.stdout.write(` — Requested\t: ${requested}\n`);
+        process.stdout.write(` — Allocated\t: ${allocated}\n`);
+        process.stdout.write(` — Available\t: ${available}\n`);
       });
-    } else console.info("  Provisioned\t: no");
-    console.info("");
+    } else process.stdout.write(" Provisioned\t: no\n");
+    process.stdout.write("\n");
 
-    console.info("  HTTP\t\t: %s", httpUrl);
-    console.info("  WebSocket\t: %s", wsUrl);
+    process.stdout.write(` HTTP\t\t: ${httpUrl}\n`);
+    process.stdout.write(` WebSocket\t: ${wsUrl}\n`);
   });
 
 async function loadStatus() {
-  const spinner = ora("Loading project …").start();
+  const spinner = ora("Inspecting project").start();
   const { name, awsRegion: region } = await loadCredentials();
 
   const [versions, { httpUrl, wsUrl }] = await Promise.all([

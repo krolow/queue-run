@@ -1,7 +1,9 @@
 import { CloudWatchLogs } from "@aws-sdk/client-cloudwatch-logs";
 import { Lambda } from "@aws-sdk/client-lambda";
+import chalk from "chalk";
 import { AbortSignal } from "node-abort-controller";
 import { debuglog } from "node:util";
+import ora from "ora";
 import type { Manifest } from "queue-run";
 import invariant from "tiny-invariant";
 import { buildProject, displayManifest } from "../build/index.js";
@@ -91,7 +93,7 @@ export async function deployLambda({
 
   await displayManifest(buildDir);
 
-  console.info("λ: Deploying Lambda function and queues");
+  console.info(chalk.bold("\nDeploying Lambda function and queues\n"));
 
   // DDB tables are referenced in the Lambda policy, so we need these to exist
   // before we can deploy.
@@ -246,7 +248,8 @@ async function switchOver({
   //
   //   trigger {projectId}-{branch}__{queueName} => {projectId}-{branch}
   await addTriggers({ lambdaArn: aliasArn, sourceArns: queueArns, region });
-  console.info("  This is version %s", versionArn.split(":").slice(-1)[0]);
+
+  ora(`This is version ${versionArn.split(":").slice(-1)[0]}`).succeed();
 
   // Delete any queues that are no longer needed.
   await deleteOldQueues({ prefix: queuePrefix, queueArns, region });

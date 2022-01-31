@@ -16,10 +16,12 @@ npx queue-run deploy
 Deployment will complete with a message like:
 
 ```
-Your API is available at:	https://qfulfyb2aj.execute-api.us-east-1.amazonaws.com
-WebSocket available at:		wss://1ujp1prs9j.execute-api.us-east-1.amazonaws.com
+ HTTP      : https://qfulfyb2aj.execute-api.us-east-1.amazonaws.com
+ WebSocket : wss://1ujp1prs9j.execute-api.us-east-1.amazonaws.com
+
 Try:
   curl https://qfulfyb2aj.execute-api.us-east-1.amazonaws.com
+
 🐇 Done in 16s
 ```
 

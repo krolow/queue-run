@@ -29,12 +29,14 @@ For convenience, the URL structure is mirrored by the file system:
 For example:
 
 ```bash
-npx queue-run build
-λ: API:
-   /                →  api/index.tsx
-   /bookmarks       →  api/bookmarks/index.ts
-   /bookmarks/:id   →  api/bookmarks/[id].ts
-   /bookmarks/feed  →  api/bookmarks/feed.tsx
+$ npx queue-run build
+
+  HTTP API
+  ──────────────────────────────────────────
+  /                →  api/index.tsx
+  /bookmarks       →  api/bookmarks/index.ts
+  /bookmarks/:id   →  api/bookmarks/[id].ts
+  /bookmarks/feed  →  api/bookmarks/feed.tsx
 ```
 
 

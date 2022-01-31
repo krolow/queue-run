@@ -3,7 +3,9 @@ export default function displayTable(headers: string[], table: string[][]) {
     Math.max(header.length, ...table.map((row) => row[index]!.length))
   );
   const border = headers.length * 3 - 1;
-  const available = Math.max(process.stdout.getWindowSize()[0], 30);
+  const available = process.stdout.isTTY
+    ? Math.max(process.stdout.getWindowSize()[0], 30)
+    : 80;
   while (border + widths.reduce((acc, width) => acc + width) > available) {
     const max = Math.max(...widths);
     const index = widths.findIndex((width) => width === max);

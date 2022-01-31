@@ -1,4 +1,5 @@
 import { Lambda } from "@aws-sdk/client-lambda";
+import ora from "ora";
 
 export async function addTriggers({
   lambdaArn,
@@ -9,9 +10,8 @@ export async function addTriggers({
   sourceArns: string[];
   region: string;
 }) {
+  const spinner = ora("Adding triggers").start();
   const lambda = new Lambda({ region });
-
-  if (sourceArns.length === 0) return;
   const { EventSourceMappings } = await lambda.listEventSourceMappings({
     FunctionName: lambdaArn,
   });
@@ -42,7 +42,7 @@ export async function addTriggers({
       }
     })
   );
-  if (created.some(Boolean)) console.info("λ: Added new triggers");
+  spinner.succeed(`Added ${created.filter(Boolean).length} new triggers`);
 }
 
 export async function removeTriggers({
@@ -54,21 +54,21 @@ export async function removeTriggers({
   sourceArns: string[];
   region: string;
 }) {
+  const spinner = ora("Removing triggers").start();
   const lambda = new Lambda({ region });
 
   const { EventSourceMappings } = await lambda.listEventSourceMappings({
     FunctionName: lambdaArn,
   });
-  if (!EventSourceMappings) return;
 
   const set = new Set(sourceArns);
-  const removing = EventSourceMappings.filter(
-    ({ EventSourceArn }) => EventSourceArn && !set.has(EventSourceArn)
-  );
-  if (removing.length === 0) return;
+  const removing =
+    EventSourceMappings?.filter(
+      ({ EventSourceArn }) => EventSourceArn && !set.has(EventSourceArn)
+    ) ?? [];
 
   await Promise.all(
     removing.map(({ UUID }) => lambda.deleteEventSourceMapping({ UUID }))
   );
-  console.info("λ: Removed old triggers");
+  spinner.succeed(`Removed ${removing.length} old triggers`);
 }

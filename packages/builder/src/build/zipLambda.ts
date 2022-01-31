@@ -4,9 +4,10 @@ import JSZip from "jszip";
 import { lstat, readFile } from "node:fs/promises";
 import path from "node:path";
 import ora from "ora";
+import displayTable from "../displayTable.js";
 
 export default async function zipLambda(dirname: string): Promise<Uint8Array> {
-  const spinner = ora(`Creating zip archive for ${dirname} …`).start();
+  const spinner = ora(`Creating zip archive for ${dirname}`).start();
 
   const filenames = await glob("**/*", {
     cwd: dirname,
@@ -30,9 +31,14 @@ export default async function zipLambda(dirname: string): Promise<Uint8Array> {
     compression: "DEFLATE",
   });
 
-  spinner.stop();
-  console.info("λ: Zipped %s", filesize(buffer.byteLength));
+  spinner.succeed(
+    `Created zip archive for ${dirname}: ${filesize(buffer.length)}`
+  );
+
+  console.info("");
   await displaySummary(zip);
+  console.info("");
+
   return buffer;
 }
 
@@ -46,23 +52,17 @@ async function displaySummary(zip: JSZip) {
       folders.set(folder, (folders.get(folder) ?? 0) + byteLength);
     })
   );
-  const lines = Array.from(folders.entries())
-    .sort()
-    .map(([dirname, byteLength]) =>
-      [truncated(dirname), filesize(byteLength)].join("\t")
-    );
-  console.info("%s", lines.map((line) => `   ${line}`).join("\n"));
+  displayTable(
+    ["Folder", "Size"],
+    Array.from(folders.entries()).map(([dirname, size]) => [
+      dirname,
+      filesize(size),
+    ])
+  );
 }
 
 function summaryFolderName(filename: string): string {
   const dirname = path.dirname(filename);
   if (dirname === ".") return "/";
   return dirname.replace(/((^|\/)node_modules)(\/|$).*/, "$1");
-}
-
-function truncated(dirname: string) {
-  if (dirname.length < 40) return dirname.padEnd(40);
-  if (dirname.length > 40)
-    return dirname.replace(/^(.{19}).*(.{20})$/, "$1…$2");
-  return dirname;
 }

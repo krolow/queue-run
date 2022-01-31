@@ -1,3 +1,4 @@
+import chalk from "chalk";
 import glob from "fast-glob";
 import ms from "ms";
 import { spawn } from "node:child_process";
@@ -25,7 +26,7 @@ export default async function installDependencies({
   sourceDir: string;
   targetDir: string;
 }) {
-  console.info("λ: Installing node modules …");
+  console.info(chalk.bold("\nInstalling node modules\n"));
   await Promise.all(
     installFiles.map(async (filename) =>
       copyFile(filename, sourceDir, targetDir)
@@ -37,6 +38,7 @@ export default async function installDependencies({
 
   await installQueueRun(targetDir);
   await installLambdaRuntime(targetDir);
+  console.info("");
 }
 
 async function installLambdaRuntime(buildDir: string) {

@@ -169,7 +169,7 @@ function onFileChange({
   if (!/\.(tsx?|jsx?|json)$/.test(filename)) return;
 
   console.info(
-    chalk.gray(`   %s "%s" reloading …`),
+    chalk.gray(`   %s "%s" reloading`),
     event === "add" ? "New file" : "Changed",
     filename
   );

@@ -10,19 +10,9 @@ export default async function displayManifest(dirname: string) {
 
   const widths = calculate(routes, socket, queues);
 
-  displayTable({
-    missing: "No routes",
-    rows: routes,
-    title: "HTTP API",
-    widths,
-  });
-  displayTable({
-    missing: "No WebSocket",
-    rows: socket,
-    title: "WebSocket",
-    widths,
-  });
-  displayTable({ missing: "No queues", rows: queues, title: "Queues", widths });
+  displayTable({ rows: routes, title: "HTTP API", widths });
+  displayTable({ rows: socket, title: "WebSocket", widths });
+  displayTable({ rows: queues, title: "Queues", widths });
 }
 
 function tabulate(map: Map<string, { original: string }>): [string, string][] {
@@ -34,7 +24,7 @@ function tabulate(map: Map<string, { original: string }>): [string, string][] {
 
 function calculate(...tables: [string, string][][]): [number, number] {
   const rows = tables.flat(1);
-  const available = process.stdout.columns - 7;
+  const available = process.stdout.columns - 5;
   const min = 10;
   const max = [
     Math.max(...rows.map(([left]) => left.length), min),
@@ -46,30 +36,26 @@ function calculate(...tables: [string, string][][]): [number, number] {
 }
 
 function displayTable({
-  missing,
   rows,
   title,
   widths,
 }: {
-  missing: string;
   rows: [string, string][];
   title: string;
   widths: [number, number];
 }) {
-  if (rows.length === 0) {
-    process.stdout.write(`  ${missing}\n`);
-    return;
-  }
-
-  process.stdout.write(`  ${title}\n`);
-  process.stdout.write(
-    `  ${chalk.dim("─".repeat(widths[0] + widths[1] + 5))}\n`
-  );
-  for (const [left, right] of rows) {
-    process.stdout.write(
-      `  ${fit(left, widths[0])}  ${chalk.dim("→")}  ${fit(right, widths[1])}\n`
-    );
-  }
+  process.stdout.write(` ${title}\n`);
+  process.stdout.write(`${chalk.dim("─".repeat(widths[0] + widths[1] + 7))}\n`);
+  if (rows.length > 0) {
+    for (const [left, right] of rows) {
+      process.stdout.write(
+        ` ${fit(left, widths[0])}  ${chalk.dim("→")}  ${fit(
+          right,
+          widths[1]
+        )}\n`
+      );
+    }
+  } else process.stdout.write(` None\n`);
   process.stdout.write("\n");
 }
 
