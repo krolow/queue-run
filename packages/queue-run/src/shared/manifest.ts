@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { match, MatchFunction } from "path-to-regexp";
+import type { BackendConfig } from "./exports.js";
 
 export type BackendLimits = {
   memory: number; // Memory size in MB
@@ -144,4 +145,57 @@ export async function loadManifest(dirname = process.cwd()): Promise<{
   );
 
   return { limits, queues, routes, schedules, socket };
+}
+
+export async function writeManifest({
+  config,
+  queues,
+  routes,
+  schedules,
+  socket,
+}: {
+  config: BackendConfig | undefined;
+  queues: Manifest["queues"];
+  routes: Manifest["routes"];
+  schedules: Manifest["schedules"];
+  socket: Manifest["socket"];
+}) {
+  const limits = {
+    memory: getMemory(config),
+    timeout: getTimeout({ queues, routes, schedules, socket }),
+  };
+
+  const manifest: Manifest = { limits, queues, routes, schedules, socket };
+  await fs.writeFile("manifest.json", JSON.stringify(manifest), "utf-8");
+  return manifest;
+}
+
+function getTimeout({
+  queues,
+  routes,
+  schedules,
+  socket,
+}: {
+  queues: Manifest["queues"];
+  routes: Manifest["routes"];
+  schedules: Manifest["schedules"];
+  socket: Manifest["socket"];
+}) {
+  return Math.max(
+    ...Array.from(queues.values()).map((queue) => queue.timeout),
+    ...Array.from(routes.values()).map((route) => route.timeout),
+    ...Array.from(socket.values()).map((socket) => socket.timeout),
+    ...Array.from(schedules.values()).map((schedule) => schedule.timeout)
+  );
+}
+
+function getMemory(config: BackendConfig | undefined) {
+  const memory = config?.memory ?? 128;
+  if (typeof memory === "number") return memory;
+  const match = memory.trim().match(/^(\d+)\s*([MG]B?)$/i);
+  if (!match) throw new Error(`Invalid memory limit: ${memory}`);
+  const [, amount, unit] = match;
+  return unit === "GB" || unit === "G"
+    ? parseFloat(amount!) * 1000
+    : parseInt(amount!);
 }

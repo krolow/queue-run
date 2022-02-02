@@ -1,7 +1,6 @@
-import fs from "node:fs/promises";
 import ora from "ora";
-import type { BackendConfig, BackendExports, Manifest } from "queue-run";
-import { loadModule } from "queue-run";
+import type { BackendExports, Manifest } from "queue-run";
+import { loadModule, writeManifest } from "queue-run";
 import compileSourceFiles from "./compileSourceFiles.js";
 import createBuildDirectory from "./createBuildDirectory.js";
 import getRuntime from "./getRuntime.js";
@@ -67,57 +66,16 @@ async function createManifest(dirname: string) {
     const config = (await loadModule<BackendExports, never>("index"))?.module
       .config;
 
-    const limits = {
-      memory: getMemory({ config, queues, routes, socket }),
-      timeout: getTimeout({ config, queues, routes, socket }),
-    };
-
-    const manifest: Manifest = { limits, queues, routes, schedules, socket };
-    await fs.writeFile("manifest.json", JSON.stringify(manifest), "utf-8");
+    const manifest = await writeManifest({
+      config,
+      queues,
+      routes,
+      schedules,
+      socket,
+    });
     spinner.succeed("Created manifest");
-
-    if (manifest.routes.length === 0) {
-      console.warn(
-        'No routes found. Add "export default async function () { … }" to your routes.'
-      );
-    }
     return manifest;
   } finally {
     process.chdir(cwd);
   }
-}
-
-function getTimeout({
-  queues,
-  routes,
-  socket,
-}: {
-  config: BackendConfig | undefined;
-  queues: Manifest["queues"];
-  routes: Manifest["routes"];
-  socket: Manifest["socket"];
-}) {
-  return Math.max(
-    ...Array.from(queues.values()).map((queue) => queue.timeout),
-    ...Array.from(routes.values()).map((route) => route.timeout),
-    ...Array.from(socket.values()).map((socket) => socket.timeout)
-  );
-}
-
-function getMemory({
-  config,
-}: {
-  config: BackendConfig | undefined;
-  queues: Manifest["queues"];
-  routes: Manifest["routes"];
-  socket: Manifest["socket"];
-}) {
-  const memory = config?.memory ?? 128;
-  if (typeof memory === "number") return memory;
-  const match = memory.trim().match(/^(\d+)\s*([MG]B?)$/i);
-  if (!match) throw new Error(`Invalid memory limit: ${memory}`);
-  const [, amount, unit] = match;
-  return unit === "GB" || unit === "G"
-    ? parseFloat(amount!) * 1000
-    : parseInt(amount!);
 }
