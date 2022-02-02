@@ -8,6 +8,7 @@ import getRuntime from "./getRuntime.js";
 import installDependencies from "./installDependencies.js";
 import mapQueues from "./mapQueues.js";
 import mapRoutes from "./mapRoutes.js";
+import mapSchedules from "./mapSchedules.js";
 import mapSocket from "./mapSocket.js";
 import zipLambda from "./zipLambda.js";
 
@@ -62,6 +63,7 @@ async function createManifest(dirname: string) {
     const routes = await mapRoutes();
     const socket = await mapSocket();
     const queues = await mapQueues();
+    const schedules = await mapSchedules();
     const config = (await loadModule<BackendExports, never>("index"))?.module
       .config;
 
@@ -70,7 +72,7 @@ async function createManifest(dirname: string) {
       timeout: getTimeout({ config, queues, routes, socket }),
     };
 
-    const manifest: Manifest = { limits, queues, routes, socket };
+    const manifest: Manifest = { limits, queues, routes, schedules, socket };
     await fs.writeFile("manifest.json", JSON.stringify(manifest), "utf-8");
     spinner.succeed("Created manifest");
 

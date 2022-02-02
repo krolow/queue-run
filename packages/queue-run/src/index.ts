@@ -12,6 +12,7 @@ export * from "./integration.js";
 export { CDATA, Comment, Fragment } from "./jsx-runtime.js";
 export * from "./queue/exports.js";
 export { default as queues } from "./queue/queues.js";
+export * from "./schedule/exports.js";
 export * from "./shared/authenticated.js";
 export * from "./shared/exports.js";
 export * as jwt from "./shared/jwt.js";

@@ -13,6 +13,7 @@ import { URL } from "node:url";
 import {
   handleHTTPRequest,
   handleQueuedJob,
+  handleScheduledJob,
   handleWebSocketConnect,
   handleWebSocketMessage,
   Headers,
@@ -219,6 +220,9 @@ async function onRequest(
   if (req.url?.startsWith("/$queues/"))
     return queueJob(req, res, newLocalStorage);
 
+  if (req.url?.startsWith("/$schedules/"))
+    return scheduleJob(req, res, newLocalStorage);
+
   const method = req.method?.toLocaleUpperCase() ?? "GET";
   const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
   const headers = new Headers(
@@ -297,6 +301,32 @@ async function queueJob(
     res.writeHead(200, "OK").end();
   } catch (error) {
     console.error("💥 Queue job failed!", error);
+    res.writeHead(500, "Internal Server Error").end();
+  }
+}
+
+async function scheduleJob(
+  req: IncomingMessage,
+  res: ServerResponse,
+  newLocalStorage: () => LocalStorage
+) {
+  if (req.method !== "POST") {
+    res.writeHead(405, "Method not allowed").end();
+    return;
+  }
+
+  const [name] = req.url!.split("/").slice(2);
+  invariant(name, "Schedule name is required");
+
+  try {
+    await handleScheduledJob({
+      jobId: crypto.randomUUID!(),
+      name,
+      newLocalStorage,
+    });
+    res.writeHead(200, "OK").end();
+  } catch (error) {
+    console.error("💥 Scheduled job failed!", error);
     res.writeHead(500, "Internal Server Error").end();
   }
 }

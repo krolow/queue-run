@@ -1,4 +1,5 @@
-import { JobMetadata } from "../queue/exports.js";
+import { QueuedJobMetadata } from "../queue/exports.js";
+import { ScheduledJobMetadata } from "../schedule/exports";
 import { WebSocketRequest } from "../ws/exports";
 
 /* eslint-disable no-unused-vars */
@@ -10,6 +11,11 @@ import { WebSocketRequest } from "../ws/exports";
  */
 export type OnError = (
   error: Error,
-  reference?: Request | JobMetadata | WebSocketRequest | undefined
+  reference?:
+    | Request
+    | QueuedJobMetadata
+    | ScheduledJobMetadata
+    | WebSocketRequest
+    | undefined
 ) => Promise<void> | void;
 /* eslint-enable no-unused-vars */

@@ -1,64 +1,56 @@
 import { AbortController } from "node-abort-controller";
 import invariant from "tiny-invariant";
-import type { JSONObject } from "../json";
 import { loadModule } from "../shared/loadModule.js";
-import {
-  getLocalStorage,
-  LocalStorage,
-  withLocalStorage,
-} from "../shared/localStorage.js";
+import { LocalStorage, withLocalStorage } from "../shared/localStorage.js";
 import { logError, logJobFinished, logJobStarted } from "../shared/logging.js";
 import { loadManifest } from "../shared/manifest.js";
 import TimeoutError from "../shared/TimeoutError.js";
-import { QueuedJobMetadata, QueueExports, QueueMiddleware } from "./exports.js";
+import {
+  ScheduledJobMetadata,
+  ScheduleExports,
+  ScheduleMiddleware,
+} from "./exports.js";
 
-export default async function handleQueuedJob({
-  metadata,
+export default async function handleScheduledJob({
+  jobId,
   newLocalStorage,
-  payload,
-  queueName,
-  remainingTime,
+  name,
 }: {
-  metadata: Omit<QueuedJobMetadata, "signal">;
+  jobId: string;
   newLocalStorage: () => LocalStorage;
-  payload: string | Buffer | object;
-  queueName: string;
-  remainingTime: number;
-}): Promise<boolean> {
-  const { queues } = await loadManifest();
-  const queue = queues.get(queueName);
-  if (!queue) throw new Error(`No handler for queue ${queueName}`);
+  name: string;
+}): Promise<void> {
+  const { schedules } = await loadManifest();
+  const schedule = Array.from(schedules.values()).find(
+    (schedule) => schedule.name === name
+  );
+  if (!schedule) throw new Error(`No handler for schedule ${name}`);
 
-  const loaded = await loadModule<QueueExports, QueueMiddleware>(
-    `queues/${queueName}`,
+  const loaded = await loadModule<ScheduleExports, ScheduleMiddleware>(
+    `schedules/${name}`,
     {
       onJobStarted: logJobStarted,
       onJobFinished: logJobFinished,
       onError: logError,
     }
   );
-  invariant(loaded, "Could not load queue module");
+  invariant(loaded, "Could not load scheduled module");
 
   const { module, middleware } = loaded;
 
   // When handling FIFO messges, possible we'll run out of time.
-  const timeout = Math.min(queue.timeout * 1000, remainingTime);
-  if (timeout <= 0) return false;
 
   // Create an abort controller to allow the handler to cancel incomplete work.
+  const timeout = schedule.timeout;
   const controller = new AbortController();
-  const abortTimeout = setTimeout(() => controller.abort(), timeout);
+  const abortTimeout = setTimeout(() => controller.abort(), timeout * 1000);
   const { signal } = controller;
+
+  const metadata = { name, jobId, cron: schedule.cron, signal };
 
   try {
     await Promise.race([
-      runWithMiddleware({
-        metadata: { ...metadata, signal },
-        middleware,
-        module,
-        newLocalStorage,
-        payload,
-      }),
+      runWithMiddleware({ metadata, middleware, module, newLocalStorage }),
 
       new Promise((resolve) => {
         signal.addEventListener("abort", resolve);
@@ -69,31 +61,23 @@ export default async function handleQueuedJob({
         `Job aborted: job took longer than ${timeout}s to process`
       );
     }
-    return true;
   } catch (error) {
-    console.error(
-      'Error in queue "%s" job %s:',
-      queueName,
-      metadata.jobId,
-      error
-    );
+    console.error('Error in schedule "%s" job %s:', name, jobId, error);
 
     if (middleware.onError) {
       try {
         await middleware.onError(
           error instanceof Error ? error : new Error(String(error)),
-          { ...metadata, signal: controller.signal }
+          metadata
         );
       } catch (error) {
         console.error(
-          'Error in onError handler for queue "%s"',
-          queueName,
+          'Error in onError handler for schedule "%s"',
+          name,
           error
         );
       }
     }
-
-    return false;
   } finally {
     clearTimeout(abortTimeout);
     controller.abort();
@@ -105,22 +89,18 @@ async function runWithMiddleware({
   middleware,
   module,
   newLocalStorage,
-  payload,
 }: {
-  metadata: QueuedJobMetadata;
-  middleware: QueueMiddleware;
-  module: QueueExports;
+  metadata: ScheduledJobMetadata;
+  middleware: ScheduleMiddleware;
+  module: ScheduleExports;
   newLocalStorage: () => LocalStorage;
-  payload: string | Buffer | object;
 }) {
   const { signal } = metadata;
   await withLocalStorage(newLocalStorage(), async () => {
-    getLocalStorage().user = metadata.user;
-
     if (middleware.onJobStarted) await middleware.onJobStarted(metadata);
     if (signal.aborted) return;
 
-    await module.default(payload as JSONObject, metadata);
+    await module.default(metadata);
     if (signal.aborted) return;
 
     if (middleware.onJobFinished) await middleware.onJobFinished(metadata);

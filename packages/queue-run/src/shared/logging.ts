@@ -2,7 +2,8 @@ import chalk, { ChalkInstance } from "chalk";
 import filesize from "filesize";
 import { URL } from "node:url";
 import { formatWithOptions } from "node:util";
-import { JobMetadata } from "../queue/exports.js";
+import { QueuedJobMetadata as QueueJobMetadata } from "../queue/exports.js";
+import { ScheduledJobMetadata as ScheduleJobMetadata } from "../schedule/exports.js";
 import { WebSocketRequest } from "../ws/exports.js";
 
 /**
@@ -104,14 +105,25 @@ export async function logResponse(request: Request, response: Response) {
  *
  * @param job The job metadata
  */
-export async function logJobStarted(job: JobMetadata) {
-  console.info(
-    'Job started: queue="%s" job="%s" received=%d seq=%s',
-    job.queueName,
-    job.jobId,
-    job.receivedCount,
-    job.sequenceNumber ?? "--"
-  );
+export async function logJobStarted(
+  job: QueueJobMetadata | ScheduleJobMetadata
+) {
+  if ("queueName" in job) {
+    console.info(
+      'Job started: queue="%s" jobId="%s" received=%d seq=%s',
+      job.queueName,
+      job.jobId,
+      job.receivedCount,
+      job.sequenceNumber ?? "--"
+    );
+  } else {
+    console.info(
+      'Job started: name="%s" schedule="%s" job="%s"',
+      job.name,
+      job.cron,
+      job.jobId
+    );
+  }
 }
 
 /**
@@ -119,8 +131,18 @@ export async function logJobStarted(job: JobMetadata) {
  *
  * @param job The job metadata
  */
-export async function logJobFinished(job: JobMetadata) {
-  console.info('Job finished: queue="%s" job="%s"', job.queueName, job.jobId);
+export async function logJobFinished(
+  job: QueueJobMetadata | ScheduleJobMetadata
+) {
+  if ("queueName" in job) {
+    console.info(
+      'Job finished: queue="%s" jobId="%s"',
+      job.queueName,
+      job.jobId
+    );
+  } else {
+    console.info('Job finished: name="%s" jobId="%s"', job.name, job.jobId);
+  }
 }
 
 /**
@@ -171,10 +193,19 @@ export async function logError(error: Error, reference: unknown) {
     "jobId" in reference &&
     "queueName" in reference
   ) {
-    const { jobId, queueName } = reference as JobMetadata;
+    const { jobId, queueName } = reference as QueueJobMetadata;
     console.error(
-      "Job failed on %s: %s: %s",
+      "Queued job failed on %s: %s: %s",
       queueName,
+      jobId,
+      String(error),
+      error.stack
+    );
+  } else if (reference instanceof Object && "cron" in reference) {
+    const { jobId, name } = reference as ScheduleJobMetadata;
+    console.error(
+      "Scheduled job failed on %s: %s: %s",
+      name,
       jobId,
       String(error),
       error.stack

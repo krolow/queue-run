@@ -25,6 +25,14 @@ export type QueueService = {
   timeout: number;
 };
 
+export type ScheduledJob = {
+  cron: string;
+  filename: string;
+  name: string;
+  original: string;
+  timeout: number;
+};
+
 export type WebSocketRoute = {
   filename: string;
   original: string;
@@ -55,6 +63,13 @@ export type Manifest = {
     path: string;
     timeout: number;
   }>;
+  schedules: Array<{
+    cron: string;
+    filename: string;
+    name: string;
+    original: string;
+    timeout: number;
+  }>;
   socket: Array<{
     path: string;
     filename: string;
@@ -67,6 +82,7 @@ export async function loadManifest(dirname = process.cwd()): Promise<{
   limits: BackendLimits;
   queues: Map<string, QueueService>;
   routes: Map<string, HTTPRoute>;
+  schedules: Map<string, ScheduledJob>;
   socket: Map<string, WebSocketRoute>;
 }> {
   const manifest = JSON.parse(
@@ -114,5 +130,18 @@ export async function loadManifest(dirname = process.cwd()): Promise<{
     ])
   );
 
-  return { limits, queues, routes, socket };
+  const schedules = new Map(
+    manifest.schedules.map((schedule) => [
+      schedule.cron,
+      {
+        cron: schedule.cron,
+        filename: schedule.filename,
+        name: schedule.name,
+        original: schedule.original,
+        timeout: schedule.timeout,
+      },
+    ])
+  );
+
+  return { limits, queues, routes, schedules, socket };
 }

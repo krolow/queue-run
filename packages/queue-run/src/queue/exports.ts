@@ -22,7 +22,7 @@ import type { OnError } from "../shared/onError.js";
 export type QueueHandler<
   T extends Payload = JSONObject,
   P extends Params = Params
-> = (payload: T, metadata: JobMetadata<P>) => Promise<void> | void;
+> = (payload: T, metadata: QueuedJobMetadata<P>) => Promise<void> | void;
 
 /**
  * FIFO queue handler is similar to standard queue handler, but also has
@@ -32,7 +32,7 @@ export type FIFOQueueHandler<
   T extends Payload = JSONObject,
   P extends Params = Params
 > = QueueHandler<T, P> & {
-  metadata: JobMetadata<P & { group: string; dedupe?: string }> & {
+  metadata: QueuedJobMetadata<P & { group: string; dedupe?: string }> & {
     groupId: string;
     sequenceNumber: number;
   };
@@ -44,7 +44,7 @@ type Params = { [key: string]: string | string[] };
 /**
  * Job metadata.
  */
-export type JobMetadata<P = Params> = {
+export type QueuedJobMetadata<P = Params> = {
   /**
    * The group ID. (FIFO queues only)
    */
@@ -101,22 +101,26 @@ export type QueueConfig = {
  *
  * @param job The job metadata
  */
-export type OnJobStarted = (job: JobMetadata) => Promise<void> | void;
+export type OnQueuedJobStarted = (
+  job: QueuedJobMetadata
+) => Promise<void> | void;
 
 /**
  * Middleware that's called any time a job finishes running successfully.
  *
  * @param job The job metadata
  */
-export type OnJobFinished = (job: JobMetadata) => Promise<void> | void;
+export type OnQueuedJobFinished = (
+  job: QueuedJobMetadata
+) => Promise<void> | void;
 
 /**
  * Middleware exported from the queue module, or queues/_middleware.ts.
  */
 export type QueueMiddleware = {
   onError?: OnError | null;
-  onJobFinished?: OnJobFinished | null;
-  onJobStarted?: OnJobStarted | null;
+  onJobFinished?: OnQueuedJobFinished | null;
+  onJobStarted?: OnQueuedJobStarted | null;
 };
 
 /**

@@ -20,6 +20,7 @@ import handleHTTPRequest, {
   APIGatewayResponse,
   BackendLambdaRequest,
 } from "./handleHTTPRequest";
+import handleScheduledEvent, { ScheduledEvent } from "./handleScheduledEvent";
 import handleSQSMessages, {
   SQSBatchResponse,
   SQSMessage,
@@ -167,6 +168,11 @@ export async function handler(
     });
   }
 
+  if (isScheduledEvent(event)) {
+    const newLocalStorage = () => new LambdaLocalStorage();
+    return await handleScheduledEvent(event, newLocalStorage);
+  }
+
   throw new Error("Unknown event type");
 }
 
@@ -187,11 +193,16 @@ function isSQSMessages(event: LambdaEvent): event is { Records: SQSMessage[] } {
   );
 }
 
+function isScheduledEvent(event: LambdaEvent): event is ScheduledEvent {
+  return "source" in event && event.source === "aws.events";
+}
+
 type LambdaEvent =
   | APIGatewayHTTPEvent
   | APIGatewayWebSocketEvent
   | { Records: Array<SQSMessage> }
-  | BackendLambdaRequest;
+  | BackendLambdaRequest
+  | ScheduledEvent;
 
 type LambdaContext = {
   functionName: string;

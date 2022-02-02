@@ -7,12 +7,14 @@ export default async function displayManifest(dirname: string) {
   const routes = tabulate(manifest.routes);
   const socket = tabulate(manifest.socket);
   const queues = tabulate(manifest.queues);
+  const schedules = tabulate(manifest.schedules);
 
-  const widths = calculate(routes, socket, queues);
+  const widths = calculate(routes, socket, queues, schedules);
 
   displayTable({ rows: routes, title: "HTTP API", widths });
   displayTable({ rows: socket, title: "WebSocket", widths });
   displayTable({ rows: queues, title: "Queues", widths });
+  displayTable({ rows: schedules, title: "Schedules", widths });
 }
 
 function tabulate(map: Map<string, { original: string }>): [string, string][] {
