@@ -38,12 +38,17 @@ export default async function mapSchedules(): Promise<Manifest["schedules"]> {
           throw new Error("Expected module to export const schedule : string");
 
         const config = module.config ?? {};
+        const timeout = getTimeout({
+          cron,
+          timeout: config.timeout,
+        });
+
         return {
           cron,
           filename,
           name,
           original: await getOriginalFilename(filename),
-          timeout: getTimeout(config),
+          timeout,
         };
       } catch (error) {
         throw new Error(`Error in "${filename}": ${error}`);
@@ -78,13 +83,29 @@ function scheduleNameFromFilename(filename: string): string {
   return name;
 }
 
-function getTimeout({ timeout }: { timeout?: number }): number {
-  if (timeout === undefined || timeout === null) return defaultTimeout;
+function getTimeout({
+  cron,
+  timeout,
+}: {
+  cron: string;
+  timeout: number | undefined | null;
+}): number {
+  const parsed = cronParser.parseExpression(cron);
+  const [first, second] = [parsed.next(), parsed.next()];
+  const spacing =
+    first && second ? (second.getTime() - first.getTime()) / 1000 : undefined;
+
+  if (timeout === undefined || timeout === null)
+    return spacing ? Math.min(spacing, maxTimeout) : defaultTimeout;
   if (typeof timeout !== "number")
     throw new Error("config.timeout must be a number (seconds)");
   if (timeout < 1) throw new Error("config.timeout must be at least 1 second");
   if (timeout > maxTimeout)
     throw new Error(`config.timeout cannot be more than ${maxTimeout} seconds`);
+  if (spacing && timeout > spacing)
+    throw new Error(
+      "config.timeout cannot be greater than duration between runs"
+    );
   return timeout;
 }
 
