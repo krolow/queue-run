@@ -12,6 +12,7 @@ import { getEnvVariables } from "./envVars.js";
 import { addTriggers, removeTriggers } from "./eventSource.js";
 import { createQueues, deleteOldQueues } from "./prepareQueues.js";
 import updateAlias from "./updateAlias.js";
+import { removeUnusedSchedules, updateSchedules } from "./updateSchedules.js";
 import uploadLambda from "./uploadLambda.js";
 
 const currentVersionAlias = "current";
@@ -156,6 +157,7 @@ export async function deployLambda({
     queues: manifest.queues,
     queuePrefix,
     region,
+    schedules: manifest.schedules,
     versionArn,
   });
 
@@ -215,11 +217,13 @@ async function switchOver({
   queues,
   queuePrefix,
   region,
+  schedules,
   versionArn,
 }: {
   queuePrefix: string;
   queues: Manifest["queues"];
   region: string;
+  schedules: Manifest["schedules"];
   versionArn: string;
 }): Promise<string> {
   const aliasArn = versionArn.replace(/(\d+)$/, currentVersionAlias);
@@ -233,6 +237,11 @@ async function switchOver({
   });
 
   await removeTriggers({ lambdaArn: aliasArn, sourceArns: queueArns, region });
+  await removeUnusedSchedules({
+    lambdaArn: aliasArn,
+    region,
+    schedules: new Set(schedules.map(({ name }) => name)),
+  });
 
   // Update alias to point to new version.
   //
@@ -248,6 +257,7 @@ async function switchOver({
   //
   //   trigger {projectId}-{branch}__{queueName} => {projectId}-{branch}
   await addTriggers({ lambdaArn: aliasArn, sourceArns: queueArns, region });
+  await updateSchedules({ lambdaArn: aliasArn, region, schedules });
 
   ora(`This is version ${versionArn.split(":").slice(-1)[0]}`).succeed();
 

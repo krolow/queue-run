@@ -112,6 +112,16 @@ export default function policy(slug?: string) {
           "arn:aws:dynamodb:*:*:table/qr-user-connections",
         ],
       },
+      {
+        Action: [
+          "events:DeleteRule",
+          "events:ListRuleNamesByTarget",
+          "events:PutRule",
+          "events:PutTargets",
+        ],
+        Effect: "Allow",
+        Resource: "arn:aws:events:*:*:rule/*",
+      },
     ],
   };
 }

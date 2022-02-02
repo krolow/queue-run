@@ -1,4 +1,4 @@
-import cron from "cron-parser";
+import cronParser from "cron-parser";
 import glob from "fast-glob";
 // @ts-ignore
 import friendlyCron from "friendly-node-cron";
@@ -63,7 +63,7 @@ function getSchedule(schedule: string): string {
   if (friendly) return friendly;
 
   // Validate cron expression
-  const parsed = cron.parseExpression(schedule);
+  const parsed = cronParser.parseExpression(schedule);
   if (parsed) return schedule;
   throw new Error(`Invalid schedule: ${schedule}`);
 }
