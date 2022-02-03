@@ -11,6 +11,7 @@ import type {
   ScheduleMiddleware,
 } from "queue-run";
 import { loadModule } from "queue-run";
+import invariant from "tiny-invariant";
 
 const maxTimeout = 900; // 15 minute (Lambda maximum)
 const defaultTimeout = 300; // 5 minutes
@@ -59,18 +60,23 @@ export default async function mapSchedules(): Promise<Manifest["schedules"]> {
 
 function getSchedule(schedule: string): string {
   // Very useful but not supported by friendly-node-cron:
-  if (/^daily$/i.test(schedule)) return "0 0 * * *";
   if (/^hourly$/i.test(schedule)) return "0 * * * *";
+  if (/^daily$/i.test(schedule)) return "0 0 * * *";
   if (/^monthly$/i.test(schedule)) return "0 0 1 * *";
 
   // https://www.npmjs.com/package/friendly-node-cron
   const friendly = friendlyCron(schedule);
-  if (friendly) return friendly;
+  // Drop the seconds prefix, since we don't support it
+  if (friendly) schedule = friendly.replace(/^\S+\s+/, "");
 
-  // Validate cron expression
-  const parsed = cronParser.parseExpression(schedule);
-  if (parsed) return schedule;
-  throw new Error(`Invalid schedule: ${schedule}`);
+  try {
+    // Validate cron expression
+    const parsed = cronParser.parseExpression(schedule);
+    invariant(parsed, "Expected cron expression to parse");
+    return parsed.stringify(false);
+  } catch (error) {
+    throw new Error(`Invalid schedule expression: "${schedule}"`);
+  }
 }
 
 // schedules/daily.js => daily
@@ -90,7 +96,7 @@ function getTimeout({
   cron: string;
   timeout: number | undefined | null;
 }): number {
-  const parsed = cronParser.parseExpression(cron);
+  const parsed = cronParser.parseExpression(cron, { utc: true });
   const [first, second] = [parsed.next(), parsed.next()];
   const spacing =
     first && second ? (second.getTime() - first.getTime()) / 1000 : undefined;

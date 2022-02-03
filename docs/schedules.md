@@ -44,7 +44,7 @@ It can be [a cron expression](https://crontab.guru). A cron expression has the f
 └───────────────────────── second (0 - 59, optional)
 ```
 
-Or human readable expression, [like](https://www.npmjs.com/package/friendly-node-cron):
+Or [human readable expression](https://www.npmjs.com/package/friendly-node-cron), like:
 
 - "every 15 minutes"
 - "at 13:37 on fridays tuesdays and thursdays"
