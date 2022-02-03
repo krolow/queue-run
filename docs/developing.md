@@ -29,7 +29,7 @@ The development server will load environment variables from the file `.env`, if 
 You can test queues directly by running (from a separate terminal window):
 
 ```bash
-npx queue-run dev queue <queue-name> [body]
+npx queue-run queue <name> [body]
 ```
 
 You can provide the body inline after the queue name, from a file (`@filename`), from stdin (`-`), or `queue-run` will prompt you.
@@ -41,7 +41,7 @@ For example:
 ```bash
 cat job.json
 { "id": 123 }
-npx queue-run dev queue screenshots @job.json
+npx queue-run queue screenshots @job.json
 ```
 
 
@@ -57,6 +57,15 @@ websocat ws://localhost:8000
 
 The port number for WebSocket is one more than the port number for HTTP.
 :::
+
+
+## Testing Scheduled Jobs
+
+You can test scheduled job directly by running (from a separate terminal window):
+
+```bash
+npx queue-run schedule <name>
+```
 
 
 ## Configuration Files

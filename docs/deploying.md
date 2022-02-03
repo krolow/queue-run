@@ -58,9 +58,17 @@ The following commands are available to deploy and manage your project:
 * `logs` — Watch server logs
 * `policy` — Print out [the AWS policy](#credentials-and-policies) for deploying a project 
 * `provisioned` — Change the [provisioned concurrency](optimizing.md#provisioned-concurrency)
+* `queue` — Queue a job (for testing)
 * `reserved` — Change the [reserved concurrency](optimizing.md#reserved-concurrency)
 * `rollback` — Broke something? Rollback to a previous version
+* `schedule` — Run a scheduled job (for testing)
 * `status` — See information about your deployed project (eg HTTP and WebSocket URLs, concurrency)
+
+:::info 
+The `queue` and `schedule` command are for testing during [development](developing.md). By default they will communicate with the development server.
+
+To run queue and scheduled jobs in production use the `--prod` command line option.
+:::
 
 :::tip Dev Dependencies
 To keep the `queue-run` module lean, the CLI tools are available as a separate module. When you run `npx queue-run`, it downloads `queue-run` into a temporary directory, and then downloads `queue-run-cli`.
