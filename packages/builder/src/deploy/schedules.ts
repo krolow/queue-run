@@ -182,7 +182,7 @@ export async function listSchedules({
     .map(({ name, cron, invocations }) => ({
       name,
       cron: cron!,
-      next: cronParser.parseExpression(cron!).next().toDate(),
+      next: cronParser.parseExpression(cron!, { utc: true }).next().toDate(),
       invocations,
     }));
 }
