@@ -29,6 +29,12 @@ npx queue-run reserved 0
 ...
 ```
 
+Use `npx queue-run status` to see the current reserved concurrency.
+
+Use `npx queue-run metrics lambda` to see performance metrics. You can see how many concurrent executions were used in a given time period. This metrics shows the maximum.
+
+You can also see how many invocations were throttled due to lack of available concurrency. This metrics shows the sum for the time period.
+
 
 ## Provisioned Concurrency
 
@@ -50,7 +56,11 @@ npx queue-run provisioned 5
 npx queue-run provisioned 0
 ```
 
-### index.ts
+Use `npx queue-run status` to see the current provisioned concurrency.
+
+
+
+## Warm-up Function
 
 If you opted into provisioned concurrency, you will want to do warm up work before the request handler gets involved. For tasks like opening database connections, downloading dynamic resources and data, etc.
 
@@ -75,8 +85,6 @@ export async function get() {
 :::tip
 You can use this without provisioned concurrency as well. It's a way to structure the code, placing common resources (database connections, settings, etc) in `index.ts`.
 :::
-
-### Warm-up Function
 
 If you want to be more specific, you can export a `warmup` function. For example:
 

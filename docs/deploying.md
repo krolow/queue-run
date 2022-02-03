@@ -56,13 +56,13 @@ The following commands are available to deploy and manage your project:
 * `env` — Add and remove environment variables
 * `init` - Configure your project and update `.queue-run.json`
 * `logs` — Watch server logs
+* `metrics` — Show metrics for Lambda invocations, HTTP requests, WebSocket connections, queued jobs, etc
 * `policy` — Print out [the AWS policy](#credentials-and-policies) for deploying a project 
 * `provisioned` — Change the [provisioned concurrency](optimizing.md#provisioned-concurrency)
 * `queue` — Queue a job (for testing)
 * `reserved` — Change the [reserved concurrency](optimizing.md#reserved-concurrency)
 * `rollback` — Broke something? Rollback to a previous version
 * `schedule` — Run a scheduled job (for testing)
-* `stats` — Statistics about Lambda invocations, HTTP requests, WebSocket connections, queued jobs, etc
 * `status` — See information about your deployed project (eg HTTP and WebSocket URLs, concurrency)
 
 :::info 
@@ -168,4 +168,56 @@ For example:
 npx queue-run env add AWS_ACCESS_KEY_ID "AKI..."
 npx queue-run env add AWS_SECRET_ACCESS_KEY "v…"
 npx queue-run env add AWS_REGION "us-east-1"
+```
+
+
+## Visibility
+
+Use `npx queue-run metrics` to see metrics about:
+
+* Lambda: invocations, throttled requests, errors, concurrency, execution duration
+* HTTP: requests, 4xx and 5xx responses, response time
+* WebSocket: new connections, messages sent and received, errors, response time
+* Queues: jobs queued, jobs processed, in-flight, and age of oldest message
+
+The default range is the last 12 hours. You can change the time range with the `--range` option:
+
+```bash
+# Last 30 minutes, resolution is 1 minute
+npx queue-run metrics --range 30m
+
+# Last 8 hours, resolution is 10 minutes
+npx queue-run metrics --range 8h
+
+# Last 30 days, resolution is 1 day
+npx queue-run metrics --range 30d
+```
+
+Use `npx queue-run status` to see the current status of your project.
+
+The status command would also show you:
+
+* When your backend was deployed, version number, code size, region, etc
+* Reserved and provisioned concurrency (see [Optimizing](optimizing.md))
+* HTTP and WebSocket endpoints
+* For each queue, jobs processed in the past 5 minutes, in flight jobs, and age of oldest job
+* For each schedule, when the schedule will run again, and number of invocations in the past 24 hours
+
+```
+ Name		: grumpy-sunshine
+────────────────────────────────────────────────────
+ Version      : 358
+ Code size    : 1.27 MB (compressed)
+ Deployed     : 2/2/2022, 9:52:30 PM
+ Region       : us-east-1
+ Avail memory : 5.12 GB
+ Timeout      : 15m
+ Reserved     : no reserve
+ Provisioned  : IN_PROGRESS
+ — Requested  : 2
+ — Allocated  : 0
+ — Available  : 0
+
+ HTTP         : https://grumpy-sunshine.queue.run
+ WebSocket    : wss://ws.grumpy-sunshine.queue.run
 ```

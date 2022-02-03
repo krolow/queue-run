@@ -5,7 +5,7 @@ import ora from "ora";
 import { displayTable, getAPIGatewayURLs } from "queue-run-builder";
 import { loadCredentials } from "./project.js";
 
-const command = new Command("stats");
+const command = new Command("metrics").description("show execution metrics");
 
 const rangePeriod = new Option(
   "-r, --range <range>",
@@ -196,8 +196,7 @@ async function collectMetrics({
 }): Promise<Array<Array<number | undefined>>> {
   const spinner = ora("Collecting queue metrics").start();
   const cloudWatch = new CloudWatch({ region });
-  const period =
-    range <= ms("1h") ? ms("1m") : range <= ms("7d") ? ms("1h") : ms("1d");
+  const period = getResolution(range);
   const now = Date.now();
   const end = new Date(now - (now % 60000));
   const start = new Date(end.getTime() - range);
@@ -236,6 +235,14 @@ async function collectMetrics({
   }
   spinner.stop();
   return collected;
+}
+
+function getResolution(range: number) {
+  if (range < ms("1h")) return ms("1m");
+  if (range < ms("12h")) return ms("10m");
+  if (range < ms("3d")) return ms("1h");
+  if (range < ms("7d")) return ms("4h");
+  return ms("1d");
 }
 
 export default command;
