@@ -102,9 +102,12 @@ function nameFromQueueURL(queueUrl: string): string {
 }
 
 export async function listQueues({
+  // Count messages for time time period (ms)
+  period,
   project,
   region,
 }: {
+  period: number;
   project: string;
   region: string;
 }) {
@@ -116,31 +119,44 @@ export async function listQueues({
   if (!queueUrls) return [];
 
   const cloudWatch = new CloudWatch({ region });
+  const end = new Date();
+  const start = new Date(end.getTime() - period);
 
   return await Promise.all(
     queueUrls.map(async (url) => {
       const queueName = nameFromQueueURL(url);
       const [queued, inFlight, processed, oldest] = await Promise.all([
         getMetric({
+          aggregate: "Sum",
           cloudWatch,
+          end,
           metricName: "NumberOfMessagesSent",
           queueName,
+          start,
         }),
         getMetric({
+          aggregate: "Maximum",
           cloudWatch,
+          end,
           metricName: "ApproximateNumberOfMessagesNotVisible",
           queueName,
+          start,
         }),
         getMetric({
+          aggregate: "Sum",
           cloudWatch,
+          end,
           metricName: "NumberOfMessagesDeleted",
           queueName,
+          start,
         }),
         getMetric({
+          aggregate: "Maximum",
           cloudWatch,
+          end,
           metricName: "ApproximateAgeOfOldestMessage",
           queueName,
-          aggregate: "Maximum",
+          start,
         }),
       ]);
       return {
@@ -155,30 +171,28 @@ export async function listQueues({
 }
 
 async function getMetric({
-  aggregate = "Sum",
+  aggregate,
+  end,
   cloudWatch,
   metricName,
   queueName,
+  start,
 }: {
-  aggregate?: keyof Datapoint;
+  aggregate: keyof Datapoint;
+  end: Date;
   cloudWatch: CloudWatch;
   metricName: string;
   queueName: string;
+  start: Date;
 }) {
-  const period = 60 * 60 * 24; // 1 day
   const { Datapoints } = await cloudWatch.getMetricStatistics({
-    EndTime: new Date(),
-    Namespace: "AWS/SQS",
+    Dimensions: [{ Name: "QueueName", Value: queueName }],
+    EndTime: end,
     MetricName: metricName,
-    Period: period,
-    StartTime: new Date(new Date().getTime() - period * 1000),
+    Namespace: "AWS/SQS",
+    Period: end.getTime() - start.getTime(),
+    StartTime: start,
     Statistics: ["Sum", "Maximum"],
-    Dimensions: [
-      {
-        Name: "QueueName",
-        Value: queueName,
-      },
-    ],
   });
   return Datapoints?.[0]?.[aggregate!];
 }

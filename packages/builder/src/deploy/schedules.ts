@@ -135,14 +135,17 @@ async function getRuleNames({
 
 export async function listSchedules({
   lambdaArn,
+  // Count invocations for this time period (ms)
+  period,
 }: {
   lambdaArn: string;
+  period: number;
 }): Promise<
   Array<{
     name: string;
     cron: string;
-    next: Date;
-    count: number;
+    next: Date | undefined;
+    invocations: number;
   }>
 > {
   const region = lambdaArn.match(/arn:aws:lambda:(.*?):/)![1]!;
@@ -150,20 +153,19 @@ export async function listSchedules({
   const ruleNames = await getRuleNames({ events, lambdaArn });
 
   const cloudWatch = new CloudWatch({ region });
-  const period = 60 * 60 * 24; // 1 day
 
   const rules = await Promise.all(
     ruleNames.map((ruleName) =>
       Promise.all([
         events.describeRule({ Name: ruleName }),
         cloudWatch.getMetricStatistics({
+          Dimensions: [{ Name: "RuleName", Value: ruleName }],
           EndTime: new Date(),
-          Namespace: "AWS/Events",
           MetricName: "TriggeredRules",
+          Namespace: "AWS/Events",
           Period: period,
           StartTime: new Date(new Date().getTime() - period * 1000),
           Statistics: ["Sum"],
-          Dimensions: [{ Name: "RuleName", Value: ruleName }],
         }),
       ])
     )
@@ -174,14 +176,14 @@ export async function listSchedules({
     .map(([rule, metric]) => ({
       name: rule.Name!.split(".")[1]!,
       cron: toRegularCron(rule.ScheduleExpression),
-      count: metric.Datapoints?.[0]?.Sum ?? 0,
+      invocations: metric.Datapoints?.[0]?.Sum ?? 0,
     }))
     .filter(({ cron }) => !!cron)
-    .map(({ name, cron, count }) => ({
+    .map(({ name, cron, invocations }) => ({
       name,
       cron: cron!,
       next: cronParser.parseExpression(cron!).next().toDate(),
-      count,
+      invocations,
     }));
 }
 

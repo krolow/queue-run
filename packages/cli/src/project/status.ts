@@ -81,7 +81,7 @@ const command = new Command("status")
     if (queues.length) {
       process.stdout.write("\n\n");
       displayTable(
-        ["Queue", "Processed (24h)", "In flight", "Oldest"],
+        ["Queue", "Processed (5m)", "In flight", "Oldest"],
         queues.map(({ queueName, processed, inFlight, oldest }) => [
           queueName,
           processed.toLocaleString(),
@@ -95,11 +95,11 @@ const command = new Command("status")
       process.stdout.write("\n\n");
       displayTable(
         ["Schedule", "Recurring", "Next run", "Invoked (24h)"],
-        schedules.map(({ name, cron, next, count }) => [
+        schedules.map(({ name, cron, next, invocations }) => [
           name,
           cron,
           next?.toString() ?? "never",
-          count.toString(),
+          invocations.toString(),
         ])
       );
     }
@@ -122,7 +122,6 @@ async function loadStatus() {
   const currentArn = current.arn.replace(/:\d+$/, ":current");
   // Version/alias not supported when reading concurrency configuration
   const concurrencyArn = current.arn.replace(/:\d+$/, "");
-  const lambdaName = concurrencyArn.split(":").pop()!;
   const [
     { MemorySize: memory, Timeout: timeout },
     { ReservedConcurrentExecutions: reserved },
@@ -139,8 +138,8 @@ async function loadStatus() {
     lambda.listProvisionedConcurrencyConfigs({
       FunctionName: concurrencyArn,
     }),
-    listQueues({ region, project: name }),
-    listSchedules({ lambdaArn: currentArn }),
+    listQueues({ region, period: ms("5m"), project: name }),
+    listSchedules({ lambdaArn: currentArn, period: ms("1d") }),
   ]);
 
   spinner.stop();
