@@ -7,13 +7,7 @@ export default function policy(slug?: string) {
     Statement: [
       {
         Effect: "Allow",
-        Action: [
-          "apigateway:*",
-          "acm:DeleteCertificate",
-          "acm:DescribeCertificate",
-          "acm:RequestCertificate",
-          "acm:ListCertificates",
-        ],
+        Action: ["apigateway:*", "acm:*"],
         Resource: "*",
       },
       {
@@ -23,13 +17,7 @@ export default function policy(slug?: string) {
       },
       {
         Effect: "Allow",
-        Action: [
-          "logs:CreateLogGroup",
-          "logs:CreateLogStream",
-          "logs:DescribeLogGroups",
-          "logs:FilterLogEvents",
-          "logs:PutLogEvents",
-        ],
+        Action: ["logs:*"],
         Resource: `arn:aws:logs:*:*:log-group:/aws/lambda/${lambdaPrefix}`,
       },
       {
@@ -39,11 +27,7 @@ export default function policy(slug?: string) {
       },
       {
         Effect: "Allow",
-        Action: [
-          "lambda:CreateEventSourceMapping",
-          "lambda:DeleteEventSourceMapping",
-          "lambda:UpdateEventSourceMapping",
-        ],
+        Action: ["lambda:*"],
         Resource: "*",
         Condition: {
           StringLike: {
@@ -99,13 +83,7 @@ export default function policy(slug?: string) {
         Resource: "*",
       },
       {
-        Action: [
-          "dynamodb:CreateTable",
-          "dynamodb:DeleteItem",
-          "dynamodb:DescribeTable",
-          "dynamodb:GetItem",
-          "dynamodb:UpdateItem",
-        ],
+        Action: ["dynamodb:*"],
         Effect: "Allow",
         Resource: [
           "arn:aws:dynamodb:*:*:table/qr-connections",
@@ -114,14 +92,14 @@ export default function policy(slug?: string) {
         ],
       },
       {
-        Action: [
-          "events:DescribeRule",
-          "events:ListRuleNamesByTarget",
-          "events:PutRule",
-          "events:PutTargets",
-        ],
+        Action: ["events:*"],
         Effect: "Allow",
         Resource: "arn:aws:events:*:*:rule/*",
+      },
+      {
+        Action: ["cloudwatch:GetMetricStatistics"],
+        Effect: "Allow",
+        Resource: "*",
       },
     ],
   };

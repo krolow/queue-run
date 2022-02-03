@@ -1,3 +1,4 @@
+import { CloudWatch } from "@aws-sdk/client-cloudwatch";
 import { CloudWatchEvents } from "@aws-sdk/client-cloudwatch-events";
 import { Lambda } from "@aws-sdk/client-lambda";
 import cronParser from "cron-parser";
@@ -104,7 +105,12 @@ export async function removeUnusedSchedules({
   const unused = ruleNames
     .filter((name) => name.startsWith(prefix))
     .filter((name) => !schedules.has(name.slice(prefix.length)));
-  await Promise.all(unused.map((name) => events.deleteRule({ Name: name })));
+  await Promise.all(
+    unused.map(async (name) => {
+      await events.removeTargets({ Ids: ["lambda"], Rule: name });
+      await events.deleteRule({ Name: name });
+    })
+  );
   spinner.succeed(`Removed ${unused.length} old schedules`);
 }
 
@@ -136,25 +142,46 @@ export async function getSchedules({
     name: string;
     cron: string;
     next: Date;
+    count: number;
   }>
 > {
   const region = lambdaArn.match(/arn:aws:lambda:(.*?):/)![1]!;
   const events = new CloudWatchEvents({ region });
   const ruleNames = await getRuleNames({ events, lambdaArn });
+
+  const cloudWatch = new CloudWatch({ region });
+  const period = 60 * 60 * 24; // 1 day
+
   const rules = await Promise.all(
-    ruleNames.map((ruleName) => events.describeRule({ Name: ruleName }))
+    ruleNames.map((ruleName) =>
+      Promise.all([
+        events.describeRule({ Name: ruleName }),
+        cloudWatch.getMetricStatistics({
+          EndTime: new Date(),
+          Namespace: "AWS/Events",
+          MetricName: "TriggeredRules",
+          Period: period,
+          StartTime: new Date(new Date().getTime() - period * 1000),
+          Statistics: ["Sum"],
+          Dimensions: [{ Name: "RuleName", Value: ruleName }],
+        }),
+      ])
+    )
   );
+
   return rules
-    .filter(({ State }) => State === "ENABLED")
-    .map(({ Name, ScheduleExpression }) => ({
-      name: Name!.split(".")[1]!,
-      cron: toRegularCron(ScheduleExpression),
+    .filter(([rule]) => rule.State === "ENABLED")
+    .map(([rule, metric]) => ({
+      name: rule.Name!.split(".")[1]!,
+      cron: toRegularCron(rule.ScheduleExpression),
+      count: metric.Datapoints?.[0]?.Sum ?? 0,
     }))
     .filter(({ cron }) => !!cron)
-    .map(({ name, cron }) => ({
+    .map(({ name, cron, count }) => ({
       name,
       cron: cron!,
       next: cronParser.parseExpression(cron!).next().toDate(),
+      count,
     }));
 }
 

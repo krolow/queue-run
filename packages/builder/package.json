@@ -20,6 +20,7 @@
   "dependencies": {
     "@aws-sdk/client-acm": "^3.49.0",
     "@aws-sdk/client-apigatewayv2": "^3.49.0",
+    "@aws-sdk/client-cloudwatch": "^3.49.0",
     "@aws-sdk/client-cloudwatch-events": "^3.49.0",
     "@aws-sdk/client-dynamodb": "^3.49.0",
     "@aws-sdk/client-iam": "^3.49.0",

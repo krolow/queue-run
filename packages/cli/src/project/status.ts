@@ -79,11 +79,12 @@ const command = new Command("status")
     if (schedules.length) {
       process.stdout.write("\n");
       displayTable(
-        ["Name", "Schedule", "Next run"],
-        schedules.map(({ name, cron, next }) => [
+        ["Name", "Schedule", "Next run", "24 hours"],
+        schedules.map(({ name, cron, next, count }) => [
           name,
           cron,
           next?.toString() ?? "never",
+          count.toFixed(0),
         ])
       );
     }
