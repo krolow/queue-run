@@ -2,6 +2,7 @@ import { Lambda } from "@aws-sdk/client-lambda";
 import chalk from "chalk";
 import { Command } from "commander";
 import filesize from "filesize";
+import ms from "ms";
 import ora from "ora";
 import { getAPIGatewayURLs, getRecentVersions } from "queue-run-builder";
 import { loadCredentials } from "./project.js";
@@ -10,13 +11,14 @@ const command = new Command("status")
   .description("status of your project")
   .action(async () => {
     const {
-      name,
-      region,
       current,
-      memory,
-      reserved,
-      provisioned,
       httpUrl,
+      memory,
+      name,
+      provisioned,
+      region,
+      reserved,
+      timeout,
       wsUrl,
     } = await loadStatus();
 
@@ -44,6 +46,7 @@ const command = new Command("status")
     process.stdout.write(
       ` Avail memory\t: ${filesize(memory * 10000 * 1000)}\n`
     );
+    process.stdout.write(` Timeout\t: ${ms(timeout * 1000)}\n`);
 
     process.stdout.write(
       ` Reserved\t: ${
@@ -82,19 +85,22 @@ async function loadStatus() {
     throw new Error("No current version found: did you deploy this project?");
 
   const lambda = new Lambda({ region });
+  const currentArn = current.arn.replace(/:\d+$/, ":current");
+  // Version/alias not supported when reading concurrency configuration
+  const concurrencyArn = current.arn.replace(/:\d+$/, "");
   const [
-    { MemorySize: memory },
+    { MemorySize: memory, Timeout: timeout },
     { ReservedConcurrentExecutions: reserved },
     { ProvisionedConcurrencyConfigs: provisioned },
   ] = await Promise.all([
     lambda.getFunctionConfiguration({
-      FunctionName: current.arn,
+      FunctionName: currentArn,
     }),
     lambda.getFunctionConcurrency({
-      FunctionName: current.arn.replace(/:\d+$/, ""),
+      FunctionName: concurrencyArn,
     }),
     lambda.listProvisionedConcurrencyConfigs({
-      FunctionName: current.arn.replace(/:\w+$/, ""),
+      FunctionName: concurrencyArn,
     }),
   ]);
 
@@ -113,6 +119,7 @@ async function loadStatus() {
         AvailableProvisionedConcurrentExecutions: available,
       }) => ({ requested, allocated, available, status })
     ),
+    timeout: timeout ?? 300,
     httpUrl,
     wsUrl,
   };
