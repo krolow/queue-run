@@ -1,3 +1,4 @@
+import { CloudWatch, Datapoint } from "@aws-sdk/client-cloudwatch";
 import { SQS } from "@aws-sdk/client-sqs";
 import { URL } from "node:url";
 import ora from "ora";
@@ -69,13 +70,13 @@ export async function deleteOldQueues({
   region: string;
 }) {
   const sqs = new SQS({ region });
-  const { QueueUrls: queueURLs } = await sqs.listQueues({
+  const { QueueUrls: queueUrls } = await sqs.listQueues({
     QueueNamePrefix: prefix,
   });
-  if (!queueURLs) return;
+  if (!queueUrls) return;
 
   const set = new Set(queueArns);
-  const toDelete = queueURLs.filter((url) => !set.has(arnFromQueueURL(url)));
+  const toDelete = queueUrls.filter((url) => !set.has(arnFromQueueURL(url)));
   await Promise.all(
     toDelete.map(async (url) => {
       console.info("µ: Deleting old queue %s", nameFromQueueURL(url));
@@ -98,4 +99,86 @@ function nameFromQueueURL(queueUrl: string): string {
   const queueName = pathname.split("/")[2];
   invariant(queueName, "Incorrectly formatted queue URL");
   return queueName;
+}
+
+export async function listQueues({
+  project,
+  region,
+}: {
+  project: string;
+  region: string;
+}) {
+  const sqs = new SQS({ region });
+  const prefix = `qr-${project}__`;
+  const { QueueUrls: queueUrls } = await sqs.listQueues({
+    QueueNamePrefix: prefix,
+  });
+  if (!queueUrls) return [];
+
+  const cloudWatch = new CloudWatch({ region });
+
+  return await Promise.all(
+    queueUrls.map(async (url) => {
+      const queueName = nameFromQueueURL(url);
+      const [queued, inFlight, processed, oldest] = await Promise.all([
+        getMetric({
+          cloudWatch,
+          metricName: "NumberOfMessagesSent",
+          queueName,
+        }),
+        getMetric({
+          cloudWatch,
+          metricName: "ApproximateNumberOfMessagesNotVisible",
+          queueName,
+        }),
+        getMetric({
+          cloudWatch,
+          metricName: "NumberOfMessagesDeleted",
+          queueName,
+        }),
+        getMetric({
+          cloudWatch,
+          metricName: "ApproximateAgeOfOldestMessage",
+          queueName,
+          aggregate: "Maximum",
+        }),
+      ]);
+      return {
+        queueName: queueName.replace(prefix, ""),
+        queued,
+        inFlight,
+        processed,
+        oldest,
+      };
+    })
+  );
+}
+
+async function getMetric({
+  aggregate = "Sum",
+  cloudWatch,
+  metricName,
+  queueName,
+}: {
+  aggregate?: keyof Datapoint;
+  cloudWatch: CloudWatch;
+  metricName: string;
+  queueName: string;
+}) {
+  const period = 60 * 60 * 24; // 1 day
+  const { Datapoints } = await cloudWatch.getMetricStatistics({
+    EndTime: new Date(),
+    Namespace: "AWS/SQS",
+    MetricName: metricName,
+    Period: period,
+    StartTime: new Date(new Date().getTime() - period * 1000),
+    Statistics: ["Sum", "Maximum"],
+    Dimensions: [
+      {
+        Name: "QueueName",
+        Value: queueName,
+      },
+    ],
+  });
+  return Datapoints?.[0]?.[aggregate!];
 }

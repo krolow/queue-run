@@ -8,7 +8,8 @@ import {
   displayTable,
   getAPIGatewayURLs,
   getRecentVersions,
-  getSchedules,
+  listQueues,
+  listSchedules,
 } from "queue-run-builder";
 import { loadCredentials } from "./project.js";
 
@@ -20,6 +21,7 @@ const command = new Command("status")
       httpUrl,
       memory,
       name,
+      queues,
       provisioned,
       region,
       reserved,
@@ -76,10 +78,24 @@ const command = new Command("status")
     process.stdout.write(` HTTP\t\t: ${httpUrl}\n`);
     process.stdout.write(` WebSocket\t: ${wsUrl}\n`);
 
-    if (schedules.length) {
-      process.stdout.write("\n");
+    if (queues.length) {
+      process.stdout.write("\n\n");
       displayTable(
-        ["Name", "Schedule", "Next run", "24 hours"],
+        ["Queue", "Queued (24h)", "Processed", "In flight", "Oldest"],
+        queues.map(({ queueName, queued, processed, inFlight, oldest }) => [
+          queueName,
+          queued.toFixed(),
+          processed.toFixed(),
+          inFlight.toFixed(),
+          `${oldest} sec`,
+        ])
+      );
+    }
+
+    if (schedules.length) {
+      process.stdout.write("\n\n");
+      displayTable(
+        ["Schedule", "Recurring", "Next run", "Invoked (24h)"],
         schedules.map(({ name, cron, next, count }) => [
           name,
           cron,
@@ -111,6 +127,7 @@ async function loadStatus() {
     { MemorySize: memory, Timeout: timeout },
     { ReservedConcurrentExecutions: reserved },
     { ProvisionedConcurrencyConfigs: provisioned },
+    queues,
     schedules,
   ] = await Promise.all([
     lambda.getFunctionConfiguration({
@@ -122,7 +139,8 @@ async function loadStatus() {
     lambda.listProvisionedConcurrencyConfigs({
       FunctionName: concurrencyArn,
     }),
-    getSchedules({ lambdaArn: currentArn }),
+    listQueues({ region, project: name }),
+    listSchedules({ lambdaArn: currentArn }),
   ]);
 
   spinner.stop();
@@ -131,6 +149,7 @@ async function loadStatus() {
     region,
     current,
     memory: memory ?? 128,
+    queues,
     reserved,
     provisioned: provisioned?.map(
       ({

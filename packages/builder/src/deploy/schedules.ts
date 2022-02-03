@@ -133,7 +133,7 @@ async function getRuleNames({
   return RuleNames.concat(next);
 }
 
-export async function getSchedules({
+export async function listSchedules({
   lambdaArn,
 }: {
   lambdaArn: string;

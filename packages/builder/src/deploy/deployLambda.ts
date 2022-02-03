@@ -10,7 +10,7 @@ import { buildProject, displayManifest } from "../build/index.js";
 import { createTables } from "./createTables.js";
 import { getEnvVariables } from "./envVars.js";
 import { addTriggers, removeTriggers } from "./eventSource.js";
-import { createQueues, deleteOldQueues } from "./prepareQueues.js";
+import { createQueues, deleteOldQueues } from "./queues.js";
 import { removeUnusedSchedules, updateSchedules } from "./schedules.js";
 import updateAlias from "./updateAlias.js";
 import uploadLambda from "./uploadLambda.js";
