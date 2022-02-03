@@ -14,6 +14,7 @@ import ora from "ora";
 import invariant from "tiny-invariant";
 
 const wsStage = "_ws";
+const httpStage = "$default";
 
 // See https://docs.aws.amazon.com/lambda/latest/dg/services-apigateway.html#apigateway-permissions
 
@@ -31,7 +32,9 @@ export async function getAPIGatewayURLs({
   project: string;
   region: string;
 }): Promise<{
+  httpApiId: string;
   httpUrl: string;
+  wsApiId: string;
   wsUrl: string;
 }> {
   const apiGateway = new ApiGatewayV2({ region });
@@ -50,14 +53,18 @@ export async function getAPIGatewayURLs({
     if (Items?.find(({ ApiId }) => ApiId === http.ApiId)) {
       const domain = DomainName!.replace("*.", "");
       return {
+        httpApiId: http.ApiId!,
         httpUrl: `https://${domain}`,
+        wsApiId: ws.ApiId!,
         wsUrl: `wss://ws.${domain}`,
       };
     }
   }
 
   return {
+    httpApiId: http.ApiId!,
     httpUrl: http.ApiEndpoint,
+    wsApiId: ws.ApiId!,
     wsUrl: `${ws.ApiEndpoint}/${wsStage}`,
   };
 }
@@ -434,18 +441,27 @@ export async function removeAPIGatewayDomain({
     findGatewayAPI({ apiGateway, protocol: ProtocolType.WEBSOCKET, project }),
   ]);
   await Promise.all([
-    removeDomainMapping({
-      apiGateway,
-      apiId: http?.ApiId!,
-      domain: `*.${domain}`,
-      stage: "$default",
-    }),
-    removeDomainMapping({
-      apiGateway,
-      apiId: ws?.ApiId!,
-      domain: `ws.${domain}`,
-      stage: wsStage,
-    }),
+    http &&
+      removeDomainMapping({
+        apiGateway,
+        apiId: http.ApiId!,
+        domain: `*.${domain}`,
+        stage: httpStage,
+      }),
+    http &&
+      removeDomainMapping({
+        apiGateway,
+        apiId: http.ApiId!,
+        domain,
+        stage: httpStage,
+      }),
+    ws &&
+      removeDomainMapping({
+        apiGateway,
+        apiId: ws.ApiId!,
+        domain: `ws.${domain}`,
+        stage: wsStage,
+      }),
   ]);
 }
 

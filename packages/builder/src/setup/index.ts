@@ -1,2 +1,2 @@
 export * from "./certificates.js";
-export * from "./setupAPIGateway.js";
+export * from "./gateway.js";
