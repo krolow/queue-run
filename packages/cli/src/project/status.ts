@@ -84,9 +84,9 @@ const command = new Command("status")
         ["Queue", "Processed (5m)", "In flight", "Oldest"],
         queues.map(({ queueName, processed, inFlight, oldest }) => [
           queueName,
-          processed.toLocaleString(),
-          inFlight.toFixed(),
-          `${oldest} sec`,
+          processed?.toLocaleString() ?? "0",
+          inFlight?.toLocaleString() ?? "0",
+          oldest ? ms(+oldest * 1000) : "n/a",
         ])
       );
     }
@@ -98,8 +98,8 @@ const command = new Command("status")
         schedules.map(({ name, cron, next, invocations }) => [
           name,
           cron,
-          next?.toString() ?? "never",
-          invocations.toString(),
+          next?.toLocaleString() ?? "never",
+          invocations.toLocaleString(),
         ])
       );
     }
