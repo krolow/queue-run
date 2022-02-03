@@ -81,11 +81,10 @@ const command = new Command("status")
     if (queues.length) {
       process.stdout.write("\n\n");
       displayTable(
-        ["Queue", "Queued (24h)", "Processed", "In flight", "Oldest"],
-        queues.map(({ queueName, queued, processed, inFlight, oldest }) => [
+        ["Queue", "Processed (24h)", "In flight", "Oldest"],
+        queues.map(({ queueName, processed, inFlight, oldest }) => [
           queueName,
-          queued.toFixed(),
-          processed.toFixed(),
+          processed.toLocaleString(),
           inFlight.toFixed(),
           `${oldest} sec`,
         ])
@@ -100,15 +99,15 @@ const command = new Command("status")
           name,
           cron,
           next?.toString() ?? "never",
-          count.toFixed(0),
+          count.toString(),
         ])
       );
     }
   });
 
 async function loadStatus() {
-  const spinner = ora("Inspecting project").start();
   const { name, awsRegion: region } = await loadCredentials();
+  const spinner = ora("Inspecting project").start();
 
   const [versions, { httpUrl, wsUrl }] = await Promise.all([
     getRecentVersions({ region, slug: name }),
@@ -123,6 +122,7 @@ async function loadStatus() {
   const currentArn = current.arn.replace(/:\d+$/, ":current");
   // Version/alias not supported when reading concurrency configuration
   const concurrencyArn = current.arn.replace(/:\d+$/, "");
+  const lambdaName = concurrencyArn.split(":").pop()!;
   const [
     { MemorySize: memory, Timeout: timeout },
     { ReservedConcurrentExecutions: reserved },
@@ -144,6 +144,7 @@ async function loadStatus() {
   ]);
 
   spinner.stop();
+
   return {
     name,
     region,

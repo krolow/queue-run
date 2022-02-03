@@ -13,6 +13,7 @@ import queueCommand from "./project/queue.js";
 import reservedCommand from "./project/reserved.js";
 import rollbackCommand from "./project/rollback.js";
 import scheduleCommand from "./project/schedule.js";
+import statsCommand from "./project/stats.js";
 import statusCommand from "./project/status.js";
 
 const program = new Command("npx queue-run");
@@ -31,6 +32,7 @@ program.addCommand(reservedCommand);
 program.addCommand(rollbackCommand);
 program.addCommand(scheduleCommand);
 program.addCommand(statusCommand);
+program.addCommand(statsCommand);
 
 const { version } = JSON.parse(
   fs.readFileSync(new URL("../package.json", import.meta.url).pathname, "utf-8")
