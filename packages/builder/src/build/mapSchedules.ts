@@ -96,7 +96,7 @@ function getTimeout({
     first && second ? (second.getTime() - first.getTime()) / 1000 : undefined;
 
   if (timeout === undefined || timeout === null)
-    return spacing ? Math.min(spacing, maxTimeout) : defaultTimeout;
+    return spacing ? Math.min(spacing, defaultTimeout) : defaultTimeout;
   if (typeof timeout !== "number")
     throw new Error("config.timeout must be a number (seconds)");
   if (timeout < 1) throw new Error("config.timeout must be at least 1 second");

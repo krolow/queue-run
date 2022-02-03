@@ -6,6 +6,7 @@ module.exports = {
         "http",
         "websocket",
         "queues",
+        "schedules",
         "authenticate",
         "urls",
         "logging",

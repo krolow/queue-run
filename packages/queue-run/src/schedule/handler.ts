@@ -38,9 +38,6 @@ export default async function handleScheduledJob({
 
   const { module, middleware } = loaded;
 
-  // When handling FIFO messges, possible we'll run out of time.
-
-  // Create an abort controller to allow the handler to cancel incomplete work.
   const timeout = schedule.timeout;
   const controller = new AbortController();
   const abortTimeout = setTimeout(() => controller.abort(), timeout * 1000);

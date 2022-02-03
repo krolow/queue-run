@@ -135,7 +135,6 @@ await queues("debit_account.fifo")
 ```
 
 
-
 ## The Queue Handler
 
 Each queue has one file which exports the queue handler. The file name is used as the queue name.

@@ -27,11 +27,6 @@ For queued jobs, if the job times out, it returns to the queue and will be retri
 
 Your application can make progress by breaking large pieces of work into smaller jobs, that will execute in parallel. Here too there's a benefit to setting a relatively short execution time (seconds or minutes).
 
-The recommended practice for scheduled jobs is that the job itself shouldn't run for any extended period of time, since there's no retry mechanism.
-
-If the job runs frequently enough (for example, polling from another service every 15 minutes), then if one job fails, the next job will pick up where it left.
-
-If the job runs less frequently (for example, sending email reports once a day), you want to have a retry mechanism. The scheduled job should split the work into batches and queue these batches.
 
 Because timeout typically means the task could run again, you want to watch [the abort signal](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal) and stop processing on timeout.
 
