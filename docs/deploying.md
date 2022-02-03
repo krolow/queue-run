@@ -62,6 +62,7 @@ The following commands are available to deploy and manage your project:
 * `reserved` — Change the [reserved concurrency](optimizing.md#reserved-concurrency)
 * `rollback` — Broke something? Rollback to a previous version
 * `schedule` — Run a scheduled job (for testing)
+* `stats` — Statistics about Lambda invocations, HTTP requests, WebSocket connections, queued jobs, etc
 * `status` — See information about your deployed project (eg HTTP and WebSocket URLs, concurrency)
 
 :::info 
