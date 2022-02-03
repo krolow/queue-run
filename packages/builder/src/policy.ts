@@ -88,6 +88,7 @@ export default function policy(slug?: string) {
           "sqs:GetQueueAttributes",
           "sqs:GetQueueUrl",
           "sqs:SetQueueAttributes",
+          "sqs:SendMessage",
         ],
         Effect: "Allow",
         Resource: "arn:aws:sqs:*:*:*",

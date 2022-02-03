@@ -1,14 +1,8 @@
 import { Command, Option } from "commander";
 import devServer from "./devServer.js";
-import queueMessage from "./queueMessage.js";
 
-const command = new Command("dev").description("run the development server");
-
-export default command;
-
-command
-  .command("start", { isDefault: true })
-  .description("start the development server (default command)")
+const command = new Command("dev")
+  .description("run the development server")
   .addOption(
     new Option("-p, --port <port>", "port to run the server on")
       .env("PORT")
@@ -36,48 +30,6 @@ The --environment option can be used to override these environment variables.
     }
   );
 
-command
-  .command("queue")
-  .description("runs the job using queue handler")
-  .argument("<queue>", "the queue name")
-  .argument(
-    "[payload]",
-    'JSON or plain text (use @name to read from a file, "-" to read from stdin)'
-  )
-  .addOption(
-    new Option("-p, --port <port>", "port to run the server on")
-      .env("PORT")
-      .default(8000)
-      .makeOptionMandatory()
-  )
-  .option("-g --group <group>", "group ID (FIFO queues only)")
-  .addHelpText(
-    "after",
-    `\n
-Queue payload from command line:
-$ npx queue-run dev queue my-queue '{ "foo": "bar" }'
-
-Queue payload from a file to standard queue:
-$ npx queue-run dev queue my-queue @payload.json
-  
-Queue payload from stdin to FIFO queue:
-$ cat payload.json | npx queue-run dev queue my-queue.fifo -g groupA
-  `
-  )
-  .action(
-    async (
-      queue: string,
-      payload: string | undefined,
-      {
-        port,
-        group,
-      }: {
-        port: number;
-        group: string | undefined;
-      }
-    ) => await queueMessage({ group, payload, port, queue })
-  );
-
 function getEnvVars(environment: string[]): Map<string, string> {
   return environment.reduce((map, cur) => {
     const match = cur.match(/^([^=]+)=(.*)$/)?.slice(1);
@@ -87,3 +39,5 @@ function getEnvVars(environment: string[]): Map<string, string> {
     return map.set(key, value);
   }, new Map());
 }
+
+export default command;
