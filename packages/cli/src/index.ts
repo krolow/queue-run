@@ -11,6 +11,7 @@ import logsCommand from "./project/logs.js";
 import provisionedCommand from "./project/provisioned.js";
 import reservedCommand from "./project/reserved.js";
 import rollbackCommand from "./project/rollback.js";
+import scheduleCommand from "./project/schedule.js";
 import statusCommand from "./project/status.js";
 
 const program = new Command("npx queue-run");
@@ -20,13 +21,14 @@ program.addCommand(deployCommand);
 program.addCommand(devCommand);
 program.addCommand(domainCommand);
 program.addCommand(envvarsCommand);
-program.addCommand(statusCommand);
 program.addCommand(initCommand);
 program.addCommand(logsCommand);
 program.addCommand(policyCommand);
 program.addCommand(provisionedCommand);
 program.addCommand(reservedCommand);
 program.addCommand(rollbackCommand);
+program.addCommand(scheduleCommand);
+program.addCommand(statusCommand);
 
 const { version } = JSON.parse(
   fs.readFileSync(new URL("../package.json", import.meta.url).pathname, "utf-8")

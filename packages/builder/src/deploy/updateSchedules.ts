@@ -100,21 +100,68 @@ export async function removeUnusedSchedules({
   const [lambdaName] = lambdaArn.match(/([^:]+):([^:]+)$/)!.slice(1);
   const prefix = `${lambdaName}.`;
   const events = new CloudWatchEvents({ region });
-  let nextToken: string | undefined;
-  let deleting = 0;
-  do {
-    const rules = await events.listRuleNamesByTarget({
-      TargetArn: lambdaArn,
-      ...(nextToken && { NextToken: nextToken }),
-    });
-    const ruleNames = rules.RuleNames ?? [];
-    const unused = ruleNames
-      .filter((name) => name.startsWith(prefix))
-      .filter((name) => !schedules.has(name.slice(prefix.length)));
-    await Promise.all(unused.map((name) => events.deleteRule({ Name: name })));
-    deleting += unused.length;
+  const ruleNames = await getRuleNames({ events, lambdaArn });
+  const unused = ruleNames
+    .filter((name) => name.startsWith(prefix))
+    .filter((name) => !schedules.has(name.slice(prefix.length)));
+  await Promise.all(unused.map((name) => events.deleteRule({ Name: name })));
+  spinner.succeed(`Removed ${unused.length} old schedules`);
+}
 
-    nextToken = rules.NextToken;
-  } while (nextToken);
-  spinner.succeed(`Removed ${deleting} old schedules`);
+async function getRuleNames({
+  events,
+  lambdaArn,
+  nextToken,
+}: {
+  events: CloudWatchEvents;
+  lambdaArn: string;
+  nextToken?: string | undefined;
+}): Promise<string[]> {
+  const { RuleNames, NextToken } = await events.listRuleNamesByTarget({
+    TargetArn: lambdaArn,
+    ...(nextToken && { NextToken: nextToken }),
+  });
+  if (!RuleNames) return [];
+  if (!NextToken) return RuleNames;
+  const next = await getRuleNames({ events, lambdaArn, nextToken: NextToken });
+  return RuleNames.concat(next);
+}
+
+export async function getSchedules({
+  lambdaArn,
+  region,
+}: {
+  lambdaArn: string;
+  region: string;
+}): Promise<
+  Array<{
+    name: string;
+    cron: string;
+    next: Date;
+  }>
+> {
+  const events = new CloudWatchEvents({ region });
+  const ruleNames = await getRuleNames({ events, lambdaArn });
+  const rules = await Promise.all(
+    ruleNames.map((ruleName) => events.describeRule({ Name: ruleName }))
+  );
+  return rules
+    .filter(({ State }) => State === "ENABLED")
+    .map(({ Name, ScheduleExpression }) => ({
+      name: Name!.split(".")[1]!,
+      cron: toRegularCron(ScheduleExpression),
+    }))
+    .filter(({ cron }) => !!cron)
+    .map(({ name, cron }) => ({
+      name,
+      cron: cron!,
+      next: cronParser.parseExpression(cron!).next().toDate(),
+    }));
+}
+
+function toRegularCron(scheduleExpression: string | undefined) {
+  return scheduleExpression
+    ?.match(/cron\((.*)\)/)?.[1]
+    ?.replace(/\?/g, "*")
+    .replace(/ \*$/g, "");
 }

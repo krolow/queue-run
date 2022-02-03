@@ -114,7 +114,7 @@ export default function policy(slug?: string) {
       },
       {
         Action: [
-          "events:DeleteRule",
+          "events:DescribeRule",
           "events:ListRuleNamesByTarget",
           "events:PutRule",
           "events:PutTargets",

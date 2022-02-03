@@ -78,23 +78,6 @@ $ cat payload.json | npx queue-run dev queue my-queue.fifo -g groupA
     ) => await queueMessage({ group, payload, port, queue })
   );
 
-command
-  .command("schedule")
-  .description("runs the scheduled job")
-  .argument("<name>", "the schedule name")
-  .addOption(
-    new Option("-p, --port <port>", "port to run the server on")
-      .env("PORT")
-      .default(8000)
-      .makeOptionMandatory()
-  )
-  .action(async (name: string, { port }: { port: string }) => {
-    await fetch(
-      new URL(`/$schedules/${name}`, `http://localhost:${port}`).href,
-      { method: "POST" }
-    );
-  });
-
 function getEnvVars(environment: string[]): Map<string, string> {
   return environment.reduce((map, cur) => {
     const match = cur.match(/^([^=]+)=(.*)$/)?.slice(1);

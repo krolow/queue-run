@@ -194,7 +194,10 @@ function isSQSMessages(event: LambdaEvent): event is { Records: SQSMessage[] } {
 }
 
 function isScheduledEvent(event: LambdaEvent): event is ScheduledEvent {
-  return "source" in event && event.source === "aws.events";
+  return (
+    "source" in event &&
+    (event.source === "aws.events" || event.source === "cli.schedule")
+  );
 }
 
 type LambdaEvent =
