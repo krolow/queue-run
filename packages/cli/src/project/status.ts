@@ -4,7 +4,12 @@ import { Command } from "commander";
 import filesize from "filesize";
 import ms from "ms";
 import ora from "ora";
-import { getAPIGatewayURLs, getRecentVersions } from "queue-run-builder";
+import {
+  displayTable,
+  getAPIGatewayURLs,
+  getRecentVersions,
+  getSchedules,
+} from "queue-run-builder";
 import { loadCredentials } from "./project.js";
 
 const command = new Command("status")
@@ -18,6 +23,7 @@ const command = new Command("status")
       provisioned,
       region,
       reserved,
+      schedules,
       timeout,
       wsUrl,
     } = await loadStatus();
@@ -69,6 +75,18 @@ const command = new Command("status")
 
     process.stdout.write(` HTTP\t\t: ${httpUrl}\n`);
     process.stdout.write(` WebSocket\t: ${wsUrl}\n`);
+
+    if (schedules.length) {
+      process.stdout.write("\n");
+      displayTable(
+        ["Name", "Schedule", "Next run"],
+        schedules.map(({ name, cron, next }) => [
+          name,
+          cron,
+          next?.toString() ?? "never",
+        ])
+      );
+    }
   });
 
 async function loadStatus() {
@@ -92,6 +110,7 @@ async function loadStatus() {
     { MemorySize: memory, Timeout: timeout },
     { ReservedConcurrentExecutions: reserved },
     { ProvisionedConcurrencyConfigs: provisioned },
+    schedules,
   ] = await Promise.all([
     lambda.getFunctionConfiguration({
       FunctionName: currentArn,
@@ -102,6 +121,7 @@ async function loadStatus() {
     lambda.listProvisionedConcurrencyConfigs({
       FunctionName: concurrencyArn,
     }),
+    getSchedules({ lambdaArn: currentArn }),
   ]);
 
   spinner.stop();
@@ -119,6 +139,7 @@ async function loadStatus() {
         AvailableProvisionedConcurrentExecutions: available,
       }) => ({ requested, allocated, available, status })
     ),
+    schedules,
     timeout: timeout ?? 300,
     httpUrl,
     wsUrl,

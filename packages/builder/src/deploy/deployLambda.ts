@@ -11,8 +11,8 @@ import { createTables } from "./createTables.js";
 import { getEnvVariables } from "./envVars.js";
 import { addTriggers, removeTriggers } from "./eventSource.js";
 import { createQueues, deleteOldQueues } from "./prepareQueues.js";
+import { removeUnusedSchedules, updateSchedules } from "./schedules.js";
 import updateAlias from "./updateAlias.js";
-import { removeUnusedSchedules, updateSchedules } from "./updateSchedules.js";
 import uploadLambda from "./uploadLambda.js";
 
 const currentVersionAlias = "current";

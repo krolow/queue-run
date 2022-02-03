@@ -129,10 +129,8 @@ async function getRuleNames({
 
 export async function getSchedules({
   lambdaArn,
-  region,
 }: {
   lambdaArn: string;
-  region: string;
 }): Promise<
   Array<{
     name: string;
@@ -140,6 +138,7 @@ export async function getSchedules({
     next: Date;
   }>
 > {
+  const region = lambdaArn.match(/arn:aws:lambda:(.*?):/)![1]!;
   const events = new CloudWatchEvents({ region });
   const ruleNames = await getRuleNames({ events, lambdaArn });
   const rules = await Promise.all(
