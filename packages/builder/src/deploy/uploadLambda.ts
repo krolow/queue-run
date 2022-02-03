@@ -7,6 +7,8 @@ import { deleteLambdaRole, getLambdaRole } from "./lambdaRole.js";
 
 export const handler = "runtime.handler";
 
+const maxTimeout = 900;
+
 export type Limits = {
   /** Memory size in MBs. Default: 128. */
   memory: number;
@@ -55,7 +57,7 @@ export default async function uploadLambda({
     Role: roleArn,
     Runtime: lambdaRuntime,
     // Allow up to 10 seconds for loading code/warmup
-    Timeout: limits.timeout + 10,
+    Timeout: Math.min(limits.timeout + 10, maxTimeout),
     TracingConfig: { Mode: "Active" },
   };
 
