@@ -6,15 +6,14 @@ export type JSONValue =
   | number
   | boolean
   | null
-  | undefined
+  | WithToJSON
   | JSONObject
-  | JSONArray;
+  | JSONValue[];
 
 export type JSONObject = { [key: string]: JSONValue };
-export type JSONArray = JSONValue[];
 
 interface WithToJSON {
-  toJSON(): JSONValue;
+  toJSON(): Omit<JSONValue, "toJSON">;
 }
 
 /**
