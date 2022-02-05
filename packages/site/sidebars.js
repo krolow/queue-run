@@ -17,6 +17,7 @@ module.exports = {
     {
       Production: ["developing", "deploying", "optimizing"],
     },
+    "principles",
     {
       type: "link",
       href: "https://github.com/assaf/queue-run",

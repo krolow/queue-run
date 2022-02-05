@@ -6,13 +6,15 @@ slug: /
 
 Web 2.0 framework to make building back-ends and APIs easy and fun:
 
-* HTTP APIs, WebSocket, FIFO queues, and (coming) scheduled jobs
+* HTTP APIs, WebSocket, Web Push (coming), FIFO queues, and scheduled jobs
 * Focus on developer experience and simplicity
 * Serverless: deploy and let it worry about scaling up/down 
 * Made for the web: REST resources, Fetch API, HTML forms, console.log
 * Batteries included: logging, authentication, custom domains, URL constructors
 * No need to mess CloudFormation or edit YAML files
 * TypeScript and ESM (JavaScript and CommonJS also supported)
+
+[More about the guiding principles](principles.md).
 
 
 ## Why QueueRun?
@@ -23,7 +25,7 @@ Next, Remix, Nuxt, et al solves that for developing front-end applications. I wa
 
 Every back-end needs authentication, logging, environment variables, URL construction, etc. The framework should take care of that.
 
-Deployment should take one minute or less. Setting up a new project in under five minutes. Don't want to worry about provisioning servers, scaling up/down, CloudFormation, or that thing they call YAML.
+Deployment should take less than 2 minutes. Setting up a new project in under 5 minutes. Don't want to worry about provisioning servers, scaling up/down, CloudFormation, or that thing they call YAML.
 
 Above all, the developer experience! Common tasks should be as easy as writing a few lines of code. Whether you're building a REST API, real time collaboration (WebSocket), responsive UIs (queues), running background tasks on a schedule.
 
