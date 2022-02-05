@@ -97,7 +97,7 @@ export default function policy(slug?: string) {
         Resource: "arn:aws:events:*:*:rule/*",
       },
       {
-        Action: ["cloudwatch:GetMetricStatistics"],
+        Action: ["cloudwatch:*"],
         Effect: "Allow",
         Resource: "*",
       },

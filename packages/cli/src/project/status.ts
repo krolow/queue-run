@@ -169,17 +169,17 @@ async function showQueues({
 
 async function showSchedules(lambdaArn: string) {
   const spinner = ora("Inspecting schedules").start();
-  const schedules = await listSchedules({ lambdaArn, period: ms("1d") });
+  const schedules = await listSchedules({ lambdaArn });
   spinner.stop();
   if (schedules.length) {
     process.stdout.write("\n\n");
     displayTable(
-      ["Schedule", "Recurring", "Next run", "Invocations (24h)"],
-      schedules.map(({ cron, name, next, invocations }) => [
+      ["Schedule", "Recurring", "Last run", "Next run"],
+      schedules.map(({ cron, name, lastRun, nextRun }) => [
         name,
         cron,
-        next?.toLocaleString() ?? "n/a",
-        invocations?.toLocaleString() ?? "0",
+        lastRun?.toLocaleString() ?? "n/a",
+        nextRun?.toLocaleString() ?? "n/a",
       ])
     );
   }

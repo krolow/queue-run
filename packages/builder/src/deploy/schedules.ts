@@ -2,6 +2,7 @@ import { CloudWatch } from "@aws-sdk/client-cloudwatch";
 import { CloudWatchEvents } from "@aws-sdk/client-cloudwatch-events";
 import { Lambda } from "@aws-sdk/client-lambda";
 import cronParser from "cron-parser";
+import ms from "ms";
 import ora from "ora";
 import { ScheduledJob } from "queue-run";
 
@@ -136,16 +137,16 @@ async function getRuleNames({
 export async function listSchedules({
   lambdaArn,
   // Count invocations for this time period (ms)
-  period,
+  range = ms("30d"),
 }: {
   lambdaArn: string;
-  period: number;
+  range?: number;
 }): Promise<
   Array<{
     name: string;
     cron: string;
-    next: Date | undefined;
-    invocations: number;
+    nextRun: Date | undefined;
+    lastRun: Date | undefined;
   }>
 > {
   const region = lambdaArn.match(/arn:aws:lambda:(.*?):/)![1]!;
@@ -158,14 +159,10 @@ export async function listSchedules({
     ruleNames.map((ruleName) =>
       Promise.all([
         events.describeRule({ Name: ruleName }),
-        cloudWatch.getMetricStatistics({
-          Dimensions: [{ Name: "RuleName", Value: ruleName }],
-          EndTime: new Date(),
-          MetricName: "TriggeredRules",
-          Namespace: "AWS/Events",
-          Period: period,
-          StartTime: new Date(new Date().getTime() - period * 1000),
-          Statistics: ["Sum"],
+        getLastRun({
+          cloudWatch,
+          ruleName,
+          range,
         }),
       ])
     )
@@ -173,18 +170,55 @@ export async function listSchedules({
 
   return rules
     .filter(([rule]) => rule.State === "ENABLED")
-    .map(([rule, metric]) => ({
+    .map(([rule, lastRun]) => ({
       name: rule.Name!.split(".")[1]!,
       cron: toRegularCron(rule.ScheduleExpression),
-      invocations: metric.Datapoints?.[0]?.Sum ?? 0,
+      lastRun,
     }))
     .filter(({ cron }) => !!cron)
-    .map(({ name, cron, invocations }) => ({
+    .map(({ name, cron, lastRun }) => ({
       name,
       cron: cron!,
-      next: cronParser.parseExpression(cron!, { utc: true }).next().toDate(),
-      invocations,
+      nextRun: cronParser.parseExpression(cron!, { utc: true }).next().toDate(),
+      lastRun,
     }));
+}
+
+async function getLastRun({
+  cloudWatch,
+  ruleName,
+  range,
+}: {
+  cloudWatch: CloudWatch;
+  ruleName: string;
+  range: number;
+}): Promise<Date | undefined> {
+  const end = Date.now();
+  const start = end - range;
+  const period = ms("1m");
+  const dataPoints = Math.ceil((end - start) / period);
+
+  const { MetricDataResults } = await cloudWatch.getMetricData({
+    MetricDataQueries: [
+      {
+        MetricStat: {
+          Metric: {
+            MetricName: "TriggeredRules",
+            Namespace: "AWS/Events",
+            Dimensions: [{ Name: "RuleName", Value: ruleName }],
+          },
+          Period: period / 1000,
+          Stat: "Average",
+        },
+        Id: "invocations",
+      },
+    ],
+    EndTime: new Date(end),
+    ScanBy: "TimestampDescending",
+    MaxDatapoints: dataPoints,
+    StartTime: new Date(start),
+  });
+  return MetricDataResults?.[0]?.Timestamps?.[0];
 }
 
 function toRegularCron(scheduleExpression: string | undefined) {
