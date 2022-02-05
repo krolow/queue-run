@@ -14,8 +14,6 @@ Web 2.0 framework to make building back-ends and APIs easy and fun:
 * No need to mess CloudFormation or edit YAML files
 * TypeScript and ESM (JavaScript and CommonJS also supported)
 
-[More about the guiding principles](principles.md).
-
 
 ## Why QueueRun?
 
