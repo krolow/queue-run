@@ -8,6 +8,27 @@ Scheduled jobs allow your backend to do work on recurring schedule:
 * Send a status report every Monday and Friday morning
 * Run payroll on the 1st and 15th of every month
 
+:::info Scheduled Jobs Should Be This Easy
+
+The general idea is that in under 2 minutes you can go from "I wrote this function" to "it now runs every morning." Or every minute, or every Monday, or every 1st day of the month.
+
+There's no infrastructure to manage, no configuration files to tweak, it doesn't get easier than this.
+
+QueueRun will deploy your functions and set up the schedule execution rules for you. AWS Lambda and EventBridge will make sure it runs like clockwork.
+
+You can check on the status of your schedules — last run, next expected run — using the `status` command. Schedule runs will also show in the logs.
+
+You can test your code locally using the `schedule` command.
+
+You can manually run a scheduled job at any time using the same `schedule` command.
+
+You can turn off all scheduled jobs during a maintenance window using the `reserved` command.
+
+If your schedule does something complicated and you need to space out the workload, or automatic retries, you can combine schedules with standard and FIFO queues. All part of the same codebase.
+
+Middleware makes it super easy to integrate with external monitoring tools like cronitor.io, healthchecks.io, Sentry, Rollbar, Logtail, etc.
+:::
+
 
 ## The Scheduled Job Function
 
@@ -96,7 +117,6 @@ export const config = {
 	timeout: "15m"
 };
 ```
-
 
 :::tip Abort Signal
 
@@ -198,13 +218,14 @@ The logs will show when the job starts and finishes, and any errors:
 
 Monitoring should be separate from your backend so it's not subject to the same failure mode.
 
-Use a service like [cronitor.io](https://cronitor.io) or [healthchecks.io](https://healthchecks.io).
+Use a service like [cronitor.io](https://cronitor.io) or [healthchecks.io](https://healthchecks.io) to monitor your scheduled job.
 :::
 
 When using a monitoring service, you can ping the service from job function itself, or using middleware:
 
 ```ts
 import { logJobFinished, logOnError } from "queue-run";
+import * as Sentry from "sentry";
 
 export default async function() {
   // do something
@@ -221,7 +242,10 @@ export async function onJobFinished(job) {
 export async function onError(error, job) {
   logOnError(error, job);
   await fetch(checkUrl + "/fail");
+  Sentry.captureException(error);
 }
 
 export const schedule = "daily";
 ```
+
+If you have common middleware for all your scheduled job, you can move it to `schedules/_middleware.ts` and/or `index.ts`.
