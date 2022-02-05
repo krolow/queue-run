@@ -196,7 +196,6 @@ async function getLastRun({
   const end = Date.now();
   const start = end - range;
   const period = ms("1m");
-  const dataPoints = Math.ceil((end - start) / period);
 
   const { MetricDataResults } = await cloudWatch.getMetricData({
     MetricDataQueries: [
@@ -215,7 +214,6 @@ async function getLastRun({
     ],
     EndTime: new Date(end),
     ScanBy: "TimestampDescending",
-    MaxDatapoints: dataPoints,
     StartTime: new Date(start),
   });
   return MetricDataResults?.[0]?.Timestamps?.[0];

@@ -1,4 +1,4 @@
-import { CloudWatch, Datapoint } from "@aws-sdk/client-cloudwatch";
+import { CloudWatch } from "@aws-sdk/client-cloudwatch";
 import { SQS } from "@aws-sdk/client-sqs";
 import { URL } from "node:url";
 import ora from "ora";
@@ -125,40 +125,35 @@ export async function listQueues({
   return await Promise.all(
     queueUrls.map(async (url) => {
       const queueName = nameFromQueueURL(url);
-      const [queued, inFlight, processed, oldest] = await Promise.all([
-        getMetric({
-          aggregate: "Sum",
-          cloudWatch,
-          end,
-          metricName: "NumberOfMessagesSent",
-          queueName,
-          start,
-        }),
-        getMetric({
-          aggregate: "Maximum",
-          cloudWatch,
-          end,
-          metricName: "ApproximateNumberOfMessagesNotVisible",
-          queueName,
-          start,
-        }),
-        getMetric({
-          aggregate: "Sum",
-          cloudWatch,
-          end,
-          metricName: "NumberOfMessagesDeleted",
-          queueName,
-          start,
-        }),
-        getMetric({
-          aggregate: "Maximum",
-          cloudWatch,
-          end,
-          metricName: "ApproximateAgeOfOldestMessage",
-          queueName,
-          start,
-        }),
-      ]);
+      const { MetricDataResults } = await cloudWatch.getMetricData({
+        MetricDataQueries: [
+          { name: "NumberOfMessagesSent", aggregate: "Sum" },
+          {
+            name: "ApproximateNumberOfMessagesNotVisible",
+            aggregate: "Maximum",
+          },
+          { name: "NumberOfMessagesDeleted", aggregate: "Sum" },
+          { name: "ApproximateAgeOfOldestMessage", aggregate: "Maximum" },
+        ].map((metric) => ({
+          MetricStat: {
+            Metric: {
+              MetricName: metric.name,
+              Namespace: "AWS/SQS",
+              Dimensions: [{ Name: "QueueName", Value: queueName }],
+            },
+            Period: period / 1000,
+            Stat: metric.aggregate,
+          },
+          Id: metric.name.toLocaleLowerCase(),
+        })),
+        EndTime: new Date(end),
+        ScanBy: "TimestampDescending",
+        StartTime: new Date(start),
+      });
+
+      const [queued, inFlight, processed, oldest] =
+        MetricDataResults?.map(({ Values }) => Values?.[0]) ?? [];
+
       return {
         queueName: queueName.replace(prefix, ""),
         queued,
@@ -168,31 +163,4 @@ export async function listQueues({
       };
     })
   );
-}
-
-async function getMetric({
-  aggregate,
-  end,
-  cloudWatch,
-  metricName,
-  queueName,
-  start,
-}: {
-  aggregate: keyof Datapoint;
-  end: Date;
-  cloudWatch: CloudWatch;
-  metricName: string;
-  queueName: string;
-  start: Date;
-}) {
-  const { Datapoints } = await cloudWatch.getMetricStatistics({
-    Dimensions: [{ Name: "QueueName", Value: queueName }],
-    EndTime: end,
-    MetricName: metricName,
-    Namespace: "AWS/SQS",
-    Period: end.getTime() - start.getTime(),
-    StartTime: start,
-    Statistics: ["Sum", "Maximum"],
-  });
-  return Datapoints?.[0]?.[aggregate!];
 }
