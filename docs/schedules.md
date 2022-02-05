@@ -37,16 +37,23 @@ Each file is one schedule and one function that will execute on that schedule.
 
 The default export is the function that will be called to execute that job.
 
-The export named `schedule` defines when the job would run.
+The export named `schedule` defines [when and how often the job run](#the-schedule-expression).
 
-For example, if you have a job that needs to run once a day:
+For example, if you have a job that needs to run once a day for up to 15 minutes:
 
 ```ts title=schedules/report.ts
+// The default export function called on schedule
 export default async function({ jobId, signal }) {
   // so some work here
 }
 
+// Required to schedule the job
 export const schedule = "daily";
+
+// Only necessary if you don't want default value
+export const config = {
+  timeout: "15m"
+};
 ```
 
 The function is called with the following named parameters:
@@ -90,9 +97,13 @@ You can also use [more readable formats](https://www.npmjs.com/package/friendly-
 
 For consistency, all commands (build, status, etc) always show the schedule as a cron expression.
 
-:::note UTC
+:::info UTC
 
-All schedules are in UTC, so `5 4 * * *` means "04:05 AM UTC".
+Schedule expressions are always in UTC. 
+
+The expression `15 4 * * *` means "04:15 AM UTC".
+
+The `log`, `status` and `metrics` commands display the time in the local timezone.
 :::
 
 
@@ -100,38 +111,28 @@ All schedules are in UTC, so `5 4 * * *` means "04:05 AM UTC".
 
 Scheduled jobs have a default timeout of 5 minutes, and a maximum timeout of 15 minutes.
 
-However, jobs that run more frequently, you want a shorter timeout to handle overlap.
-
 If you don't specify a timeout, the default timeout is either 5 minutes, or the time difference between subsequent runs, whichever is lower.
 
-For example, if you schedule the job to run every minute, the default timeout would be 60 seconds. If you schedule the job to run every day, the default timeout would be 5 minutes.
+For example, if you schedule the job to run every minute, the default timeout would be one minute. If you schedule the job to run once a day, the default timeout would be 5 minutes.
 
 The maximum timeout is 15 minutes, but it cannot be longer than the time difference between subsequent runs.
 
-If you have significant workload that needs more time to process, [read about using queues](#retries-and-queues).
-
 ```ts
+export const schedule = "daily";
+
 // This job needs more than 5 minutes to complete
 export const config = {
 	timeout: "15m"
 };
 ```
 
+If you have significant workload that needs more time to process, [read about using queues](#retries-and-queues).
+
 :::tip Abort Signal
 
-If the scheduled job runs frequently, two runs can happen in parallel and do duplicate work.
+If the scheduled job runs frequently, one run my start before the previous run completed, doing duplicate and possibly conflicting work.
 
-To prevent overlap, use the abort signal to terminate the job early. For example:
-
-```ts
-export default async function({ signal }) {
-  const items = await db.loadWorkItems();
-  for (const item of items) {
-    await doSomeWork(item);
-    if (signal.aborted) return;
-  }
-}
-```
+Use the [abort signal](timeout.md) to deal with this situation and terminate the job early.
 :::
 
 
