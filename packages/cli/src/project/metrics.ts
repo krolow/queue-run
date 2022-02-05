@@ -21,7 +21,7 @@ command
 
     const lambdaName = `qr-${name}`;
 
-    const metrics = await collectMetrics({
+    const metrics = await collectMetrics2({
       dimension: { name: "FunctionName", value: lambdaName },
       metrics: [
         { name: "Invocations", aggregate: "Sum" },
@@ -48,7 +48,7 @@ command
       ],
       metrics.map(
         ([timestamp, invocations, throttles, errors, concurrent, avg, max]) => [
-          new Date(timestamp!).toLocaleString(),
+          timestamp,
           invocations?.toLocaleString() ?? "",
           throttles?.toLocaleString() ?? "",
           errors?.toLocaleString() ?? "",
@@ -69,7 +69,7 @@ command
 
     const { httpApiId } = await getAPIGatewayURLs({ project: name, region });
 
-    const metrics = await collectMetrics({
+    const metrics = await collectMetrics2({
       dimension: { name: "ApiId", value: httpApiId },
       metrics: [
         { name: "Count", aggregate: "SampleCount" },
@@ -112,7 +112,7 @@ command
 
     const { wsApiId } = await getAPIGatewayURLs({ project: name, region });
 
-    const metrics = await collectMetrics({
+    const metrics = await collectMetrics2({
       dimension: { name: "ApiId", value: wsApiId },
       metrics: [
         { name: "ConnectCount", aggregate: "Sum" },
@@ -156,7 +156,7 @@ command
 
     const queueName = `qr-${project}__${name}`;
 
-    const metrics = await collectMetrics({
+    const metrics = await collectMetrics2({
       dimension: { name: "QueueName", value: queueName },
       metrics: [
         { name: "NumberOfMessagesSent", aggregate: "Sum" },
@@ -181,7 +181,39 @@ command
     );
   });
 
-async function collectMetrics({
+command
+  .command("schedule")
+  .description("scheduled job")
+  .argument("<name>", "schedule name")
+  .addOption(rangePeriod)
+  .action(async (schedule: string, { range }: { range: string }) => {
+    const { name, awsRegion: region } = await loadCredentials();
+
+    const ruleName = `qr-${name}.${schedule}`;
+    const metrics = await collectMetrics2({
+      dimension: { name: "RuleName", value: ruleName },
+      metrics: [
+        { name: "TriggeredRules", aggregate: "Sum" },
+        { name: "Invocations", aggregate: "Sum" },
+        { name: "FailedInvocations", aggregate: "Sum" },
+      ],
+      namespace: "AWS/Events",
+      range: ms(range),
+      region,
+    });
+
+    displayTable(
+      ["Timestamp", "Triggered", "Invoked", "Failed"],
+      metrics.map(([timestamp, triggered, invoked, failed]) => [
+        new Date(timestamp!).toLocaleString(),
+        triggered?.toLocaleString() ?? "",
+        invoked?.toLocaleString() ?? "",
+        failed?.toLocaleString() ?? "",
+      ])
+    );
+  });
+
+async function collectMetrics2({
   dimension,
   metrics,
   namespace,
@@ -193,45 +225,51 @@ async function collectMetrics({
   namespace: string;
   range: number;
   region: string;
-}): Promise<Array<Array<number | undefined>>> {
+}): Promise<Array<[string, ...(number | undefined)[]]>> {
   const spinner = ora("Collecting queue metrics").start();
-  const cloudWatch = new CloudWatch({ region });
-  const period = getResolution(range);
-  const now = Date.now();
-  const end = new Date(now - (now % 60000));
-  const start = new Date(end.getTime() - range);
 
-  const datapoints = (await Promise.all(
-    metrics.map(async (metric) => {
-      const { Datapoints } = await cloudWatch.getMetricStatistics({
-        Dimensions: [{ Name: dimension.name, Value: dimension.value }],
-        EndTime: end,
-        MetricName: metric.name,
-        Namespace: namespace,
+  const end = Date.now();
+  const start = end - range;
+  const period = getResolution(range);
+  const cloudWatch = new CloudWatch({ region });
+
+  const { MetricDataResults: results } = await cloudWatch.getMetricData({
+    MetricDataQueries: metrics.map((metric, index) => ({
+      MetricStat: {
+        Metric: {
+          MetricName: metric.name,
+          Namespace: namespace,
+          Dimensions: [
+            {
+              Name: dimension.name,
+              Value: dimension.value,
+            },
+          ],
+        },
         Period: period / 1000,
-        StartTime: start,
-        Statistics: [metric.aggregate],
-      });
-      return (Datapoints ?? []).map((datapoint) => [
-        datapoint.Timestamp!.getTime(),
-        datapoint[metric.aggregate],
-      ]);
-    })
-  )) as Array<Array<[number, number | undefined]>>;
+        Stat: metric.aggregate,
+      },
+      Id: `metric${index}`,
+    })),
+    EndTime: new Date(end),
+    ScanBy: "TimestampDescending",
+    StartTime: new Date(start),
+  });
 
   const collected = [];
-  for (
-    let timestamp = start.getTime();
-    timestamp < end.getTime();
-    timestamp += period
-  ) {
+  const showDate = range > ms("1d");
+  for (let timestamp = end; timestamp > start; timestamp -= period) {
     collected.push([
-      timestamp,
-      ...datapoints.map(
-        (datapoints) =>
-          datapoints.find((datapoint) => datapoint[0] === timestamp)?.[1]
-      ),
-    ]);
+      showDate
+        ? new Date(timestamp).toLocaleString()
+        : new Date(timestamp).toLocaleTimeString(),
+      ...(results ?? []).map((result) => {
+        const index = result.Timestamps?.findIndex(
+          (t) => t.getTime() <= timestamp && t.getTime() >= timestamp - period
+        );
+        return result.Values?.[index!];
+      }),
+    ] as [string, ...(number | undefined)[]]);
   }
   spinner.stop();
   return collected;
