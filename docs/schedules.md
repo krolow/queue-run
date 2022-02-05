@@ -8,6 +8,16 @@ Scheduled jobs allow your backend to do work on recurring schedule:
 * Send a status report every Monday and Friday morning
 * Run payroll on the 1st and 15th of every month
 
+```ts title=schedules/daily_metrics.ts
+export default async function() {
+  const metrics = await loadMetrics("1d");
+  const html = render(template, { metrics });
+  await sendEmail({ to: process.env.EMAIL, html });
+}
+
+export const schedule = "daily";
+```
+
 What you get out of the box:
 
 * Go from "I wrote this function" to "it now runs every morning" in under 2 minutes
@@ -32,14 +42,14 @@ The export named `schedule` defines when the job would run.
 For example, if you have a job that needs to run once a day:
 
 ```ts title=schedules/report.ts
-export default async function dailyReport() {
-  // generate and email the report
+export default async function({ jobId, signal }) {
+  // so some work here
 }
 
 export const schedule = "daily";
 ```
 
-The function is called with metadata about the job:
+The function is called with the following named parameters:
 
 * `cron` — The schedule as a cron expression
 * `jobId` — Unique identifier for each run
