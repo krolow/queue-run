@@ -9,7 +9,7 @@ const command = new Command("metrics").description("show execution metrics");
 
 const rangePeriod = new Option(
   "-r, --range <range>",
-  'time range, eg "3h", "7d"'
+  'time range, eg "30m", "12h", "7d"'
 ).default("12h");
 
 command
@@ -32,7 +32,7 @@ command
         { name: "Duration", aggregate: "Maximum" },
       ],
       namespace: "AWS/Lambda",
-      range: ms(range),
+      range,
       region,
     });
 
@@ -79,7 +79,7 @@ command
         { name: "Latency", aggregate: "Maximum" },
       ],
       namespace: "AWS/ApiGateway",
-      range: ms(range),
+      range,
       region,
     });
 
@@ -93,7 +93,7 @@ command
         "Response Time (max)",
       ],
       metrics.map(([timestamp, requests, code4xx, code5xx, avg, max]) => [
-        new Date(timestamp!).toLocaleString(),
+        timestamp,
         requests?.toLocaleString() ?? "",
         code4xx?.toLocaleString() ?? "",
         code5xx?.toLocaleString() ?? "",
@@ -122,7 +122,7 @@ command
         { name: "IntegrationLatency", aggregate: "Maximum" },
       ],
       namespace: "AWS/ApiGateway",
-      range: ms(range),
+      range,
       region,
     });
 
@@ -136,7 +136,7 @@ command
         "Response Time (max)",
       ],
       metrics.map(([timestamp, connections, messages, errors, avg, max]) => [
-        new Date(timestamp!).toLocaleString(),
+        timestamp,
         connections?.toLocaleString() ?? "",
         messages?.toLocaleString() ?? "",
         errors?.toLocaleString() ?? "",
@@ -165,14 +165,14 @@ command
         { name: "ApproximateAgeOfOldestMessage", aggregate: "Maximum" },
       ],
       namespace: "AWS/SQS",
-      range: ms(range),
+      range,
       region,
     });
 
     displayTable(
       ["Timestamp", "Queued", "Processed", "In-flight", "Oldest message"],
       metrics.map(([timestamp, sent, deleted, inFlight, oldest]) => [
-        new Date(timestamp!).toLocaleString(),
+        timestamp,
         sent ? sent.toLocaleString() : "",
         deleted ? deleted.toLocaleString() : "",
         inFlight ? inFlight.toLocaleString() : "",
@@ -197,14 +197,14 @@ command
         { name: "FailedInvocations", aggregate: "Sum" },
       ],
       namespace: "AWS/Events",
-      range: ms(range),
+      range,
       region,
     });
 
     displayTable(
       ["Timestamp", "Invoked", "Failed"],
       metrics.map(([timestamp, invoked, failed]) => [
-        new Date(timestamp!).toLocaleString(),
+        timestamp,
         invoked?.toLocaleString() ?? "",
         failed?.toLocaleString() ?? "",
       ])
@@ -221,14 +221,19 @@ async function collectMetrics2({
   dimension: { name: string; value: string };
   metrics: { name: string; aggregate: keyof Datapoint }[];
   namespace: string;
-  range: number;
+  range: string;
   region: string;
 }): Promise<Array<[string, ...(number | undefined)[]]>> {
-  const spinner = ora("Collecting queue metrics").start();
+  if (!/^\d+[mdh]$/.test(range))
+    throw new Error("Range should be <number>[m|h|d]");
 
   const end = Date.now();
-  const start = end - range;
-  const period = getResolution(range);
+  const start = end - ms(range);
+  if (end - start < ms("30m"))
+    throw new Error("Range should be at least 30 minutes");
+
+  const spinner = ora("Collecting queue metrics").start();
+  const period = getResolution(end - start);
   const cloudWatch = new CloudWatch({ region });
 
   const { MetricDataResults: results } = await cloudWatch.getMetricData({
@@ -255,7 +260,7 @@ async function collectMetrics2({
   });
 
   const collected = [];
-  const showDate = range > ms("1d");
+  const showDate = end - start > ms("1d");
   for (let timestamp = end; timestamp > start; timestamp -= period) {
     collected.push([
       showDate
@@ -263,7 +268,7 @@ async function collectMetrics2({
         : new Date(timestamp).toLocaleTimeString(),
       ...(results ?? []).map((result) => {
         const index = result.Timestamps?.findIndex(
-          (t) => t.getTime() <= timestamp && t.getTime() >= timestamp - period
+          (t) => t.getTime() <= timestamp && t.getTime() > timestamp - period
         );
         return result.Values?.[index!];
       }),
