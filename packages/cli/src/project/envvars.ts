@@ -62,7 +62,7 @@ command
   .alias("add")
   .description("add or update an environment variable")
   .argument("name", "name of the environment variable")
-  .argument("[value]", "value of the environment variable")
+  .argument("value", "value of the environment variable")
   .addHelpText(
     "after",
     `\n
