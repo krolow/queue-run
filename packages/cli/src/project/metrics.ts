@@ -193,7 +193,6 @@ command
     const metrics = await collectMetrics2({
       dimension: { name: "RuleName", value: ruleName },
       metrics: [
-        { name: "TriggeredRules", aggregate: "Sum" },
         { name: "Invocations", aggregate: "Sum" },
         { name: "FailedInvocations", aggregate: "Sum" },
       ],
@@ -203,10 +202,9 @@ command
     });
 
     displayTable(
-      ["Timestamp", "Triggered", "Invoked", "Failed"],
-      metrics.map(([timestamp, triggered, invoked, failed]) => [
+      ["Timestamp", "Invoked", "Failed"],
+      metrics.map(([timestamp, invoked, failed]) => [
         new Date(timestamp!).toLocaleString(),
-        triggered?.toLocaleString() ?? "",
         invoked?.toLocaleString() ?? "",
         failed?.toLocaleString() ?? "",
       ])

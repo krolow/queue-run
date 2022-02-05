@@ -8,26 +8,15 @@ Scheduled jobs allow your backend to do work on recurring schedule:
 * Send a status report every Monday and Friday morning
 * Run payroll on the 1st and 15th of every month
 
-:::info Scheduled Jobs Should Be This Easy
+What you get out of the box:
 
-The general idea is that in under 2 minutes you can go from "I wrote this function" to "it now runs every morning." Or every minute, or every Monday, or every 1st day of the month.
-
-There's no infrastructure to manage, no configuration files to tweak, it doesn't get easier than this.
-
-QueueRun will deploy your functions and set up the schedule execution rules for you. AWS Lambda and EventBridge will make sure it runs like clockwork.
-
-You can check on the status of your schedules — last run, next expected run — using the `status` command. Schedule runs will also show in the logs.
-
-You can test your code locally using the `schedule` command.
-
-You can manually run a scheduled job at any time using the same `schedule` command.
-
-You can turn off all scheduled jobs during a maintenance window using the `reserved` command.
-
-If your schedule does something complicated and you need to space out the workload, or automatic retries, you can combine schedules with standard and FIFO queues. All part of the same codebase.
-
-Middleware makes it super easy to integrate with external monitoring tools like cronitor.io, healthchecks.io, Sentry, Rollbar, Logtail, etc.
-:::
+* Go from "I wrote this function" to "it now runs every morning" in under 2 minutes
+* QueueRun will deploy your functions and set up the schedule execution rules for you
+* AWS Lambda and EventBridge will make sure it runs like clockwork.
+* Use the `schedule` command to test your function locally, and run a scheduled job in production at any time
+* Use the `status` and `metrics` commands to check on your schedule
+* For resilient execution and scaling workloads, combine schedules with standard and FIFO queues
+* Middleware to use monitoring tools like cronitor.io, healthchecks.io, Sentry, Rollbar, etc
 
 
 ## The Scheduled Job Function
@@ -186,16 +175,17 @@ npx queue-run dev
 npx queue-run schedule my_schedule
 ```
 
-If you have a maintenance window, you can use `npx queue-run reserved 0` to shut down your backend ([learn more](optimizing#reserved-concurrency)). This will also disable all scheduled jobs.
+If you have a maintenance window, you can use `npx queue-run reserved 0` to shut down your backend ([learn more](optimizing#reserved-concurrency)). This will also disable all scheduled jobs until you add or reset reserved concurrency.
 
 
 ## Run Job Manually
 
-You can also manually trigger a scheduled job in production:
+There are cases when you need to run a job outside its schedule.
+
+You can manually trigger a scheduled job in production with the `--prod` option:
 
 ```bash
 npx queue-run schedule my_schedule --prod
-npx queue-run logs
 ```
 
 
@@ -215,6 +205,12 @@ The logs will show when the job starts and finishes, and any errors:
 
 2/4/2022, 4:00:07 AM: [INFO] Job finished: name="daily" jobId="77ccfc1f-f6f9-c6d4-b58f-501022db55f6"
 ```
+
+The `npx queue-run metrics schedule <name>` command will show the invocation metrics for that schedule:
+
+* `Invoked` – How many times the function was invoked 
+* `Failed` — How many times the invocation failed
+
 
 :::tip Monitoring
 
@@ -250,4 +246,4 @@ export async function onError(error, job) {
 export const schedule = "daily";
 ```
 
-If you have common middleware for all your scheduled job, you can move it to `schedules/_middleware.ts` and/or `index.ts`.
+If you have common middleware for all your scheduled job, you can move it to `schedules/_middleware.ts` and/or `_middleware.ts`.
