@@ -186,6 +186,8 @@ npx queue-run dev
 npx queue-run schedule my_schedule
 ```
 
+If you have a maintenance window, you can use `npx queue-run reserved 0` to shut down your backend ([learn more](optimizing#reserved-concurrency)). This will also disable all scheduled jobs.
+
 
 ## Run Job Manually
 
