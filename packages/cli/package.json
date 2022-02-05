@@ -40,7 +40,7 @@
   },
   "devDependencies": {
     "@types/inquirer": "^8.2.0",
-    "@types/node": "^17.0.14",
+    "@types/node": "^17.0.15",
     "@types/node-fetch": "3.0.3",
     "@types/project-name-generator": "^2.1.1"
   },
