@@ -204,7 +204,7 @@ The status command would also show you:
 * For each schedule, when the schedule will run again, and number of invocations in the past 24 hours
 
 ```
- Name		: grumpy-sunshine
+ Name         : grumpy-sunshine
 ────────────────────────────────────────────────────
  Version      : 358
  Code size    : 1.27 MB (compressed)
