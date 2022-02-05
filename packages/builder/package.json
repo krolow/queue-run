@@ -1,6 +1,6 @@
 {
   "name": "queue-run-builder",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
@@ -38,8 +38,8 @@
     "node-abort-controller": "^3.0.1",
     "ora": "^6.0.1",
     "path-to-regexp": "^6.2.0",
-    "queue-run": "^0.11.0",
-    "queue-run-lambda": "^0.11.0",
+    "queue-run": "^0.11.1",
+    "queue-run-lambda": "^0.11.1",
     "semver": "^7.3.5",
     "tiny-invariant": "^1.2.0"
   },

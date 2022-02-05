@@ -1,6 +1,6 @@
 {
   "name": "example",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "private": true,
   "type": "module",
   "imports": {
@@ -21,7 +21,7 @@
     "@typescript-eslint/eslint-plugin": "^5.10.2",
     "@typescript-eslint/parser": "^5.10.2",
     "esbuild": "^0.14.18",
-    "queue-run": "^0.11.0",
-    "queue-run-cli": "^0.11.0"
+    "queue-run": "^0.11.1",
+    "queue-run-cli": "^0.11.1"
   }
 }
