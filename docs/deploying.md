@@ -1,13 +1,7 @@
 
 # Deploying Your Project
 
-If you've never used QueueRun before, follow this two steps:
-
-```bash
-npx queue-run init
-```
-
-The `init` command will ask you for the project name and other settings and store them in `.queue-run.json`.
+Start here:
 
 ```bash
 npx queue-run deploy
@@ -32,83 +26,226 @@ curl https://qfulfyb2aj.execute-api.us-east-1.amazonaws.com
 => { message: "👋 Hello world!" };
 ```
 
-To watch the logs:
+Check the status of your project and watch the logs:
+
+```bash
+npx queue-run status
+npx queue-run logs
+```
+
+
+## Commands
+
+These commands are for deploying, monitoring, and managing projects in production.
+
+These commands need the project name, AWS credentials, etc.
+
+The first time you run a command, it will ask you for all that information, and store it in the file `.queue-run.json`. The next command you run will pull settings from this file.
+
+We recommend you do not check this file into source control.
+
+```bash
+echo ".queue-run.json" >> .gitignore
+```
+
+
+### deploy
+
+When deploying from CI, instead of using `.queue-run.json`, do this:
+
+* CI server sets the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables
+* Specify the project name and region as command line arguments
+
+For example, GitHub workflow could look like:
+
+```yaml
+- uses: actions/checkout@v2
+- uses: actions/setup-node@v2
+  with:
+    node-version: "14"
+    cache: "yarn"
+- run: yarn install
+- env:
+    AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+    AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  run: npx queue-run deploy my-backend --region us-east-1 
+```
+
+Typically, you would use `npx queue-run env` to manage the backend environment variables.
+
+For quick changes, you can also set environment variables on the command line, for example:
+
+```bash
+npx queue-run deploy -e DEBUG=true
+```
+
+
+### domain
+
+Use this command to add/remove custom domains.
+
+```bash
+npx queue-run domain add grumpy-sunshine.com
+```
+
+See [Custom Domains](#custom-domains).
+
+
+### env
+
+Use this command to manage environment variables in production.
+
+```bash
+npx queue-run env ls
+npx queue-run env get <name>
+npx queue-run env set <name> <value>
+npx queue-run env remove <name>
+```
+
+See [Environment Variables](#environment-variables).
+
+
+### logs
+
+Watch the server logs.
 
 ```bash
 npx queue-run logs
 ```
 
-:::tip Keep Credentials Secret
-For convenience, QueueRun stores the AWS deploy credentials in `.queue-run.json`.  Use this for deployment from your own machine, viewing logs, managing environment variables, etc.
-
-We recommend you do not check this file into source control.
-
-For automated deployment, use command line arguments and have your CI provide the environment variables `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`.
-:::
+See [Visibility](#visibility).
 
 
-## Deployment Commands
+### metrics
 
-The following commands are available to deploy and manage your project:
+Use this command to see recent metrics for Lambda invocations, HTTP requests, WebSocket connections, queued jobs, and scheduled jobs.
 
-* `deploy` — Deploy your project
-* `domain` — Add and remove custom domains
-* `env` — Add and remove environment variables
-* `init` - Configure your project and update `.queue-run.json`
-* `logs` — Watch server logs
-* `metrics` — Show metrics for Lambda invocations, HTTP requests, WebSocket connections, queued jobs, etc
-* `policy` — Print out [the AWS policy](#credentials-and-policies) for deploying a project 
-* `provisioned` — Change the [provisioned concurrency](optimizing.md#provisioned-concurrency)
-* `queue` — Queue a job (for testing)
-* `reserved` — Change the [reserved concurrency](optimizing.md#reserved-concurrency)
-* `rollback` — Broke something? Rollback to a previous version
-* `schedule` — Run a scheduled job (for testing)
-* `status` — See information about your deployed project (eg HTTP and WebSocket URLs, concurrency)
-
-:::info 
-The `queue` and `schedule` command are for testing during [development](developing.md). By default they will communicate with the development server.
-
-To run queue and scheduled jobs in production use the `--prod` command line option.
-:::
-
-:::tip Dev Dependencies
-To keep the `queue-run` module lean, the CLI tools are available as a separate module. When you run `npx queue-run`, it downloads `queue-run` into a temporary directory, and then downloads `queue-run-cli`.
-
-You can speed up the `npx queue-run` command by installing these two dependencies:
-
-```bash title=npm
-npm install -D queue-run queue-run-cli
+```bash
+npx queue-run metrics lambda
+npx queue-run metrics http
+npx queue-run metrics ws
+npx queue-run metrics queue <name>
+npx queue-run metrics schedule <name>
 ```
 
-```bash title=yarn
-yarn add -D queue-run queue-run-cli
+See [Visibility](#visibility).
+
+
+### policy
+
+Prints out the AWS policy for deploying a project.
+
+```bash
+npx queue-run policy
 ```
 
-DO NOT install these as runtime dependencies. The runtime already includes `queue-run`, and `queue-run-cli` is over the code size limit.
+See [Credentials and Policies](#credentials-and-policies).
+
+### provisioned
+
+Changes the [provisioned concurrency](optimizing.md#provisioned-concurrency).
+
+```bash
+npx queue-run provisioned 2
+npx queue-run provisioned off
+```
+
+### queue
+
+You can use this command to queue a job in production.
+
+You need to add the `--prod` option:
+
+```bash
+npx queue-run queue --prod <name> [payload]
+npx queue-run queue --prod <name> @filename
+npx queue-run queue --prod <name> -
+```
+
+You can provide the job payload as:
+
+* Command line argument following the queue name
+* From a file, using a command line argument like `@my_job.json`
+* From standard input, using the command line argument `-`
+* From the terminal, QueueRun will prompt you
+
+For a FIFO queue, you also need to specify the group ID using the `--group` option.
+
+
+### reserved
+
+Changes the [reserved concurrency](optimizing.md#reserved-concurrency).
+
+```bash
+npx queue-run reserved 10
+npx queue-run reserved 0
+npx queue-run reserved off
+```
+
+### rollback
+
+Broke something? Rollback to a previous version.
+
+```bash
+npx queue-run rollback
+```
+
+This command lets you pick an earlier version and rollback is instantenous.
+
+:::info Queues and Schedules
+
+Rolling back only affects which version of your backend runs. It does not restore queues or update schedules.
+
+If you made any of these changes to your project, and you want to revert them, you have to go back to previous version of the code and use the `deploy` command.
 :::
+
+
+### schedule
+
+You can use this command to trigger a scheduled job in production at any time.
+
+You need to add the `--prod` option:
+
+```bash
+npx queue-run schedule --prod <name>
+```
+
+
+### status
+
+This command shows status information about your current project: version, configuration, concurrency, HTTP and WebSocket URLs, queues, and schedules.
+
+```bash
+npx queue-run status
+```
+
+See [Visibility](#visibility).
+
 
 
 ## Custom Domains
 
-To use a custom domain:
-
-```bash
-npx queue-run domain add example.com
-```
+When adding a custom domain, QueueRun will guide you through the process of verifying ownership, and updating your DNS to the new endpoints.
 
 You can verify your domain in one of two ways:
 
 - dns — Recommended, expect this to take a few minutes (DNS propagation)
 - email — You need to be able to receive email on the domain you're verifying
 
-QueueRun will create a TLS certificate for you. Your HTTP API will be available on the main domain, while WebSocket use the sub-domain `ws`.
+This command is idempotent, so if you have to stop it, when you run it again it will pick where it left off.
 
+QueueRun will create a TLS certificate for you. Your HTTP API will be available on the main domain, while WebSocket uses the sub-domain `ws`.
+
+:::note
 Your backend is not aware of the new domain until you re-deploy the project.
+:::
 
 
 ## Environment Variables
 
 Use `npx queue-run env` to manage environment variables in production.
+
+For example:
 
 ```bash
 npx queue-run env add DATABASE_URL postgres://...
@@ -119,14 +256,18 @@ npx queue-run env list
 The following environment variabels are always available:
 
 * `NODE_ENV` — Either "production" or "development"
-* `QUEUE_RUN_URL` — URL for the API, same as `url('/')`
-* `QUEUE_RUN_WS` — URL for WebSocket, same as `socket.url`
+* `QUEUE_RUN_URL` — URL for the HTTP API, same as `url('/')` in code
+* `QUEUE_RUN_WS` — URL for WebSocket, same as `socket.url` in code
 * `QUEUE_RUN_ENV` — Either "production" or "development"
 
 QueueRun understands the following environment variables:
 
 * `DEBUG` — Set to `true` to see `console.debug` messages in production, and `false` to hide them in development (see [Logging](logging.md))
 * `QUEUE_RUN_INDENT` — Indentation level for JSON and XML output, default to 2 in development, 0 in production
+
+:::note Don't Forget To Re-deploy
+After changing environment variables, you need to redeploy your project to use the new environment variables.
+:::
 
 :::tip
 You can dump server environment variables to use locally:
@@ -136,12 +277,10 @@ npx queue-run env list > .env
 ```
 :::
 
-:::warning Don't Forget To Re-deploy
-After changing environment variables, you need to redeploy your project to use the new environment variables.
-:::
-
 
 ## Credentials and Policies
+
+### For Deploying
 
 In order to deploy a project, set custom domain, watch the logs, etc you need an IAM account with a policy that has all the deploy permissions.
 
@@ -154,6 +293,8 @@ export policy=$(cat policy.json)
 aws iam put-user-policy --user-name assaf \
   --policy-name queue.run --policy-document '$policy' 
 ```
+
+### For The Backend
 
 The project you deploy will have its own role and policy. This policy is even narrower, it only grants the backend necessary access to queues, database, logs, etc.
 
@@ -173,35 +314,15 @@ npx queue-run env add AWS_REGION "us-east-1"
 
 ## Visibility
 
-Use `npx queue-run metrics` to see metrics about:
+### Status
 
-* Lambda: invocations, throttled requests, errors, concurrency, execution duration
-* HTTP: requests, 4xx and 5xx responses, response time
-* WebSocket: new connections, messages sent and received, errors, response time
-* Queues: jobs queued, jobs processed, in-flight, and age of oldest message
-
-The default range is the last 12 hours. You can change the time range with the `--range` option:
-
-```bash
-# Last 30 minutes, resolution is 1 minute
-npx queue-run metrics --range 30m
-
-# Last 8 hours, resolution is 10 minutes
-npx queue-run metrics --range 8h
-
-# Last 30 days, resolution is 1 day
-npx queue-run metrics --range 30d
-```
-
-Use `npx queue-run status` to see the current status of your project.
-
-The status command would also show you:
+Use the `status` command to see the current status of your project:
 
 * When your backend was deployed, version number, code size, region, etc
 * Reserved and provisioned concurrency (see [Optimizing](optimizing.md))
-* HTTP and WebSocket endpoints
-* For each queue, jobs processed in the past 5 minutes, in flight jobs, and age of oldest job
-* For each schedule, when the schedule will run again, and number of invocations in the past 24 hours
+* HTTP and WebSocket URLs
+* Queues, showing number of jobs processed, in flight, and age of oldest job in the last 5 minutes
+* Schedules, showing when the scheduled job ran last time, and when it's expected to run again
 
 ```
  Name         : grumpy-sunshine
@@ -220,4 +341,42 @@ The status command would also show you:
 
  HTTP         : https://grumpy-sunshine.queue.run
  WebSocket    : wss://ws.grumpy-sunshine.queue.run
+```
+
+
+### Logs
+
+Use the `logs` command to watch the server logs.
+
+You can use Ctrl+C to stop, and Ctrl+L to clear the screen.
+
+If you only want to retrieve the latest logs, use `--no-watch` in combination with `--hours`.
+
+:::note
+
+There's typically a few seconds delay between when the logs are created and when they appear on the screen.
+:::
+
+
+### Metrics
+
+Use the `metrics` command to see metrics about:
+
+* Lambda: invocations, throttled requests, errors, concurrency, execution duration
+* HTTP: requests, 4xx and 5xx responses, response time
+* WebSocket: new connections, messages sent and received, errors, response time
+* Queues: jobs queued, jobs processed, in-flight, and age of oldest message
+* Schedules: scheduled jobs invocations and failed invocations
+
+The default time range is the last 12 hours. You can change the time range with the `--range` option:
+
+```bash
+# Last 30 minutes, resolution is 1 minute
+npx queue-run metrics --range 30m
+
+# Last 8 hours, resolution is 10 minutes
+npx queue-run metrics --range 8h
+
+# Last 30 days, resolution is 1 day
+npx queue-run metrics --range 30d
 ```

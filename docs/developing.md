@@ -1,6 +1,6 @@
 # Development Tools
 
-To run the development server:
+Start here:
 
 ```bash
 npx queue-run dev
@@ -15,62 +15,109 @@ npx queue-run dev
    Watching for changes (Crtl+R to reload) …
 ```
 
-The dev server lists on port 8000 for HTTP and WebSocket. You can change the ports with the `--port` argument or `PORT` environment variable.
-
 The server watches the current working directory and reloads whenever it detects a change.
 
-It only watches over JavaScript, TypeScript and JSON files, and ignores `node_modules`. You can always force it to reload by pressing `Control+R`.
 
-The development server will load environment variables from the file `.env`, if present.
+## Commands
+
+The following commands are used for development.
 
 
-## Testing Queues
+### build
 
-You can test queues directly by running (from a separate terminal window):
+This command builds the current project but does not deploy it.
 
 ```bash
-npx queue-run queue <name> [body]
+npx queue-run build
 ```
 
-You can provide the body inline after the queue name, from a file (`@filename`), from stdin (`-`), or `queue-run` will prompt you.
+It will attempt to transpile and load the code, so would detect syntax error and broken imports.
 
-If you're using a FIFO queue, you need to provide the group ID using the `--group` argument.
+It will also output the project manifest, so you can audit it. For example:
 
-For example:
 
-```bash
-cat job.json
-{ "id": 123 }
-npx queue-run queue screenshots @job.json
 ```
+ HTTP API
+───────────────────────────────────────────
+ /               →  api/index.tsx
+ /bookmarks[id]  →  api/bookmarks/[id].ts
+ /bookmarksfeed  →  api/bookmarks/feed.tsx
+ /bookmarks      →  api/bookmarks/index.ts
 
+ WebSocket
+───────────────────────────────────────────
+ /               →  socket/index.ts
 
-## Testing WebSocket
+ Queues
+───────────────────────────────────────────
+ screenshots     →  queues/screenshots.ts
 
-You can use CLI tool like [websocat](https://github.com/vi/websocat):
-
-```bash
-websocat ws://localhost:8000
-```
-
-:::note Port 8000
-
-The port number for WebSocket is one more than the port number for HTTP.
-:::
-
-
-## Testing Scheduled Jobs
-
-You can test scheduled job directly by running (from a separate terminal window):
-
-```bash
-npx queue-run schedule <name>
+ Schedules
+───────────────────────────────────────────
+ 0 0 * * *       →  schedules/daily.ts
 ```
 
 
-## Configuration Files
+### dev
 
-Use `npx queue-run init` to generate configuration files for a new project.
+This command runs the development server.
+
+```bash
+npx queue-run dev
+```
+
+The dev server lists on port 8000 for HTTP and WebSocket.
+
+You can change the ports with the `--port` argument or `PORT` environment variable. Other commands (`queue`, `schedule`) would need to know that port number.
+
+You can press Ctrl+C to exit the server, Ctrl+R to force a reload, and Ctrl+L to clear the screen.
+
+The development server will load environment variables from the file `.env` file. You can also set environment variables with the `-e` option.
+
+
+### init
+
+Use this to initialize a new project.
+
+```bash
+npx queue-run init
+```
+
+It will ask you a few questions and then create appropriate files. See [Project Files](#project-files).
+
+
+### queue
+
+You can use this command to queue a job.
+
+```bash
+npx queue-run queue <name> [payload]
+npx queue-run queue <name> @filename
+npx queue-run queue <name> -
+```
+
+You can provide the job payload as:
+
+* Command line argument following the queue name
+* From a file, using a command line argument like `@my_job.json`
+* From standard input, using the command line argument `-`
+* From the terminal, QueueRun will prompt you
+
+For a FIFO queue, you also need to specify the group ID using the `--group` option.
+
+
+### schedule
+
+You can use this command to trigger a scheduled job.
+
+```bash
+npx queue-run schedule prod <name>
+```
+
+
+## Project Files
+
+Use `npx queue-run init` to generate these files for a new project.
 
 ### package.json
 
@@ -132,4 +179,32 @@ If you're using an IDE like Visual Studio Code, it uses `tsconfig.json` to under
   },
   "include": ["queue-run.env.d.ts", "**/*.ts", "**/*.tsx"]
 }
+```
+
+### .env
+
+Use this file to store environment variables for your backend when running in development.
+
+The format for this file is name/value pairs, but it does support comments, and multi-line values:
+
+```dosini
+# This is a comment
+SECRET_KEY=YOURSECRETKEYGOESHERE # comment
+SECRET_HASH="something-with-a-#-hash"
+PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----
+...
+Kh9NV...
+...
+-----END DSA PRIVATE KEY-----"
+```
+
+Use the [`env` command](deploying#env) to manage environment variables for your backend in production.
+
+
+## Testing WebSocket
+
+You can use CLI tool like [websocat](https://github.com/vi/websocat):
+
+```bash
+websocat ws://localhost:8000
 ```
