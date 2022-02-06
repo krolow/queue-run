@@ -114,7 +114,7 @@ function display(envVars: Map<string, string>) {
     console.info("");
   } else {
     for (const [name, value] of Array.from(envVars.entries()))
-      console.info("%s=%s", name, value);
+      console.info('%s="%s"', name, value.replace(/\n/, "\\n"));
   }
 }
 
