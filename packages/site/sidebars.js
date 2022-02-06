@@ -15,12 +15,26 @@ module.exports = {
       ],
     },
     {
-      Production: ["developing", "deploying", "monitoring", "optimizing"],
+      Deploying: ["developing", "deploying", "monitoring", "optimizing"],
     },
     {
-      type: "link",
-      href: "https://github.com/assaf/queue-run",
-      label: "GitHub",
+      Following: [
+        {
+          type: "link",
+          href: "https://github.com/assaf/queue-run/issues",
+          label: "Issues",
+        },
+        {
+          type: "link",
+          href: "https://github.com/assaf/queue-run/releases",
+          label: "Releases",
+        },
+        {
+          type: "link",
+          href: "https://github.com/users/assaf/projects/2",
+          label: "Roadmap",
+        },
+      ],
     },
   ],
 };
