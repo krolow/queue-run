@@ -51,33 +51,15 @@ echo ".queue-run.json" >> .gitignore
 
 ### deploy
 
-When deploying from CI, instead of using `.queue-run.json`, do this:
-
-* CI server sets the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables
-* Specify the project name and region as command line arguments
-
-For example, GitHub workflow could look like:
-
-```yaml
-- uses: actions/checkout@v2
-- uses: actions/setup-node@v2
-  with:
-    node-version: "14"
-    cache: "yarn"
-- run: yarn install
-- env:
-    AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-    AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  run: npx queue-run deploy my-backend --region us-east-1 
-```
-
-Typically, you would use `npx queue-run env` to manage the backend environment variables.
-
-For quick changes, you can also set environment variables on the command line, for example:
+Deploy your project to production.
 
 ```bash
-npx queue-run deploy -e DEBUG=true
+npx queue-run deploy
 ```
+
+When deploying from the command line, this is an opportunity to set up `.queue-run.json`, so other commands can use the same configuration.
+
+When deploying from CI/CD, we [recommend this approach](#cicd).
 
 
 ### domain
@@ -265,17 +247,65 @@ QueueRun understands the following environment variables:
 * `DEBUG` — Set to `true` to see `console.debug` messages in production, and `false` to hide them in development (see [Logging](logging.md))
 * `QUEUE_RUN_INDENT` — Indentation level for JSON and XML output, default to 2 in development, 0 in production
 
-:::note Don't Forget To Re-deploy
+If you need to temporarily change an environment variable:
+
+```bash
+npx queue-run deploy -e DEBUG=true
+```
+
+To  dump server environment variables so you can use them locally:
+
+```bash
+# save to .env
+npx queue-run env list > .env
+# use .env
+npx queue-run dev
+```
+
+:::note Change -> Deploy
 After changing environment variables, you need to redeploy your project to use the new environment variables.
 :::
 
-:::tip
-You can dump server environment variables to use locally:
 
-```bash
-npx queue-run env list > .env
+## CI/CD
+
+The recommended setup for CI/CD:
+
+* Create an IAM user for your build system with [the proper credentials](#credentials-and-policies)
+* The build server sets the `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_REGION` environment variables
+* Do not use `.queue-run.json`, set project name from the command line
+* Use the [`env`](#environment-variables) command to manage environment variables for your backend
+
+GitHub workflow could look like this:
+
+```yaml
+name: Deploy My Back-end
+on: push
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "14"
+          cache: "yarn"
+      - run: yarn install
+      - env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        run: npx queue-run deploy my-backend
 ```
-:::
+
+Successful deployments will appear in the log:
+
+```
+npx queue-run logs
+2/2/2022, 12:42:28 PM: Uploaded new version arn:aws:lambda:us-east-1:12##########:function:qr-grumpy-sunshine:340
+2/2/2022, 12:42:33 PM: Switched to new version arn:aws:lambda:us-east-1:12##########:function:qr-grumpy-sunshine:340
+```
 
 
 ## Credentials and Policies
