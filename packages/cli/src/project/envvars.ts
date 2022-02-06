@@ -110,7 +110,11 @@ command
 
 function display(envVars: Map<string, string>) {
   if (process.stdout.isTTY) {
-    displayTable(["NAME", "VALUE"], Array.from(envVars.entries()));
+    displayTable({
+      headers: ["NAME", "VALUE"],
+      rows: Array.from(envVars.entries()),
+      options: { fullWidth: true, wrap: true },
+    });
     console.info("");
   } else {
     for (const [name, value] of Array.from(envVars.entries()))

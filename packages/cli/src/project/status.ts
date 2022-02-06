@@ -62,39 +62,40 @@ async function showDeployment({
 
   spinner.stop();
 
-  displayTable(
-    ["Name", project],
-    [
+  displayTable({
+    headers: ["Project", project],
+    rows: [
       ["Version", current.version],
       ["Code size", filesize(current.size)],
-      ["Deployed", current.modified.toLocaleString()],
+      ["Deployed", current.modified],
       ["Region", region],
       ["Available memory", filesize(memory! * 10000 * 1000)],
       ["Timeout", ms(timeout! * 1000)],
-      ["Reserved concurrency", reserved?.toLocaleString() ?? "no reserve"],
+      ["Reserved concurrency", reserved ?? "no reserve"],
       ...(provisioned
         ? (provisioned
             .map((concurrency) => [
               ["Provisioned concurrency", concurrency.Status],
               [
                 " - Requested",
-                concurrency.RequestedProvisionedConcurrentExecutions?.toLocaleString(),
+                concurrency.RequestedProvisionedConcurrentExecutions,
               ],
               [
                 " - Allocated",
-                concurrency.AllocatedProvisionedConcurrentExecutions?.toLocaleString(),
+                concurrency.AllocatedProvisionedConcurrentExecutions,
               ],
               [
                 " - Available",
-                concurrency.AvailableProvisionedConcurrentExecutions?.toLocaleString(),
+                concurrency.AvailableProvisionedConcurrentExecutions,
               ],
             ])
             .flat() as [string, string][])
         : [["Provisioned", "no"]]),
       ["HTTP", httpUrl],
       ["WebSocket", wsUrl],
-    ]
-  );
+    ],
+    options: { fullWidth: true, widths: [24] },
+  });
 
   return currentArn;
 }
@@ -111,15 +112,16 @@ async function showQueues({
   spinner.stop();
   if (queues.length) {
     process.stdout.write("\n\n");
-    displayTable(
-      ["Queue", "Processed (5m)", "In flight", "Oldest"],
-      queues.map(({ queueName, processed, inFlight, oldest }) => [
+    displayTable({
+      headers: ["Queue", "Processed (5m)", "In flight", "Oldest"],
+      rows: queues.map(({ queueName, processed, inFlight, oldest }) => [
         queueName,
-        processed?.toLocaleString() ?? "0",
-        inFlight?.toLocaleString() ?? "0",
+        processed ?? 0,
+        inFlight ?? 0,
         oldest ? ms(+oldest * 1000) : "n/a",
-      ])
-    );
+      ]),
+      options: { fullWidth: true },
+    });
   }
 }
 
@@ -129,15 +131,16 @@ async function showSchedules(lambdaArn: string) {
   spinner.stop();
   if (schedules.length) {
     process.stdout.write("\n\n");
-    displayTable(
-      ["Schedule", "Recurring", "Last run", "Next run"],
-      schedules.map(({ cron, name, lastRun, nextRun }) => [
+    displayTable({
+      headers: ["Schedule", "Recurring", "Last run", "Next run"],
+      rows: schedules.map(({ cron, name, lastRun, nextRun }) => [
         name,
         cron,
-        lastRun?.toLocaleString() ?? "n/a",
-        nextRun?.toLocaleString() ?? "n/a",
-      ])
-    );
+        lastRun ?? "n/a",
+        nextRun ?? "n/a",
+      ]),
+      options: { fullWidth: true },
+    });
   }
 }
 

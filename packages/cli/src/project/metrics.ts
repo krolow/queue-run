@@ -36,8 +36,8 @@ command
       region,
     });
 
-    displayTable(
-      [
+    displayTable({
+      headers: [
         "Timestamp",
         "Invocations",
         "Throttled",
@@ -46,18 +46,18 @@ command
         "Duration (avg)",
         "Duration (max)",
       ],
-      metrics.map(
+      rows: metrics.map(
         ([timestamp, invocations, throttles, errors, concurrent, avg, max]) => [
           timestamp,
-          invocations?.toLocaleString() ?? "",
-          throttles?.toLocaleString() ?? "",
-          errors?.toLocaleString() ?? "",
-          concurrent?.toLocaleString() ?? "",
+          invocations ?? "",
+          throttles ?? "",
+          errors ?? "",
+          concurrent ?? "",
           avg ? `${avg.toFixed(2)} ms` : "",
           max ? `${max.toFixed(2)} ms` : "",
         ]
-      )
-    );
+      ),
+    });
   });
 
 command
@@ -83,8 +83,8 @@ command
       region,
     });
 
-    displayTable(
-      [
+    displayTable({
+      headers: [
         "Timestamp",
         "Requests",
         "4xx",
@@ -92,15 +92,15 @@ command
         "Response Time (avg)",
         "Response Time (max)",
       ],
-      metrics.map(([timestamp, requests, code4xx, code5xx, avg, max]) => [
+      rows: metrics.map(([timestamp, requests, code4xx, code5xx, avg, max]) => [
         timestamp,
-        requests?.toLocaleString() ?? "",
-        code4xx?.toLocaleString() ?? "",
-        code5xx?.toLocaleString() ?? "",
+        requests ?? "",
+        code4xx ?? "",
+        code5xx ?? "",
         avg ? `${avg.toFixed(2)} ms` : "",
         max ? `${max.toFixed(2)} ms` : "",
-      ])
-    );
+      ]),
+    });
   });
 
 command
@@ -126,8 +126,8 @@ command
       region,
     });
 
-    displayTable(
-      [
+    displayTable({
+      headers: [
         "Timestamp",
         "Connections",
         "Messages",
@@ -135,15 +135,17 @@ command
         "Response Time (avg)",
         "Response Time (max)",
       ],
-      metrics.map(([timestamp, connections, messages, errors, avg, max]) => [
-        timestamp,
-        connections?.toLocaleString() ?? "",
-        messages?.toLocaleString() ?? "",
-        errors?.toLocaleString() ?? "",
-        avg ? `${avg.toFixed(2)} ms` : "",
-        max ? `${max.toFixed(2)} ms` : "",
-      ])
-    );
+      rows: metrics.map(
+        ([timestamp, connections, messages, errors, avg, max]) => [
+          timestamp,
+          connections ?? "",
+          messages ?? "",
+          errors ?? "",
+          avg ? `${avg.toFixed(2)} ms` : "",
+          max ? `${max.toFixed(2)} ms` : "",
+        ]
+      ),
+    });
   });
 
 command
@@ -169,16 +171,22 @@ command
       region,
     });
 
-    displayTable(
-      ["Timestamp", "Queued", "Processed", "In-flight", "Oldest message"],
-      metrics.map(([timestamp, sent, deleted, inFlight, oldest]) => [
+    displayTable({
+      headers: [
+        "Timestamp",
+        "Queued",
+        "Processed",
+        "In-flight",
+        "Oldest message",
+      ],
+      rows: metrics.map(([timestamp, sent, deleted, inFlight, oldest]) => [
         timestamp,
-        sent ? sent.toLocaleString() : "",
-        deleted ? deleted.toLocaleString() : "",
-        inFlight ? inFlight.toLocaleString() : "",
+        sent ?? "",
+        deleted ?? "",
+        inFlight ?? "",
         oldest ? ms(oldest * 1000) : "",
-      ])
-    );
+      ]),
+    });
   });
 
 command
@@ -201,14 +209,14 @@ command
       region,
     });
 
-    displayTable(
-      ["Timestamp", "Invoked", "Failed"],
-      metrics.map(([timestamp, invoked, failed]) => [
+    displayTable({
+      headers: ["Timestamp", "Invoked", "Failed"],
+      rows: metrics.map(([timestamp, invoked, failed]) => [
         timestamp,
-        invoked?.toLocaleString() ?? "",
-        failed?.toLocaleString() ?? "",
-      ])
-    );
+        invoked ?? "",
+        failed ?? "",
+      ]),
+    });
   });
 
 async function collectMetrics2({

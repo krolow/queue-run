@@ -146,10 +146,10 @@ function displayCNames(cnames: { cname: string; value: string }[]) {
   console.info(
     "Please update your DNS by adding the following CNAME records:\n"
   );
-  displayTable(
-    ["CNAME", "VALUE"],
-    cnames.map(({ cname, value }) => [cname, value])
-  );
+  displayTable({
+    headers: ["CNAME", "VALUE"],
+    rows: cnames.map(({ cname, value }) => [cname, value]),
+  });
   console.info("");
 }
 

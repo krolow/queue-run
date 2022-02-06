@@ -52,13 +52,13 @@ async function displaySummary(zip: JSZip) {
       folders.set(folder, (folders.get(folder) ?? 0) + byteLength);
     })
   );
-  displayTable(
-    ["Folder", "Size"],
-    Array.from(folders.entries()).map(([dirname, size]) => [
+  displayTable({
+    headers: ["Folder", "Size"],
+    rows: Array.from(folders.entries()).map(([dirname, size]) => [
       dirname,
       filesize(size),
-    ])
-  );
+    ]),
+  });
 }
 
 function summaryFolderName(filename: string): string {

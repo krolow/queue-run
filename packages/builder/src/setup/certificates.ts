@@ -185,7 +185,7 @@ async function useDNSVerification({
   invariant(Name && Value);
 
   console.info("Update your DNS and add the following CNAME record:");
-  displayTable(["CNAME", "VALUE"], [[Name, Value]]);
+  displayTable({ headers: ["CNAME", "VALUE"], rows: [[Name, Value]] });
   console.info("");
 
   console.info(
