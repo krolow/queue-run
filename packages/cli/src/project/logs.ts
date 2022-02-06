@@ -4,6 +4,7 @@ import { Command, Option } from "commander";
 import ms from "ms";
 import ora from "ora";
 import { loadCredentials } from "./project.js";
+import { localTimestamp } from "./timestamp.js";
 
 const command = new Command("logs")
   .description("view server logs")
@@ -56,7 +57,7 @@ async function showEvents({
   if (!events.length) return nextToken!;
 
   for (const event of events) {
-    const timestamp = new Date(event.timestamp!).toLocaleString();
+    const timestamp = localTimestamp(new Date(event.timestamp!));
     const message = event.message!.replace(/\r/g, "\n");
     const level = message.match(/^\[(\w+)\] /)?.[1];
     const trace = /^(START|END|REPORT) RequestId: /.test(message);

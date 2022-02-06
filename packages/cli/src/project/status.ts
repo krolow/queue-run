@@ -11,6 +11,7 @@ import {
   listSchedules,
 } from "queue-run-builder";
 import { loadCredentials } from "./project.js";
+import { localTimestamp } from "./timestamp.js";
 
 const command = new Command("status")
   .description("status of your project")
@@ -67,7 +68,7 @@ async function showDeployment({
     rows: [
       ["Version", current.version],
       ["Code size", filesize(current.size)],
-      ["Deployed", current.modified],
+      ["Deployed", localTimestamp(current.modified)],
       ["Region", region],
       ["Available memory", filesize(memory! * 10000 * 1000)],
       ["Timeout", ms(timeout! * 1000)],
@@ -136,8 +137,8 @@ async function showSchedules(lambdaArn: string) {
       rows: schedules.map(({ cron, name, lastRun, nextRun }) => [
         name,
         cron,
-        lastRun ?? "n/a",
-        nextRun ?? "n/a",
+        lastRun ? localTimestamp(lastRun) : "n/a",
+        nextRun ? localTimestamp(nextRun) : "n/a",
       ]),
       options: { fullWidth: true },
     });

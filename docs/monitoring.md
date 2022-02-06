@@ -12,22 +12,26 @@ Use the `status` command to see the current status of your project:
 * Schedules, showing when the scheduled job ran last time, and when it's expected to run again
 
 ```
- Name         : grumpy-sunshine
-────────────────────────────────────────────────────
- Version      : 358
- Code size    : 1.27 MB (compressed)
- Deployed     : 2/2/2022, 9:52:30 PM
- Region       : us-east-1
- Avail memory : 5.12 GB
- Timeout      : 15m
- Reserved     : no reserve
- Provisioned  : IN_PROGRESS
- — Requested  : 2
- — Allocated  : 0
- — Available  : 0
+ Project                  │ grumpy-sunshine
+ Version                  │ 359
+ Code size                │ 1.27 MB
+ Deployed                 │ 2022-02-03 10:23:35
+ Region                   │ us-east-1
+ Available memory         │ 5.12 GB
+ Timeout                  │ 5m
+ Reserved concurrency     │ no reserve
+ Provisioned concurrency  │ READY
+  - Requested             │ 3
+  - Allocated             │ 3
+  - Available             │ 3
+ HTTP                     │ https://grumpy-sunshine.queue.run
+ WebSocket                │ wss://ws.grumpy-sunshine.queue.run
 
- HTTP         : https://grumpy-sunshine.queue.run
- WebSocket    : wss://ws.grumpy-sunshine.queue.run
+Queue       │ Processed (5m) │ In flight │ Oldest
+screenshots │ 0              │ 0         │ n/a
+
+Schedule │ Recurring  │ Last run            │ Next run
+daily    │ 0 12 * * * │ 2022-02-06 03:59:00 │ 2022-02-07 04:00:00
 ```
 
 
@@ -38,6 +42,12 @@ Use the `logs` command to watch the server logs.
 You can use Ctrl+C to stop, and Ctrl+L to clear the screen.
 
 If you only want to retrieve the latest logs, use `--no-watch` in combination with `--hours`.
+
+```
+2022-02-05 04:00:06: [INFO] Job started: name="daily" schedule="0 0 12 * * *" job="4b34115c-f94a-1c20-0a91-c4c22a9f436f"
+2022-02-05 04:00:06: [INFO] Job finished: name="daily" jobId="4b34115c-f94a-1c20-0a91-c4c22a9f436f"
+2022-02-05 12:49:44: [INFO] [136.25.153.66] "GET /" 200 814 "" "Mozilla/5.0 (Windows NT 6.1; rv:45.0) Gecko/20100101 Firefox/45.0"
+```
 
 :::note
 

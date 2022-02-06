@@ -4,6 +4,7 @@ import ms from "ms";
 import ora from "ora";
 import { displayTable, getAPIGatewayURLs } from "queue-run-builder";
 import { loadCredentials } from "./project.js";
+import { localTime, localTimestamp } from "./timestamp.js";
 
 const command = new Command("metrics").description("show execution metrics");
 
@@ -272,8 +273,8 @@ async function collectMetrics2({
   for (let timestamp = end; timestamp > start; timestamp -= period) {
     collected.push([
       showDate
-        ? new Date(timestamp).toLocaleString()
-        : new Date(timestamp).toLocaleTimeString(),
+        ? localTimestamp(new Date(timestamp))
+        : localTime(new Date(timestamp)),
       ...(results ?? []).map((result) => {
         const index = result.Timestamps?.findIndex(
           (t) => t.getTime() <= timestamp && t.getTime() > timestamp - period
