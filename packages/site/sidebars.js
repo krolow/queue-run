@@ -15,7 +15,7 @@ module.exports = {
       ],
     },
     {
-      Production: ["developing", "deploying", "optimizing"],
+      Production: ["developing", "deploying", "monitoring", "optimizing"],
     },
     {
       type: "link",
