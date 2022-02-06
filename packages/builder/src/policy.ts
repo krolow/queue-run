@@ -1,5 +1,5 @@
 export default function policy(slug?: string) {
-  const lambdaPrefix = slug ? `qr-${slug}` : `qr-*`;
+  const lambdaPrefix = `qr-${slug ?? "*"}`;
   const lambdaArn = `arn:aws:lambda:*:*:function:${lambdaPrefix}`;
 
   return {

@@ -317,11 +317,11 @@ In order to deploy a project, set custom domain, watch the logs, etc you need an
 If you're using an account with broad permissions, not a problem. If you want to create an IAM account with a specific policy, use the `npx queue-run policy` command:
 
 ```bash
-npx queue-run policy --output policy.json --project grumpy-sunshine
-
-export policy=$(cat policy.json)
-aws iam put-user-policy --user-name assaf \
-  --policy-name queue.run --policy-document '$policy' 
+npx queue-run policy --output policy.json
+aws iam put-user-policy \
+  --user-name assaf \
+  --policy-name queue.run \
+  --policy-document 'file://policy.json'
 ```
 
 ### For The Backend
