@@ -1,5 +1,4 @@
 import { Lambda } from "@aws-sdk/client-lambda";
-import chalk from "chalk";
 import { Command } from "commander";
 import filesize from "filesize";
 import ms from "ms";
@@ -17,19 +16,8 @@ const command = new Command("status")
   .description("status of your project")
   .action(async () => {
     const { name, awsRegion: region } = await loadCredentials();
-    const lambda = new Lambda({ region });
-
-    process.stdout.write(` Name\t\t: ${name}\n`);
-
-    if (process.stdout.isTTY) {
-      process.stdout.write(
-        chalk.dim("─".repeat(process.stdout.getWindowSize()[0])) + "\n"
-      );
-    }
 
     const lambdaArn = await showDeployment({ project: name, region });
-    await showConcurrency({ lambda, lambdaArn });
-    await showEndpoints({ project: name, region });
     await showQueues({ region, project: name });
     await showSchedules(lambdaArn);
   });
@@ -43,7 +31,10 @@ async function showDeployment({
 }) {
   const spinner = ora("Inspecting deployment").start();
 
-  const versions = await getRecentVersions({ region, slug: project });
+  const [versions, { httpUrl, wsUrl }] = await Promise.all([
+    getRecentVersions({ region, slug: project }),
+    getAPIGatewayURLs({ project, region }),
+  ]);
 
   const current = versions.find(({ isCurrent }) => isCurrent);
   if (!current)
@@ -51,57 +42,16 @@ async function showDeployment({
 
   const lambda = new Lambda({ region });
   const currentArn = current.arn.replace(/:\d+$/, ":current");
-  const { MemorySize: memory, Timeout: timeout } =
-    await lambda.getFunctionConfiguration({
-      FunctionName: currentArn,
-    });
-
-  spinner.stop();
-
-  process.stdout.write(` Version\t: ${current?.version ?? "n/a"}\n`);
-  process.stdout.write(
-    ` Code size\t: ${filesize(current.size)} (compressed)\n`
-  );
-  process.stdout.write(` Deployed\t: ${current.modified.toLocaleString()}\n`);
-  process.stdout.write(` Region\t\t: ${region}\n`);
-  process.stdout.write(
-    ` Avail memory\t: ${filesize(memory! * 10000 * 1000)}\n`
-  );
-  process.stdout.write(` Timeout\t: ${ms(timeout! * 1000)}\n`);
-
-  return currentArn;
-}
-
-async function showEndpoints({
-  project,
-  region,
-}: {
-  project: string;
-  region: string;
-}) {
-  const spinner = ora("Inspecting endpoints").start();
-  const { httpUrl, wsUrl } = await getAPIGatewayURLs({ project, region });
-  spinner.stop();
-
-  process.stdout.write("\n");
-  process.stdout.write(` HTTP\t\t: ${httpUrl}\n`);
-  process.stdout.write(` WebSocket\t: ${wsUrl}\n`);
-}
-
-async function showConcurrency({
-  lambda,
-  lambdaArn,
-}: {
-  lambda: Lambda;
-  lambdaArn: string;
-}) {
-  const spinner = ora("Inspecting concurrency").start();
   // Version/alias not supported when reading concurrency configuration
-  const concurrencyArn = lambdaArn.replace(/:\w+$/, "");
+  const concurrencyArn = current.arn.replace(/:\w+$/, "");
   const [
+    { MemorySize: memory, Timeout: timeout },
     { ReservedConcurrentExecutions: reserved },
     { ProvisionedConcurrencyConfigs: provisioned },
   ] = await Promise.all([
+    lambda.getFunctionConfiguration({
+      FunctionName: currentArn,
+    }),
     lambda.getFunctionConcurrency({
       FunctionName: concurrencyArn,
     }),
@@ -109,38 +59,44 @@ async function showConcurrency({
       FunctionName: concurrencyArn,
     }),
   ]);
+
   spinner.stop();
 
-  process.stdout.write(
-    ` Reserved\t: ${
-      reserved === 0
-        ? "0 (no instances)"
-        : typeof reserved === "number"
-        ? reserved.toLocaleString()
-        : "no reserve"
-    }\n`
+  displayTable(
+    ["Name", project],
+    [
+      ["Version", current.version],
+      ["Code size", filesize(current.size)],
+      ["Deployed", current.modified.toLocaleString()],
+      ["Region", region],
+      ["Available memory", filesize(memory! * 10000 * 1000)],
+      ["Timeout", ms(timeout! * 1000)],
+      ["Reserved concurrency", reserved?.toLocaleString() ?? "no reserve"],
+      ...(provisioned
+        ? (provisioned
+            .map((concurrency) => [
+              ["Provisioned concurrency", concurrency.Status],
+              [
+                " - Requested",
+                concurrency.RequestedProvisionedConcurrentExecutions?.toLocaleString(),
+              ],
+              [
+                " - Allocated",
+                concurrency.AllocatedProvisionedConcurrentExecutions?.toLocaleString(),
+              ],
+              [
+                " - Available",
+                concurrency.AvailableProvisionedConcurrentExecutions?.toLocaleString(),
+              ],
+            ])
+            .flat() as [string, string][])
+        : [["Provisioned", "no"]]),
+      ["HTTP", httpUrl],
+      ["WebSocket", wsUrl],
+    ]
   );
-  if (provisioned?.length) {
-    provisioned.forEach(
-      ({
-        Status,
-        RequestedProvisionedConcurrentExecutions,
-        AllocatedProvisionedConcurrentExecutions,
-        AvailableProvisionedConcurrentExecutions,
-      }) => {
-        process.stdout.write(` Provisioned\t: ${Status}\n`);
-        process.stdout.write(
-          ` — Requested\t: ${RequestedProvisionedConcurrentExecutions}\n`
-        );
-        process.stdout.write(
-          ` — Allocated\t: ${AllocatedProvisionedConcurrentExecutions}\n`
-        );
-        process.stdout.write(
-          ` — Available\t: ${AvailableProvisionedConcurrentExecutions}\n`
-        );
-      }
-    );
-  } else process.stdout.write(" Provisioned\t: no\n");
+
+  return currentArn;
 }
 
 async function showQueues({
