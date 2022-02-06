@@ -1,6 +1,6 @@
 # 🐇 QueueRun
 
-Web 2.0 framework to make building back-ends and APIs easy and fun:
+Web 2.0 framework to make building backends and APIs easy and fun:
 
 * HTTP APIs, WebSocket, FIFO queues, and (coming) scheduled jobs
 * Focus on developer experience and simplicity

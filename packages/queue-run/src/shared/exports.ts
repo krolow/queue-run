@@ -10,7 +10,7 @@ import { WebSocketMiddleware } from "../ws/exports";
 export type WarmupFunction = () => Promise<void> | void;
 
 /**
- * Back-end configuration affecting all routes.
+ * Backend configuration affecting all routes.
  */
 export type BackendConfig = {
   /**

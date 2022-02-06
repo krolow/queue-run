@@ -1,6 +1,6 @@
 # 🐇 QueueRun
 
-* Unapologitecally Web 2.0 framework for buildng back-ends and APIs
+* Unapologitecally Web 2.0 framework for buildng backends and APIs
 * Designed for serverless deployments
 * You don't have to know any CloudFormation
 * Of the web: HTTP and WebSocket, REST resources, Fetch API, console.log, HTML forms

@@ -4,7 +4,7 @@ slug: /
 
 # Introduction
 
-Web 2.0 framework to make building back-ends and APIs easy and fun:
+Web 2.0 framework to make building backends and APIs easy and fun:
 
 * HTTP APIs, WebSocket, Web Push (coming), FIFO queues, and scheduled jobs
 * Focus on developer experience and simplicity
@@ -19,9 +19,9 @@ Web 2.0 framework to make building back-ends and APIs easy and fun:
 
 AWS Lambda has all the right building blocks — HTTPS, WebSocket, SQS queues, CloudWatch logs — but the developer experience is not there. I wanted a framework that can go from idea to deploy in minutes not weeks.
 
-Next, Remix, Nuxt, et al solves that for developing front-end applications. I wanted something as easy and fun for building the back-end: the APIs, presence and real-time updates (WebSocket), queued and scheduled jobs, etc. 
+Next, Remix, Nuxt, et al solves that for developing front-end applications. I wanted something as easy and fun for building the backend: the APIs, presence and real-time updates (WebSocket), queued and scheduled jobs, etc. 
 
-Every back-end needs authentication, logging, environment variables, URL construction, etc. The framework should take care of that.
+Every backend needs authentication, logging, environment variables, URL construction, etc. The framework should take care of that.
 
 Deployment should take less than 2 minutes. Setting up a new project in under 5 minutes. Don't want to worry about provisioning servers, scaling up/down, CloudFormation, or that thing they call YAML.
 

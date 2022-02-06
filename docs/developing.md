@@ -185,7 +185,7 @@ If you're using an IDE like Visual Studio Code, it uses `tsconfig.json` to under
 
 Use this file to store environment variables for your backend when running in development.
 
-The format for this file is name/value pairs, but it does support comments, and multi-line values:
+The format for this file is `name=value` pairs, but it does support comments, and multi-line values:
 
 ```dosini
 # This is a comment
@@ -198,7 +198,17 @@ Kh9NV...
 -----END DSA PRIVATE KEY-----"
 ```
 
-Use the [`env` command](deploying#env) to manage environment variables for your backend in production.
+Use the [`env` command](deploying#environment-variables) to manage environment variables for your backend in production.
+
+
+### index.ts
+
+This file is shared by all backend resources (HTTP, queues, etc), use this for:
+
+* [Error logging](logging#logging-errors)
+* [Increasing available memory](optimizing#available-memory)
+* [Using a logging service](logging#using-a-logging-service)
+* [Warm-up function](optimizing#warm-up-function) that runs before any other task
 
 
 ## Testing WebSocket

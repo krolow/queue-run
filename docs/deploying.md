@@ -278,7 +278,7 @@ The recommended setup for CI/CD:
 GitHub workflow could look like this:
 
 ```yaml
-name: Deploy My Back-end
+name: Deploy My Backend
 on: push
 
 jobs:

@@ -1,5 +1,24 @@
 # Optimizing
 
+## Available Memory
+
+By default your backend is allocated 128MB of available memory. You can increase that up to 10GB.
+
+The allocated memory is specified in the `index.ts` file:
+
+```ts title=index.ts
+export const config = {
+  memory: "0.5GB";
+}
+```
+
+You can specify the required memory as a number (megabytes), or a string with the suffix "MB" or "GB".
+
+
+## File System
+
+Your backend has 512MB of temporary file system storage in the `/tmp` directory.
+
 
 ## Reserved Concurrency
 

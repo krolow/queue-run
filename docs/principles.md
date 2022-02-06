@@ -27,7 +27,7 @@ You do get control over things that matter. You can watch the production log, re
 QueueRun will guide you through the steps necessary to set up a custom domain for your backend.
 
 
-## Back-ends Have State
+## Backends Have State
 
 This includes real-time messaging (WebSocket) and async notifications (Web Push), and background workloads with standard and FIFO queues, and schedules jobs.
 
