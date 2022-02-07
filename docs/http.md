@@ -328,3 +328,35 @@ export const config =  {
   etag: (task) => task.version
 };
 ```
+
+
+## Using Fetch
+
+The [`fetch`](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) function is available in the global scope. You don't have to import it explicitly.
+
+For example, to make a request to another service:
+
+```ts
+const response = await fetch("http://example.com");
+if (!response.ok) throw new Error("Not available");
+const json = await response.json();
+```
+
+Fetch supports [the abort signal](timeout).
+
+This example makes a POST request, and gathers the URL of the new resource (without fetching the resource).  It also uses the abort signal:
+
+```ts
+const response = await fetch("http://example.com", {
+  headers: {
+    "Authorization": `Bearer ${token}`,
+    "Content-Type": "application/json"
+  },
+  signal,
+  method: "POST",
+  body: JSON.stringify(payload),
+  redirect: "manual"
+});
+if (!response.redirected) throw new Error("Not available");
+const url = response.headers.get("Location");
+```
