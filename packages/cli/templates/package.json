@@ -3,6 +3,7 @@
     "#api/*": "./api/*",
     "#lib/*": "./lib/*",
     "#queues/*": "./queues/*",
+    "#schedules/*": "./schedules/*",
     "#socket/*": "./socket/*"
   },
   "scripts": {

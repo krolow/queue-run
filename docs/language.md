@@ -39,7 +39,7 @@ To use ESM modules:
 * Imports must use the filename extension `.js` (even TypeScript code)
 * If you need to use `require`: `module.createRequire(module.meta.url)`
 
-ESM also supports hash imports, so you can import `#queue/my_queue.js`, `#lib/some_lib.js`, etc.
+ESM also supports import paths, so you can import `#queue/my_queue.js`, `#lib/some_lib.js`, etc.
 
 QueueRun is ESM, so if your project is CommonJS, code is still compiled to ESM, but you have to use the filename extension `.mjs` when importing.
 

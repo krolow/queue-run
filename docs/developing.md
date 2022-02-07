@@ -138,6 +138,7 @@ You don't need to have a `package.json`, but if you do:
     "#api/*": "./api/*",
     "#lib/*": "./lib/*",
     "#queues/*": "./queues/*",
+    "#schedules/*": "./schedules/*",
     "#socket/*": "./socket/*"
   },
   "peerDependencies": {
@@ -172,6 +173,7 @@ If you're using an IDE like Visual Studio Code, it uses `tsconfig.json` to under
       "#api/*": ["./api/*"],
       "#lib/*": ["./lib/*"],
       "#queues/*": ["./queues/*"],
+      "#schedules/*": ["./schedules/*"],
       "#socket/*": ["./socket/*"]
     },
     // highlight-next-line
