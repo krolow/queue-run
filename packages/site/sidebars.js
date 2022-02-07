@@ -12,6 +12,7 @@ module.exports = {
         "logging",
         "timeout",
         "xml",
+        "language",
       ],
     },
     {
