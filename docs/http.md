@@ -205,7 +205,7 @@ For redirects, you can use `return Response.redirect(url, status?);`.
 
 For more complicated use cases, use the `Response` object. For example:
 
-```
+```ts
 export async function get({ params }) {
   const metrics = await db.metricsFor({ date: params.date });
   const csv = generate(metrics, { columns: true });
