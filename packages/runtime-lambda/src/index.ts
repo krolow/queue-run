@@ -12,6 +12,7 @@ import {
   handleUserOnline,
   LocalStorage,
   logging,
+  url,
   warmup,
 } from "queue-run";
 import swapAWSEnvVars from "./environment";
@@ -38,8 +39,9 @@ logging.logger((level, ...args) => {
   );
 });
 
+url.baseURL = process.env.QUEUE_RUN_URL!;
+
 const urls = {
-  http: process.env.QUEUE_RUN_URL!,
   ws: process.env.QUEUE_RUN_WS!,
 };
 const { slug, region, wsApiId, ...clientConfig } = swapAWSEnvVars();

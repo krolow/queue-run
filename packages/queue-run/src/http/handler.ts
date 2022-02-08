@@ -23,6 +23,9 @@ import {
 import { Headers } from "./fetch.js";
 import findRoute from "./findRoute.js";
 import form from "./form.js";
+import url from "./url";
+
+url.rootDir = "api/";
 
 export default async function handleHTTPRequest({
   newLocalStorage,

@@ -18,6 +18,7 @@ import {
   handleWebSocketMessage,
   Headers,
   LocalStorage,
+  url,
   warmup,
 } from "queue-run";
 import { buildProject } from "queue-run-builder";
@@ -179,6 +180,8 @@ function onFileChange({
 
 if (cluster.isWorker) {
   const port = Number(process.env.PORT);
+
+  url.baseURL = `http://localhost:${port}`;
 
   const ready = (async () => {
     await buildProject({ buildDir, sourceDir });

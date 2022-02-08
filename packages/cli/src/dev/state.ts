@@ -37,7 +37,6 @@ export class DevLocalStorage extends LocalStorage {
   constructor(port: number) {
     super({
       urls: {
-        http: `http://localhost:${port}`,
         ws: `ws://localhost:${port + 1}`,
       },
     });

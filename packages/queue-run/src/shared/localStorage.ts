@@ -14,7 +14,7 @@ import { AuthenticatedUser } from "../shared/authenticated.js";
  * The request handler will set the user after authentication.
  */
 export abstract class LocalStorage {
-  public readonly urls: { http: string; ws: string };
+  public readonly urls: { ws: string };
 
   /**
    * object — Authenticated user
@@ -26,7 +26,7 @@ export abstract class LocalStorage {
   /** WebSocket connection ID */
   public connectionId: string | undefined;
 
-  constructor({ urls }: { urls: { http: string; ws: string } }) {
+  constructor({ urls }: { urls: { ws: string } }) {
     this.urls = urls;
   }
 
