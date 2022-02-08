@@ -78,7 +78,6 @@ export async function verify<T extends Payload = Payload>({
 
     return payload;
   } catch (error) {
-    console.warn("Authentication: %s", String(error));
     throw new Response("Invalid or expired JWT token", { status: 403 });
   }
 }

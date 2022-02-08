@@ -47,101 +47,90 @@ Since logging is such a common use case, QueueRun includes default logging middl
 * Scheduled job started and finished
 * Errors when handling HTTP/WebSocket request, or queued/scheduled job
 
-QueueRun calls the following middleware:
+You can add your own logging, by listening to the following events:
 
-- `onRequest(request)` — Called on every HTTP request
-- `onResponse(request, response)` — Called on every HTTP response
-- `onMessageReceived(request)` — Called on every WebSocket request
-- `onMessageSent(message)` — Called for every WebSocket message sent
-- `onJobStarted(metadata)` — Called each time a job starts running
-- `onJobFinished(metadata)` — Called each time a job finishes running (not error or timeout)
-- `onError(error, reference)` — Called for errors, see [Logging Errors](#logging-errors)
+- `logger.on('request', request)` - Called for every HTTP request
+- `logger.on('response', request, response)` - Called for every HTTP response
+- `logger.on('messageReceived', wsRequest)` - Called for every WebSocket message received
+- `logger.on('messageSent', message)` - Called for every WebSocket message sent
+- `logger.on('jobStarted', metadata)` - Called for every queued or scheduled job on start
+- `logger.on('jobFinished', metadata)` - Called for every queued or scheduled job when finished successfully
+- `logger.on('error')` — Called specifically for errors
 
-Middleware loads in the following order:
+For example, if you wanted to count HTTP requests/responses:
 
-* Middleware exported from the module itself (HTTP request handler, job handler, etc)
-* Middleware exported from `_middleware.ts` in the current directory
-* Middleware exported from `_middleware.ts` in the parent directory (recursive)
-* The default middleware
+```ts title=index.ts
+import { logger } from "queue-run";
 
-You can change the default middleware by exporting different middleware. You can disable middleware by exporting `null`. And you can wrap middleware.
-
-For example:
-
-```ts title=api/_middleware.ts
-// We're going to use the default middleware for logging
-import { logging } from "queue-run";
-// Metrics package for counting request/responeses
-import { metrics } from "metrics";
-
-export async function onRequest(request, response) {
+logger.on("request", (request) => {
   await metrics.increment(`request.${request.method}`);
-}
+});
 
-export async function onResponse(request, response) {
-  await logging.logResponse(request, response);
-  await metrics.increment(`response.${response.status}`);
-}
+logger.on("response", (request, response) => {
+  if (response.statusCode >== 500)
+    await metrics.increment(`response.5xx`);
+  else if (response.statusCode >== 400)
+    await metrics.increment(`response.4xx`);
+});
 ```
-
-:::note Throwing Errors and Responses
-
-* `onRequest` is called first (before authentication) so does not have access to the current user
-* `onRequest` can prevent the request from being handled by throwing a `Response` object (eg 404, or redirect to different URL)
-* `onResponse` can change the response by throwing a new `Response` body (eg hide errors in 500 responses)
-* If the request handler throws an `Error`, then the 500 response is logged (`onResponse`) as well as the error object (`onError`).
-* If `onResponse` throws an `Error`, then the server responds with 500 and calls `onError`
-:::
 
 
 ## Logging Errors
 
-The `onError` middleware helps you track errors. This middleware is called with the underlying `Error` object, and a reference object.
+Unhandled errors will cause the process to fail, not before logging the error message.
 
-The reference object depends on the task:
+The default behavior for both event handlers is to call `reportError` and allow the process to exit.
 
-* HTTP — The `Request` object
-* WebSocket — Same object passed to request handler
-* Queues — The job metadata (second argument for job handler)
-* Other would be `undefined`
+If you want to log an error but not fail the process you can use [`reportError`](https://developer.mozilla.org/en-US/docs/Web/API/reportError) from you code.
 
-For example, to send errors to Sentry in production:
+For example:
 
-```ts title=_middleware.ts
-import { logging } from "queue-run";
-import * as Sentry from "@sentry/node";
+```ts title=api/index.ts
+import { reportError } from "queue-run";
 
-if (process.env.SENTRY_DSN)
-  Sentry.init({ dsn: process.env.SENTRY_DSN });
-
-export async function logError(error, reference) {
-  logging.logError(error, reference);
-  if (process.env.SENTRY_DSN)
-    Sentry.captureException(error);
+export async function get() {
+  try {
+    const records = await db.read();
+    return { records };
+  } catch (error) {
+    // Not a great idea to return 404 here, but example
+    reportError(error);
+    return new Reponse("", { status: 404 });
+  }
 }
+```
+
+These errors are handled by the logger as an `error` event first, so you can treat them separately from logging.
+
+For example:
+
+```ts title=index.ts
+import { logger } from "queue-run";
+
+logger.on("error", (error) => {
+  ErrorService.captureException(error);
+});
 ```
 
 
 ## Using a Logging Service
 
-You can provide your own logging function. This is useful if you want to send all logged message to a 3rd party logging service.
+You can intercept the logger and send messages to a service of your choice.
 
 For example, to use with LogTail:
 
-```ts title=_middleware.ts
+```ts title=index.ts
 import { format } from "node:util";
-import { logging } from "queue-run";
+import { logger } from "queue-run";
 import { Logtail } from "@logtail/node";
 
 const logtail = new Logtail(process.env.LOGTAIL_TOKEN);
-const _logger = logging.logger();
 
-logging.logger(function(level, ...args) {
-  // Output to stdout/stderr
-  _logger(level, ...args);
- 
-  // Format messsage, pass argument list as rest parameters
+logger.on("log", (level, ...args) => {
   const message = format(...args);
-  logtail.log(message);
+  if (level === "error)
+    logtail.error(message);
+  else
+    logtail.log(message);
 });
 ```

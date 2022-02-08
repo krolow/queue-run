@@ -1,12 +1,13 @@
 import { AbortController } from "node-abort-controller";
 import { getLocalStorage } from "..";
-import { loadMiddleware, loadModule } from "../shared/loadModule.js";
+import { loadMiddleware } from "../shared/loadModule.js";
 import { LocalStorage, withLocalStorage } from "../shared/localStorage.js";
-import { logError, logMessageReceived } from "../shared/logging.js";
-import TimeoutError from "../shared/TimeoutError.js";
+import { logger } from "../shared/logging.js";
+import { HTTPRequestError } from "./../http/exports";
 import type { JSONValue } from "./../json";
 import { AuthenticatedUser } from "./../shared/authenticated";
 import {
+  WebSocketError,
   WebSocketHandler,
   WebSocketMiddleware,
   WebSocketRequest,
@@ -25,7 +26,7 @@ export async function handleWebSocketConnect({
   request: Request;
   requestId: string;
 }): Promise<Response> {
-  const { onConnect, onError } = await getCommonMiddleware();
+  const { onConnect } = await loadMiddleware<WebSocketMiddleware>("socket", {});
   if (!onConnect) return new Response("", { status: 202 });
 
   return await withLocalStorage(newLocalStorage(), async () => {
@@ -38,18 +39,7 @@ export async function handleWebSocketConnect({
       });
       return new Response("", { status: 202 });
     } catch (error) {
-      if (error instanceof Response) return error;
-
-      if (onError) {
-        try {
-          await onError(
-            error instanceof Error ? error : new Error(String(error))
-          );
-        } catch (error) {
-          console.error(error);
-        }
-      }
-      return new Response("Internal Server Error", { status: 500 });
+      throw new HTTPRequestError(error, request);
     }
   });
 }
@@ -69,24 +59,6 @@ function getCookies(request: Request): { [key: string]: string } {
   );
 }
 
-async function getCommonMiddleware() {
-  const defaultMiddleware = {
-    onError: logError,
-    onMessageReceived: logMessageReceived,
-  };
-  const main = await loadModule<never, WebSocketMiddleware>(
-    "socket/index",
-    defaultMiddleware
-  );
-  if (main) return main.middleware;
-  else {
-    return await loadMiddleware<WebSocketMiddleware>(
-      "socket",
-      defaultMiddleware
-    );
-  }
-}
-
 // eslint-disable-next-line sonarjs/cognitive-complexity
 export async function handleWebSocketMessage({
   connectionId,
@@ -104,18 +76,16 @@ export async function handleWebSocketMessage({
   try {
     const { module, middleware, route } = await findRoute(data);
 
-    const request = {
-      connectionId,
-      data: bufferToData(data, module?.config?.type ?? "json"),
-      requestId,
-    };
-
     if (userId === undefined && middleware.authenticate) {
       const { authenticate } = middleware;
       const localStorage = newLocalStorage();
-      localStorage.connectionId = request.connectionId;
+      localStorage.connectionId = connectionId;
       await withLocalStorage(localStorage, async () => {
-        const authenticated = await authenticate(request);
+        const authenticated = await authenticate({
+          connectionId,
+          data: bufferToData(data, "detect"),
+          requestId,
+        });
         // The authenticate middleware may have called authenticated directly
         if (!getLocalStorage().user && authenticated)
           await getLocalStorage().authenticated(authenticated);
@@ -123,43 +93,40 @@ export async function handleWebSocketMessage({
       return;
     }
 
+    const request = {
+      connectionId,
+      data: bufferToData(data, module?.config?.type ?? "json"),
+      requestId,
+      user: userId ? { id: userId } : null,
+    };
+
     if (!(module && route))
       throw new Error("No available handler for this request");
 
     await handleRoute({
-      filename: route.filename,
       handler: module.default,
-      middleware,
       newLocalStorage,
-      request: { ...request, user: userId ? { id: userId } : null },
+      request,
       timeout: route.timeout,
     });
   } catch (error) {
-    console.error("Internal processing error %s", connectionId, error);
-    const { onError } = await getCommonMiddleware();
-    if (onError) {
-      await onError(error instanceof Error ? error : new Error(String(error)));
-    }
-    throw error;
+    throw new WebSocketError(error, { connectionId, requestId });
   }
 }
 
 async function handleRoute({
-  filename,
   handler,
-  middleware,
   newLocalStorage,
   request,
   timeout,
 }: {
-  filename: string;
   handler: WebSocketHandler;
-  middleware: WebSocketMiddleware;
   newLocalStorage: () => LocalStorage;
   request: WebSocketRequest;
   timeout: number;
 }) {
   const controller = new AbortController();
+  const { signal } = controller;
   const timer = setTimeout(() => controller.abort(), timeout * 1000);
 
   try {
@@ -167,91 +134,48 @@ async function handleRoute({
     localStorage.user = request.user;
     localStorage.connectionId = request.connectionId;
     await withLocalStorage(localStorage, async () => {
-      await runWithMiddleware({
-        filename,
-        handler,
-        middleware,
-        request: { ...request, signal: controller.signal },
-      });
+      await Promise.race([
+        (async () => {
+          logger.emit("messageReceived", request);
+          await handler({ ...request, signal });
+        })(),
+
+        new Promise<undefined>((resolve) =>
+          signal.addEventListener("abort", () => resolve(undefined))
+        ),
+      ]);
     });
+
+    if (signal.aborted)
+      throw new WebSocketError(
+        new Error("Request aborted: timed out"),
+        request
+      );
   } finally {
     clearTimeout(timer);
     controller.abort();
   }
 }
 
-async function runWithMiddleware({
-  filename,
-  handler,
-  middleware,
-  request,
-}: {
-  filename: string;
-  handler: WebSocketHandler;
-  middleware: WebSocketMiddleware;
-  request: Parameters<WebSocketHandler>[0];
-}) {
-  try {
-    const { signal } = request;
-    await Promise.race([
-      (async () => {
-        const { onMessageReceived } = middleware;
-        if (onMessageReceived) await onMessageReceived(request);
-
-        await handler(request);
-      })(),
-
-      new Promise<undefined>((resolve) =>
-        signal.addEventListener("abort", () => resolve(undefined))
-      ),
-    ]);
-
-    if (signal.aborted) throw new TimeoutError("Request aborted: timed out");
-  } catch (error) {
-    await handleOnError({
-      error,
-      filename,
-      middleware,
-      request: request as WebSocketRequest,
-    });
-    throw error;
-  }
-}
-
 function bufferToData(
   data: Buffer,
-  type: "json" | "text" | "binary"
+  type: "json" | "text" | "binary" | "detect"
 ): JSONValue | string | Buffer {
   switch (type) {
+    case "detect": {
+      const text = data.toString("utf-8");
+      try {
+        return JSON.parse(text) as JSONValue;
+      } catch {
+        return text;
+      }
+    }
     case "json":
       return JSON.parse(data.toString("utf-8")) as JSONValue;
     case "text":
       return data.toString("utf-8");
     default:
       return data;
-  }
-}
-
-async function handleOnError({
-  error,
-  filename,
-  middleware,
-  request,
-}: {
-  error: unknown;
-  filename: string;
-  middleware: WebSocketMiddleware;
-  request: WebSocketRequest;
-}): Promise<void> {
-  if (middleware.onError) {
-    try {
-      await middleware.onError(
-        error instanceof Error ? error : new Error(String(error)),
-        request
-      );
-    } catch (error) {
-      console.error('Error in onError middleware in "%s":', filename, error);
-    }
   }
 }
 
@@ -262,22 +186,7 @@ export async function onMessageSentAsync({
   connections: string[];
   data: Buffer;
 }) {
-  const { onMessageSent, onError } = await getCommonMiddleware();
-  if (!onMessageSent) return;
-
-  try {
-    await onMessageSent({ connections, data });
-  } catch (error) {
-    if (onError) {
-      try {
-        await onError(
-          error instanceof Error ? error : new Error(String(error))
-        );
-      } catch (error) {
-        console.error("Error in onError middleware", error);
-      }
-    }
-  }
+  logger.emit("messageSent", { connections, data });
 }
 
 export async function handleUserOnline({
@@ -287,24 +196,12 @@ export async function handleUserOnline({
   newLocalStorage: () => LocalStorage;
   user: AuthenticatedUser;
 }) {
-  const { onOnline, onError } = await getCommonMiddleware();
-  if (!onOnline) return null;
-
-  return await withLocalStorage(newLocalStorage(), async () => {
-    try {
+  const { onOnline } = await loadMiddleware<WebSocketMiddleware>("socket", {});
+  if (onOnline) {
+    await withLocalStorage(newLocalStorage(), async () => {
       await onOnline(user);
-    } catch (error) {
-      if (onError) {
-        try {
-          await onError(
-            error instanceof Error ? error : new Error(String(error))
-          );
-        } catch (error) {
-          console.error(error);
-        }
-      }
-    }
-  });
+    });
+  }
 }
 
 export async function handleUserOffline({
@@ -314,22 +211,10 @@ export async function handleUserOffline({
   newLocalStorage: () => LocalStorage;
   user: AuthenticatedUser;
 }) {
-  const { onOffline, onError } = await getCommonMiddleware();
-  if (!onOffline) return null;
-
-  return await withLocalStorage(newLocalStorage(), async () => {
-    try {
+  const { onOffline } = await loadMiddleware<WebSocketMiddleware>("socket", {});
+  if (onOffline) {
+    await withLocalStorage(newLocalStorage(), async () => {
       await onOffline(user);
-    } catch (error) {
-      if (onError) {
-        try {
-          await onError(
-            error instanceof Error ? error : new Error(String(error))
-          );
-        } catch (error) {
-          console.error(error);
-        }
-      }
-    }
-  });
+    });
+  }
 }

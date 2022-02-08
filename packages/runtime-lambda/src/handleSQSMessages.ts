@@ -1,6 +1,11 @@
 import { DeleteMessageCommand, SQSClient } from "@aws-sdk/client-sqs";
 import { URLSearchParams } from "node:url";
-import { handleQueuedJob, LocalStorage, QueueHandler } from "queue-run";
+import {
+  handleQueuedJob,
+  LocalStorage,
+  QueueHandler,
+  reportError,
+} from "queue-run";
 
 export type SQSBatchResponse = {
   // https://docs.aws.amazon.com/lambda/latest/dg/with-ddb.html#services-ddb-batchfailurereporting
@@ -140,29 +145,34 @@ export async function handleOneSQSMessage({
   newLocalStorage: () => LocalStorage;
   remainingTime: number;
   sqs: SQSClient;
-}): Promise<boolean> {
+}) {
   const queueName = getQueueName(message);
-  const successful = await handleQueuedJob({
-    queueName,
-    metadata: getMetadata(message),
-    payload: getPayload(message),
-    remainingTime,
-    newLocalStorage,
-  });
-  if (successful && (await sqs.config.region()) !== "localhost") {
-    console.info(
-      "Deleting message %s from queue %s",
-      message.messageId,
-      queueName
-    );
-    await sqs.send(
-      new DeleteMessageCommand({
-        QueueUrl: getQueueURL(message),
-        ReceiptHandle: message.receiptHandle,
-      })
-    );
+  try {
+    await handleQueuedJob({
+      queueName,
+      metadata: getMetadata(message),
+      payload: getPayload(message),
+      remainingTime,
+      newLocalStorage,
+    });
+    if ((await sqs.config.region()) !== "localhost") {
+      console.debug(
+        "Deleting message %s from queue %s",
+        message.messageId,
+        queueName
+      );
+      await sqs.send(
+        new DeleteMessageCommand({
+          QueueUrl: getQueueURL(message),
+          ReceiptHandle: message.receiptHandle,
+        })
+      );
+    }
+    return true;
+  } catch (error) {
+    reportError(error instanceof Error ? error : new Error(String(error)));
+    return false;
   }
-  return successful;
 }
 
 // Gets the full queue URL from the ARN.  API needs the URL, not ARN.

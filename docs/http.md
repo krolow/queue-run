@@ -7,7 +7,7 @@ QueueRun makes HTTP APIs as easy as:
 * Will parse request documents for you: JSON, HTML forms, text, and binary
 * Easy access to path parameters, query string parameters, and cookies
 * Generate JSON, XML/HTML, plain text, and binary responses
-* Middleware for [authentication](authenticate.md) and [logging](logging.md)
+* Middleware for [authentication](authenticate.md)
 * Handles CORS for you and response caching
 * Verify accepted content types and HTTP methods
 
@@ -66,7 +66,7 @@ They return a single value, which can be one of:
 
 The request handler can also throw a `Response` object. This is used to "break from" further processing, eg the [authenticate](authenticate.md) middleware uses this.
 
-If the request handler throws any other error, the server responds with 500. That error is also logged by the [Logging Middleware](logging.md).
+If the request handler throws any other error, the server responds with 500. That error is also logged by the [logger](logging.md).
 
 If the request times out, the server responds with 500. You can use the abort signal to tell if the request timed out.
 

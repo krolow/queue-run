@@ -11,7 +11,7 @@ import {
   getLocalStorage,
   handleUserOnline,
   LocalStorage,
-  logging,
+  logger,
   socket,
   url,
   warmup,
@@ -33,7 +33,8 @@ import handleWebSocketRequest, {
 import queueJob from "./queueJob";
 import userConnections from "./userConnections";
 
-logging.logger((level, ...args) => {
+logger.removeAllListeners("log");
+logger.addListener("log", (level, ...args) => {
   const formatted = format(...args);
   process.stdout.write(
     `[${level.toUpperCase()}] ${formatted.replace(/\n/g, "\r")}\n`

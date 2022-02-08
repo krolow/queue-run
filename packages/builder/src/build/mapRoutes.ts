@@ -177,9 +177,7 @@ function getTimeout({ timeout }: { timeout?: number }): number {
 
 function validateMiddleware(middleware: RouteMiddleware): void {
   (
-    ["authenticate", "onError", "onRequest", "onResponse"] as Array<
-      keyof RouteMiddleware
-    >
+    ["authenticate", "onRequest", "onResponse"] as Array<keyof RouteMiddleware>
   ).forEach((key) => {
     if (middleware[key] && typeof middleware[key] !== "function")
       throw new Error(`Exported ${key} must be a function`);

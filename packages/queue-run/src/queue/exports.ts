@@ -1,7 +1,6 @@
 /* eslint-disable no-unused-vars */
 import type { AbortSignal } from "node-abort-controller";
 import type { JSONObject, JSONValue } from "../json";
-import type { OnError } from "../shared/onError.js";
 
 /**
  * Queued job handler.
@@ -96,32 +95,25 @@ export type QueueConfig = {
   timeout?: number;
 };
 
-/**
- * Middleware that's called any time a job starts running.
- *
- * @param job The job metadata
- */
-export type OnQueuedJobStarted = (
-  job: QueuedJobMetadata
-) => Promise<void> | void;
+export class QueuedJobError extends Error {
+  readonly cause: unknown;
+  readonly queueName: string;
+  readonly jobId: string;
 
-/**
- * Middleware that's called any time a job finishes running successfully.
- *
- * @param job The job metadata
- */
-export type OnQueuedJobFinished = (
-  job: QueuedJobMetadata
-) => Promise<void> | void;
+  constructor(
+    cause: unknown,
+    { jobId, queueName }: { jobId: string; queueName: string }
+  ) {
+    super(String(cause));
+    this.cause = cause;
+    this.jobId = jobId;
+    this.queueName = queueName;
+  }
 
-/**
- * Middleware exported from the queue module, or queues/_middleware.ts.
- */
-export type QueueMiddleware = {
-  onError?: OnError | null;
-  onJobFinished?: OnQueuedJobFinished | null;
-  onJobStarted?: OnQueuedJobStarted | null;
-};
+  get stack() {
+    return this.cause instanceof Error ? this.cause.stack! : super.stack!;
+  }
+}
 
 /**
  * Exported from the queue module.
@@ -129,4 +121,4 @@ export type QueueMiddleware = {
 export type QueueExports = {
   default: QueueHandler;
   config?: QueueConfig;
-} & QueueMiddleware;
+};

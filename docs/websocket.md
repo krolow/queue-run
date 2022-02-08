@@ -41,7 +41,7 @@ Since JSON is the most common use case, this is also the default. If you want to
 
 Clients can still connect and you can send them messages.
 
-If the request handler throws any error, or the request times out, the server sends back a JSON object of the form `{ error: string }`. That error is also logged by the [Logging Middleware](logging.md).
+If the request handler throws any error, or the request times out, the server sends back a JSON object of the form `{ error: string }`.
 
 You can change the timeout using `export const config = { timeout: inSeconds };`.
 

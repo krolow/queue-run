@@ -17,7 +17,7 @@ export * from "./shared/authenticated.js";
 export * from "./shared/exports.js";
 export * as jwt from "./shared/jwt.js";
 export { loadModule } from "./shared/loadModule.js";
-export * as logging from "./shared/logging";
+export * from "./shared/logging.js";
 export type { Manifest } from "./shared/manifest.js";
 export * from "./shared/onError.js";
 export { OnError } from "./shared/onError.js";

@@ -5,5 +5,5 @@ export default async function () {
 }
 
 export const config = {
-  type: "text",
+  type: "json",
 };

@@ -26,7 +26,6 @@ What you get out of the box:
 * Use the `schedule` command to test your function locally, and run a scheduled job in production at any time
 * Use the `status` and `metrics` commands to check on your schedule
 * For resilient execution and scaling workloads, combine schedules with standard and FIFO queues
-* Middleware to use monitoring tools like cronitor.io, healthchecks.io, Sentry, Rollbar, etc
 
 
 ## The Scheduled Job Function
@@ -63,7 +62,7 @@ The function is called with the following named parameters:
 * `name` — The name of this schedule
 * `signal` — The abort signal
 
-The file can also export middleware functions (see [Monitoring](#monitoring)), and the `config` object (see [timeout](#timeout)).
+The file can also export the `config` object (see [timeout](#timeout)).
 
 
 
@@ -230,31 +229,23 @@ Monitoring should be separate from your backend so it's not subject to the same 
 Use a service like [cronitor.io](https://cronitor.io) or [healthchecks.io](https://healthchecks.io) to monitor your scheduled job.
 :::
 
-When using a monitoring service, you can ping the service from job function itself, or using middleware:
+When using a monitoring service, your handler would look like:
 
 ```ts
-import { logJobFinished, logOnError } from "queue-run";
-import * as Sentry from "sentry";
-
 export default async function() {
-  // do something
+  try {
+    // do something
+
+    await fetch(checkUrl);
+  } catch (error) {
+    await fetch(checkUrl + "/fail");
+    // Generic error logging
+    throw error;
+  }
 }
 
 // Ping this URL when finished or error
 const checkUrl = "https://hc-ping.com/eb095278-f28d-448d-87fb-7b75c171a6aa";
 
-export async function onJobFinished(job) {
-  logJobFinished(job);
-  await fetch(checkUrl);
-}
-
-export async function onError(error, job) {
-  logOnError(error, job);
-  await fetch(checkUrl + "/fail");
-  Sentry.captureException(error);
-}
-
 export const schedule = "daily";
 ```
-
-If you have common middleware for all your scheduled job, you can move it to `schedules/_middleware.ts` and/or `_middleware.ts`.

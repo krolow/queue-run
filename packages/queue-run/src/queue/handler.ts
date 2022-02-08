@@ -7,10 +7,10 @@ import {
   LocalStorage,
   withLocalStorage,
 } from "../shared/localStorage.js";
-import { logError, logJobFinished, logJobStarted } from "../shared/logging.js";
+import { logger } from "../shared/logging.js";
 import { loadManifest } from "../shared/manifest.js";
 import TimeoutError from "../shared/TimeoutError.js";
-import { QueuedJobMetadata, QueueExports, QueueMiddleware } from "./exports.js";
+import { QueuedJobError, QueuedJobMetadata, QueueExports } from "./exports.js";
 
 export default async function handleQueuedJob({
   metadata,
@@ -24,22 +24,14 @@ export default async function handleQueuedJob({
   payload: string | Buffer | object;
   queueName: string;
   remainingTime: number;
-}): Promise<boolean> {
+}) {
   const { queues } = await loadManifest();
   const queue = queues.get(queueName);
   if (!queue) throw new Error(`No handler for queue ${queueName}`);
 
-  const loaded = await loadModule<QueueExports, QueueMiddleware>(
-    `queues/${queueName}`,
-    {
-      onJobStarted: logJobStarted,
-      onJobFinished: logJobFinished,
-      onError: logError,
-    }
-  );
+  const loaded = await loadModule<QueueExports, never>(`queues/${queueName}`);
   invariant(loaded, "Could not load queue module");
-
-  const { module, middleware } = loaded;
+  const { module } = loaded;
 
   // When handling FIFO messges, possible we'll run out of time.
   const timeout = Math.min(queue.timeout * 1000, remainingTime);
@@ -51,13 +43,14 @@ export default async function handleQueuedJob({
   const { signal } = controller;
 
   try {
+    logger.emit("jobStarted", metadata);
     await Promise.race([
-      runWithMiddleware({
-        metadata: { ...metadata, signal },
-        middleware,
-        module,
-        newLocalStorage,
-        payload,
+      await withLocalStorage(newLocalStorage(), async () => {
+        getLocalStorage().user = metadata.user;
+        await module.default(payload as JSONObject, {
+          ...metadata,
+          signal,
+        });
       }),
 
       new Promise((resolve) => {
@@ -69,60 +62,11 @@ export default async function handleQueuedJob({
         `Job aborted: job took longer than ${timeout}s to process`
       );
     }
-    return true;
+    logger.emit("jobFinished", metadata);
   } catch (error) {
-    console.error(
-      'Error in queue "%s" job %s:',
-      queueName,
-      metadata.jobId,
-      error
-    );
-
-    if (middleware.onError) {
-      try {
-        await middleware.onError(
-          error instanceof Error ? error : new Error(String(error)),
-          { ...metadata, signal: controller.signal }
-        );
-      } catch (error) {
-        console.error(
-          'Error in onError handler for queue "%s"',
-          queueName,
-          error
-        );
-      }
-    }
-
-    return false;
+    throw new QueuedJobError(error, metadata);
   } finally {
     clearTimeout(abortTimeout);
     controller.abort();
   }
-}
-
-async function runWithMiddleware({
-  metadata,
-  middleware,
-  module,
-  newLocalStorage,
-  payload,
-}: {
-  metadata: QueuedJobMetadata;
-  middleware: QueueMiddleware;
-  module: QueueExports;
-  newLocalStorage: () => LocalStorage;
-  payload: string | Buffer | object;
-}) {
-  const { signal } = metadata;
-  await withLocalStorage(newLocalStorage(), async () => {
-    getLocalStorage().user = metadata.user;
-
-    if (middleware.onJobStarted) await middleware.onJobStarted(metadata);
-    if (signal.aborted) return;
-
-    await module.default(payload as JSONObject, metadata);
-    if (signal.aborted) return;
-
-    if (middleware.onJobFinished) await middleware.onJobFinished(metadata);
-  });
 }

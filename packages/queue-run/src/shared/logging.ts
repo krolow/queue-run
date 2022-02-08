@@ -1,27 +1,17 @@
 import chalk, { ChalkInstance } from "chalk";
 import filesize from "filesize";
+import EventEmitter from "node:events";
 import { URL } from "node:url";
 import { formatWithOptions } from "node:util";
 import { QueuedJobMetadata as QueueJobMetadata } from "../queue/exports.js";
 import { ScheduledJobMetadata as ScheduleJobMetadata } from "../schedule/exports.js";
 import { WebSocketRequest } from "../ws/exports.js";
+import { HTTPRequestError } from "./../http/exports";
+import { QueuedJobError } from "./../queue/exports";
+import { ScheduledJobError } from "./../schedule/exports";
+import { WebSocketError } from "./../ws/exports";
 
-/**
- * The logging function. console.log and friends redirect here.
- *
- * - console.debug is controlled by the DEBUG environment variable
- * - console.log uses the level "verbose" to differentiate from console.info
- * - The first argument is typically but not necessarily the formatting string
- *
- * @param level The log level
- * @param args The log arguments
- */
-// eslint-disable-next-line no-unused-vars
-type LoggingFunction = (level: LogLevel, ...args: unknown[]) => void;
-
-type LogLevel = "debug" | "verbose" | "info" | "warn" | "error";
-
-let _logger: LoggingFunction = stdio;
+export type LogLevel = "debug" | "verbose" | "info" | "warn" | "error";
 
 const showDebug =
   process.env.NODE_ENV === "development"
@@ -29,30 +19,17 @@ const showDebug =
     : process.env.DEBUG === "true";
 
 global.console.debug = (...args: unknown[]) =>
-  showDebug ? _logger("debug", ...args) : undefined;
-global.console.log = (...args: unknown[]) => _logger("verbose", ...args);
-global.console.info = (...args: unknown[]) => _logger("info", ...args);
-global.console.warn = (...args: unknown[]) => _logger("warn", ...args);
-global.console.error = (...args: unknown[]) => _logger("error", ...args);
+  showDebug ? logger.emit("log", "debug", ...args) : undefined;
+global.console.log = (...args: unknown[]) =>
+  logger.emit("log", "verbose", ...args);
+global.console.info = (...args: unknown[]) =>
+  logger.emit("log", "info", ...args);
+global.console.warn = (...args: unknown[]) =>
+  logger.emit("log", "warn", ...args);
+global.console.error = (...args: unknown[]) =>
+  logger.emit("log", "error", ...args);
 
-/**
- * Use this to replace the logging function, or intercept logging calls.
- *
- * If called with no arguments, returns the current logger function.
- *
- * If called with a single argument, sets the new logger function, and returns
- * the previous one.
- *
- * @param newLogger The new logger function
- * @returns The current/previous logger function
- */
-export function logger(newLogger?: LoggingFunction) {
-  if (newLogger) {
-    const previous = _logger;
-    _logger = newLogger;
-    return previous;
-  } else return _logger;
-}
+export const logger = new EventEmitter();
 
 const colors: Record<LogLevel, ChalkInstance> = {
   debug: chalk.dim,
@@ -67,8 +44,7 @@ const formatOptions = {
   colors: process.stdout.hasColors && process.stdout.hasColors(),
 };
 
-// Default logger uses stdout/stderr, supports colors when running in terminal
-function stdio(level: LogLevel, ...args: unknown[]) {
+logger.on("log", (level: LogLevel, ...args: unknown[]) => {
   const [message, ...rest] = args;
   // we want to apply a color to the message, but not if the user is doing
   // console.log({ variable }).
@@ -79,15 +55,9 @@ function stdio(level: LogLevel, ...args: unknown[]) {
   const stream =
     level === "error" || level === "warn" ? process.stderr : process.stdout;
   stream.write(formatted + "\n");
-}
+});
 
-/**
- * Default middleware for HTTP routes logs the response.
- *
- * @param request HTTP request object
- * @param response HTTP response object
- */
-export async function logResponse(request: Request, response: Response) {
+logger.on("response", async (request: Request, response: Response) => {
   console.info(
     '[%s] "%s %s" %s %d "%s" "%s"',
     request.headers.get("X-Forwarded-For"),
@@ -98,16 +68,9 @@ export async function logResponse(request: Request, response: Response) {
     request.headers.get("Referer") ?? "",
     request.headers.get("User-Agent") ?? ""
   );
-}
+});
 
-/**
- * Default middleware that logs when a job starts running.
- *
- * @param job The job metadata
- */
-export async function logJobStarted(
-  job: QueueJobMetadata | ScheduleJobMetadata
-) {
+logger.on("jobStarted", (job: QueueJobMetadata | ScheduleJobMetadata) => {
   if ("queueName" in job) {
     console.info(
       'Job started: queue="%s" jobId="%s" received=%d seq=%s',
@@ -124,16 +87,9 @@ export async function logJobStarted(
       job.jobId
     );
   }
-}
+});
 
-/**
- * Default middleware that logs when a job finished running successfully.
- *
- * @param job The job metadata
- */
-export async function logJobFinished(
-  job: QueueJobMetadata | ScheduleJobMetadata
-) {
+logger.on("jobFinished", (job: QueueJobMetadata | ScheduleJobMetadata) => {
   if ("queueName" in job) {
     console.info(
       'Job finished: queue="%s" jobId="%s"',
@@ -143,20 +99,10 @@ export async function logJobFinished(
   } else {
     console.info('Job finished: name="%s" jobId="%s"', job.name, job.jobId);
   }
-}
+});
 
-/**
- * Default middleware for WebSocket logs all received messages.
- */
-export async function logMessageReceived({
-  connectionId,
-  data,
-  user,
-}: {
-  connectionId: string;
-  data: unknown;
-  user: { id: string; [key: string]: unknown } | null;
-}) {
+logger.on("messageReceived", (request: WebSocketRequest) => {
+  const { connectionId, user, data } = request;
   const message =
     typeof data === "string"
       ? filesize(data.length)
@@ -170,30 +116,39 @@ export async function logMessageReceived({
     user?.id ?? "anonymous",
     message
   );
-}
+});
 
-/**
- * The default OnError middleware.
- *
- * @param error The error that was thrown
- * @param reference The reference object (HTTP request, job metadata, etc.)
- */
-export async function logError(error: Error, reference: unknown) {
-  if (reference instanceof Request) {
-    const { method, url } = reference as Request;
+process.on("unhandledRejection", (error: Error) => {
+  reportError(error);
+  setTimeout(() => process.exit(1), 500);
+});
+
+process.on("uncaughtException", (error: Error) => {
+  reportError(error);
+  setTimeout(() => process.exit(1), 500);
+});
+
+logger.on("error", (error: Error) => {
+  if (error instanceof HTTPRequestError) {
+    const { method, url } = error.request;
     console.error(
       '"%s %s" error: %s',
       method,
       new URL(url).pathname,
-      String(error),
+      error,
       error.stack
     );
-  } else if (
-    reference instanceof Object &&
-    "jobId" in reference &&
-    "queueName" in reference
-  ) {
-    const { jobId, queueName } = reference as QueueJobMetadata;
+  } else if (error instanceof WebSocketError) {
+    const { connectionId, requestId } = error;
+    console.error(
+      "connection: %s request: %s error: %s",
+      connectionId,
+      requestId,
+      error,
+      error.stack
+    );
+  } else if (error instanceof QueuedJobError) {
+    const { jobId, queueName } = error;
     console.error(
       "Queued job failed on %s: %s: %s",
       queueName,
@@ -201,8 +156,8 @@ export async function logError(error: Error, reference: unknown) {
       String(error),
       error.stack
     );
-  } else if (reference instanceof Object && "cron" in reference) {
-    const { jobId, name } = reference as ScheduleJobMetadata;
+  } else if (error instanceof ScheduledJobError) {
+    const { jobId, queueName: name } = error;
     console.error(
       "Scheduled job failed on %s: %s: %s",
       name,
@@ -210,16 +165,20 @@ export async function logError(error: Error, reference: unknown) {
       String(error),
       error.stack
     );
-  } else if (reference instanceof Object && "connectionId" in reference) {
-    const { connectionId, user } = reference as WebSocketRequest;
-    console.error(
-      "connection: %s user: %s error: %s",
-      connectionId,
-      user?.id ?? "anonymous",
-      String(error),
-      error.stack
-    );
   } else {
     console.error("Error: %s", String(error), error.stack);
   }
+});
+
+process.removeAllListeners("warning");
+process.on("warning", (warning: Error) => {
+  console.warn(warning.message);
+});
+
+/**
+ * Use this to report errors to the global error handler.
+ */
+export function reportError(error: Error) {
+  // @ts-ignore
+  logger.emit("error", error);
 }

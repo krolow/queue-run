@@ -1,13 +1,9 @@
 import invariant from "tiny-invariant";
 import { loadMiddleware, loadModule } from "../shared/loadModule.js";
-import { logError, logMessageReceived } from "../shared/logging.js";
 import { loadManifest, WebSocketRoute } from "../shared/manifest.js";
 import { WebSocketExports, WebSocketMiddleware } from "./exports.js";
 
-const defaultMiddleware = {
-  onMessageReceived: logMessageReceived,
-  onError: logError,
-};
+const defaultMiddleware = {};
 
 /**
  * Load the WebSocket handler for the given message.

@@ -1,7 +1,6 @@
 import { URL } from "node:url";
 import invariant from "tiny-invariant";
 import { loadModule } from "../shared/loadModule.js";
-import { logError, logResponse } from "../shared/logging.js";
 import { HTTPRoute, loadManifest } from "../shared/manifest.js";
 import { RouteExports, RouteMiddleware } from "./exports.js";
 
@@ -36,8 +35,7 @@ export default async function findRoute(url: string): Promise<{
   const { route, params } = mostSpecific;
 
   const loaded = await loadModule<RouteExports, RouteMiddleware>(
-    route.filename,
-    { onResponse: logResponse, onError: logError }
+    route.filename
   );
   invariant(loaded, "Could not load route module");
   const { module, middleware } = loaded;

@@ -4,24 +4,24 @@ import { URL, URLSearchParams } from "node:url";
 import { XMLElement } from "xmlbuilder";
 import { AuthenticatedUser } from "../index.js";
 import { isElement, render } from "../jsx-runtime.js";
-import { loadMiddleware } from "../shared/loadModule.js";
 import {
   getLocalStorage,
   LocalStorage,
   withLocalStorage,
-} from "../shared/localStorage";
-import { logError } from "../shared/logging.js";
-import { HTTPRoute } from "../shared/manifest";
+} from "../shared/localStorage.js";
+import { logger } from "../shared/logging.js";
+import { HTTPRoute } from "../shared/manifest.js";
 import TimeoutError from "../shared/TimeoutError.js";
 import {
   HTTPRequest,
+  HTTPRequestError,
   RequestHandler,
   RouteConfig,
   RouteExports,
   RouteMiddleware,
 } from "./exports.js";
 import findRoute from "./findRoute.js";
-import url from "./url";
+import url from "./url.js";
 
 url.rootDir = "api/";
 
@@ -35,6 +35,7 @@ export default async function handleHTTPRequest({
   requestId: string;
 }): Promise<Response> {
   try {
+    logger.emit("request", request);
     // Throws 404 Not Found
     const { middleware, module, params, route } = await findRoute(request.url);
 
@@ -52,7 +53,7 @@ export default async function handleHTTPRequest({
     // Throws 405 Method Not Allowed and 415 Unsupported Media Type
     checkRequest(request, route);
 
-    return await handleRoute({
+    const response = await handleRoute({
       config: module.config ?? {},
       corsHeaders,
       filename: route.filename,
@@ -64,16 +65,10 @@ export default async function handleHTTPRequest({
       newLocalStorage,
       timeout: route.timeout,
     });
+    logger.emit("response", request, response);
+    return response;
   } catch (error) {
-    const middleware = await loadMiddleware<RouteMiddleware>("api", {
-      onError: logError,
-    });
-    return await handleOnError({
-      error,
-      filename: "unknown",
-      middleware,
-      request,
-    });
+    throw new HTTPRequestError(error, request);
   }
 }
 
@@ -254,9 +249,13 @@ async function runWithMiddleware({
       filename,
       result,
     });
-    return await handleOnResponse({ filename, middleware, request, response });
+    if (middleware.onResponse) await middleware.onResponse(request, response);
+    return response;
   } catch (error) {
-    return await handleOnError({ filename, middleware, request, error });
+    if (error instanceof Response) {
+      if (middleware.onResponse) await middleware.onResponse(request, error);
+      return error;
+    } else throw error;
   }
 }
 
@@ -298,8 +297,10 @@ async function getAuthenticatedUser({
   const { user } = getLocalStorage();
   if (user !== undefined) return user;
 
-  console.warn(
-    'Authenticate function returned "undefined", was this intentional?'
+  process.emitWarning(
+    new Error(
+      'Authenticate function returned "undefined", was this intentional?'
+    )
   );
   throw new Response("Forbidden", { status: 403 });
 }
@@ -354,11 +355,11 @@ async function resultToResponse({
     return new Response(body, { headers, status: 200 });
   } else {
     // null => 204, but undefined is potentially an error
-    if (result === undefined)
-      console.warn(
-        'No response returned from module "%s": is this intentional?',
-        filename
+    if (result === undefined) {
+      process.emitWarning(
+        `No response returned from module "${filename}": is this intentional?`
       );
+    }
     return new Response(undefined, { headers: corsHeaders ?? {}, status: 204 });
   }
 }
@@ -420,106 +421,6 @@ function withCacheControl(request: Request, config: RouteConfig) {
       if (etag) headers.set("ETag", etag);
     }
   };
-}
-
-// Call onResponse and return the final response, handling any errors.  This
-// method never throws.
-//
-// onResponse may throw an error, which we want to log and pass to onError.
-// However, we cannot call onResponse again on the error, so can't use the
-// error handling in runWithMiddleware.
-//
-// Possible flows:
-// - returns response
-// - calls onResponse(response) -> returns response
-// - calls onResponse(response) -> throws response -> returns new response
-// - calls onResponse(response) -> throws error -> onError(error) -> returns 500
-async function handleOnResponse({
-  filename,
-  middleware,
-  request,
-  response,
-}: {
-  filename: string;
-  middleware: RouteMiddleware;
-  request: Request;
-  response: Response;
-}): Promise<Response> {
-  try {
-    if (middleware.onResponse) await middleware.onResponse(request, response);
-    return response;
-  } catch (error) {
-    if (error instanceof Response) return error;
-
-    if (middleware.onError) {
-      try {
-        await middleware.onError(
-          error instanceof Error ? error : new Error(String(error)),
-          request
-        );
-      } catch (error) {
-        console.error('Error in onError middleware in "%s":', filename, error);
-      }
-    }
-    return new Response("Internal Server Error", { status: 500 });
-  }
-}
-
-// Deal with handler that throws an error or Response object.
-//
-// If it throws an error, we'll call onError and return a 500 response.
-// If it throws a response, we'll return that response.
-// Both cases, we need to call onResponse with the intended response.
-//
-// Error handling paths:
-// - Response -> calls onResponse(response) -> returns response
-// - Error -> calls onResponse(500) -> calls onError(error) -> returns 500
-// - Error|Response -> calls onResponse(response) -> throws error ->
-//   onError(original error) -> returns original response
-// - Error|Response -> calls onResponse(response) -> throws Response ->
-//   onError(original error) -> returns new response
-async function handleOnError({
-  error,
-  filename,
-  middleware,
-  request,
-}: {
-  error: unknown;
-  filename: string;
-  middleware: RouteMiddleware;
-  request: Request;
-}): Promise<Response> {
-  let response: Response =
-    error instanceof Response
-      ? error
-      : error instanceof TimeoutError
-      ? new Response("Request Timed Out", { status: 504 })
-      : new Response("Internal Server Error", { status: 500 });
-
-  try {
-    // onResponse can always change the response by throwing a new Response.
-    // However, if onResponse throws an error, we're going to log that in addition,
-    // but call onError with the original error;
-    if (middleware.onResponse) await middleware.onResponse(request, response);
-  } catch (error) {
-    if (error instanceof Response) response = error;
-    else {
-      console.error('Error in onResponse middleware in "%s":', filename, error);
-    }
-  }
-
-  if (!(error instanceof Response) && middleware.onError) {
-    try {
-      await middleware.onError(
-        error instanceof Error ? error : new Error(String(error)),
-        request
-      );
-    } catch (error) {
-      console.error('Error in onError middleware in "%s":', filename, error);
-    }
-  }
-
-  return response;
 }
 
 async function bodyFromRequest(

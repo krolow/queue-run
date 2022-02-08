@@ -120,11 +120,9 @@ Otherwise, the user is not authenticated, and the next WebSocket message will al
 ```ts title=socket/_middleware.ts
 export async function authenticate({ data }) {
   // Typically the request would be a JSON object
+  const { token } = data;
   try {
-    const { sub, email } = await jwt.verify({
-      token: data.jwt,
-      secret: process.env.JWT_SECRET
-    });
+    const { sub, email } = await jwt.verify({ token, secret });
     await socket.send('Accepted');
     return { id: sub, email };
   } catch {

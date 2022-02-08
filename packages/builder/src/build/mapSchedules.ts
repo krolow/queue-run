@@ -4,12 +4,7 @@ import glob from "fast-glob";
 import friendlyCron from "friendly-node-cron";
 import fs from "node:fs/promises";
 import path from "node:path";
-import type {
-  Manifest,
-  QueueMiddleware,
-  ScheduleExports,
-  ScheduleMiddleware,
-} from "queue-run";
+import type { Manifest, ScheduleExports } from "queue-run";
 import { loadModule } from "queue-run";
 import invariant from "tiny-invariant";
 
@@ -21,17 +16,13 @@ export default async function mapSchedules(): Promise<Manifest["schedules"]> {
   return await Promise.all(
     filenames.map(async (filename) => {
       try {
-        const loaded = await loadModule<ScheduleExports, ScheduleMiddleware>(
-          filename
-        );
+        const loaded = await loadModule<ScheduleExports, never>(filename);
         if (!loaded) throw new Error(`Could not load module ${filename}`);
-        const { module, middleware } = loaded;
+        const { module } = loaded;
 
         const handler = module.default;
         if (typeof handler !== "function")
           throw new Error("Expected schedule handler to export a function");
-
-        validateMiddleware(middleware);
 
         const name = scheduleNameFromFilename(filename);
         const cron = getSchedule(module.schedule);
@@ -118,13 +109,4 @@ function getTimeout({
 async function getOriginalFilename(filename: string) {
   const { sources } = JSON.parse(await fs.readFile(`${filename}.map`, "utf-8"));
   return sources[0];
-}
-
-function validateMiddleware(middleware: ScheduleMiddleware): void {
-  (
-    ["onError", "onJobStarted", "onJobFinished"] as Array<keyof QueueMiddleware>
-  ).forEach((key) => {
-    if (middleware[key] && typeof middleware[key] !== "function")
-      throw new Error(`Exported ${key} must be a function`);
-  });
 }

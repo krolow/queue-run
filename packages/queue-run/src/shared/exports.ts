@@ -1,7 +1,4 @@
 /* eslint-disable no-unused-vars */
-import { RouteMiddleware } from "../http/exports";
-import { QueueMiddleware } from "../queue/exports";
-import { WebSocketMiddleware } from "../ws/exports";
 
 /**
  * The warmup function is called before any requests are handled.
@@ -20,15 +17,6 @@ export type BackendConfig = {
   memory?: number | `${number}${"mb" | "MB" | "gb" | "GB"}`;
 };
 
-/**
- * Any middleware (routes, queues, etc) can be specified here.
- *
- * This is a good place to locate all your logging middleware, and
- * authentication.
- */
-export type SharedMiddleware = RouteMiddleware &
-  QueueMiddleware &
-  WebSocketMiddleware;
 
 /**
  * Exported from index.ts.
@@ -36,4 +24,4 @@ export type SharedMiddleware = RouteMiddleware &
 export type BackendExports = {
   warmup?: WarmupFunction;
   config?: BackendConfig;
-} & SharedMiddleware;
+};

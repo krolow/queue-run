@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-vars */
 import { Blob, File } from "fetch-blob/from.js";
+import { FormData } from "formdata-polyfill/esm.min.js";
 import {
   default as nodeFetch,
   Headers as NodeFetchHeaders,

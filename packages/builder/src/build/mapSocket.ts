@@ -54,7 +54,6 @@ function validateMiddleware(middleware: WebSocketMiddleware): void {
   (
     [
       "authenticate",
-      "onError",
       "onMessageReceived",
       "onMessageSent",
       "onOffline",

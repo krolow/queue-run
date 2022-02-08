@@ -2,14 +2,10 @@ import { AbortController } from "node-abort-controller";
 import invariant from "tiny-invariant";
 import { loadModule } from "../shared/loadModule.js";
 import { LocalStorage, withLocalStorage } from "../shared/localStorage.js";
-import { logError, logJobFinished, logJobStarted } from "../shared/logging.js";
 import { loadManifest } from "../shared/manifest.js";
 import TimeoutError from "../shared/TimeoutError.js";
-import {
-  ScheduledJobMetadata,
-  ScheduleExports,
-  ScheduleMiddleware,
-} from "./exports.js";
+import { logger } from "./../shared/logging.js";
+import { ScheduledJobError, ScheduleExports } from "./exports.js";
 
 export default async function handleScheduledJob({
   jobId,
@@ -26,28 +22,22 @@ export default async function handleScheduledJob({
   );
   if (!schedule) throw new Error(`No handler for schedule ${name}`);
 
-  const loaded = await loadModule<ScheduleExports, ScheduleMiddleware>(
-    `schedules/${name}`,
-    {
-      onJobStarted: logJobStarted,
-      onJobFinished: logJobFinished,
-      onError: logError,
-    }
-  );
+  const loaded = await loadModule<ScheduleExports, never>(`schedules/${name}`);
   invariant(loaded, "Could not load scheduled module");
 
-  const { module, middleware } = loaded;
-
+  const { module } = loaded;
   const timeout = schedule.timeout;
   const controller = new AbortController();
   const abortTimeout = setTimeout(() => controller.abort(), timeout * 1000);
   const { signal } = controller;
-
   const metadata = { name, jobId, cron: schedule.cron, signal };
 
   try {
+    logger.emit("jobStarted", metadata);
     await Promise.race([
-      runWithMiddleware({ metadata, middleware, module, newLocalStorage }),
+      await withLocalStorage(newLocalStorage(), async () => {
+        await module.default(metadata);
+      }),
 
       new Promise((resolve) => {
         signal.addEventListener("abort", resolve);
@@ -58,48 +48,11 @@ export default async function handleScheduledJob({
         `Job aborted: job took longer than ${timeout}s to process`
       );
     }
+    logger.emit("jobFinished", metadata);
   } catch (error) {
-    console.error('Error in schedule "%s" job %s:', name, jobId, error);
-
-    if (middleware.onError) {
-      try {
-        await middleware.onError(
-          error instanceof Error ? error : new Error(String(error)),
-          metadata
-        );
-      } catch (error) {
-        console.error(
-          'Error in onError handler for schedule "%s"',
-          name,
-          error
-        );
-      }
-    }
+    throw new ScheduledJobError(error, metadata);
   } finally {
     clearTimeout(abortTimeout);
     controller.abort();
   }
-}
-
-async function runWithMiddleware({
-  metadata,
-  middleware,
-  module,
-  newLocalStorage,
-}: {
-  metadata: ScheduledJobMetadata;
-  middleware: ScheduleMiddleware;
-  module: ScheduleExports;
-  newLocalStorage: () => LocalStorage;
-}) {
-  const { signal } = metadata;
-  await withLocalStorage(newLocalStorage(), async () => {
-    if (middleware.onJobStarted) await middleware.onJobStarted(metadata);
-    if (signal.aborted) return;
-
-    await module.default(metadata);
-    if (signal.aborted) return;
-
-    if (middleware.onJobFinished) await middleware.onJobFinished(metadata);
-  });
 }

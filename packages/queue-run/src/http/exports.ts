@@ -2,7 +2,6 @@
 import type { AbortSignal } from "node-abort-controller";
 import { JSONValue } from "../json";
 import { AuthenticatedUser } from "../shared/authenticated.js";
-import { OnError } from "../shared/onError.js";
 
 /**
  * HTTP request handler.
@@ -161,10 +160,24 @@ export type OnResponse = (
  */
 export type RouteMiddleware = {
   authenticate?: HTTPAuthenticateMethod | null;
-  onError?: OnError | null;
   onRequest?: OnRequest | null;
   onResponse?: OnResponse | null;
 };
+
+export class HTTPRequestError extends Error {
+  readonly cause: unknown;
+  readonly request: Request;
+
+  constructor(cause: unknown, request: Request) {
+    super(String(cause));
+    this.cause = cause;
+    this.request = request;
+  }
+
+  get stack() {
+    return this.cause instanceof Error ? this.cause.stack! : super.stack!;
+  }
+}
 
 /**
  * Exported from the route module.

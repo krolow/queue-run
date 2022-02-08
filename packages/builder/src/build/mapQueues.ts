@@ -1,7 +1,7 @@
 import glob from "fast-glob";
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { Manifest, QueueExports, QueueMiddleware } from "queue-run";
+import type { Manifest, QueueExports } from "queue-run";
 import { loadModule } from "queue-run";
 
 const maxTimeout = 900; // 15 minute (Lambda maximum)
@@ -12,17 +12,13 @@ export default async function mapQueues(): Promise<Manifest["queues"]> {
   return await Promise.all(
     filenames.map(async (filename) => {
       try {
-        const loaded = await loadModule<QueueExports, QueueMiddleware>(
-          filename
-        );
+        const loaded = await loadModule<QueueExports, never>(filename);
         if (!loaded) throw new Error(`Could not load module ${filename}`);
-        const { module, middleware } = loaded;
+        const { module } = loaded;
 
         const handler = module.default;
         if (typeof handler !== "function")
           throw new Error("Expected queue handler to export a function");
-
-        validateMiddleware(middleware);
 
         const queueName = queueNameFromFilename(filename);
         const isFifo = queueName.endsWith(".fifo");
@@ -67,13 +63,4 @@ function getTimeout({ timeout }: { timeout?: number }): number {
 async function getOriginalFilename(filename: string) {
   const { sources } = JSON.parse(await fs.readFile(`${filename}.map`, "utf-8"));
   return sources[0];
-}
-
-function validateMiddleware(middleware: QueueMiddleware): void {
-  (
-    ["onError", "onJobStarted", "onJobFinished"] as Array<keyof QueueMiddleware>
-  ).forEach((key) => {
-    if (middleware[key] && typeof middleware[key] !== "function")
-      throw new Error(`Exported ${key} must be a function`);
-  });
 }

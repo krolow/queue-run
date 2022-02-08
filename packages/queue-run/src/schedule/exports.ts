@@ -1,6 +1,5 @@
 /* eslint-disable no-unused-vars */
 import type { AbortSignal } from "node-abort-controller";
-import type { OnError } from "../shared/onError.js";
 
 /**
  * Scheduled job handler.
@@ -45,32 +44,25 @@ export type ScheduleConfig = {
   timeout?: number;
 };
 
-/**
- * Middleware that's called any time a job starts running.
- *
- * @param job The job metadata
- */
-export type OnScheduledJobStarted = (
-  job: ScheduledJobMetadata
-) => Promise<void> | void;
+export class ScheduledJobError extends Error {
+  readonly cause: unknown;
+  readonly queueName: string;
+  readonly jobId: string;
 
-/**
- * Middleware that's called any time a job finishes running successfully.
- *
- * @param job The job metadata
- */
-export type OnScheduledJobFinished = (
-  job: ScheduledJobMetadata
-) => Promise<void> | void;
+  constructor(
+    cause: unknown,
+    { jobId, name }: { jobId: string; name: string }
+  ) {
+    super(String(cause));
+    this.cause = cause;
+    this.jobId = jobId;
+    this.queueName = name;
+  }
 
-/**
- * Middleware exported from the schedule module, or schedules/_middleware.ts.
- */
-export type ScheduleMiddleware = {
-  onError?: OnError | null;
-  onJobFinished?: OnScheduledJobFinished | null;
-  onJobStarted?: OnScheduledJobStarted | null;
-};
+  get stack() {
+    return this.cause instanceof Error ? this.cause.stack! : super.stack!;
+  }
+}
 
 /**
  * Exported from the schedule module.
@@ -79,4 +71,4 @@ export type ScheduleExports = {
   default: ScheduleHandler;
   config?: ScheduleConfig;
   schedule: string;
-} & ScheduleMiddleware;
+};

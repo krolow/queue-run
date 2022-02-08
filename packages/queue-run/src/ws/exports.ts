@@ -2,7 +2,6 @@
 import type { AbortSignal } from "node-abort-controller";
 import type { JSONValue } from "../json";
 import { AuthenticatedUser } from "../shared/authenticated";
-import type { OnError } from "../shared/onError.js";
 
 /**
  * WebSocket message handler.
@@ -58,7 +57,7 @@ export type WebSocketConfig = {
  */
 export type WebSocketAuthenticateMethod = (params: {
   connectionId: string;
-  data: JSONValue | string | Buffer;
+  data: string | JSONValue;
   requestId: string;
 }) => AuthenticatedUser | Promise<AuthenticatedUser | null> | null;
 
@@ -94,41 +93,34 @@ export type OnConnect = (params: {
 }) => Promise<void> | void;
 
 /**
- * Middleware that's called for every WebSocket message received.
- *
- * @param connection Connection identifier
- * @param data The raw message data
- * @param signal The abort signal
- * @param user The authenticated user
- */
-export type OnMessageReceived = (
-  request: WebSocketRequest<JSONValue | string | Buffer>
-) => void | Promise<void>;
-
-/**
- * Middleware that's called for every WenSocket message sent.
- *
- * @param connections All connections the message was sent to
- * @param data The raw message data
- * @param to Recipients for `socket.send`, null when responding from a handler
- */
-export type OnMessageSent = (args: {
-  connections: string[];
-  data: Buffer;
-}) => void | Promise<void>;
-
-/**
  * Middleware exported from the route module, or socket/_middleware.ts.
  */
 export type WebSocketMiddleware = {
   authenticate?: WebSocketAuthenticateMethod | null;
   onConnect?: OnConnect | null;
-  onError?: OnError | null;
   onOnline?: OnOnline | null;
   onOffline?: OnOffline | null;
-  onMessageReceived?: OnMessageReceived | null;
-  onMessageSent?: OnMessageSent | null;
 };
+
+export class WebSocketError extends Error {
+  readonly cause: unknown;
+  readonly connectionId: string;
+  readonly requestId: string;
+
+  constructor(
+    cause: unknown,
+    { connectionId, requestId }: { connectionId: string; requestId: string }
+  ) {
+    super(String(cause));
+    this.cause = cause;
+    this.connectionId = connectionId;
+    this.requestId = requestId;
+  }
+
+  get stack() {
+    return this.cause instanceof Error ? this.cause.stack! : super.stack!;
+  }
+}
 
 /**
  * Exported from the route module.
