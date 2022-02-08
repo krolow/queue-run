@@ -113,7 +113,7 @@ function display(envVars: Map<string, string>) {
     displayTable({
       headers: ["NAME", "VALUE"],
       rows: Array.from(envVars.entries()),
-      options: { fullWidth: true, wrap: true },
+      options: { fullWidth: true, wrapCells: true },
     });
     console.info("");
   } else {

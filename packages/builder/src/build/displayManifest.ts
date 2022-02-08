@@ -9,30 +9,30 @@ export default async function displayManifest(dirname: string) {
   const queues = tabulate(manifest.queues);
   const schedules = tabulate(manifest.schedules);
 
-  const widths = calculate(routes, socket, queues, schedules);
+  const colWidths = calculate(routes, socket, queues, schedules);
 
   displayTable({
     rows: routes,
     headers: ["HTTP API", ""],
-    options: { flow: true, widths },
+    options: { flowStyle: true, colWidths },
   });
   process.stdout.write("\n");
   displayTable({
     rows: socket,
     headers: ["WebSocket", ""],
-    options: { flow: true, widths },
+    options: { flowStyle: true, colWidths },
   });
   process.stdout.write("\n");
   displayTable({
     rows: queues,
     headers: ["Queues", ""],
-    options: { flow: true, widths },
+    options: { flowStyle: true, colWidths },
   });
   process.stdout.write("\n");
   displayTable({
     rows: schedules,
     headers: ["Schedules", ""],
-    options: { flow: true, widths },
+    options: { flowStyle: true, colWidths },
   });
   process.stdout.write("\n");
 }

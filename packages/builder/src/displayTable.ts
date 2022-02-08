@@ -1,91 +1,136 @@
 /**
+ * Display options.
+ */
+type DisplayOptions = {
+  /**
+   * You can set the width for some or all columns.
+   *
+   * Columns that do not have a fixed width will expand/shrink based on the
+   * screen width.
+   */
+  colWidths?: (number | undefined)[];
+
+  /**
+   * If true, uses the flow style: " cell1 → cell2 → cell3 "
+   *
+   * Otherwise uses standard borders: " cell1 │ cell2 │ cell3 "
+   */
+  flowStyle?: boolean;
+
+  /**
+   * If true, expand table to fill the terminal width. Only applicable when
+   * stdout is a terminal.
+   */
+  fullWidth?: boolean;
+
+  /**
+   * If true (default), cells that are too long will wrap across multiple lines.
+   *
+   * Otherwise, long values are truncated, eg "123456789" becomes "123…789"
+   */
+  wrapCells?: boolean;
+};
+
+/**
  * Renders a table.
  *
- * @param headers Table headers
- * @param rows Table rows
+ * @param headers Table headers, any header can be empty string or null
+ * @param rows Table rows (string, number, data, or null)
  * @param options Display options
- * @param options.flow If true, use flow layout ("cell1 → cell2 → cell3"),
- * otherwise use standard layout ("cell1 │ cell2 │ cell3")
- * @param options.wrap If true, wrap long cells values on multiple lines,
- * otherwise truncate long cells values
- * @param options.fullWidth If true, use full screen width
- * @params options.widths Specify widths for some/all columns
+ * @param options.colWidths Set fixed width for some or all columns
+ * @param options.flowStyle If true, uses the flow style (" cell1 → cell2 →
+ * cell3 "), otherwise uses standard borders (" cell1 │ cell2 │ cell3 ")
+ * @param options.fullWidth If true, expand table to fill the terminal width
+ * @param options.wrapCells If true, cells that are too long will wrap across
+ * multiple lines
  *
- * If cell value is number or Date, it will be formatted for the current locale.
+ * Uses `toLocaleString()` to format numbers and dates, eg in US locale they
+ * would render as "1,234" and "2/7/2022, 4:11:26 PM".
+ *
+ * If options.fullWidth is true, and stdout is a terminal, the table will expand
+ * to fill the screen, except for columns that have a fixed width.
+ *
+ * If stdout is a terminal, and the table is too wide, columns that are not
+ * fixed width will shrink.
+ *
+ * Cells that are too long to fit will either wrap (wrapCells = true) across
+ * multiple lines, or get truncated (eg "123456789" becomes "123…789").
  */
-
 export default function displayTable({
   headers,
   options,
   rows,
 }: {
-  headers: string[];
-  rows: (string | number | Date | null)[][];
-  options?: {
-    flow?: boolean;
-    fullWidth?: boolean;
-    widths?: number[];
-    wrap?: boolean;
-  };
+  headers: (string | undefined)[];
+  rows: (string | number | Date | null | undefined)[][];
+  options?: DisplayOptions;
 }) {
+  const columns = Math.max(headers.length, ...rows.map((row) => row.length));
   const formatted = formatCells(rows);
   const widths = colWidths({
+    columns,
     fullWidth: options?.fullWidth ?? false,
     headers,
     rows: formatted,
-    widths: options?.widths ?? [],
+    fixedWidths: options?.colWidths ?? [],
   });
   render({
-    flow: options?.flow ?? false,
+    flowStyle: options?.flowStyle ?? false,
     headers,
     rows: formatted,
     widths,
-    wrap: options?.wrap ?? false,
+    wrapCells: options?.wrapCells ?? false,
   });
 }
 
-function formatCells(rows: (string | number | Date | null)[][]): string[][] {
+function formatCells(
+  rows: (string | number | Date | null | undefined)[][]
+): (string | undefined)[][] {
   return rows.map((row) =>
     row.map((cell) =>
       typeof cell === "number"
         ? cell.toLocaleString()
         : cell instanceof Date
         ? cell.toLocaleString()
-        : cell?.toString() ?? ""
+        : cell?.toString()
     )
   );
 }
 
 // eslint-disable-next-line sonarjs/cognitive-complexity
 function colWidths({
+  columns,
   fullWidth,
   headers,
   rows,
-  widths: userWidths,
+  fixedWidths,
 }: {
+  columns: number;
   fullWidth: boolean;
-  headers: string[];
-  rows: string[][];
-  widths: number[];
+  headers: (string | undefined)[];
+  rows: (string | undefined)[][];
+  fixedWidths: (number | undefined)[];
 }): number[] {
-  const fixed = headers.map(
-    (_, index) => typeof userWidths[index] === "number"
+  const isFixed = Array.from(
+    { length: columns },
+    (_, index) => typeof fixedWidths[index] === "number"
   );
-  const widths = headers.map((header, index) =>
-    fixed[index]
-      ? userWidths[index]!
+  const widths = isFixed.map((isFixed, index) =>
+    isFixed
+      ? fixedWidths[index]!
       : Math.max(
-          header?.length ?? 0,
+          headers[index]?.length ?? 0,
           ...rows.map((row) => row[index]?.length ?? 0)
         )
   );
-  const available = process.stdout.columns ?? 80;
+  const available = process.stdout.columns;
+  if (!available) return widths;
 
   if (fullWidth) {
     while (widths.reduce((acc, width) => acc + width + 3, 1) < available) {
-      const min = Math.min(...widths.filter((_, index) => !fixed[index]));
+      const min = Math.min(...widths.filter((_, index) => !isFixed[index]));
       const index = widths.findIndex(
-        (width, index) => !fixed[index] && width === min
+        (width, index) => !isFixed[index] && width === min
       );
       if (index === -1) break;
       widths[index] = widths[index]! + 1;
@@ -94,7 +139,7 @@ function colWidths({
   while (widths.reduce((acc, width) => acc + width + 3, 1) > available) {
     const max = Math.max(...widths);
     const index = widths.findIndex(
-      (width, index) => !fixed[index] && width === max
+      (width, index) => !isFixed[index] && width === max
     );
     if (index === -1) break;
     widths[index] = widths[index]! - 1;
@@ -104,36 +149,32 @@ function colWidths({
 
 // eslint-disable-next-line sonarjs/cognitive-complexity
 function render({
-  flow,
+  flowStyle,
   headers,
   rows,
   widths,
-  wrap,
+  wrapCells,
 }: {
-  flow: boolean;
-  headers: string[];
-  rows: string[][];
+  flowStyle: boolean;
+  headers: (string | undefined)[];
+  rows: (string | undefined)[][];
   widths: number[];
-  wrap: boolean;
+  wrapCells: boolean;
 }) {
   process.stdout.write(
     " " +
       headers
-        .map((header, i) => fit(header, widths[i]!))
-        .join(chalk.dim(flow ? "   " : " │ ")) +
+        .map((header, i) => fit(header ?? "", widths[i]!))
+        .join(dim(flowStyle ? "   " : " │ ")) +
       "\n"
   );
-  if (flow) {
+  if (flowStyle) {
     process.stdout.write(
-      chalk.dim(
-        "─".repeat(widths.reduce((acc, width) => acc + width + 3, 1)) + "\n"
-      )
+      dim("─".repeat(widths.reduce((acc, width) => acc + width + 3, 1)) + "\n")
     );
   } else {
     process.stdout.write(
-      chalk.dim(
-        "─" + widths.map((width) => "─".repeat(width)).join("─┼─") + "─\n"
-      )
+      dim("─" + widths.map((width) => "─".repeat(width)).join("─┼─") + "─\n")
     );
   }
   for (const row of rows) {
@@ -143,14 +184,14 @@ function render({
         " " +
           cells
             .map((cell, i) =>
-              wrap
-                ? cell.slice(0, widths[i]).padEnd(widths[i]!)
-                : fit(cell, widths[i]!)
+              wrapCells
+                ? (cell?.slice(0, widths[i]) ?? "").padEnd(widths[i]!)
+                : fit(cell ?? "", widths[i]!)
             )
-            .join(chalk.dim(flow ? " → " : " │ ")) +
+            .join(dim(flowStyle ? " → " : " │ ")) +
           "\n"
       );
-      if (wrap) cells = cells.map((cell, i) => cell.slice(widths[i]));
+      if (wrapCells) cells = cells.map((cell, i) => cell?.slice(widths[i]));
       else break;
     }
   }
@@ -162,4 +203,6 @@ function fit(cell: string, width: number) {
     : cell.slice(0, width / 2 - 1) + "…" + cell.slice(cell.length - width / 2);
 }
 
-import chalk from "chalk";
+function dim(text: string) {
+  return process.stdout.isTTY ? `\u001B[2m${text}\u001B[0m` : text;
+}

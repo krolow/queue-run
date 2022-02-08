@@ -95,7 +95,7 @@ async function showDeployment({
       ["HTTP", httpUrl],
       ["WebSocket", wsUrl],
     ],
-    options: { fullWidth: true, widths: [24] },
+    options: { fullWidth: true, colWidths: [22] },
   });
 
   return currentArn;
