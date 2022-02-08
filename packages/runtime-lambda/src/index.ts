@@ -12,6 +12,7 @@ import {
   handleUserOnline,
   LocalStorage,
   logging,
+  socket,
   url,
   warmup,
 } from "queue-run";
@@ -40,10 +41,8 @@ logging.logger((level, ...args) => {
 });
 
 url.baseURL = process.env.QUEUE_RUN_URL!;
+socket.url = process.env.QUEUE_RUN_WS!;
 
-const urls = {
-  ws: process.env.QUEUE_RUN_WS!,
-};
 const { slug, region, wsApiId, ...clientConfig } = swapAWSEnvVars();
 
 const dynamoDB = new DynamoDBClient({ ...clientConfig, region });
@@ -58,7 +57,7 @@ const connections = userConnections(dynamoDB);
 
 class LambdaLocalStorage extends LocalStorage {
   constructor(connectionId?: string) {
-    super({ urls });
+    super();
     this.connectionId = connectionId;
   }
 

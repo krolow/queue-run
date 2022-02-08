@@ -18,6 +18,7 @@ import {
   handleWebSocketMessage,
   Headers,
   LocalStorage,
+  socket,
   url,
   warmup,
 } from "queue-run";
@@ -182,6 +183,7 @@ if (cluster.isWorker) {
   const port = Number(process.env.PORT);
 
   url.baseURL = `http://localhost:${port}`;
+  socket.url = `ws://localhost:${port}`;
 
   const ready = (async () => {
     await buildProject({ buildDir, sourceDir });

@@ -126,11 +126,17 @@ class WebSocket {
     );
   }
 
+  static url: string;
+
   /**
    * Returns the WebSocket URL (wss:// in production, ws:// in development)
    */
   get url() {
-    return getLocalStorage().urls.ws;
+    return WebSocket.url;
+  }
+
+  set url(url: string) {
+    WebSocket.url = url;
   }
 }
 
