@@ -176,9 +176,9 @@ The web has other content types — HTML forms, XML, plain text — and these ar
 QueueRun will parse the request body according to the following rules:
 
 - `application/json` — JSON document to JavaScript object
-- `application/x-www-form-urlencoded` - To key/value pairs (more below)
-- `multipart/form-data` — To key/value pairs (more below)
-- `text/plain` — As a string, UTF-8 encoded
+- `application/x-www-form-urlencoded` - name/value pairs (see [Forms: Encoded](#forms-encoded))
+- `multipart/form-data` — name/value pairs (see [Forms: Multipart](#forms-multipart))
+- `text/plain` — string, UTF-8 encoded
 - `application/octet-stream` — `Buffer` with the raw request document
 - no content type — JSON document to JavaScript object
 
@@ -218,7 +218,7 @@ export async function get({ params }) {
 }
 ```
 
-### x-www-form-urlencoded
+### Forms: Encoded
 
 ```html title=encoded.html
 <form method="post">
@@ -236,14 +236,26 @@ type Fields = {
   password: string;
 };
 
-export aync function post({ body }: { body: Fields }) {
+export aync function post({ body }: { body: FormData }) {
   const { name, email, passowrd } = body;
   const user = await createUser({ name, email, password });
   return Response.redirect(url("/user/[id]", { user }), 303);
 }
 ```
 
-### multipart/form-data
+:::tip Multiple Values
+
+If a field has multiple values, `body[name]` returns only the first of these values.
+
+To read fiels with multiple values, use [`FormData`](https://developer.mozilla.org/en-US/docs/Web/API/FormData):
+
+```ts
+const form = await request.formData();
+const values = form.getAll(name);
+```
+:::
+
+### Forms: Multipart
 
 ```html title=multipart.html
 <form method="post" enctype="multipart/form-data">

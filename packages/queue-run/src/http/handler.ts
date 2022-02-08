@@ -20,9 +20,7 @@ import {
   RouteExports,
   RouteMiddleware,
 } from "./exports.js";
-import { Headers } from "./fetch.js";
 import findRoute from "./findRoute.js";
-import form from "./form.js";
 import url from "./url";
 
 url.rootDir = "api/";
@@ -533,7 +531,7 @@ async function bodyFromRequest(
   switch (mimeType) {
     case "application/json": {
       try {
-        return (await request.json()) as object;
+        return (await request.clone().json()) as object;
       } catch (error) {
         throw new Response("application/json: not a valid JSON document", {
           status: 422,
@@ -542,7 +540,7 @@ async function bodyFromRequest(
     }
 
     case "application/octet-stream": {
-      const buffer = await request.arrayBuffer();
+      const buffer = await request.clone().arrayBuffer();
       if (!buffer.byteLength)
         throw new Response("application/octet-stream: no message body", {
           status: 422,
@@ -551,21 +549,24 @@ async function bodyFromRequest(
     }
 
     case "application/x-www-form-urlencoded": {
-      const text = await request.text();
+      const text = await request.clone().text();
       const params = new URLSearchParams(text);
       return Object.fromEntries(params.entries());
     }
 
     case "multipart/form-data": {
       try {
-        return await form(request);
+        const form = (await request.clone().formData()) as unknown as {
+          entries: () => [string, string | File][];
+        };
+        return Object.fromEntries(form.entries());
       } catch (error) {
         throw new Response(String(error), { status: 422 });
       }
     }
 
     case "text/plain": {
-      const text = await request.text();
+      const text = await request.clone().text();
       if (!text)
         throw new Response("text/plain: no message body", { status: 422 });
       return text;
@@ -573,7 +574,10 @@ async function bodyFromRequest(
 
     case undefined: {
       // No content type (eg testing with curl), we assume JSON.
-      return (await request.json().catch(() => null)) as object;
+      return (await request
+        .clone()
+        .json()
+        .catch(() => null)) as object;
     }
 
     default: {
