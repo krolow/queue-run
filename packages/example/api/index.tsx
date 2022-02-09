@@ -1,7 +1,6 @@
 import { url } from "queue-run";
 
 export async function get() {
-  setTimeout(() => fail());
   const token = "secret";
   const bookmarksURL = url("/bookmarks");
 

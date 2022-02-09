@@ -43,7 +43,7 @@ export default async function handleQueuedJob({
   const { signal } = controller;
 
   try {
-    logger.emit("jobStarted", metadata);
+    logger.emit("jobStarted", { ...metadata, signal });
     await Promise.race([
       await withLocalStorage(newLocalStorage(), async () => {
         getLocalStorage().user = metadata.user;
@@ -62,7 +62,7 @@ export default async function handleQueuedJob({
         `Job aborted: job took longer than ${timeout}s to process`
       );
     }
-    logger.emit("jobFinished", metadata);
+    logger.emit("jobFinished", { ...metadata, signal });
   } catch (error) {
     throw new QueuedJobError(error, metadata);
   } finally {
