@@ -54,8 +54,3 @@ export default async function(job, { signal }) {
 }
 ```
 
-:::info OnError
-
-If the task times out, the `onError` middleware is called with a `TimeoutError` exception.
-:::
-
