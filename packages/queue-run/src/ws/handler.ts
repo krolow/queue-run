@@ -2,7 +2,7 @@ import { AbortController } from "node-abort-controller";
 import { getLocalStorage } from "..";
 import { loadMiddleware } from "../shared/loadModule.js";
 import { LocalStorage, withLocalStorage } from "../shared/localStorage.js";
-import { logger } from "../shared/logging.js";
+import logger from "../shared/logger.js";
 import { HTTPRequestError } from "./../http/exports";
 import type { JSONValue } from "./../json";
 import { AuthenticatedUser } from "./../shared/authenticated";

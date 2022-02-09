@@ -2,9 +2,9 @@ import { AbortController } from "node-abort-controller";
 import invariant from "tiny-invariant";
 import { loadModule } from "../shared/loadModule.js";
 import { LocalStorage, withLocalStorage } from "../shared/localStorage.js";
+import logger from "../shared/logger.js";
 import { loadManifest } from "../shared/manifest.js";
 import TimeoutError from "../shared/TimeoutError.js";
-import { logger } from "./../shared/logging.js";
 import { ScheduledJobError, ScheduleExports } from "./exports.js";
 
 export default async function handleScheduledJob({
