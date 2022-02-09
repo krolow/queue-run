@@ -17,8 +17,10 @@
   "files": [
     "dist"
   ],
-  "devDependencies": {
-    "@aws-sdk/client-sqs": "^3.49.0",
+  "dependencies": {
+    "@aws-sdk/client-apigatewaymanagementapi": "^3.50.0",
+    "@aws-sdk/client-dynamodb": "^3.50.0",
+    "@aws-sdk/client-sqs": "^3.50.0",
     "queue-run": "^0.11.2",
     "tiny-invariant": "^1.2.0"
   },
@@ -26,9 +28,5 @@
     "node": "14.x"
   },
   "homepage": "https://queue.run",
-  "gitHead": "8fd7f66958b6b030362b2d96946cfd804c015f70",
-  "dependencies": {
-    "@aws-sdk/client-apigatewaymanagementapi": "^3.49.0",
-    "@aws-sdk/client-dynamodb": "^3.49.0"
-  }
+  "gitHead": "8fd7f66958b6b030362b2d96946cfd804c015f70"
 }

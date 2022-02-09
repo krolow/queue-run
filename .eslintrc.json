@@ -9,6 +9,7 @@
     "plugin:import/typescript",
     "plugin:promise/recommended",
     "plugin:sonarjs/recommended"
+    "plugin:jest",
   ],
   "ignorePatterns": ["**/node_modules/**", "**/dist/**", "**/.queue-run/**"],
   "parser": "@typescript-eslint/parser",
