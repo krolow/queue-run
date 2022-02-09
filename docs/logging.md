@@ -75,49 +75,11 @@ logger.on("response", (request, response) => {
 ```
 
 
-## Logging Errors
-
-Unhandled errors will cause the process to fail, not before logging the error message.
-
-The default behavior for both event handlers is to call `reportError` and allow the process to exit.
-
-If you want to log an error but not fail the process you can use [`reportError`](https://developer.mozilla.org/en-US/docs/Web/API/reportError) from you code.
-
-For example:
-
-```ts title=api/index.ts
-import { reportError } from "queue-run";
-
-export async function get() {
-  try {
-    const records = await db.read();
-    return { records };
-  } catch (error) {
-    // Not a great idea to return 404 here, but example
-    reportError(error);
-    return new Reponse("", { status: 404 });
-  }
-}
-```
-
-These errors are handled by the logger as an `error` event first, so you can treat them separately from logging.
-
-For example:
-
-```ts title=index.ts
-import { logger } from "queue-run";
-
-logger.on("error", (error) => {
-  ErrorService.captureException(error);
-});
-```
-
-
 ## Using a Logging Service
 
 You can intercept the logger and send messages to a service of your choice.
 
-For example, to use with LogTail:
+For example:
 
 ```ts title=index.ts
 import { format } from "node:util";
@@ -126,11 +88,19 @@ import { Logtail } from "@logtail/node";
 
 const logtail = new Logtail(process.env.LOGTAIL_TOKEN);
 
+// console.log, console.info, console.error, etc
+// send to logging service
 logger.on("log", (level, ...args) => {
   const message = format(...args);
   if (level === "error)
     logtail.error(message);
   else
     logtail.log(message);
+});
+
+// unhandled errors and rejected promises only
+// send to error tracking service
+logger.on("error", (error) => {
+  Sentry.captureException(error);
 });
 ```
