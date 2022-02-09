@@ -8,8 +8,8 @@
     "eslint:recommended",
     "plugin:import/typescript",
     "plugin:promise/recommended",
-    "plugin:sonarjs/recommended"
-    "plugin:jest",
+    "plugin:sonarjs/recommended",
+    "plugin:jest/recommended"
   ],
   "ignorePatterns": ["**/node_modules/**", "**/dist/**", "**/.queue-run/**"],
   "parser": "@typescript-eslint/parser",

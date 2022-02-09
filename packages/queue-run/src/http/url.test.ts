@@ -6,8 +6,8 @@ describe("no base URL", () => {
   });
 
   it("should return absolute URL as is", () =>
-    expect(url("https://example.com/foo/bar")).toEqual(
-      "https://example.com/foo/bar"
+    expect(url("https://example.com/no/base")).toEqual(
+      "https://example.com/no/base"
     ));
 
   it("should return root path URL as is", () =>
@@ -31,8 +31,8 @@ describe("with base URL", () => {
   });
 
   it("should return absolute URL as is", () =>
-    expect(url("https://example.com/foo/bar")).toEqual(
-      "https://example.com/foo/bar"
+    expect(url("https://example.com/with/base")).toEqual(
+      "https://example.com/with/base"
     ));
 
   it("should return absolute URL for root path", () =>
@@ -87,16 +87,16 @@ describe("url.self", () => {
 
 describe("path parameters", () => {
   it("should expand :name parameters", () =>
-    expect(url("/bookmarks/:id", { id: "abc" })).toEqual("/bookmarks/abc"));
+    expect(url("/path/:id", { id: "abc" })).toEqual("/path/abc"));
 
   it("should expand [name] parameters", () =>
-    expect(url("/bookmarks/[id]", { id: "abc" })).toEqual("/bookmarks/abc"));
+    expect(url("/path/[id]", { id: "abc" })).toEqual("/path/abc"));
 
   it("should expand numeric value", () =>
-    expect(url("/bookmarks/:id", { id: 123 })).toEqual("/bookmarks/123"));
+    expect(url("/path/:id", { id: 123 })).toEqual("/path/123"));
 
   it("should fail if :name parameter is variadic", () =>
-    expect(() => url("/bookmarks/:id", { id: [123, 456] })).toThrow(
+    expect(() => url("/path/:id", { id: [123, 456] })).toThrow(
       /Expected .* to not repeat/
     ));
 
@@ -111,7 +111,7 @@ describe("path parameters", () => {
     ));
 
   it("should expand variadic parameter with numeric value", () =>
-    expect(url("/post/[...slug]", { slug: [123, "def"] })).toEqual(
+    expect(url("/post/:slug*", { slug: [123, "def"] })).toEqual(
       "/post/123/def"
     ));
 
