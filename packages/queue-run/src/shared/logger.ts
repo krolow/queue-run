@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import chalk, { ChalkInstance } from "chalk";
 import filesize from "filesize";
 import { EventEmitter } from "node:events";
@@ -10,6 +9,7 @@ import { WebSocketRequest } from "../ws/exports.js";
 
 type LogLevel = "debug" | "verbose" | "info" | "warn" | "error";
 
+/* eslint-disable no-unused-vars */
 declare interface Logger {
   /**
    * Emitted for every call to console.log, console.info, etc
@@ -23,6 +23,7 @@ declare interface Logger {
   ): this;
   emit(event: "log", level: LogLevel, ...args: unknown[]): boolean;
 }
+/* eslint-enable no-unused-vars */
 
 // eslint-disable-next-line no-redeclare
 class Logger extends EventEmitter {
@@ -75,6 +76,7 @@ logger.on("log", (level, ...args) => {
   stream.write(formatted + "\n");
 });
 
+/* eslint-disable no-unused-vars */
 // eslint-disable-next-line no-redeclare
 declare interface Logger {
   /**
@@ -164,6 +166,7 @@ declare interface Logger {
   on(event: "error", listener: (error: Error) => void): this;
   emit(event: "error", error: Error): boolean;
 }
+/* eslint-enable no-unused-vars */
 
 logger.on("response", async (request, response) => {
   console.info(

@@ -4,9 +4,9 @@ yarn-debug.log*
 yarn-error.log*
 yarn.lock
 
-packages/*/dist
-packages/*/.queue-run
-packages/*/tsconfig.tsbuildinfo
+**/dist
+**/.queue-run
+**/*/tsconfig.tsbuildinfo
 packages/site/build
 packages/site/.docusaurus
 

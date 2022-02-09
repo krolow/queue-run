@@ -1,11 +1,16 @@
-import path from "node:path";
-import { URL } from "node:url";
+import path from "path";
 import { compile, Key, pathToRegexp } from "path-to-regexp";
-import selfPath from "../shared/selfPath.js";
+import { URL } from "url";
 
-type Params = {
-  [key: string]: string | number | boolean | (string | number | boolean)[];
-};
+/**
+ * URL path or query parameters.
+ */
+type Params =
+  | {
+      [key: string]: string | number | boolean | (string | number | boolean)[];
+    }
+  | null
+  | undefined;
 
 /* eslint-disable no-unused-vars */
 interface URLFunction {
@@ -13,30 +18,41 @@ interface URLFunction {
    * Returns URL for the given path by expanding path parameters and adding
    * query string parameters.
    *
-   * @param path String or URL object
-   * @param params Path parameters (optional)
-   * @param params Path parameters (optional)
-   * @returns Absolute URL
+   * @param path URL string or object, relative parth or absolute
+   * @param params Path parameters
+   * @param query Query parameters
+   * @returns Expanded URL
    *
    * ```
-   * url('/bookmarks/:id', { id: '123' })
+   * url("/bookmarks/:id", { id: '123' })
+   * url("/bookmarks/[id]", { id: '123' })
    * => https://example.com/bookmarks/123
+   * ```
    *
-   * url('/bookmarks', null, { sort: 'date' })
+   * Excess parameters are added as query string parameters, but you can
+   * explicitly pass query parameters as the second argument:
+   *
+   * ```
+   * url("/bookmarks", { sort: 'date' })
+   * url("/bookmarks", null, { sort: 'date' })
    * => https://example.com/bookmarks?sort=date
    * ```
    *
-   * @note Relative paths are expanded to absolute paths. `file:` paths
-   * accepted, so long as the file is a request handler.
+   * Path parameters can be specified using the notation `[name]` or `:name`
+   * for single value, and `[name]*` or `:name*` for multiple values.
+   *
+   * If `url.baseURL` is set, relative URLs are expanded to absolute URLs.
+   *
+   * URLs with `file:` path are supported relative to `url.rootDir`.
    */
   (path: string | URL, params?: Params, query?: Params): string;
 
   /**
-   * Returns URL constructor function for the given path.
+   * Returns a URL constructor function for the given path.
    *
-   * `url.for(path)(params, query)` is equivalent to `url(path, params, query)`.
+   * `url.for(path)(params)` is equivalent to `url(path, params)`.
    *
-   * @param path String or URL object
+   * @param path URL string or object, relative parth or absolute
    * @returns URL constructor function
    */
   for<P extends Params, Q extends Params>(
@@ -54,27 +70,33 @@ interface URLFunction {
   self<P extends Params, Q extends Params>(): URLConstructor<P, Q>;
 
   /**
-   * The base URL. If set, then URL functions will return absolute URLs using
+   * The base URL.
+   *
+   * If set, then URLs functions expand relative paths to absolute URL using
    * this base URL.
+   *
+   * Absolute URLs are not affected.
    */
   baseURL: string | undefined;
 
   /**
    * The root directory. Used to determine the path when using url.self().
    *
-   * For example, if the root directory is "api/", then calling url.self()
-   * from withing "api/bookmarks/123" will return "bookmarks/123".
+   * For example, if the root directory is "api/", and the module
+   * "api/bookmarks/[id].ts" calls `url.self()`, the resulting URL
+   * constructor uses the path "bookmarks/[id]".
    */
   rootDir: string;
 }
 
 interface URLConstructor<P extends Params, Q extends Params> {
   /**
-   * Returns URL by expanding path parameters and adding
+   * Returns URL by expanding path parameters and adding query string
+   * parameters.
    *
-   * @param params Path parameters (optional)
-   * @param params Path parameters (optional)
-   * @returns Absolute URL
+   * @param params Path parameters
+   * @param query Query parameters
+   * @returns Expanded URL
    *
    * ```
    * myURL({ id: '123' })
@@ -85,82 +107,85 @@ interface URLConstructor<P extends Params, Q extends Params> {
 }
 /* eslint-enable no-unused-vars */
 
-const url: URLFunction = (
-  pathOrURL: string | URL,
-  params?: Params,
-  query?: Params
-): string => {
-  return newURLContructor<Params, Params>(pathOrURL)(params, query);
-};
-
-url.for = <P extends Params, Q extends Params>(path: string | URL) => {
-  return newURLContructor<P, Q>(path);
-};
-
-url.self = <P extends Params, Q extends Params>() => {
-  const pathname = selfPath();
-  const root = path.normalize((url.rootDir ?? ".") + "/");
-  if (!pathname.startsWith(root))
-    throw new Error(`You can only use self from the root directory ${root}`);
-  return newURLContructor<P, Q>(pathname.slice(root.length));
-};
-
-url.rootDir = "/";
+const url: URLFunction = (pathOrURL, params, query) =>
+  newURLContructor(pathOrURL)(params, query);
+url.for = (path) => newURLContructor(path);
+url.self = () => newURLContructor(selfPath());
+url.rootDir = "";
 url.baseURL = undefined;
 
-export default url;
-
-function newURLContructor<P extends Params = Params, Q extends Params = Params>(
+function newURLContructor<P extends Params | null, Q extends Params | null>(
   path: string | URL
 ): URLConstructor<P, Q> {
-  const normalized = replaceBracket(getPath(path, url.baseURL));
+  const { baseURL } = url;
+  const { origin, pathname } = parseURL(path, baseURL);
+
+  // Support [name] and :name notation
+  const normalized = replaceBracket(pathname);
   const compiled = compile(normalized);
+
   const keys: Key[] = [];
   pathToRegexp(normalized, keys);
+  // Path parameters from the URL, so we can tell which parameters
+  // to apply to the query string
   const pathParams = new Set(keys.map((key) => key.name));
 
   const constructor = function (params?: P, query?: Q) {
-    const expanded = compiled(params);
-    const parsed = new URL(expanded, url.baseURL ?? "relative://");
+    const url = new URL(compiled(params ?? {}), origin ?? "relative:/");
     if (params) {
-      Object.entries(params).forEach(([key, value]) => {
-        if (!pathParams.has(key)) {
-          if (Array.isArray(value))
-            value.forEach((value) =>
-              parsed.searchParams.append(key, String(value))
-            );
-          else if (value !== undefined)
-            parsed.searchParams.append(key, String(value));
-        }
-      });
+      const leftOver = Object.entries(params).filter(
+        ([key]) => !pathParams.has(key)
+      );
+      addQueryParameters(url, leftOver);
     }
-    if (query) {
-      Object.entries(query).forEach(([key, value]) => {
-        if (Array.isArray(value))
-          value.forEach((value) =>
-            parsed.searchParams.append(key, String(value))
-          );
-        else if (value !== undefined)
-          parsed.searchParams.append(key, String(value));
-      });
-    }
-    return parsed.href.replace(/^relative:\/\//, "");
+    if (query) addQueryParameters(url, Object.entries(query));
+    return url.href.replace(/^relative:/, "");
   };
 
-  constructor.toString = () => path;
-  constructor.valueOf = () => path;
+  constructor.toString = () => String(path);
+  constructor.valueOf = () => String(path);
 
   return constructor;
 }
 
-function getPath(pathOrURL: string | URL, baseURL?: string): string {
-  const { pathname, protocol } = new URL(
-    String(pathOrURL),
-    baseURL ?? "relative://"
-  );
-  return protocol === "file:"
-    ? path.relative(process.cwd(), pathname).replace(/\.[mc]?js$/, "")
-    : pathname;
+function parseURL(
+  pathOrURL: URL | string,
+  baseURL: string | undefined
+): {
+  origin: string | undefined;
+  pathname: string;
+} {
+  const { pathname, protocol, origin } =
+    pathOrURL instanceof URL
+      ? pathOrURL
+      : new URL(pathOrURL, baseURL ?? "relative:/");
+
+  if (protocol === "file:") {
+    const rootDir = url.rootDir ?? "";
+    const relative = path.relative(
+      // This is so "/" is interpreted relative to current working directory
+      path.resolve(process.cwd(), path.join(".", rootDir)),
+      pathname
+    );
+    if (relative.startsWith(".."))
+      throw new Error(`File path is outside of root directory "${rootDir}"`);
+    return parseURL(relative.replace(/\.\w+$/, ""), baseURL);
+  } else {
+    return protocol === "relative:"
+      ? { pathname, origin: undefined }
+      : { origin, pathname };
+  }
+}
+
+function addQueryParameters(url: URL, params: [string, any][]) {
+  for (const [name, value] of params) {
+    if (Array.isArray(value))
+      value.forEach((value) =>
+        url.searchParams.append(name, String(value ?? ""))
+      );
+    else if (value !== undefined)
+      url.searchParams.append(name, String(value ?? ""));
+  }
 }
 
 function replaceBracket(path: string): string {
@@ -169,3 +194,26 @@ function replaceBracket(path: string): string {
     (_, name) => ":" + (name.startsWith("...") ? name.slice(3) + "*" : name)
   );
 }
+
+function selfPath(depth: number = 2): string {
+  let filename: string | null | undefined = null;
+  const prepare = Error.prepareStackTrace;
+  try {
+    Error.prepareStackTrace = (_, callSites) => {
+      filename = callSites[depth]?.getFileName();
+      // Normally this would be file://, with Jest we get filename, not a URL
+      if (!filename?.startsWith("file://")) filename = `file://${filename}`;
+    };
+
+    const error = new Error();
+    Error.captureStackTrace(error);
+    error.stack;
+  } finally {
+    Error.prepareStackTrace = prepare;
+  }
+
+  if (typeof filename === "string") return filename;
+  else throw new Error("Could not determine filename");
+}
+
+export default url;
