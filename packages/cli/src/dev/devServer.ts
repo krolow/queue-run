@@ -70,9 +70,7 @@ export default async function devServer({
       ignored: ["**/node_modules/**", buildDir, "**/.*/**"],
       ignoreInitial: true,
     })
-    .on("all", (event, filename) =>
-      onFileChange({ envVars, event, filename, port })
-    );
+    .on("all", (event, filename) => onFileChange({ event, filename }));
 
   process.stdin.on("data", (data) => {
     const key = data[0]!;
@@ -90,7 +88,7 @@ export default async function devServer({
       }
       case 18: {
         // Ctrl+R
-        newWorker({ envVars, port });
+        restart();
         break;
       }
       case 13: {
@@ -126,13 +124,6 @@ async function newWorker({
 }) {
   const token = await blockOnBuild.acquire();
 
-  for (const worker of Object.values(cluster.workers!)) {
-    invariant(worker);
-    worker.disconnect();
-    const timeout = setTimeout(() => worker.kill(), 1000);
-    worker.on("disconnect", () => clearTimeout(timeout));
-  }
-
   const worker = cluster.fork({
     ...Object.fromEntries(envVars.entries()),
     NODE_ENV: "development",
@@ -155,18 +146,27 @@ async function newWorker({
       .on("exit", () => resolve(undefined));
   });
   blockOnBuild.release(token);
+
+  if (worker.isDead()) {
+    setTimeout(() => newWorker({ envVars, port }), 1000);
+  } else worker.on("exit", () => newWorker({ envVars, port }));
+}
+
+function restart() {
+  for (const worker of Object.values(cluster.workers!)) {
+    invariant(worker);
+    worker.disconnect();
+    const timeout = setTimeout(() => worker.kill(), 1000);
+    worker.on("disconnect", () => clearTimeout(timeout));
+  }
 }
 
 function onFileChange({
   event,
-  envVars,
   filename,
-  port,
 }: {
   event: string;
-  envVars: Map<string, string>;
   filename: string;
-  port: number;
 }) {
   if (!(event === "add" || event === "change")) return;
   if (!/\.(tsx?|jsx?|json)$/.test(filename)) return;
@@ -176,7 +176,7 @@ function onFileChange({
     event === "add" ? "New file" : "Changed",
     filename
   );
-  newWorker({ envVars, port });
+  restart();
 }
 
 if (cluster.isWorker) {
