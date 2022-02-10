@@ -182,7 +182,7 @@ function onFileChange({
 if (cluster.isWorker) {
   const port = Number(process.env.PORT);
 
-  url.baseURL = `http://localhost:${port}`;
+  url.baseUrl = `http://localhost:${port}`;
   socket.url = `ws://localhost:${port}`;
 
   const ready = (async () => {

@@ -41,7 +41,7 @@ logger.addListener("log", (level, ...args) => {
   );
 });
 
-url.baseURL = process.env.QUEUE_RUN_URL!;
+url.baseUrl = process.env.QUEUE_RUN_URL!;
 socket.url = process.env.QUEUE_RUN_WS!;
 
 const { slug, region, wsApiId, ...clientConfig } = swapAWSEnvVars();
