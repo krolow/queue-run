@@ -1,4 +1,5 @@
 /* eslint-disable sonarjs/no-duplicate-string */
+import { URL } from "url";
 import url from "./url.js";
 
 describe("no base URL", () => {
@@ -187,5 +188,44 @@ describe("serialized", () => {
       url: url.for("/path/:id"),
     });
     expect(json).toEqual('{"url":"/path/:id"}');
+  });
+});
+
+describe("url.relative", () => {
+  beforeAll(() => {
+    url.baseURL = "https://example.org/";
+  });
+
+  it("should have no effect if not used", () => {
+    expect(url.for("/path/:id")({ id: 123 })).toEqual(
+      "https://example.org/path/123"
+    );
+  });
+
+  it("should return relative URL", () => {
+    expect(url.for("/path/:id").relative({ id: 123 })).toEqual("/path/123");
+  });
+
+  it("should return URL relative to root", () => {
+    expect(url.for("path/:id").relative({ id: 123 })).toEqual("/path/123");
+  });
+
+  it("should work with absolute URL", () => {
+    const absoluteUrl = "https://example.org/path/:id";
+    expect(url.for(absoluteUrl).relative({ id: 123 })).toEqual("/path/123");
+  });
+  it("should work with URL object", () => {
+    const urlObject = new URL("https://example.org/path/:id");
+    expect(url.for(urlObject).relative({ id: 123 })).toEqual("/path/123");
+  });
+
+  it("should work with url.self", () => {
+    url.rootDir = "src";
+    expect(url.self().relative({ id: 123 })).toEqual("/http/url.test?id=123");
+    url.rootDir = "";
+  });
+
+  afterAll(() => {
+    url.baseURL = undefined;
   });
 });

@@ -5,12 +5,7 @@ import { URL } from "url";
 /**
  * URL path or query parameters.
  */
-type Params =
-  | {
-      [key: string]: string | number | boolean | (string | number | boolean)[];
-    }
-  | null
-  | undefined;
+type Params = { [key: string]: any | any[] } | null | undefined;
 
 /* eslint-disable no-unused-vars */
 interface URLFunction {
@@ -104,24 +99,39 @@ interface URLConstructor<P extends Params, Q extends Params> {
    * ```
    */
   (params?: P, query?: Q): string;
+
+  /**
+   * Always returns a relative URL.
+   *
+   * @param params Path parameters
+   * @param query Query parameters
+   * @returns Expanded URL
+   *
+   * ```
+   * myURL.relative({ id: '123' })
+   * ```
+   */
+  relative(params?: P, query?: Q): string;
 }
 /* eslint-enable no-unused-vars */
 
 const url: URLFunction = (pathOrURL, params, query) =>
   newURLContructor(pathOrURL)(params, query);
-url.for = (path) => newURLContructor(path);
+url.for = (pathOrUrl) => newURLContructor(pathOrUrl);
 url.self = () => newURLContructor(selfPath());
+
 url.rootDir = "";
 url.baseURL = undefined;
 
 function newURLContructor<P extends Params | null, Q extends Params | null>(
-  path: string | URL
+  pathOrURL: string | URL
 ): URLConstructor<P, Q> {
   const { baseURL } = url;
-  const { origin, pathname } = parseURL(path, baseURL);
+  const { origin, pathname } = parseURL(pathOrURL, baseURL);
 
   // Support [name] and :name notation
   const normalized = replaceBracket(pathname);
+  console.log(normalized);
   const compiled = compile(normalized);
 
   const keys: Key[] = [];
@@ -142,6 +152,13 @@ function newURLContructor<P extends Params | null, Q extends Params | null>(
     return url.href.replace(/^relative:/, "");
   };
 
+  constructor.relative = (params?: P, query?: Q) => {
+    const { pathname } = parseURL(pathOrURL);
+    const relative = `relative:${pathname}`;
+    console.log({ relative });
+    return newURLContructor(relative)(params, query);
+  };
+
   constructor.toString = () =>
     baseURL ? new URL(pathname, baseURL).href : pathname;
 
@@ -152,7 +169,7 @@ function newURLContructor<P extends Params | null, Q extends Params | null>(
 
 function parseURL(
   pathOrURL: URL | string,
-  baseURL: string | undefined
+  baseURL?: string | undefined
 ): {
   origin: string | undefined;
   pathname: string;
