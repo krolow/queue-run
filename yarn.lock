@@ -2522,7 +2522,7 @@
     "@docusaurus/utils-validation" "2.0.0-beta.15"
     tslib "^2.3.1"
 
-"@docusaurus/plugin-google-gtag@2.0.0-beta.15":
+"@docusaurus/plugin-google-gtag@2.0.0-beta.15", "@docusaurus/plugin-google-gtag@^2.0.0-beta.15":
   version "2.0.0-beta.15"
   resolved "https://registry.yarnpkg.com/@docusaurus/plugin-google-gtag/-/plugin-google-gtag-2.0.0-beta.15.tgz#4db3330d302653e8541dc3cb86a4dbfef0cc96f8"
   integrity sha512-E5Rm3+dN7i3A9V5uq5sl9xTNA3aXsLwTZEA2SpOkY571dCpd+sfVvz1lR+KRY9Fy6ZHk8PqrNImgCWfIerRuZQ==
@@ -2531,7 +2531,7 @@
     "@docusaurus/utils-validation" "2.0.0-beta.15"
     tslib "^2.3.1"
 
-"@docusaurus/plugin-sitemap@2.0.0-beta.15":
+"@docusaurus/plugin-sitemap@2.0.0-beta.15", "@docusaurus/plugin-sitemap@^2.0.0-beta.15":
   version "2.0.0-beta.15"
   resolved "https://registry.yarnpkg.com/@docusaurus/plugin-sitemap/-/plugin-sitemap-2.0.0-beta.15.tgz#0cc083d9e76041897e81b4b82bcd0ccbfa65d6e5"
   integrity sha512-PBjeQb2Qpe4uPdRefWL/eXCeYjrgNB/UArExYeUuP4wiY1dpw2unGNCvFUxv4hzJGmARoTLsnRkeYkUim809LQ==
@@ -2964,14 +2964,6 @@
   version "1.6.22"
   resolved "https://registry.yarnpkg.com/@mdx-js/react/-/react-1.6.22.tgz#ae09b4744fddc74714ee9f9d6f17a66e77c43573"
   integrity sha512-TDoPum4SHdfPiGSAaRBw7ECyI8VaHpK8GJugbJIJuqyh6kzw9ZLJZW3HGL3NNrJGxcAixUvqROm+YuQOo5eXtg==
-
-"@mdx-js/react@^2.0.0":
-  version "2.0.0"
-  resolved "https://registry.yarnpkg.com/@mdx-js/react/-/react-2.0.0.tgz#00a9f5467d2761fe3818222740f50403f83aee2c"
-  integrity sha512-icpMd43xqORnHSVRwALZv3ELN3IS7VS3BL+FyH2FFergQPSQ21FX0lN+OMIs0X+3dGY1L0DLhBCkMfPO+yDG7Q==
-  dependencies:
-    "@types/mdx" "^2.0.0"
-    "@types/react" ">=16"
 
 "@mdx-js/runtime@^1.6.22":
   version "1.6.22"
@@ -3524,11 +3516,6 @@
   dependencies:
     "@types/unist" "*"
 
-"@types/mdx@^2.0.0":
-  version "2.0.1"
-  resolved "https://registry.yarnpkg.com/@types/mdx/-/mdx-2.0.1.tgz#e4c05d355d092d7b58db1abfe460e53f41102ac8"
-  integrity sha512-JPEv4iAl0I+o7g8yVWDwk30es8mfVrjkvh5UeVR2sYPpZCK44vrAPsbJpIS+rJAUxLgaSAMKTEH5Vn5qd9XsrQ==
-
 "@types/mime@^1":
   version "1.3.2"
   resolved "https://registry.yarnpkg.com/@types/mime/-/mime-1.3.2.tgz#93e25bf9ee75fe0fd80b594bc4feb0e862111b5a"
@@ -3617,7 +3604,7 @@
     "@types/history" "*"
     "@types/react" "*"
 
-"@types/react@*", "@types/react@>=16":
+"@types/react@*":
   version "17.0.38"
   resolved "https://registry.yarnpkg.com/@types/react/-/react-17.0.38.tgz#f24249fefd89357d5fa71f739a686b8d7c7202bd"
   integrity sha512-SI92X1IA+FMnP3qM5m4QReluXzhcmovhZnLNm3pyeQlooi02qI7sLiepEYqT678uNiyc25XfCqxREFpy3W7YhQ==

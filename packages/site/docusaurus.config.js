@@ -36,7 +36,18 @@ module.exports = {
     navbar: {
       title: "🐇 QueueRun",
       hideOnScroll: true,
-      items: [{ to: "/", label: "Docs", position: "left" }],
+      items: [
+        { to: "/", label: "Docs" },
+        { to: "/faq", label: "FAQ" },
+        {
+          href: "https://github.com/assaf/queue-run",
+          label: "GitHub",
+        },
+        {
+          href: "https://github.com/assaf/queue-run/releases",
+          label: "Releases",
+        },
+      ],
     },
     metadata: [
       { name: "description", content: description },
