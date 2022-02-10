@@ -68,7 +68,10 @@ export default async function handleHTTPRequest({
     logger.emit("response", request, response);
     return response;
   } catch (error) {
-    throw new HTTPRequestError(error, request);
+    // Throwing response acceptable, eg 404 when we can't find a matching route
+    // Everything else, we'll let the process crash
+    if (error instanceof Response) return error;
+    else throw new HTTPRequestError(error, request);
   }
 }
 

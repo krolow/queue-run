@@ -57,21 +57,8 @@ async function asFetchRequest(
   handler: (request: Request) => Promise<Response | string | object>
 ): Promise<APIGatewayResponse> {
   const request = toFetchRequest(event);
-  try {
-    const response = await handler(request);
-    return fromFetchResponse(request, toFetchResponse(request, response));
-  } catch (error) {
-    if (error instanceof Response) {
-      return fromFetchResponse(
-        request,
-        new Response(error.body, { ...error, status: error.status ?? 500 })
-      );
-    } else {
-      console.error("Callback error", error);
-      const message = error instanceof Error ? error.message : String(error);
-      return fromFetchResponse(request, new Response(message, { status: 500 }));
-    }
-  }
+  const response = await handler(request);
+  return fromFetchResponse(request, toFetchResponse(request, response));
 }
 
 function toFetchRequest(
