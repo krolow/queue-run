@@ -36,7 +36,7 @@ interface URLFunction {
    * Path parameters can be specified using the notation `[name]` or `:name`
    * for single value, and `[name]*` or `:name*` for multiple values.
    *
-   * If `url.baseURL` is set, relative URLs are expanded to absolute URLs.
+   * If `url.baseUrl` is set, relative URLs are expanded to absolute URLs.
    *
    * URLs with `file:` path are supported relative to `url.rootDir`.
    */
@@ -72,7 +72,7 @@ interface URLFunction {
    *
    * Absolute URLs are not affected.
    */
-  baseURL: string | undefined;
+  baseUrl: string | undefined;
 
   /**
    * The root directory. Used to determine the path when using url.self().
@@ -94,6 +94,7 @@ interface URLConstructor<P extends Params, Q extends Params> {
    * @returns Expanded URL
    *
    * ```
+   * const myURL = url.for("/bookmarks/:id");
    * myURL({ id: '123' })
    * => https://example.com/bookmarks/123
    * ```
@@ -108,30 +109,42 @@ interface URLConstructor<P extends Params, Q extends Params> {
    * @returns Expanded URL
    *
    * ```
+   * const myURL = url.for("/bookmarks/:id");
    * myURL.relative({ id: '123' })
+   * => /bookmarks/123
    * ```
    */
   relative(params?: P, query?: Q): string;
+
+  /**
+   * Returns the path.
+   *
+   * ```
+   * const myURL = url.for("/bookmarks/:id");
+   * String(myURL)
+   * => /bookmarks/:id
+   * ```
+   */
+  toString(): string;
 }
 /* eslint-enable no-unused-vars */
 
 const url: URLFunction = (pathOrURL, params, query) =>
   newURLContructor(pathOrURL)(params, query);
+
 url.for = (pathOrUrl) => newURLContructor(pathOrUrl);
 url.self = () => newURLContructor(selfPath());
-
 url.rootDir = "";
-url.baseURL = undefined;
+url.baseUrl = undefined;
 
 function newURLContructor<P extends Params | null, Q extends Params | null>(
-  pathOrURL: string | URL
+  pathOrUrl: string | URL
 ): URLConstructor<P, Q> {
-  const { baseURL } = url;
-  const { origin, pathname } = parseURL(pathOrURL, baseURL);
+  const { baseUrl } = url;
+  const { origin, pathname } = parseURL(pathOrUrl, baseUrl);
 
   // Support [name] and :name notation
   const normalized = replaceBracket(pathname);
-  console.log(normalized);
   const compiled = compile(normalized);
 
   const keys: Key[] = [];
@@ -153,31 +166,29 @@ function newURLContructor<P extends Params | null, Q extends Params | null>(
   };
 
   constructor.relative = (params?: P, query?: Q) => {
-    const { pathname } = parseURL(pathOrURL);
+    const { pathname } = parseURL(pathOrUrl);
     const relative = `relative:${pathname}`;
-    console.log({ relative });
     return newURLContructor(relative)(params, query);
   };
 
   constructor.toString = () =>
-    baseURL ? new URL(pathname, baseURL).href : pathname;
-
+    baseUrl ? new URL(pathname, baseUrl).href : pathname;
   constructor.toJSON = () => constructor.toString();
 
   return constructor;
 }
 
 function parseURL(
-  pathOrURL: URL | string,
-  baseURL?: string | undefined
+  pathOrUrl: URL | string,
+  baseUrl?: string | undefined
 ): {
   origin: string | undefined;
   pathname: string;
 } {
   const { pathname, protocol, origin } =
-    pathOrURL instanceof URL
-      ? pathOrURL
-      : new URL(pathOrURL, baseURL ?? "relative:/");
+    pathOrUrl instanceof URL
+      ? pathOrUrl
+      : new URL(pathOrUrl, baseUrl ?? "relative:/");
 
   if (protocol === "file:") {
     const rootDir = url.rootDir ?? "";
@@ -188,7 +199,7 @@ function parseURL(
     );
     if (relative.startsWith(".."))
       throw new Error(`File path is outside of root directory "${rootDir}"`);
-    return parseURL(relative.replace(/\.\w+$/, ""), baseURL);
+    return parseURL(relative.replace(/\.\w+$/, ""), baseUrl);
   } else {
     return protocol === "relative:"
       ? { pathname, origin: undefined }

@@ -28,7 +28,7 @@ describe("no base URL", () => {
 
 describe("with base URL", () => {
   beforeAll(() => {
-    url.baseURL = "https://example.org/start/";
+    url.baseUrl = "https://example.org/start/";
     url.rootDir = "src/http";
   });
 
@@ -47,7 +47,7 @@ describe("with base URL", () => {
     expect(url.self()()).toEqual("https://example.org/start/url.test"));
 
   afterAll(() => {
-    url.baseURL = undefined;
+    url.baseUrl = undefined;
     url.rootDir = "";
   });
 });
@@ -163,11 +163,11 @@ describe("query parameters", () => {
     ));
 
   it("should work with absolute URL", () => {
-    url.baseURL = "https://example.org/start/";
+    url.baseUrl = "https://example.org/start/";
     expect(url("", null, { filter: ["abc", "xyz"] })).toEqual(
       "https://example.org/start/?filter=abc&filter=xyz"
     );
-    url.baseURL = undefined;
+    url.baseUrl = undefined;
   });
 });
 
@@ -176,11 +176,11 @@ describe("serialized", () => {
     expect(String(url.for("/path/:id"))).toEqual("/path/:id"));
 
   it("should serialize to absolute URL", () => {
-    url.baseURL = "https://example.org/start/";
+    url.baseUrl = "https://example.org/start/";
     expect(String(url.for("path/:id"))).toEqual(
       "https://example.org/start/path/:id"
     );
-    url.baseURL = undefined;
+    url.baseUrl = undefined;
   });
 
   it("should serialize as JSON property", () => {
@@ -193,7 +193,7 @@ describe("serialized", () => {
 
 describe("url.relative", () => {
   beforeAll(() => {
-    url.baseURL = "https://example.org/";
+    url.baseUrl = "https://example.org/";
   });
 
   it("should have no effect if not used", () => {
@@ -226,6 +226,6 @@ describe("url.relative", () => {
   });
 
   afterAll(() => {
-    url.baseURL = undefined;
+    url.baseUrl = undefined;
   });
 });
