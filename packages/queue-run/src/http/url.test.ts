@@ -229,3 +229,31 @@ describe("url.relative", () => {
     url.baseUrl = undefined;
   });
 });
+
+describe("url.base", () => {
+  beforeAll(() => {
+    url.baseUrl = "https://wrong.info/";
+  });
+
+  it("should use new base URL", () =>
+    expect(
+      url.base("http://example.com")("/bookmark/[id]", { id: 123 })
+    ).toEqual("http://example.com/bookmark/123"));
+
+  it("should apply to url.for", () =>
+    expect(
+      url.base("http://example.com").for("/bookmark/[id]")({ id: 123 })
+    ).toEqual("http://example.com/bookmark/123"));
+
+  it("should apply to url.self", () => {
+    url.rootDir = "src";
+    expect(url.base("http://example.com").self()({ id: 123 })).toEqual(
+      "http://example.com/http/url.test?id=123"
+    );
+    url.rootDir = "";
+  });
+
+  afterAll(() => {
+    url.baseUrl = undefined;
+  });
+});
