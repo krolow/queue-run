@@ -3,8 +3,11 @@ import { CloudWatchEvents } from "@aws-sdk/client-cloudwatch-events";
 import { Lambda } from "@aws-sdk/client-lambda";
 import cronParser from "cron-parser";
 import ms from "ms";
+import { debuglog } from "node:util";
 import ora from "ora";
 import { ScheduledJob } from "queue-run";
+
+const debug = debuglog("queue-run:deploy");
 
 export async function updateSchedules({
   lambdaArn,
@@ -79,14 +82,16 @@ function toCloudWatchCronExpression(cron: string) {
     .stringify(false)
     .split(" ");
 
-  return [
+  const expr = [
     minute,
     hour,
-    dayOfMonth,
+    dayOfMonth === "*" ? "?" : dayOfMonth,
     month,
-    dayOfWeek === "*" && dayOfMonth === "*" ? "?" : dayOfWeek,
-    "*",
+    dayOfWeek === "0" ? "7" : dayOfWeek, // cron accepts 0-6, AWS wants 1-7
+    "*", // any year (we don't support this)
   ].join(" ");
+  debug("EventBridge schedule expression: %s", expr);
+  return expr;
 }
 
 export async function removeUnusedSchedules({

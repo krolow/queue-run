@@ -64,6 +64,11 @@ function getSchedule(schedule: string): string {
     // Validate cron expression
     const parsed = cronParser.parseExpression(schedule);
     invariant(parsed, "Expected cron expression to parse");
+
+    const [, , dayOfMonth, , dayOfWeek] = parsed.stringify(false).split(" ");
+    if (dayOfMonth !== "*" && dayOfWeek !== "*")
+      throw new Error("You can select either day of month or day of week");
+
     return parsed.stringify(false);
   } catch (error) {
     throw new Error(`Invalid schedule expression: "${schedule}"`);
