@@ -1,3 +1,4 @@
+/* eslint-disable sonarjs/no-duplicate-string */
 import url from "./url.js";
 
 describe("no base URL", () => {
@@ -165,9 +166,26 @@ describe("query parameters", () => {
     expect(url("", null, { filter: ["abc", "xyz"] })).toEqual(
       "https://example.org/start/?filter=abc&filter=xyz"
     );
+    url.baseURL = undefined;
+  });
+});
+
+describe("serialized", () => {
+  it("should serialize to relative path", () =>
+    expect(String(url.for("/path/:id"))).toEqual("/path/:id"));
+
+  it("should serialize to absolute URL", () => {
+    url.baseURL = "https://example.org/start/";
+    expect(String(url.for("path/:id"))).toEqual(
+      "https://example.org/start/path/:id"
+    );
+    url.baseURL = undefined;
   });
 
-  afterAll(() => {
-    url.baseURL = undefined;
+  it("should serialize as JSON property", () => {
+    const json = JSON.stringify({
+      url: url.for("/path/:id"),
+    });
+    expect(json).toEqual('{"url":"/path/:id"}');
   });
 });

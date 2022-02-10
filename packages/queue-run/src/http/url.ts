@@ -142,8 +142,10 @@ function newURLContructor<P extends Params | null, Q extends Params | null>(
     return url.href.replace(/^relative:/, "");
   };
 
-  constructor.toString = () => String(path);
-  constructor.valueOf = () => String(path);
+  constructor.toString = () =>
+    baseURL ? new URL(pathname, baseURL).href : pathname;
+
+  constructor.toJSON = () => constructor.toString();
 
   return constructor;
 }
