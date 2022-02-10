@@ -1,6 +1,6 @@
 {
   "name": "queue-run",
-  "description": "👋 Backends for JAMstack apps: APIs, job queues, scheduled jobs, WebSocket notifications, and more …",
+  "description": "👋 Web 2.0 framework to make building back-ends and APIs easy and fun: HTTP, FIFO queues, WebSocket, and more …",
   "version": "0.12.0",
   "exports": {
     ".": "./dist/index.js",

@@ -1,6 +1,12 @@
+const {
+  description,
+  keywords,
+  homepage,
+} = require("../queue-run/package.json");
+
 module.exports = {
   title: "🐇 QueueRun",
-  url: "https://queue.run",
+  url: homepage,
   baseUrl: "/",
   onBrokenLinks: "throw",
   onBrokenMarkdownLinks: "warn",
@@ -32,6 +38,10 @@ module.exports = {
       hideOnScroll: true,
       items: [{ to: "/", label: "Docs", position: "left" }],
     },
+    metadata: [
+      { name: "description", content: description },
+      { name: "keywords", content: keywords.join(", ") },
+    ],
     prism: {
       theme: require("prism-react-renderer/themes/nightOwl"),
     },
