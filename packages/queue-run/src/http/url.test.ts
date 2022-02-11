@@ -21,6 +21,9 @@ describe("no base URL", () => {
   it("should return relative self URL", () =>
     expect(url.self()()).toEqual("/url.test"));
 
+  it("should retain query string and hash", () =>
+    expect(url("/foo/bar?a=b#c")).toEqual("/foo/bar?a=b#c"));
+
   afterAll(() => {
     url.rootDir = "";
   });
@@ -45,6 +48,11 @@ describe("with base URL", () => {
 
   it("should return absolute self URL", () =>
     expect(url.self()()).toEqual("https://example.org/start/url.test"));
+
+  it("should retain query string and hash", () =>
+    expect(url("foo/bar?a=b#c")).toEqual(
+      "https://example.org/start/foo/bar?a=b#c"
+    ));
 
   afterAll(() => {
     url.baseUrl = undefined;
@@ -169,25 +177,35 @@ describe("query parameters", () => {
     );
     url.baseUrl = undefined;
   });
+
+  it("should retain query paramteres", () =>
+    expect(url("/?this=that", null, { filter: ["abc", "xyz"] })).toEqual(
+      "/?this=that&filter=abc&filter=xyz"
+    ));
 });
 
 describe("serialized", () => {
+  it("should serialize to original URL", () =>
+    expect(String(url.for("http://example.com/path/:id?a=b#c"))).toEqual(
+      "http://example.com/path/:id?a=b#c"
+    ));
+
   it("should serialize to relative path", () =>
     expect(String(url.for("/path/:id"))).toEqual("/path/:id"));
 
   it("should serialize to absolute URL", () => {
     url.baseUrl = "https://example.org/start/";
-    expect(String(url.for("path/:id"))).toEqual(
-      "https://example.org/start/path/:id"
+    expect(String(url.for("path/:id?a=b#c"))).toEqual(
+      "https://example.org/start/path/:id?a=b#c"
     );
     url.baseUrl = undefined;
   });
 
   it("should serialize as JSON property", () => {
     const json = JSON.stringify({
-      url: url.for("/path/:id"),
+      url: url.for("/path/:id?a=b#c"),
     });
-    expect(json).toEqual('{"url":"/path/:id"}');
+    expect(json).toEqual('{"url":"/path/:id?a=b#c"}');
   });
 });
 

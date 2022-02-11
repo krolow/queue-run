@@ -148,6 +148,11 @@ interface URLConstructor<P extends Params, Q extends Params> {
 }
 /* eslint-enable no-unused-vars */
 
+// Since URL only supports absolute URLs, we use this origin to handle relative URLs
+// Note: URL(relative).origin will return the string "null", not "relative://"
+const relativeProtocol = "relative:";
+const relativeOrigin = "relative://";
+
 const url: URLGlobal = (path, params, query) =>
   newURLContructor({ ...url, path })(params, query);
 url.for = (path) => newURLContructor({ ...url, path });
@@ -182,10 +187,14 @@ function newURLContructor<P extends Params | null, Q extends Params | null>({
   baseUrl: string | undefined;
   rootDir: string | undefined;
 }): URLConstructor<P, Q> {
-  const { origin, relative } = parsePath({ path, baseUrl, rootDir });
+  const { origin, pathname, search, hash } = parsePath({
+    path,
+    baseUrl,
+    rootDir,
+  });
 
   // Support [name] and :name notation
-  const normalized = replaceBracket(relative);
+  const normalized = replaceBracket(pathname);
   const compiled = compile(normalized);
 
   const keys: Key[] = [];
@@ -195,7 +204,9 @@ function newURLContructor<P extends Params | null, Q extends Params | null>({
   const pathParams = new Set(keys.map((key) => key.name));
 
   const constructor = function (params?: P, query?: Q) {
-    const url = new URL(compiled(params ?? {}), origin ?? "relative:/");
+    const url = new URL(compiled(params ?? {}), origin ?? relativeOrigin);
+    url.search = search;
+    url.hash = hash;
     if (params) {
       const leftOver = Object.entries(params).filter(
         ([key]) => !pathParams.has(key)
@@ -203,19 +214,34 @@ function newURLContructor<P extends Params | null, Q extends Params | null>({
       addQueryParameters(url, leftOver);
     }
     if (query) addQueryParameters(url, Object.entries(query));
-    return url.href.replace(/^relative:/, "");
+    return url.href.replace(relativeOrigin, "");
   };
 
   constructor.relative = (params?: P, query?: Q) => {
-    const { relative: pathname } = parsePath({ path, baseUrl, rootDir });
-    return newURLContructor({ path: pathname, baseUrl: undefined, rootDir })(
+    const { href, protocol, origin } =
+      path instanceof URL
+        ? path
+        : new URL(path, baseUrl ? new URL(baseUrl).href : relativeOrigin);
+    const relative = href.replace(
+      protocol === relativeProtocol ? relativeOrigin : origin,
+      ""
+    );
+    return newURLContructor({ path: relative, baseUrl: undefined, rootDir })(
       params,
       query
     );
   };
 
-  constructor.toString = () =>
-    baseUrl ? new URL(relative, baseUrl).href : relative;
+  constructor.toString = () => {
+    const { href, protocol } =
+      path instanceof URL
+        ? path
+        : new URL(path, baseUrl ? new URL(baseUrl).href : relativeOrigin);
+    return protocol === relativeProtocol
+      ? href.replace(relativeOrigin, "")
+      : href;
+  };
+
   constructor.toJSON = () => constructor.toString();
 
   return constructor;
@@ -230,13 +256,15 @@ function parsePath({
   baseUrl: string | undefined;
   rootDir: string | undefined;
 }): {
+  hash: string;
   origin: string | undefined;
-  relative: string;
+  pathname: string;
+  search: string;
 } {
-  const { pathname, protocol, origin } =
+  const { pathname, protocol, origin, search, hash } =
     pathOrUrl instanceof URL
       ? pathOrUrl
-      : new URL(pathOrUrl, baseUrl ? new URL(baseUrl).href : "relative://");
+      : new URL(pathOrUrl, baseUrl ? new URL(baseUrl).href : relativeOrigin);
 
   if (protocol === "file:") {
     const relative = path.relative(
@@ -253,8 +281,10 @@ function parsePath({
     });
   } else {
     return {
-      relative: pathname,
-      origin: protocol === "relative:" ? undefined : origin,
+      hash,
+      origin: protocol === relativeProtocol ? undefined : origin,
+      pathname,
+      search,
     };
   }
 }
