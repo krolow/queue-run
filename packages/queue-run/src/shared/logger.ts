@@ -9,7 +9,14 @@ import { WebSocketRequest } from "../ws/exports.js";
 
 type LogLevel = "debug" | "verbose" | "info" | "warn" | "error";
 
+class Logger extends EventEmitter {
+  constructor() {
+    super();
+  }
+}
+
 /* eslint-disable no-unused-vars */
+// eslint-disable-next-line no-redeclare
 declare interface Logger {
   /**
    * Emitted for every call to console.log, console.info, etc
@@ -22,14 +29,32 @@ declare interface Logger {
     listener: (level: LogLevel, ...args: unknown[]) => void
   ): this;
   emit(event: "log", level: LogLevel, ...args: unknown[]): boolean;
+
+  /**
+   * Emitted on reportError. You can redirect uncaught exception and unhandled
+   * promise rejection here as well.
+   *
+   * @param event error
+   * @param listener The Error object
+   */
+  on(event: "error", listener: (error: Error) => void): this;
+  emit(event: "error", error: Error): boolean;
+
+  /**
+   * Emit this before process exit, and used to flush any messages to remote server.gq
+   *
+   * @param event flush
+   */
+  on(event: "flush"): this;
+  emit(event: "flush"): boolean;
 }
 /* eslint-enable no-unused-vars */
 
-// eslint-disable-next-line no-redeclare
-class Logger extends EventEmitter {
-  constructor() {
-    super();
-  }
+export const logger = new Logger();
+
+export function reportError(error: Error) {
+  // @ts-ignore
+  logger.emit("error", error);
 }
 
 const showDebug =
@@ -61,8 +86,6 @@ const formatOptions = {
   colors: process.stdout.hasColors && process.stdout.hasColors(),
 };
 
-const logger = new Logger();
-
 logger.on("log", (level, ...args) => {
   const [message, ...rest] = args;
   // we want to apply a color to the message, but not if the user is doing
@@ -75,6 +98,18 @@ logger.on("log", (level, ...args) => {
     level === "error" || level === "warn" ? process.stderr : process.stdout;
   stream.write(formatted + "\n");
 });
+
+logger.on("error", (error: Error) => {
+  console.error("Error: %s", String(error), error.stack);
+});
+
+// Node's default handler that shows an error, we prefer to show a warning
+process.removeAllListeners("warning");
+process.on("warning", (warning: Error) => {
+  console.warn(warning.message);
+});
+
+process.on("beforeExit", () => logger.emit("flush"));
 
 /* eslint-disable no-unused-vars */
 // eslint-disable-next-line no-redeclare
@@ -156,15 +191,6 @@ declare interface Logger {
     event: "messageSent",
     sent: { connections: string[]; data: Buffer }
   ): boolean;
-
-  /**
-   * Emitted on uncaught exception, unhandled promise, and for reportError.
-   *
-   * @param event error
-   * @param listener The Error object
-   */
-  on(event: "error", listener: (error: Error) => void): this;
-  emit(event: "error", error: Error): boolean;
 }
 /* eslint-enable no-unused-vars */
 

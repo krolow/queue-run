@@ -22,16 +22,19 @@ export default function reportError(error: Error) {
   // @ts-ignore
   logger.emit("error", error);
 }
-process.on("unhandledRejection", (error: Error) => {
-  reportError(error);
-  setTimeout(() => process.exit(1), 500);
-});
 
-process.on("uncaughtException", (error: Error) => {
-  reportError(error);
-  setTimeout(() => process.exit(1), 500);
-});
+const exitDelay = 500;
 
+process.on("unhandledRejection", onFatalError);
+process.on("uncaughtException", onFatalError);
+
+function onFatalError(error: Error) {
+  reportError(error);
+  logger.emit("flush");
+  setTimeout(() => process.exit(1), exitDelay);
+}
+
+logger.removeAllListeners("error");
 logger.on("error", (error: Error) => {
   if (error instanceof HTTPRequestError) {
     const { method, url } = error.request;
@@ -72,11 +75,4 @@ logger.on("error", (error: Error) => {
   } else {
     console.error("Error: %s", String(error), error.stack);
   }
-});
-
-// Node had a default handler that shows an error,
-// we prefer to show a warning
-process.removeAllListeners("warning");
-process.on("warning", (warning: Error) => {
-  console.warn(warning.message);
 });
