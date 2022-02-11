@@ -2,26 +2,7 @@ import { HTTPRequestError } from "../http/exports.js";
 import { QueuedJobError } from "../queue/exports.js";
 import { ScheduledJobError } from "../schedule/exports.js";
 import { WebSocketError } from "../ws/exports.js";
-import logger from "./logger.js";
-
-/**
- * Use this to report errors to the global error handler.
- *
- * Calling this function emits an "error" event with the Error object,
- * in addition to calling console.error to output the error.
- *
- * This can be used for error logging and reporting.
- *
- * Different from console.error which can be called with any output,
- * not specifically an Error object.
- *
- * @param error The Error object
- */
-
-export default function reportError(error: Error) {
-  // @ts-ignore
-  logger.emit("error", error);
-}
+import logger, { reportError } from "./logger.js";
 
 const exitDelay = 500;
 

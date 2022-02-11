@@ -1,7 +1,7 @@
+import "./errorHandling.js";
 import { loadModule } from "./loadModule.js";
 import { LocalStorage, withLocalStorage } from "./localStorage.js";
 import "./logger.js";
-import "./reportError.js";
 
 type WarmupFunction = () => Promise<void>;
 

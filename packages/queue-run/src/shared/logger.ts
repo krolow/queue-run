@@ -15,6 +15,17 @@ class Logger extends EventEmitter {
   }
 }
 
+/**
+ * Central point for logging.
+ *
+ * Generic:
+ * @event log console.log, console.error, etc emit this event
+ * @event error reportError and other error handlers emit this event
+ * @event flush emitted before exiting the process
+ *
+ * Other events emitted by this class belong to more specific categories:
+ * HTTP request/response, WS message sent/received, job started/finished, etc.
+ */
 /* eslint-disable no-unused-vars */
 // eslint-disable-next-line no-redeclare
 declare interface Logger {
@@ -52,6 +63,19 @@ declare interface Logger {
 
 export const logger = new Logger();
 
+/**
+ * Use this to report errors to the global error handler.
+ *
+ * Calling this function emits an "error" event with the Error object,
+ * in addition to calling console.error to output the error.
+ *
+ * This can be used for error logging and reporting.
+ *
+ * Different from console.error which can be called with any output,
+ * not specifically an Error object.
+ *
+ * @param error The Error object
+ */
 export function reportError(error: Error) {
   // @ts-ignore
   logger.emit("error", error);
