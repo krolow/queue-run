@@ -6,22 +6,37 @@ bodyAttributes:
   itemtype: "https://schema.org/FAQPage"
 ---
 
-export const Question = ({children, question}) => (
-  <section itemscope="" itemprop="mainEntity" itemtype="https://schema.org/Question">
-    <h2 itemprop="name">{question}</h2>
-    <div itemscope="" itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
-      <div itemprop="text">
-        {children}
+export function Question ({children, question}) {
+  toc[toc.length - 1].children.push({
+    children: [],
+    id: question.replace(/\W+/g, '-').toLowerCase(),
+    level: 3,
+    value: question,
+  })
+  return (
+    <section itemScope="" itemProp="mainEntity" itemType="https://schema.org/Question">
+      <h3 itemProp="name">{question}</h3>
+      <div itemScope="" itemProp="acceptedAnswer" itemType="https://schema.org/Answer">
+        <div itemProp="text">
+          {children}
+        </div>
       </div>
-    </div>
-  </section>
+    </section>    
+  );
+}
+
+export const FAQPage = () => (
+  <head>
+    <html itemScope="" itemType="https://schema.org/FAQPage"/>
+  </head>
 );
 
-<head>
-  <html itemscope="" itemtype="https://schema.org/FAQPage"/>
-</head>
+<FAQPage/>
+
 
 # FAQ
+
+## Schedules
 
 <Question question="How do I run a scheduled job?">
 
