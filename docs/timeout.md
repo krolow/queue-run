@@ -54,3 +54,23 @@ export default async function(job, { signal }) {
 }
 ```
 
+:::tip Parallel Work
+
+If your code is doing work in parallel, then failure in one path would trigger the abort signal to terminate other paths.
+
+This contrived example executes three tasks in parallel:
+
+```ts
+export default async function({ signal }) {
+  await Promise.all([
+    doOneThing(signal),
+    doAnotherThing(signal),
+    doMoreThings(signal)
+  ])
+}
+```
+
+If any one of these tasks fails, then `Promise.all` immediately fails, and so does this handle function. Upon completion of the function — successfully or not — QueueRun triggers the abort signal.
+
+Triggering the abort signal tells the other two tasks to complete. They could either check `signal.abort`, or call some function that fails when the signal aborts (eg `fetch`).
+:::
