@@ -1,4 +1,4 @@
-import { handleScheduledJob, LocalStorage } from "queue-run";
+import { handleScheduledJob, NewExecutionContext } from "queue-run";
 import invariant from "tiny-invariant";
 
 export type ScheduledEvent =
@@ -16,7 +16,7 @@ export type ScheduledEvent =
 
 export default async function handleScheduledEvent(
   event: ScheduledEvent,
-  newLocalStorage: () => LocalStorage
+  newExecutionContext: NewExecutionContext
 ): Promise<void> {
   const name =
     "schedule" in event
@@ -24,5 +24,5 @@ export default async function handleScheduledEvent(
       : event.resources[0]?.match(/:rule\/qr-.*?\.(.*)$/)?.[1];
   invariant(name, "Could not extract name from event");
   const jobId = "id" in event ? event.id : crypto.randomUUID!();
-  await handleScheduledJob({ jobId, name, newLocalStorage });
+  await handleScheduledJob({ jobId, name, newExecutionContext });
 }

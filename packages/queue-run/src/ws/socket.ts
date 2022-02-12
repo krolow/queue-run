@@ -1,5 +1,5 @@
 import { Blob } from "../http/fetch.js";
-import { getLocalStorage } from "../shared/localStorage.js";
+import { getExecutionContext } from "../shared/executionContext.js";
 import { onMessageSentAsync } from "./handler.js";
 
 type Payload = object | string | ArrayBuffer | Blob | Buffer;
@@ -30,7 +30,7 @@ class WebSocket {
    * Close the WebSocket connection.
    */
   async close(): Promise<void> {
-    const local = getLocalStorage();
+    const local = getExecutionContext();
     const connections = await this.getConnections();
     await Promise.all(
       connections.map((connection) => local.closeWebSocket(connection))
@@ -55,7 +55,7 @@ class WebSocket {
    * @throws Error if the message cannot be sent, connection closed, or if no user specified
    */
   async send<T extends Payload = object>(data: T): Promise<void> {
-    const local = getLocalStorage();
+    const local = getExecutionContext();
     const connections = await this.getConnections();
     const message = await payloadToBuffer(data as unknown as Payload);
     await Promise.all(
@@ -70,7 +70,7 @@ class WebSocket {
   }
 
   private async getConnections(): Promise<string[]> {
-    const local = getLocalStorage();
+    const local = getExecutionContext();
 
     // In order of precedence:
     // - Users explicitly specified
@@ -113,7 +113,7 @@ class WebSocket {
    * @returns true if the user has an open WebSocket connection
    */
   async isOnline(userId: string): Promise<boolean> {
-    const local = getLocalStorage();
+    const local = getExecutionContext();
     const connections = await local.getConnections([userId]);
     return connections.length > 0;
   }
@@ -121,7 +121,7 @@ class WebSocket {
   toString() {
     return (
       this._userIds?.join(", ") ??
-      getLocalStorage().connectionId ??
+      getExecutionContext().connectionId ??
       "unavailable"
     );
   }

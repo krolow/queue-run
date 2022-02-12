@@ -167,11 +167,15 @@ declare interface Logger {
    */
   on(
     event: "jobStarted",
-    listener: (job: QueueJobMetadata | ScheduleJobMetadata) => void
+    listener: (
+      job:
+        | Omit<QueueJobMetadata, "signal">
+        | Omit<ScheduleJobMetadata, "signal">
+    ) => void
   ): this;
   emit(
     event: "jobStarted",
-    job: QueueJobMetadata | ScheduleJobMetadata
+    job: Omit<QueueJobMetadata, "signal"> | Omit<ScheduleJobMetadata, "signal">
   ): boolean;
 
   /**
@@ -182,11 +186,15 @@ declare interface Logger {
    */
   on(
     event: "jobFinished",
-    listener: (job: QueueJobMetadata | ScheduleJobMetadata) => void
+    listener: (
+      job:
+        | Omit<QueueJobMetadata, "signal">
+        | Omit<ScheduleJobMetadata, "signal">
+    ) => void
   ): this;
   emit(
     event: "jobFinished",
-    job: QueueJobMetadata | ScheduleJobMetadata
+    job: Omit<QueueJobMetadata, "signal"> | Omit<ScheduleJobMetadata, "signal">
   ): boolean;
 
   /**

@@ -17,7 +17,7 @@ import {
   handleWebSocketConnect,
   handleWebSocketMessage,
   Headers,
-  LocalStorage,
+  NewExecutionContext,
   socket,
   url,
   warmup,
@@ -26,11 +26,11 @@ import { buildProject } from "queue-run-builder";
 import invariant from "tiny-invariant";
 import { WebSocket, WebSocketServer } from "ws";
 import {
-  DevLocalStorage,
+  DevExecutionContext,
   getUser as getUserId,
   onWebSocketAccepted,
   onWebSocketClosed,
-} from "./state.js";
+} from "./devContext.js";
 
 // Make sure we're not building the project in parallel.
 const blockOnBuild = new Sema(1);
@@ -190,18 +190,24 @@ if (cluster.isWorker) {
     process.send!("ready");
 
     process.chdir(buildDir);
-    await warmup(new DevLocalStorage(port));
+    await warmup((args) => new DevExecutionContext({ port, ...args }));
   })();
 
   const ws = new WebSocketServer({ noServer: true });
   const http = createServer()
     .on("request", async (req, res) => {
       await ready;
-      onRequest(req, res, () => new DevLocalStorage(port));
+      onRequest(req, res, (args) => new DevExecutionContext({ port, ...args }));
     })
     .on("upgrade", async (req, socket, head) => {
       await ready;
-      onUpgrade(req, socket, head, ws, () => new DevLocalStorage(port));
+      onUpgrade(
+        req,
+        socket,
+        head,
+        ws,
+        (args) => new DevExecutionContext({ port, ...args })
+      );
     })
     .listen(port);
 
@@ -220,13 +226,13 @@ if (cluster.isWorker) {
 async function onRequest(
   req: IncomingMessage,
   res: ServerResponse,
-  newLocalStorage: () => LocalStorage
+  newExecutionContext: NewExecutionContext
 ) {
   if (req.url?.startsWith("/$queues/"))
-    return queueJob(req, res, newLocalStorage);
+    return queueJob(req, res, newExecutionContext);
 
   if (req.url?.startsWith("/$schedules/"))
-    return scheduleJob(req, res, newLocalStorage);
+    return scheduleJob(req, res, newExecutionContext);
 
   const method = req.method?.toLocaleUpperCase() ?? "GET";
   const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
@@ -244,7 +250,7 @@ async function onRequest(
   });
 
   const response = await handleHTTPRequest({
-    newLocalStorage,
+    newExecutionContext,
     request,
     requestId: crypto.randomUUID!(),
   });
@@ -266,7 +272,7 @@ async function getRequestBody(req: IncomingMessage): Promise<Buffer | null> {
 async function queueJob(
   req: IncomingMessage,
   res: ServerResponse,
-  newLocalStorage: () => LocalStorage
+  newExecutionContext: NewExecutionContext
 ) {
   if (req.method !== "POST") {
     res.writeHead(405, "Method not allowed").end();
@@ -298,7 +304,7 @@ async function queueJob(
         sequenceNumber: groupId ? 1 : undefined,
         user: null,
       },
-      newLocalStorage,
+      newExecutionContext,
       payload,
       queueName,
       remainingTime: ms("30s"),
@@ -313,7 +319,7 @@ async function queueJob(
 async function scheduleJob(
   req: IncomingMessage,
   res: ServerResponse,
-  newLocalStorage: () => LocalStorage
+  newExecutionContext: NewExecutionContext
 ) {
   if (req.method !== "POST") {
     res.writeHead(405, "Method not allowed").end();
@@ -327,7 +333,7 @@ async function scheduleJob(
     await handleScheduledJob({
       jobId: crypto.randomUUID!(),
       name,
-      newLocalStorage,
+      newExecutionContext,
     });
     res.writeHead(200, "OK").end();
   } catch (error) {
@@ -341,7 +347,7 @@ async function onUpgrade(
   socket: Duplex,
   head: Buffer,
   wss: WebSocketServer,
-  newLocalStorage: () => LocalStorage
+  newExecutionContext: NewExecutionContext
 ) {
   try {
     const request = new Request(
@@ -362,7 +368,7 @@ async function onUpgrade(
       connectionId,
       request,
       requestId: crypto.randomUUID!(),
-      newLocalStorage,
+      newExecutionContext,
     });
 
     if (response.status > 299) {
@@ -377,7 +383,7 @@ async function onUpgrade(
     wss.handleUpgrade(req, socket, head, (socket) =>
       onConnection({
         connectionId,
-        newLocalStorage,
+        newExecutionContext,
         socket,
       })
     );
@@ -390,11 +396,11 @@ async function onUpgrade(
 
 async function onConnection({
   connectionId,
-  newLocalStorage,
+  newExecutionContext,
   socket,
 }: {
   connectionId: string;
-  newLocalStorage: () => LocalStorage;
+  newExecutionContext: NewExecutionContext;
   socket: WebSocket;
 }) {
   onWebSocketAccepted({ connection: connectionId, socket });
@@ -410,7 +416,7 @@ async function onConnection({
       await handleWebSocketMessage({
         connectionId,
         data,
-        newLocalStorage,
+        newExecutionContext,
         requestId: crypto.randomUUID!(),
         userId: getUserId(connectionId),
       });
@@ -423,7 +429,7 @@ async function onConnection({
   socket.on("close", () =>
     onWebSocketClosed({
       connectionId,
-      newLocalStorage,
+      newExecutionContext,
     })
   );
 }

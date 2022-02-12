@@ -1,4 +1,4 @@
-import { getLocalStorage } from "..";
+import { getExecutionContext } from "..";
 
 /**
  * Call this to autheticate a user.
@@ -12,7 +12,7 @@ import { getLocalStorage } from "..";
  * @param user
  */
 export async function authenticated(user: AuthenticatedUser | null) {
-  getLocalStorage().authenticated(user);
+  getExecutionContext().authenticated(user);
 }
 
 /**

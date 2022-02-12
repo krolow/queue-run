@@ -2,7 +2,7 @@ import { DeleteMessageCommand, SQSClient } from "@aws-sdk/client-sqs";
 import { URLSearchParams } from "node:url";
 import {
   handleQueuedJob,
-  LocalStorage,
+  NewExecutionContext,
   QueueHandler,
   reportError,
 } from "queue-run";
@@ -39,25 +39,25 @@ export declare type SQSMessage = {
 export default async function handleSQSMessages({
   getRemainingTimeInMillis,
   messages,
-  newLocalStorage,
+  newExecutionContext,
   sqs,
 }: {
   getRemainingTimeInMillis: () => number;
   messages: SQSMessage[];
-  newLocalStorage: () => LocalStorage;
+  newExecutionContext: NewExecutionContext;
   sqs: SQSClient;
 }): Promise<SQSBatchResponse> {
   return isFifoQueue(messages[0]!)
     ? await handleFifoMessages({
         getRemainingTimeInMillis,
         messages,
-        newLocalStorage,
+        newExecutionContext,
         sqs,
       })
     : await handleStandardMessages({
         getRemainingTimeInMillis,
         messages,
-        newLocalStorage,
+        newExecutionContext,
         sqs,
       });
 }
@@ -72,12 +72,12 @@ function isFifoQueue(message: SQSMessage): boolean {
 async function handleStandardMessages({
   getRemainingTimeInMillis,
   messages,
-  newLocalStorage,
+  newExecutionContext,
   sqs,
 }: {
   getRemainingTimeInMillis: () => number;
   messages: SQSMessage[];
-  newLocalStorage: () => LocalStorage;
+  newExecutionContext: NewExecutionContext;
   sqs: SQSClient;
 }) {
   const remainingTime = getRemainingTimeInMillis();
@@ -85,7 +85,7 @@ async function handleStandardMessages({
     messages.map(async (message) => {
       const successful = await handleOneSQSMessage({
         message,
-        newLocalStorage,
+        newExecutionContext,
         sqs,
         remainingTime,
       });
@@ -105,12 +105,12 @@ async function handleStandardMessages({
 async function handleFifoMessages({
   getRemainingTimeInMillis,
   messages,
-  newLocalStorage,
+  newExecutionContext,
   sqs,
 }: {
   getRemainingTimeInMillis: () => number;
   messages: SQSMessage[];
-  newLocalStorage: () => LocalStorage;
+  newExecutionContext: NewExecutionContext;
   sqs: SQSClient;
 }) {
   let next;
@@ -119,7 +119,7 @@ async function handleFifoMessages({
     const remainingTime = getRemainingTimeInMillis();
     const successful = await handleOneSQSMessage({
       message,
-      newLocalStorage,
+      newExecutionContext,
       sqs,
       remainingTime,
     });
@@ -137,23 +137,23 @@ async function handleFifoMessages({
 
 export async function handleOneSQSMessage({
   message,
-  newLocalStorage,
+  newExecutionContext,
   remainingTime,
   sqs,
 }: {
   message: SQSMessage;
-  newLocalStorage: () => LocalStorage;
+  newExecutionContext: NewExecutionContext;
   remainingTime: number;
   sqs: SQSClient;
 }) {
   const queueName = getQueueName(message);
   try {
     await handleQueuedJob({
-      queueName,
       metadata: getMetadata(message),
+      newExecutionContext,
       payload: getPayload(message),
+      queueName,
       remainingTime,
-      newLocalStorage,
     });
     if ((await sqs.config.region()) !== "localhost") {
       console.debug(

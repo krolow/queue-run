@@ -8,10 +8,11 @@ import { SQSClient } from "@aws-sdk/client-sqs";
 import { format } from "node:util";
 import {
   AuthenticatedUser,
-  getLocalStorage,
+  ExecutionContext,
+  getExecutionContext,
   handleUserOnline,
-  LocalStorage,
   logger,
+  NewExecutionContext,
   socket,
   url,
   warmup,
@@ -56,13 +57,15 @@ const sqs = new SQSClient({ ...clientConfig, region });
 
 const connections = userConnections(dynamoDB);
 
-class LambdaLocalStorage extends LocalStorage {
-  constructor(connectionId?: string) {
-    super();
-    this.connectionId = connectionId;
+class LambdaExecutionContext extends ExecutionContext {
+  constructor(
+    args: { connectionId?: string } & Parameters<NewExecutionContext>[0]
+  ) {
+    super(args);
+    this.connectionId = args.connectionId;
   }
 
-  queueJob(args: Parameters<LocalStorage["queueJob"]>[0]) {
+  queueJob(args: Parameters<ExecutionContext["queueJob"]>[0]) {
     const { dedupeId, groupId, params, payload, queueName, user } = args;
     return queueJob({
       dedupeId,
@@ -121,10 +124,10 @@ class LambdaLocalStorage extends LocalStorage {
         userId: user.id,
       });
       if (wentOnline) {
-        getLocalStorage().exit(() =>
+        getExecutionContext().exit(() =>
           handleUserOnline({
             user,
-            newLocalStorage: () => new LambdaLocalStorage(),
+            newExecutionContext: (args) => new LambdaExecutionContext(args),
           })
         );
       }
@@ -133,7 +136,7 @@ class LambdaLocalStorage extends LocalStorage {
 }
 
 // Top-level await: this only makes a difference if you user provisioned concurrency
-await warmup(new LambdaLocalStorage());
+await warmup((args) => new LambdaExecutionContext(args));
 
 // Entry point for AWS Lambda
 export async function handler(
@@ -142,37 +145,38 @@ export async function handler(
 ): Promise<APIGatewayResponse | SQSBatchResponse | void> {
   if (isWebSocketRequest(event)) {
     const { connectionId } = event.requestContext;
-    const newLocalStorage = () => new LambdaLocalStorage(connectionId);
     return await handleWebSocketRequest(
       event as APIGatewayWebSocketEvent,
       connections,
-      newLocalStorage
+      (args) => new LambdaExecutionContext({ ...args, connectionId })
     );
   }
 
   if (isHTTPRequest(event)) {
-    const newLocalStorage = () => new LambdaLocalStorage();
-    return await handleHTTPRequest(event, newLocalStorage);
+    return await handleHTTPRequest(
+      event,
+      (args) => new LambdaExecutionContext(args)
+    );
   }
 
   if (isSQSMessages(event)) {
-    const newLocalStorage = () => new LambdaLocalStorage();
     const { getRemainingTimeInMillis } = context;
     const messages = event.Records.filter(
       (record) => record.eventSource === "aws:sqs"
     );
-
     return await handleSQSMessages({
       getRemainingTimeInMillis,
       messages,
-      newLocalStorage,
+      newExecutionContext: (args) => new LambdaExecutionContext(args),
       sqs,
     });
   }
 
   if (isScheduledEvent(event)) {
-    const newLocalStorage = () => new LambdaLocalStorage();
-    return await handleScheduledEvent(event, newLocalStorage);
+    return await handleScheduledEvent(
+      event,
+      (args) => new LambdaExecutionContext(args)
+    );
   }
 
   throw new Error("Unknown event type");

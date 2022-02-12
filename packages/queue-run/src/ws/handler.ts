@@ -1,7 +1,7 @@
-import { AbortController } from "node-abort-controller";
-import { getLocalStorage } from "..";
+import { getExecutionContext } from "..";
+import { NewExecutionContext } from "../shared/executionContext";
+import { withExecutionContext } from "../shared/executionContext.js";
 import { loadMiddleware } from "../shared/loadModule.js";
-import { LocalStorage, withLocalStorage } from "../shared/localStorage.js";
 import logger from "../shared/logger.js";
 import { HTTPRequestError } from "./../http/exports";
 import type { JSONValue } from "./../json";
@@ -14,34 +14,39 @@ import {
 } from "./exports.js";
 import findRoute from "./findRoute.js";
 
+const middlewareTimeout = 10; // seconds
+
 // eslint-disable-next-line sonarjs/cognitive-complexity
 export async function handleWebSocketConnect({
   connectionId,
-  newLocalStorage,
+  newExecutionContext: newExecutionContext,
   request,
   requestId,
 }: {
   connectionId: string;
-  newLocalStorage: () => LocalStorage;
+  newExecutionContext: NewExecutionContext;
   request: Request;
   requestId: string;
 }): Promise<Response> {
   const { onConnect } = await loadMiddleware<WebSocketMiddleware>("socket", {});
   if (!onConnect) return new Response("", { status: 202 });
 
-  return await withLocalStorage(newLocalStorage(), async () => {
-    try {
-      await onConnect({
-        connectionId,
-        cookies: getCookies(request),
-        request,
-        requestId,
-      });
-      return new Response("", { status: 202 });
-    } catch (error) {
-      throw new HTTPRequestError(error, request);
+  return await withExecutionContext(
+    newExecutionContext({ timeout: middlewareTimeout }),
+    async () => {
+      try {
+        await onConnect({
+          connectionId,
+          cookies: getCookies(request),
+          request,
+          requestId,
+        });
+        return new Response("", { status: 202 });
+      } catch (error) {
+        throw new HTTPRequestError(error, request);
+      }
     }
-  });
+  );
 }
 
 function getCookies(request: Request): { [key: string]: string } {
@@ -63,13 +68,13 @@ function getCookies(request: Request): { [key: string]: string } {
 export async function handleWebSocketMessage({
   connectionId,
   data,
-  newLocalStorage,
+  newExecutionContext,
   requestId,
   userId,
 }: {
   connectionId: string;
   data: Buffer;
-  newLocalStorage: () => LocalStorage;
+  newExecutionContext: NewExecutionContext;
   requestId: string;
   userId: string | null | undefined;
 }) {
@@ -78,18 +83,20 @@ export async function handleWebSocketMessage({
 
     if (userId === undefined && middleware.authenticate) {
       const { authenticate } = middleware;
-      const localStorage = newLocalStorage();
-      localStorage.connectionId = connectionId;
-      await withLocalStorage(localStorage, async () => {
-        const authenticated = await authenticate({
-          connectionId,
-          data: bufferToData(data, "detect"),
-          requestId,
-        });
-        // The authenticate middleware may have called authenticated directly
-        if (!getLocalStorage().user && authenticated)
-          await getLocalStorage().authenticated(authenticated);
-      });
+      await withExecutionContext(
+        newExecutionContext({ timeout: middlewareTimeout }),
+        async (context) => {
+          context.connectionId = connectionId;
+          const authenticated = await authenticate({
+            connectionId,
+            data: bufferToData(data, "detect"),
+            requestId,
+          });
+          // The authenticate middleware may have called authenticated directly
+          if (!getExecutionContext().user && authenticated)
+            await getExecutionContext().authenticated(authenticated);
+        }
+      );
       return;
     }
 
@@ -105,7 +112,7 @@ export async function handleWebSocketMessage({
 
     await handleRoute({
       handler: module.default,
-      newLocalStorage,
+      newExecutionContext,
       request,
       timeout: route.timeout,
     });
@@ -116,45 +123,24 @@ export async function handleWebSocketMessage({
 
 async function handleRoute({
   handler,
-  newLocalStorage,
+  newExecutionContext,
   request,
   timeout,
 }: {
   handler: WebSocketHandler;
-  newLocalStorage: () => LocalStorage;
+  newExecutionContext: NewExecutionContext;
   request: WebSocketRequest;
   timeout: number;
 }) {
-  const controller = new AbortController();
-  const { signal } = controller;
-  const timer = setTimeout(() => controller.abort(), timeout * 1000);
-
-  try {
-    const localStorage = newLocalStorage();
-    localStorage.user = request.user;
-    localStorage.connectionId = request.connectionId;
-    await withLocalStorage(localStorage, async () => {
-      await Promise.race([
-        (async () => {
-          logger.emit("messageReceived", request);
-          await handler({ ...request, signal });
-        })(),
-
-        new Promise<undefined>((resolve) =>
-          signal.addEventListener("abort", () => resolve(undefined))
-        ),
-      ]);
-    });
-
-    if (signal.aborted)
-      throw new WebSocketError(
-        new Error("Request aborted: timed out"),
-        request
-      );
-  } finally {
-    clearTimeout(timer);
-    controller.abort();
-  }
+  await withExecutionContext(
+    newExecutionContext({ timeout }),
+    async (context) => {
+      context.user = request.user;
+      context.connectionId = request.connectionId;
+      logger.emit("messageReceived", request);
+      await handler({ ...request, signal: context.signal });
+    }
+  );
 }
 
 function bufferToData(
@@ -190,31 +176,31 @@ export async function onMessageSentAsync({
 }
 
 export async function handleUserOnline({
-  newLocalStorage,
+  newExecutionContext,
   user,
 }: {
-  newLocalStorage: () => LocalStorage;
+  newExecutionContext: NewExecutionContext;
   user: AuthenticatedUser;
 }) {
   const { onOnline } = await loadMiddleware<WebSocketMiddleware>("socket", {});
-  if (onOnline) {
-    await withLocalStorage(newLocalStorage(), async () => {
-      await onOnline(user);
-    });
-  }
+  if (onOnline)
+    await withExecutionContext(
+      newExecutionContext({ timeout: middlewareTimeout }),
+      () => onOnline(user)
+    );
 }
 
 export async function handleUserOffline({
-  newLocalStorage,
+  newExecutionContext,
   user,
 }: {
-  newLocalStorage: () => LocalStorage;
+  newExecutionContext: NewExecutionContext;
   user: AuthenticatedUser;
 }) {
   const { onOffline } = await loadMiddleware<WebSocketMiddleware>("socket", {});
-  if (onOffline) {
-    await withLocalStorage(newLocalStorage(), async () => {
-      await onOffline(user);
-    });
-  }
+  if (onOffline)
+    await withExecutionContext(
+      newExecutionContext({ timeout: middlewareTimeout }),
+      () => onOffline(user)
+    );
 }

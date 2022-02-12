@@ -1,5 +1,5 @@
 import { URL } from "node:url";
-import { handleHTTPRequest, Headers, LocalStorage } from "queue-run";
+import { handleHTTPRequest, Headers, NewExecutionContext } from "queue-run";
 
 // https://docs.aws.amazon.com/lambda/latest/dg/services-apigateway.html#apigateway-example-event
 export type APIGatewayHTTPEvent = {
@@ -40,11 +40,11 @@ export type BackendLambdaRequest = {
 
 export default async function httpHandler(
   event: BackendLambdaRequest | APIGatewayHTTPEvent,
-  newLocalStorage: () => LocalStorage
+  newExecutionContext: NewExecutionContext
 ): Promise<APIGatewayResponse> {
   return await asFetchRequest(event, async (request) =>
     handleHTTPRequest({
-      newLocalStorage,
+      newExecutionContext,
       request,
       requestId: String(event.headers["x-amzn-trace-id"] ?? ""),
     })

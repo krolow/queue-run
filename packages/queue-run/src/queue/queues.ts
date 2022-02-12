@@ -1,6 +1,6 @@
 import { RequestHandler } from "../http/exports.js";
 import { Response } from "../http/fetch.js";
-import { getLocalStorage } from "../shared/localStorage.js";
+import { getExecutionContext } from "../shared/executionContext.js";
 import { loadManifest } from "../shared/manifest.js";
 import selfPath from "../shared/selfPath.js";
 
@@ -144,7 +144,7 @@ function newQueue<T extends Payload>(
   const fifo = queueName.endsWith(".fifo");
 
   const queueFn: QueueFunction<T> = async (payload, params) => {
-    const local = getLocalStorage();
+    const local = getExecutionContext();
 
     const { queues } = await loadManifest();
     if (!queues.has(queueName))

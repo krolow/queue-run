@@ -1,19 +1,14 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import { AuthenticatedUser } from "../shared/authenticated.js";
+import { AuthenticatedUser } from "./authenticated.js";
+import TimeoutError from "./TimeoutError.js";
 
 /* eslint-disable no-unused-vars */
 /**
- * LocalStorage exists to allow methods like `queue.push` or `socket.send` to be
- * used anywhere in the code.
- *
- * When the app calls `socket.send`, we need a) access to the runtime to queue
- * the message, b) access to the current content to know the user ID.
- *
- * Each runtime implements LocalStorage, so it can provide the necessary methods.
- *
- * The request handler will set the user after authentication.
+ * Context for executing request handlers and middleware:
+ * - Allows methods like `queue.push` and `socket.send` to exist
+ * - Manages abort signal, aborts on timeout or completion
  */
-export abstract class LocalStorage {
+export abstract class ExecutionContext {
   /**
    * object — Authenticated user
    * null — Anonymous user
@@ -24,7 +19,15 @@ export abstract class LocalStorage {
   /** WebSocket connection ID */
   public connectionId: string | undefined;
 
-  constructor() {}
+  private controller: AbortController;
+  private timer;
+  private endTime: number;
+
+  constructor({ timeout }: { timeout: number }) {
+    this.controller = new AbortController();
+    this.endTime = Date.now() + timeout * 1000;
+    this.timer = setTimeout(() => this.controller.abort(), timeout * 1000);
+  }
 
   queueJob(message: {
     dedupeId?: string | undefined;
@@ -64,39 +67,80 @@ export abstract class LocalStorage {
   }
 
   /**
-   * `withLocalStorag` will complain if you try to nest contexts. If you need to
+   * `withExecutionContext` will complain if you try to nest contexts. If you need to
    * break out of the current context, use this method (eg dev server does this
    * when queuing a job)
    */
   exit(callback: () => unknown): void {
     asyncLocal.exit(callback);
   }
+
+  /**
+   * Time remaining in the current context. In milliseconds.
+   */
+  get remainingTime(): number {
+    return Math.max(0, this.endTime - Date.now());
+  }
+
+  /**
+   * This abort signal is raised when the handler completes or times out.
+   */
+  get signal(): AbortSignal {
+    return this.controller.signal;
+  }
+
+  finalize() {
+    this.controller.abort();
+    clearTimeout(this.timer);
+  }
 }
 /* eslint-enable no-unused-vars */
 
-const asyncLocal = new AsyncLocalStorage<LocalStorage>();
+const asyncLocal = new AsyncLocalStorage<ExecutionContext>();
 
 /**
- * @returns The current LocalStorage instance
- * @throws Not executed from within withLocalStorage
+ * @returns The current execution context
+ * @throws Not inside an execution context
  */
-export function getLocalStorage(): LocalStorage {
+export function getExecutionContext(): ExecutionContext {
   const local = asyncLocal.getStore();
   if (!local) throw new Error("Runtime not available");
   return local;
 }
 
 /**
- * Execute function with the current LocalStorage instance.
+ * Execute function with the new execution context.
  *
- * @param localStorage New LocalStorage instance
+ * @param context New execution context
  * @param fn Function to execute
  * @returns Return value of the function
  */
-export function withLocalStorage<T>(
-  localStorage: LocalStorage,
-  fn: () => T
-): T {
+export async function withExecutionContext<T>(
+  context: ExecutionContext,
+  // eslint-disable-next-line no-unused-vars
+  fn: (context: ExecutionContext) => Promise<T> | T
+): Promise<T> {
   if (asyncLocal.getStore()) throw new Error("Can't nest runtimes");
-  return asyncLocal.run(localStorage, fn);
+  try {
+    return await Promise.race<T>([
+      asyncLocal.run(context, () => fn(context)),
+      new Promise((resolve, reject) =>
+        context.signal.addEventListener("abort", () =>
+          reject(new TimeoutError())
+        )
+      ),
+    ]);
+  } finally {
+    // Clear timeout and abort controller
+    context.finalize();
+  }
 }
+
+/**
+ * Function for creating a new execution context. Actual implementation depends
+ * on the runtime.
+ */
+// eslint-disable-next-line no-unused-vars
+export type NewExecutionContext = (args: {
+  timeout: number;
+}) => ExecutionContext;

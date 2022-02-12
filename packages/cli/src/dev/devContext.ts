@@ -2,11 +2,12 @@ import ms from "ms";
 import { EventEmitter } from "node:events";
 import {
   AuthenticatedUser,
-  getLocalStorage,
+  ExecutionContext,
+  getExecutionContext,
   handleQueuedJob,
   handleUserOffline,
   handleUserOnline,
-  LocalStorage,
+  NewExecutionContext,
 } from "queue-run";
 import { WebSocket } from "ws";
 
@@ -31,12 +32,12 @@ let queued = 0;
 // Emit idle event when queue is empty
 const events = new EventEmitter();
 
-export class DevLocalStorage extends LocalStorage {
+export class DevExecutionContext extends ExecutionContext {
   private port;
 
-  constructor(port: number) {
-    super();
-    this.port = port;
+  constructor(args: { port: number } & Parameters<NewExecutionContext>[0]) {
+    super(args);
+    this.port = args.port;
   }
 
   async queueJob({
@@ -83,7 +84,8 @@ export class DevLocalStorage extends LocalStorage {
               user: userId ? { id: userId } : null,
             },
             payload: serializedPayload,
-            newLocalStorage: () => new DevLocalStorage(this.port),
+            newExecutionContext: (args) =>
+              new DevExecutionContext({ port: this.port, ...args }),
             remainingTime: ms("30s"),
           });
         } finally {
@@ -105,10 +107,11 @@ export class DevLocalStorage extends LocalStorage {
 
       const wentOnline = connections.length === 0;
       if (wentOnline) {
-        getLocalStorage().exit(() =>
+        getExecutionContext().exit(() =>
           handleUserOnline({
             user,
-            newLocalStorage: () => new DevLocalStorage(this.port),
+            newExecutionContext: (args) =>
+              new DevExecutionContext({ port: this.port, ...args }),
           })
         );
       }
@@ -159,10 +162,10 @@ export function getUser(connection: string) {
 
 export function onWebSocketClosed({
   connectionId: connection,
-  newLocalStorage,
+  newExecutionContext,
 }: {
   connectionId: string;
-  newLocalStorage: () => LocalStorage;
+  newExecutionContext: NewExecutionContext;
 }) {
   sockets.delete(connection);
   const userId = connectionIdToUserId.get(connection);
@@ -173,7 +176,7 @@ export function onWebSocketClosed({
     );
     if (connections.length === 0) {
       userIdToConnectionId.delete(userId);
-      handleUserOffline({ user: { id: userId }, newLocalStorage });
+      handleUserOffline({ user: { id: userId }, newExecutionContext });
     } else userIdToConnectionId.set(userId, connections);
   }
 }

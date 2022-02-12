@@ -3,7 +3,7 @@ import {
   handleWebSocketConnect,
   handleWebSocketMessage,
   Headers,
-  LocalStorage,
+  NewExecutionContext,
 } from "queue-run";
 import { APIGatewayResponse } from "./handleHTTPRequest";
 import type userConnections from "./userConnections";
@@ -11,7 +11,7 @@ import type userConnections from "./userConnections";
 export default async function handleWebSocketRequest(
   event: APIGatewayWebSocketEvent,
   connections: ReturnType<typeof userConnections>,
-  newLocalStorage: () => LocalStorage
+  newLocalStorage: NewExecutionContext
 ): Promise<APIGatewayResponse | void> {
   switch (event.requestContext.eventType) {
     case "CONNECT":
@@ -26,7 +26,7 @@ export default async function handleWebSocketRequest(
 async function connect(
   event: APIGatewayWebSocketEvent,
   connections: ReturnType<typeof userConnections>,
-  newLocalStorage: () => LocalStorage
+  newExecutionContext: NewExecutionContext
 ): Promise<APIGatewayResponse> {
   const url = `wss://${event.requestContext.domainName}${event.requestContext.stage}`;
   const request = new Request(url, {
@@ -36,7 +36,7 @@ async function connect(
   try {
     const response = await handleWebSocketConnect({
       connectionId,
-      newLocalStorage,
+      newExecutionContext,
       request,
       requestId,
     });
@@ -63,7 +63,7 @@ async function connect(
 async function onMessage(
   event: APIGatewayWebSocketEvent,
   connections: ReturnType<typeof userConnections>,
-  newLocalStorage: () => LocalStorage
+  newExecutionContext: NewExecutionContext
 ): Promise<APIGatewayResponse> {
   const data = Buffer.from(
     event.body ?? "",
@@ -76,7 +76,7 @@ async function onMessage(
     await handleWebSocketMessage({
       connectionId: connectionId,
       data,
-      newLocalStorage,
+      newExecutionContext,
       requestId: event.requestContext.requestId,
       userId,
     });
@@ -98,14 +98,17 @@ async function onMessage(
 async function disconnect(
   event: APIGatewayWebSocketEvent,
   connections: ReturnType<typeof userConnections>,
-  newLocalStorage: () => LocalStorage
+  newExecutionContext: NewExecutionContext
 ): Promise<APIGatewayResponse> {
   const { connectionId } = event.requestContext;
   const { wentOffline, userId } = await connections.onDisconnected(
     connectionId
   );
   if (wentOffline && userId)
-    await handleUserOffline({ user: { id: userId }, newLocalStorage });
+    await handleUserOffline({
+      user: { id: userId },
+      newExecutionContext,
+    });
   return {
     headers: {},
     isBase64Encoded: false,

@@ -1,17 +1,15 @@
-import { AbortController } from "node-abort-controller";
 import { createHash } from "node:crypto";
 import { URL, URLSearchParams } from "node:url";
 import { XMLElement } from "xmlbuilder";
 import { AuthenticatedUser } from "../index.js";
 import { isElement, render } from "../jsx-runtime.js";
 import {
-  getLocalStorage,
-  LocalStorage,
-  withLocalStorage,
-} from "../shared/localStorage.js";
+  getExecutionContext,
+  NewExecutionContext,
+  withExecutionContext,
+} from "../shared/executionContext.js";
 import logger from "../shared/logger.js";
 import { HTTPRoute } from "../shared/manifest.js";
-import TimeoutError from "../shared/TimeoutError.js";
 import {
   HTTPRequest,
   HTTPRequestError,
@@ -26,11 +24,11 @@ import url from "./url.js";
 url.rootDir = "api/";
 
 export default async function handleHTTPRequest({
-  newLocalStorage,
+  newExecutionContext,
   request,
   requestId,
 }: {
-  newLocalStorage: () => LocalStorage;
+  newExecutionContext: NewExecutionContext;
   request: Request;
   requestId: string;
 }): Promise<Response> {
@@ -62,7 +60,7 @@ export default async function handleHTTPRequest({
       params,
       request,
       requestId,
-      newLocalStorage,
+      newExecutionContext,
       timeout: route.timeout,
     });
     logger.emit("response", request, response);
@@ -124,7 +122,7 @@ async function handleRoute({
   filename,
   handler,
   middleware,
-  newLocalStorage,
+  newExecutionContext,
   params,
   request,
   requestId,
@@ -135,29 +133,26 @@ async function handleRoute({
   filename: string;
   handler: RequestHandler;
   middleware: RouteMiddleware;
-  newLocalStorage: () => LocalStorage;
+  newExecutionContext: NewExecutionContext;
   params: { [key: string]: string | string[] };
   request: Request;
   requestId: string;
   timeout: number;
 }): Promise<Response> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeout * 1000);
-
   const body = hasBody(request) ? await bodyFromRequest(request.clone()) : null;
+  return await withExecutionContext(
+    newExecutionContext({ timeout }),
+    (context) => {
+      const metadata: Omit<HTTPRequest, "request" | "user"> = {
+        body: body as HTTPRequest["body"],
+        cookies: getCookies(request),
+        params,
+        query: getQuery(request),
+        requestId,
+        signal: context.signal,
+      };
 
-  const metadata: Omit<HTTPRequest, "request" | "user"> = {
-    body: body as HTTPRequest["body"],
-    cookies: getCookies(request),
-    params,
-    query: getQuery(request),
-    requestId,
-    signal: controller.signal,
-  };
-
-  try {
-    return await withLocalStorage(newLocalStorage(), () =>
-      runWithMiddleware({
+      return runWithMiddleware({
         config,
         corsHeaders,
         filename,
@@ -166,12 +161,9 @@ async function handleRoute({
         middleware,
         request,
         requestId,
-      })
-    );
-  } finally {
-    clearTimeout(timer);
-    controller.abort();
-  }
+      });
+    }
+  );
 }
 
 function getCookies(request: Request): { [key: string]: string } {
@@ -223,28 +215,16 @@ async function runWithMiddleware({
   requestId: string;
 }): Promise<Response> {
   try {
-    const { signal } = metadata;
+    const { onRequest } = middleware;
+    if (onRequest) await onRequest(request);
 
-    const result = await Promise.race([
-      (async () => {
-        const { onRequest } = middleware;
-        if (onRequest) await onRequest(request);
-
-        const user = await getAuthenticatedUser({
-          ...metadata,
-          middleware,
-          request,
-          requestId,
-        });
-        return await handler({ ...metadata, request, user });
-      })(),
-
-      new Promise<undefined>((resolve) =>
-        signal.addEventListener("abort", () => resolve(undefined))
-      ),
-    ]);
-
-    if (signal.aborted) throw new TimeoutError("Request aborted: timed out");
+    const user = await getAuthenticatedUser({
+      ...metadata,
+      middleware,
+      request,
+      requestId,
+    });
+    const result = await handler({ ...metadata, request, user });
 
     const response = await resultToResponse({
       addCacheControl: withCacheControl(request, config),
@@ -295,9 +275,9 @@ async function getAuthenticatedUser({
     username,
   });
   // The authenticate middleware may have called authenticated directly
-  if (!getLocalStorage().user && authenticated)
-    await getLocalStorage().authenticated(authenticated);
-  const { user } = getLocalStorage();
+  if (!getExecutionContext().user && authenticated)
+    await getExecutionContext().authenticated(authenticated);
+  const { user } = getExecutionContext();
   if (user !== undefined) return user;
 
   process.emitWarning(
