@@ -50,7 +50,7 @@ interface URLFunction {
    * @param path URL string or object, relative parth or absolute
    * @returns URL constructor function
    */
-  for<P extends Params, Q extends Params>(
+  for<P extends Params = Params, Q extends Params = Params>(
     path: string | URL
   ): URLConstructor<P, Q>;
 
@@ -62,7 +62,10 @@ interface URLFunction {
    * @returns URL constructor function
    * @throws Called not from within a request handler
    */
-  self<P extends Params, Q extends Params>(): URLConstructor<P, Q>;
+  self<P extends Params = Params, Q extends Params = Params>(): URLConstructor<
+    P,
+    Q
+  >;
 
   /**
    * Returns URL function with this base URL.
