@@ -1,4 +1,4 @@
-import glob from "fast-glob";
+import fs from "node:fs/promises";
 import path from "node:path";
 
 /**
@@ -24,10 +24,13 @@ export async function loadModule<ModuleExports, Middleware>(
   // Avoid path traversal. This will turn "foobar", "/foobar", and
   // "../../foobar" into "foobar".  Also prevents us from loading node modules.
   const fromProjectRoot = path.join("/", filename).slice(1);
-  const [absolute] = await glob(`${filename}{.mjs,.js,}`, {
-    absolute: true,
-  });
+  const absolute = await findFile(
+    fromProjectRoot,
+    `${fromProjectRoot}.mjs`,
+    `${fromProjectRoot}.js`
+  );
   if (!absolute) return null;
+
   const module = (await import(absolute)) as ModuleExports;
   const middleware = await loadMiddleware<Middleware>(
     path.dirname(fromProjectRoot),
@@ -70,15 +73,31 @@ export async function loadMiddleware<Middleware>(
           defaultMiddleware
         );
 
-  const [absolute] = await glob("_middleware.{mjs,js}", {
-    cwd: path.join(process.cwd(), dirname),
-    absolute: true,
-  });
+  const absolute = await findFile(
+    path.join(dirname, "_middleware.mjs"),
+    path.join(dirname, "_middleware.js")
+  );
   if (!absolute) return parent;
 
   const exports = await import(absolute);
   // This middleware's exports take precendece over parent's
   return combine(exports, parent);
+}
+
+/**
+ * Find which file exists based on possible names. Returns absolute path so we
+ * can import it.
+ */
+async function findFile(...filenames: string[]): Promise<string | null> {
+  for (const filename of filenames) {
+    try {
+      await fs.access(filename);
+      return path.resolve(filename);
+    } catch {
+      // Ignore
+    }
+  }
+  return null;
 }
 
 function combine<T = { [key: string]: Function }>(...middleware: T[]): T {
