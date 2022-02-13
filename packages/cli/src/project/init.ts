@@ -52,7 +52,7 @@ async function copyTemplates(language: "javascript" | "typescript") {
 
 async function createBaseDirectories() {
   const spinner = ora("Creating base directories").start();
-  const dirs = ["api", "queues", "socket"];
+  const dirs = ["api", "queues", "socket", "schedules"];
   for (const dir of dirs) {
     await fs.mkdir(dir, { recursive: true });
     spinner.succeed(`Created directory: ${dir}`);
