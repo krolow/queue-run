@@ -2522,7 +2522,7 @@
     "@docusaurus/utils-validation" "2.0.0-beta.15"
     tslib "^2.3.1"
 
-"@docusaurus/plugin-google-gtag@2.0.0-beta.15", "@docusaurus/plugin-google-gtag@^2.0.0-beta.15":
+"@docusaurus/plugin-google-gtag@2.0.0-beta.15":
   version "2.0.0-beta.15"
   resolved "https://registry.yarnpkg.com/@docusaurus/plugin-google-gtag/-/plugin-google-gtag-2.0.0-beta.15.tgz#4db3330d302653e8541dc3cb86a4dbfef0cc96f8"
   integrity sha512-E5Rm3+dN7i3A9V5uq5sl9xTNA3aXsLwTZEA2SpOkY571dCpd+sfVvz1lR+KRY9Fy6ZHk8PqrNImgCWfIerRuZQ==
@@ -2531,7 +2531,7 @@
     "@docusaurus/utils-validation" "2.0.0-beta.15"
     tslib "^2.3.1"
 
-"@docusaurus/plugin-sitemap@2.0.0-beta.15", "@docusaurus/plugin-sitemap@^2.0.0-beta.15":
+"@docusaurus/plugin-sitemap@2.0.0-beta.15":
   version "2.0.0-beta.15"
   resolved "https://registry.yarnpkg.com/@docusaurus/plugin-sitemap/-/plugin-sitemap-2.0.0-beta.15.tgz#0cc083d9e76041897e81b4b82bcd0ccbfa65d6e5"
   integrity sha512-PBjeQb2Qpe4uPdRefWL/eXCeYjrgNB/UArExYeUuP4wiY1dpw2unGNCvFUxv4hzJGmARoTLsnRkeYkUim809LQ==
@@ -6534,9 +6534,9 @@ flux@^4.0.1:
     fbjs "^3.0.1"
 
 follow-redirects@^1.0.0, follow-redirects@^1.14.0:
-  version "1.14.7"
-  resolved "https://registry.yarnpkg.com/follow-redirects/-/follow-redirects-1.14.7.tgz#2004c02eb9436eee9a21446a6477debf17e81685"
-  integrity sha512-+hbxoLbFMbRKDwohX8GkTataGqO6Jb7jGwpAlwgy2bIz25XtRm7KEzJM76R1WiNT5SwZkX4Y75SwBolkpmE7iQ==
+  version "1.14.8"
+  resolved "https://registry.yarnpkg.com/follow-redirects/-/follow-redirects-1.14.8.tgz#016996fb9a11a100566398b1c6839337d7bfa8fc"
+  integrity sha512-1x0S9UVJHsQprFcEC/qnNzBLcIxsjAV905f/UkQxbclCsoTWlacCNOpQa/anodLl2uaEKFhfWOvM2Qg77+15zA==
 
 fork-ts-checker-webpack-plugin@^6.5.0:
   version "6.5.0"
