@@ -1,0 +1,87 @@
+---
+title: Cheat Sheet
+---
+
+export function Entry({children, question}) {
+  const id =  question.replace(/\W+/g, '-').toLowerCase();
+  return (
+    <section itemScope="" itemProp="mainEntity" itemType="https://schema.org/Question">
+      <h3 class="anchor" id={id} itemProp="name">{question}</h3>
+      <div itemScope="" itemProp="acceptedAnswer" itemType="https://schema.org/Answer">
+        <div itemProp="text">
+          {children}
+        </div>
+      </div>
+    </section>    
+  );
+}
+
+export const FAQPage = () => (
+  <head>
+    <html itemScope="" itemType="https://schema.org/FAQPage"/>
+  </head>
+);
+
+<FAQPage/>
+<h1>{frontMatter.title}</h1>
+
+## Schedules
+
+<Entry question="How do I run a scheduled job?">
+
+- Add a file in the `schedules` directory
+- The file name is the schedule name that will show in the console, logs, etc
+- The default export is a function that will run on a schedule
+- The named export `schedule` specifies when and how often to run the function
+- Deploy
+
+For example:
+
+```ts title=schedules/daily_report.ts
+export default async function() {
+  // do some work here
+}
+
+export const schedule = "daily";
+```
+</Entry>
+
+<Entry question="How do I schedule a job to run every X?">
+
+You can use a [cron expression](https://crontab.guru):
+
+- `"0 * * * *"` will run at minute 0 every hour
+- `"0 0 * * *"` will run at midnight (UTC) every day
+- `"0 7 * * 1"` will run at 7:00 AM (UTC) every Monday
+- `"0 7 1 * *"` will run at 7:00 AM (UTC) on the first day of every month
+
+You can also use common expressions like "every 15 minutes", "hourly", "every day at 17:00", etc.
+
+</Entry>
+
+<Entry question="Do scheduled jobs have a time limit?">
+
+Yes. The default time limit is 5 minutes. However, if you schedule the job to run more frequently (eg every minute), the default timeout would be the time difference between each run.
+
+You can export `config.timeout` to extend the timeout up to the limit of 15 minutes. However, for longer jobs, you may want to [use queues instead](schedules#retries-and-queues).
+
+</Entry>
+
+<Entry question="How do I now if the scheduled job ran on time?">
+
+- `npx queue-run status` will show you each scheduled job, when it ran for the last time, and when it's expected to run again
+- `npx queue-run metrics schedule <name> -r 90d` will show metrics for the last 90 days (you can use any other time range)
+- `npx queue-run logs` will show you the server logs, with messages like `Job finished: name="daily" jobId="4b34115c-f94a-1c20-0a91-c4c22a9f436f"`
+
+See [Monitoring & Visibility](monitoring) for more details.
+
+</Entry>
+
+<Entry question="How do I monitor my scheduled jobs?">
+
+Monitoring should be separate from your backend so it's not subject to the same failure mode.
+
+Recommend using a 3rd party service like [cronitor.io](https://cronitor.io) or [healthchecks.io](https://healthchecks.io). See [Monitoring](schedules#monitoring) for more details.
+
+</Entry>
+

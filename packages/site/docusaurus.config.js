@@ -37,8 +37,8 @@ module.exports = {
       title: "🐇 QueueRun",
       hideOnScroll: true,
       items: [
-        { to: "/", label: "Docs" },
-        { to: "/faq", label: "FAQ" },
+        { to: "/", label: "Documentation" },
+        { to: "/cheatsheet", label: "Cheat Sheet" },
         {
           href: "https://github.com/assaf/queue-run",
           label: "GitHub",
