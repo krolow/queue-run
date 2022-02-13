@@ -1,6 +1,6 @@
 {
   "name": "queue-run-lambda",
-  "version": "0.12.0",
+  "version": "0.12.1",
   "module": "dist/index.mjs",
   "exports": {
     ".": "./dist/index.mjs"
@@ -21,7 +21,7 @@
     "@aws-sdk/client-apigatewaymanagementapi": "^3.50.0",
     "@aws-sdk/client-dynamodb": "^3.50.0",
     "@aws-sdk/client-sqs": "^3.50.0",
-    "queue-run": "^0.12.0",
+    "queue-run": "^0.12.1",
     "tiny-invariant": "^1.2.0"
   },
   "engines": {
