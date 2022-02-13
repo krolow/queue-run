@@ -45,10 +45,10 @@ logger.on("error", (error: Error) => {
       error.stack
     );
   } else if (error instanceof ScheduledJobError) {
-    const { jobId, queueName: name } = error;
+    const { jobId, scheduleName } = error;
     console.error(
       "Scheduled job failed on %s: %s: %s",
-      name,
+      scheduleName,
       jobId,
       String(error),
       error.stack

@@ -46,17 +46,17 @@ export type ScheduleConfig = {
 
 export class ScheduledJobError extends Error {
   readonly cause: unknown;
-  readonly queueName: string;
+  readonly scheduleName: string;
   readonly jobId: string;
 
   constructor(
     cause: unknown,
-    { jobId, name }: { jobId: string; name: string }
+    { jobId, scheduleName }: { jobId: string; scheduleName: string }
   ) {
     super(String(cause));
     this.cause = cause;
     this.jobId = jobId;
-    this.queueName = name;
+    this.scheduleName = scheduleName;
   }
 
   get stack() {

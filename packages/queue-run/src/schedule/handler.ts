@@ -43,6 +43,6 @@ export default async function handleScheduledJob({
       }
     );
   } catch (error) {
-    throw new ScheduledJobError(error, { name, jobId });
+    throw new ScheduledJobError(error, { scheduleName: name, jobId });
   }
 }
