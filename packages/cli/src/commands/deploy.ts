@@ -9,7 +9,7 @@ import {
   setupIntegrations,
 } from "queue-run-builder";
 import invariant from "tiny-invariant";
-import { loadCredentials } from "../config.js";
+import { loadCredentials } from "../shared/config.js";
 
 const command = new Command("deploy")
   .description("deploy your project")

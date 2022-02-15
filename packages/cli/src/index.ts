@@ -1,51 +1,37 @@
 import { Command } from "commander";
-import fs from "node:fs";
-import devCommand from "./dev/index.js";
-import buildCommand from "./local/build.js";
-import policyCommand from "./local/policy.js";
-import deployCommand from "./project/deploy.js";
-import domainCommand from "./project/domain.js";
-import envvarsCommand from "./project/envvars.js";
-import initCommand from "./project/init.js";
-import logsCommand from "./project/logs.js";
-import metricsCommand from "./project/metrics.js";
-import provisionedCommand from "./project/provisioned.js";
-import queueCommand from "./project/queue.js";
-import reservedCommand from "./project/reserved.js";
-import rollbackCommand from "./project/rollback.js";
-import scheduleCommand from "./project/schedule.js";
-import statusCommand from "./project/status.js";
+import glob from "fast-glob";
+import fs from "node:fs/promises";
 
-const program = new Command("npx queue-run");
+export default async function () {
+  const program = new Command("npx queue-run");
+  const { version } = JSON.parse(
+    await fs.readFile(
+      new URL("../package.json", import.meta.url).pathname,
+      "utf-8"
+    )
+  );
+  program.version(version);
 
-program.addCommand(buildCommand);
-program.addCommand(deployCommand);
-program.addCommand(devCommand);
-program.addCommand(domainCommand);
-program.addCommand(envvarsCommand);
-program.addCommand(initCommand);
-program.addCommand(logsCommand);
-program.addCommand(metricsCommand);
-program.addCommand(policyCommand);
-program.addCommand(provisionedCommand);
-program.addCommand(queueCommand);
-program.addCommand(reservedCommand);
-program.addCommand(rollbackCommand);
-program.addCommand(scheduleCommand);
-program.addCommand(statusCommand);
+  program.showSuggestionAfterError();
+  program.addHelpCommand();
+  program.showHelpAfterError();
 
-const { version } = JSON.parse(
-  fs.readFileSync(new URL("../package.json", import.meta.url).pathname, "utf-8")
-);
-program.version(version);
+  program.configureHelp({
+    sortSubcommands: true,
+    sortOptions: true,
+  });
 
-program.showSuggestionAfterError();
-program.addHelpCommand();
-program.showHelpAfterError();
-
-program.configureHelp({
-  sortSubcommands: true,
-  sortOptions: true,
-});
-
-export default program;
+  const dirname = new URL("./commands/*.js", import.meta.url).pathname;
+  const filenames = await glob(dirname);
+  if (filenames.length === 0) throw new Error("No commands found");
+  const commands = await Promise.all(
+    filenames.map(async (filename) => {
+      const { default: command } = await import(filename);
+      if (!(command && command instanceof Command))
+        throw new Error(`The file ${filename} does not export a command`);
+      return command;
+    })
+  );
+  for (const command of commands) program.addCommand(command);
+  return program;
+}

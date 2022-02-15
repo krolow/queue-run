@@ -1,5 +1,5 @@
 import { Command, Option } from "commander";
-import devServer from "./devServer.js";
+import devServer from "../dev/devServer.js";
 
 const command = new Command("dev")
   .description("run the development server")

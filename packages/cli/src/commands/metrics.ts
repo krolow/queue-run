@@ -3,8 +3,8 @@ import { Command, Option } from "commander";
 import ms from "ms";
 import ora from "ora";
 import { displayTable, getAPIGatewayURLs } from "queue-run-builder";
-import { loadCredentials } from "../config.js";
-import { localTime, localTimestamp } from "../timestamp.js";
+import { loadCredentials } from "../shared/config.js";
+import { localTime, localTimestamp } from "../shared/timestamp.js";
 
 const command = new Command("metrics").description("show execution metrics");
 

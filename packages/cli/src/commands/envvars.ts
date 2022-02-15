@@ -6,7 +6,7 @@ import {
   getEnvVariables,
   setEnvVariable,
 } from "queue-run-builder";
-import { loadCredentials } from "../config.js";
+import { loadCredentials } from "../shared/config.js";
 
 const command = new Command("env")
   .description("manage environment variables")

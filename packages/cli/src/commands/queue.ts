@@ -5,7 +5,7 @@ import readline from "node:readline";
 import { URL } from "node:url";
 import ora from "ora";
 import invariant from "tiny-invariant";
-import { loadCredentials } from "../config.js";
+import { loadCredentials } from "../shared/config.js";
 
 const command = new Command("queue")
   .description("runs the job using queue handler")
