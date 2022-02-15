@@ -3,8 +3,8 @@ import chalk from "chalk";
 import { Command, Option } from "commander";
 import ms from "ms";
 import ora from "ora";
-import { loadCredentials } from "./project.js";
-import { localTimestamp } from "./timestamp.js";
+import { loadCredentials } from "../config.js";
+import { localTimestamp } from "../timestamp.js";
 
 const command = new Command("logs")
   .description("view server logs")

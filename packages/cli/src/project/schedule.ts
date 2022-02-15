@@ -1,7 +1,7 @@
 import { Lambda } from "@aws-sdk/client-lambda";
 import { Command, Option } from "commander";
 import ora from "ora";
-import { loadCredentials } from "./project.js";
+import { loadCredentials } from "../config.js";
 
 const command = new Command("schedule")
   .description("manually run a scheduled job")

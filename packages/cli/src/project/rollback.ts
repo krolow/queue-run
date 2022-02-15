@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import inquirer from "inquirer";
 import { getRecentVersions, updateAlias } from "queue-run-builder";
-import { loadCredentials } from "./project.js";
+import { loadCredentials } from "../config.js";
 
 const command = new Command("rollback")
   .description("roll back to previous version")

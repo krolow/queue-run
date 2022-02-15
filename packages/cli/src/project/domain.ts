@@ -11,7 +11,7 @@ import {
   requestCertificate,
 } from "queue-run-builder";
 import invariant from "tiny-invariant";
-import { loadCredentials } from "./project.js";
+import { loadCredentials } from "../config.js";
 
 const command = new Command("domain");
 

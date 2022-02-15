@@ -10,8 +10,8 @@ import {
   listQueues,
   listSchedules,
 } from "queue-run-builder";
-import { loadCredentials } from "./project.js";
-import { localTimestamp } from "./timestamp.js";
+import { loadCredentials } from "../config.js";
+import { localTimestamp } from "../timestamp.js";
 
 const command = new Command("status")
   .description("status of your project")

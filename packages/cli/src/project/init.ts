@@ -6,7 +6,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { URL } from "node:url";
 import ora from "ora";
-import { loadProject } from "./project.js";
+import { loadProject } from "../config.js";
 
 const command = new Command("init")
   .description("setup a new project")

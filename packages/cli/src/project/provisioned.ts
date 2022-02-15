@@ -1,7 +1,7 @@
 import { Lambda } from "@aws-sdk/client-lambda";
 import { Command } from "commander";
 import ora from "ora";
-import { loadCredentials } from "./project.js";
+import { loadCredentials } from "../config.js";
 
 const command = new Command("provisioned")
   .description("set provisioned concurrency")
