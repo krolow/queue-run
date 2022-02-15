@@ -1,10 +1,8 @@
 import { Sema } from "async-sema";
 import chalk from "chalk";
 import * as chokidar from "chokidar";
-import dotenv from "dotenv";
 import ms from "ms";
 import cluster from "node:cluster";
-import fs from "node:fs/promises";
 import { createServer, IncomingMessage, ServerResponse } from "node:http";
 import path from "node:path";
 import process from "node:process";
@@ -31,6 +29,7 @@ import {
   onWebSocketAccepted,
   onWebSocketClosed,
 } from "./devContext.js";
+import loadEnvVars from "./loadEnvVars.js";
 
 // Make sure we're not building the project in parallel.
 const blockOnBuild = new Sema(1);
@@ -39,22 +38,15 @@ const sourceDir = process.cwd();
 const buildDir = path.resolve(".queue-run");
 
 export default async function devServer({
-  envVars,
+  cliEnvVars,
   port,
 }: {
-  envVars: Map<string, string>;
+  cliEnvVars: string[];
   port: number;
 }) {
   cluster.setupMaster({
     exec: new URL(import.meta.url).pathname,
   });
-
-  const fromFile = await fs.readFile(`.env`, "utf-8").then(
-    (file) => dotenv.parse(file),
-    () => ({})
-  );
-  for (const [key, value] of Object.entries(fromFile))
-    if (!envVars.has(key)) envVars.set(key, value);
 
   console.info(
     chalk.bold.green("👋 Dev server listening on:\n   %s\n   %s"),
@@ -62,7 +54,7 @@ export default async function devServer({
     `ws://localhost:${port}`
   );
 
-  await newWorker({ envVars, port });
+  await newWorker({ cliEnvVars, port });
 
   console.info(chalk.gray("   Watching for changes (Crtl+R to reload) …"));
   chokidar
@@ -116,22 +108,17 @@ export default async function devServer({
 }
 
 async function newWorker({
-  envVars,
+  cliEnvVars,
   port,
 }: {
-  envVars: Map<string, string>;
+  cliEnvVars: string[];
   port: number;
 }) {
   const token = await blockOnBuild.acquire();
-
+  const envVars = await loadEnvVars({ cliEnvVars, port, sourceDir });
   const worker = cluster.fork({
-    ...Object.fromEntries(envVars.entries()),
-    NODE_ENV: "development",
+    ...envVars,
     PORT: port,
-    QUEUE_RUN_ENV: "development",
-    QUEUE_RUN_INDENT: "2",
-    QUEUE_RUN_URL: `http://localhost:${port}`,
-    QUEUE_RUN_WS: `ws://localhost:${port}`,
   });
 
   // For some reason we need to reset this every time we fork
@@ -148,8 +135,8 @@ async function newWorker({
   blockOnBuild.release(token);
 
   if (worker.isDead()) {
-    setTimeout(() => newWorker({ envVars, port }), 1000);
-  } else worker.on("exit", () => newWorker({ envVars, port }));
+    setTimeout(() => newWorker({ cliEnvVars, port }), 1000);
+  } else worker.on("exit", () => newWorker({ cliEnvVars, port }));
 }
 
 function restart() {

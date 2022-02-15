@@ -1,5 +1,4 @@
 import { Command, Option } from "commander";
-import dotenv from "dotenv";
 import ms from "ms";
 import path from "node:path";
 import {
@@ -10,7 +9,8 @@ import {
   withExecutionContext,
 } from "queue-run";
 import { buildProject } from "queue-run-builder";
-import { DevExecutionContext } from "../dev/devContext.js";
+import { DevExecutionContext } from "../local/devContext.js";
+import loadEnvVars from "../local/loadEnvVars.js";
 
 const command = new Command("run")
   .description("run the file locally")
@@ -35,9 +35,11 @@ Use --environment to override these environment variables.
       { environment, timeout }: { environment: string[]; timeout: string }
     ) => {
       const port = 8000;
-      setEnvVars(environment, port);
+      const sourceDir = process.cwd();
       const buildDir = path.resolve(".queue-run");
-      await buildProject({ buildDir, sourceDir: process.cwd() });
+
+      await loadEnvVars({ sourceDir, cliEnvVars: environment, port });
+      await buildProject({ buildDir, sourceDir });
 
       process.chdir(buildDir);
       url.baseUrl = process.env.QUEUE_RUN_URL;
@@ -57,29 +59,5 @@ Use --environment to override these environment variables.
       );
     }
   );
-
-async function setEnvVars(envVars: string[], port: number) {
-  dotenv.config({ path: ".env" });
-
-  for (const envVar of envVars) {
-    const match = envVar.match(/^([^=]+)=(.*)$/)?.slice(1);
-    if (!match)
-      throw new Error('Environment variable must be in the form "name=value"');
-    const [key, value] = match;
-    process.env[key!] = value;
-  }
-
-  // @ts-ignore
-  process.env.NODE_ENV = process.env.NODE_ENV ?? "development";
-  // @ts-ignore
-  process.env.QUEUE_RUN_ENV =
-    process.env.NODE_ENV === "development" ? "development" : "production";
-  // @ts-ignore
-  process.env.QUEUE_RUN_INDENT = "2";
-  // @ts-ignore
-  process.env.QUEUE_RUN_URL = `http://localhost:${port}`;
-  // @ts-ignore
-  process.env.QUEUE_RUN_WS = `ws://localhost:${port}`;
-}
 
 export default command;
