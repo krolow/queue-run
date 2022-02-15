@@ -38,7 +38,7 @@ Use --environment to override these environment variables.
       const sourceDir = process.cwd();
       const buildDir = path.resolve(".queue-run");
 
-      await loadEnvVars({ sourceDir, cliEnvVars: environment, port });
+      await loadEnvVars({ cliEnvVars: environment, port });
       await buildProject({ buildDir, sourceDir });
 
       process.chdir(buildDir);
