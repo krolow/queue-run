@@ -5,8 +5,8 @@ import {
   Headers,
   NewExecutionContext,
 } from "queue-run";
-import { APIGatewayResponse } from "./handleHTTPRequest";
-import type userConnections from "./userConnections";
+import { APIGatewayResponse } from "./handle_http_request";
+import type userConnections from "./user_connections";
 
 export default async function handleWebSocketRequest(
   event: APIGatewayWebSocketEvent,

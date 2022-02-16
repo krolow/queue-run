@@ -1,5 +1,5 @@
 import invariant from "tiny-invariant";
-import { loadMiddleware, loadModule } from "../shared/loadModule.js";
+import { loadMiddleware, loadModule } from "../shared/load_module.js";
 import { loadManifest, WebSocketRoute } from "../shared/manifest.js";
 import { WebSocketExports, WebSocketMiddleware } from "./exports.js";
 

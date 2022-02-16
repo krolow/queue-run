@@ -24,7 +24,7 @@ import {
   getUser as getUserId,
   onWebSocketAccepted,
   onWebSocketClosed,
-} from "./devContext.js";
+} from "./dev_context.js";
 
 const sourceDir = process.cwd();
 const buildDir = path.resolve(".queue-run");

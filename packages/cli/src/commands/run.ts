@@ -9,8 +9,8 @@ import {
   withExecutionContext,
 } from "queue-run";
 import { buildProject } from "queue-run-builder";
-import { DevExecutionContext } from "../local/devContext.js";
-import loadEnvVars from "../local/loadEnvVars.js";
+import { DevExecutionContext } from "../local/dev_context.js";
+import loadEnvVars from "../local/load_env_vars.js";
 
 const command = new Command("run")
   .description("run the file locally")

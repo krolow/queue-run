@@ -1,6 +1,6 @@
 import { URL } from "node:url";
 import invariant from "tiny-invariant";
-import { loadModule } from "../shared/loadModule.js";
+import { loadModule } from "../shared/load_module.js";
 import { HTTPRoute, loadManifest } from "../shared/manifest.js";
 import { RouteExports, RouteMiddleware } from "./exports.js";
 

@@ -1,9 +1,9 @@
-import "./errorHandling.js";
+import "./error_handling.js";
 import {
   NewExecutionContext,
   withExecutionContext,
-} from "./executionContext.js";
-import { loadModule } from "./loadModule.js";
+} from "./execution_context.js";
+import { loadModule } from "./load_module.js";
 import "./logger.js";
 
 type WarmupFunction = () => Promise<void>;

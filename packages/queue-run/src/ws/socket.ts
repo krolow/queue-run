@@ -1,5 +1,5 @@
 import { Blob } from "../http/fetch.js";
-import { getExecutionContext } from "../shared/executionContext.js";
+import { getExecutionContext } from "../shared/execution_context.js";
 import { onMessageSentAsync } from "./handler.js";
 
 type Payload = object | string | ArrayBuffer | Blob | Buffer;

@@ -1,8 +1,8 @@
 import { RequestHandler } from "../http/exports.js";
 import { Response } from "../http/fetch.js";
-import { getExecutionContext } from "../shared/executionContext.js";
+import { getExecutionContext } from "../shared/execution_context.js";
 import { loadManifest } from "../shared/manifest.js";
-import selfPath from "../shared/selfPath.js";
+import selfPath from "../shared/self_path.js";
 
 type Payload = Buffer | string | object;
 type Params = { [key: string]: string | string[] };

@@ -1,7 +1,7 @@
 import { getExecutionContext } from "..";
-import { NewExecutionContext } from "../shared/executionContext";
-import { withExecutionContext } from "../shared/executionContext.js";
-import { loadMiddleware } from "../shared/loadModule.js";
+import { NewExecutionContext } from "../shared/execution_context";
+import { withExecutionContext } from "../shared/execution_context.js";
+import { loadMiddleware } from "../shared/load_module.js";
 import logger from "../shared/logger.js";
 import { HTTPRequestError } from "./../http/exports";
 import type { JSONValue } from "./../json";
@@ -12,7 +12,7 @@ import {
   WebSocketMiddleware,
   WebSocketRequest,
 } from "./exports.js";
-import findRoute from "./findRoute.js";
+import findRoute from "./find_route.js";
 
 const middlewareTimeout = 10; // seconds
 

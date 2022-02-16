@@ -1,5 +1,5 @@
 import { Command, Option } from "commander";
-import loadEnvVars from "../local/loadEnvVars.js";
+import loadEnvVars from "../local/load_env_vars.js";
 
 const command = new Command("dev")
   .description("run the development server")
@@ -27,7 +27,7 @@ The --environment option can be used to override these environment variables.
     async ({ port, environment }: { port: number; environment: string[] }) => {
       await loadEnvVars({ cliEnvVars: environment, port });
       process.env.PORT = port.toString();
-      await import("../local/devServer.js");
+      await import("../local/dev_server.js");
     }
   );
 

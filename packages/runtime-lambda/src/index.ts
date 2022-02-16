@@ -22,17 +22,17 @@ import handleHTTPRequest, {
   APIGatewayHTTPEvent,
   APIGatewayResponse,
   BackendLambdaRequest,
-} from "./handleHTTPRequest";
-import handleScheduledEvent, { ScheduledEvent } from "./handleScheduledEvent";
+} from "./handle_http_request";
+import handleScheduledEvent, { ScheduledEvent } from "./handle_scheduled_event";
 import handleSQSMessages, {
   SQSBatchResponse,
   SQSMessage,
-} from "./handleSQSMessages";
+} from "./handle_sqs_messages";
 import handleWebSocketRequest, {
   APIGatewayWebSocketEvent,
-} from "./handleWebSocket";
+} from "./handle_websocket";
 import queueJob from "./queueJob";
-import userConnections from "./userConnections";
+import userConnections from "./user_connections";
 
 logger.removeAllListeners("log");
 logger.addListener("log", (level, ...args) => {

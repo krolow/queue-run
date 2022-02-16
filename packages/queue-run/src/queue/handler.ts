@@ -1,8 +1,8 @@
 import invariant from "tiny-invariant";
 import type { JSONObject } from "../json";
-import { NewExecutionContext } from "../shared/executionContext";
-import { withExecutionContext } from "../shared/executionContext.js";
-import { loadModule } from "../shared/loadModule.js";
+import { NewExecutionContext } from "../shared/execution_context";
+import { withExecutionContext } from "../shared/execution_context.js";
+import { loadModule } from "../shared/load_module.js";
 import logger from "../shared/logger.js";
 import { loadManifest } from "../shared/manifest.js";
 import { QueuedJobError, QueuedJobMetadata, QueueExports } from "./exports.js";

@@ -1,7 +1,7 @@
 import { AbortController } from "node-abort-controller";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { AuthenticatedUser } from "./authenticated.js";
-import TimeoutError from "./TimeoutError.js";
+import TimeoutError from "./timeout_error.js";
 
 /* eslint-disable no-unused-vars */
 /**
