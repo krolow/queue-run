@@ -237,10 +237,11 @@ async function switchOver({
   });
 
   await removeTriggers({ lambdaArn: aliasArn, sourceArns: queueArns, region });
+  const active = schedules.filter(({ cron }) => cron !== null);
   await removeUnusedSchedules({
     lambdaArn: aliasArn,
     region,
-    schedules: new Set(schedules.map(({ name }) => name)),
+    schedules: new Set(active.map(({ name }) => name)),
   });
 
   // Update alias to point to new version.
@@ -257,7 +258,7 @@ async function switchOver({
   //
   //   trigger {projectId}-{branch}__{queueName} => {projectId}-{branch}
   await addTriggers({ lambdaArn: aliasArn, sourceArns: queueArns, region });
-  await updateSchedules({ lambdaArn: aliasArn, region, schedules });
+  await updateSchedules({ lambdaArn: aliasArn, region, schedules: active });
 
   ora(`This is version ${versionArn.split(":").slice(-1)[0]}`).succeed();
 

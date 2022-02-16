@@ -28,7 +28,7 @@ export type QueueService = {
 };
 
 export type ScheduledJob = {
-  cron: string;
+  cron: string | null;
   filename: string;
   name: string;
   original: string;
@@ -67,7 +67,7 @@ export type Manifest = {
     timeout: number;
   }>;
   schedules: Array<{
-    cron: string;
+    cron: string | null;
     filename: string;
     name: string;
     original: string;

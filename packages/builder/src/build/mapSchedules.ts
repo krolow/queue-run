@@ -26,8 +26,6 @@ export default async function mapSchedules(): Promise<Manifest["schedules"]> {
 
         const name = scheduleNameFromFilename(filename);
         const cron = getSchedule(module.schedule);
-        if (typeof cron !== "string")
-          throw new Error("Expected module to export const schedule : string");
 
         const config = module.config ?? {};
         const timeout = getTimeout({
@@ -49,7 +47,12 @@ export default async function mapSchedules(): Promise<Manifest["schedules"]> {
   );
 }
 
-function getSchedule(schedule: string): string {
+function getSchedule(schedule: string | false): string | null {
+  if (schedule === "never" || schedule === false || schedule === null)
+    return null;
+  if (typeof schedule !== "string")
+    throw new Error("Expected module to export const schedule : string");
+
   // Very useful but not supported by friendly-node-cron:
   if (/^hourly$/i.test(schedule)) return "0 * * * *";
   if (/^daily$/i.test(schedule)) return "0 0 * * *";
@@ -58,7 +61,7 @@ function getSchedule(schedule: string): string {
   // https://www.npmjs.com/package/friendly-node-cron
   const friendly = friendlyCron(schedule);
   // Drop the seconds prefix, since we don't support it
-  if (friendly) schedule = friendly.replace(/^\S+\s+/, "");
+  if (friendly) schedule = friendly.replace(/^\S+\s+/, "") as string;
 
   try {
     // Validate cron expression
@@ -89,14 +92,10 @@ function getTimeout({
   cron,
   timeout,
 }: {
-  cron: string;
+  cron: string | null;
   timeout: number | undefined | null;
 }): number {
-  const parsed = cronParser.parseExpression(cron, { utc: true });
-  const [first, second] = [parsed.next(), parsed.next()];
-  const spacing =
-    first && second ? (second.getTime() - first.getTime()) / 1000 : undefined;
-
+  const spacing = getSpacing(cron);
   if (timeout === undefined || timeout === null)
     return spacing ? Math.min(spacing, defaultTimeout) : defaultTimeout;
   if (typeof timeout !== "number")
@@ -109,6 +108,15 @@ function getTimeout({
       "config.timeout cannot be greater than duration between runs"
     );
   return timeout;
+}
+
+function getSpacing(cron: string | null): number | undefined {
+  if (cron === null) return undefined;
+  const parsed = cronParser.parseExpression(cron, { utc: true });
+  const [first, second] = [parsed.next(), parsed.next()];
+  return first && second
+    ? (second.getTime() - first.getTime()) / 1000
+    : undefined;
 }
 
 async function getOriginalFilename(filename: string) {

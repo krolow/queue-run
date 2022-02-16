@@ -24,8 +24,10 @@ export type ScheduledJobMetadata = {
   name: string;
   /**
    * The schedule as cron expression.
+   *
+   * Use null or "never" to disable the schedule.
    */
-  cron: string;
+  cron: string | "never" | null;
 };
 
 /**

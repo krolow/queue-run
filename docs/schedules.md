@@ -188,14 +188,24 @@ npx queue-run dev schedule my_schedule
 If you have a maintenance window, you can use `npx queue-run reserved 0` to shut down your backend ([learn more](optimizing#reserved-concurrency)). This will also disable all scheduled jobs until you add or reset reserved concurrency.
 
 
+## Schedule Never
+
+The schedule value "never", `false`, or `null`, means that schedule job would not run on its own.
+
+You can use this to to temporarily take a scheduled job out of rotation, without having to delete the code. Simply change the scheduled and re-deploy.
+
+You can also use this to create scheduled jobs that you [run manually](#run-job-manually).
+
+
 ## Run Job Manually
 
-There are cases when you need to run a job outside its schedule.
+There are cases when you need to run a job outside its normal schedule, or on your schedule.
 
-You can manually trigger a scheduled job in production using the `schedule` command:
+You can trigger a scheduled job in production using the `schedule` command:
 
 ```bash
 npx queue-run schedule my_schedule
+npx queue-run logs
 ```
 
 

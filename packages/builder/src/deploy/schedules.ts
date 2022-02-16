@@ -45,6 +45,8 @@ async function updateSchedule({
   lambdaArn: string;
   schedule: ScheduledJob;
 }) {
+  if (schedule.cron === null) return;
+
   const [region, accountId, lambdaName] = lambdaArn
     .match(/arn:aws:lambda:(.*):(.*):function:(.*):/)!
     .slice(1);

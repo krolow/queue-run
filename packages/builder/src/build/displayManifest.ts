@@ -12,7 +12,7 @@ export default async function displayManifest(dirname: string) {
   );
   const socket = tabulate(manifest.socket, ({ path }) => path);
   const queues = tabulate(manifest.queues, ({ queueName }) => queueName);
-  const schedules = tabulate(manifest.schedules, ({ cron }) => cron);
+  const schedules = tabulate(manifest.schedules, ({ cron }) => cron ?? "never");
 
   const colWidths = calculate(routes, socket, queues, schedules);
 
