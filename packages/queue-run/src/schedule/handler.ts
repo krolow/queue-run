@@ -35,10 +35,9 @@ export default async function handleScheduledJob({
           name,
           jobId,
           cron: schedule.cron,
-          signal: context.signal,
         };
         logger.emit("scheduleStarted", metadata);
-        await module.default(metadata);
+        await module.default({ ...metadata, signal: context.signal });
         logger.emit("scheduleFinished", metadata);
       }
     );

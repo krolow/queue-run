@@ -21,7 +21,12 @@ import type { JSONObject, JSONValue } from "../json";
 export type QueueHandler<
   T extends Payload = JSONObject,
   P extends Params = Params
-> = (payload: T, metadata: QueuedJobMetadata<P>) => Promise<void> | void;
+> = (
+  payload: T,
+  metadata: QueuedJobMetadata<P> & {
+    signal: AbortSignal;
+  }
+) => Promise<void> | void;
 
 /**
  * FIFO queue handler is similar to standard queue handler, but also has
@@ -34,6 +39,7 @@ export type FIFOQueueHandler<
   metadata: QueuedJobMetadata<P & { group: string; dedupe?: string }> & {
     groupId: string;
     sequenceNumber: number;
+    signal: AbortSignal;
   };
 };
 
@@ -73,10 +79,6 @@ export type QueuedJobMetadata<P = Params> = {
    * The sequence number of this job within the group. (FIFO queues only)
    */
   sequenceNumber: number | undefined;
-  /**
-   * Abort signal notified when the job is aborted due to a timeout.
-   */
-  signal: AbortSignal;
   /**
    * If authenticated, this object has the user ID.
    */

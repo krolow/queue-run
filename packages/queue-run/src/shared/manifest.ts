@@ -165,7 +165,13 @@ export async function writeManifest({
     timeout: getTimeout({ queues, routes, schedules, socket }),
   };
 
-  const manifest: Manifest = { limits, queues, routes, schedules, socket };
+  const manifest: Manifest = {
+    limits,
+    queues,
+    routes,
+    schedules,
+    socket,
+  };
   await fs.writeFile("manifest.json", JSON.stringify(manifest), "utf-8");
   return manifest;
 }

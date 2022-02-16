@@ -4,8 +4,8 @@ import { EventEmitter } from "node:events";
 import { URL } from "node:url";
 import { formatWithOptions } from "node:util";
 import { QueuedJobMetadata as QueueJobMetadata } from "../queue/exports.js";
-import { ScheduledJobMetadata as ScheduleJobMetadata } from "../schedule/exports.js";
 import { WebSocketRequest } from "../ws/exports.js";
+import { ScheduledJobMetadata } from "./../schedule/exports";
 
 type LogLevel = "debug" | "verbose" | "info" | "warn" | "error";
 
@@ -165,11 +165,8 @@ declare interface Logger {
    * @param event queueStarted
    * @param listener Called with job metadata
    */
-  on(
-    event: "queueStarted",
-    listener: (job: Omit<QueueJobMetadata, "signal">) => void
-  ): this;
-  emit(event: "queueStarted", job: Omit<QueueJobMetadata, "signal">): boolean;
+  on(event: "queueStarted", listener: (job: QueueJobMetadata) => void): this;
+  emit(event: "queueStarted", job: QueueJobMetadata): boolean;
 
   /**
    * This event emitted for every queue job that finished successfully.
@@ -177,26 +174,20 @@ declare interface Logger {
    * @param event queueFinished
    * @param listener Called with job metadata
    */
-  on(
-    event: "queueFinished",
-    listener: (job: Omit<QueueJobMetadata, "signal">) => void
-  ): this;
-  emit(event: "queueFinished", job: Omit<QueueJobMetadata, "signal">): boolean;
+  on(event: "queueFinished", listener: (job: QueueJobMetadata) => void): this;
+  emit(event: "queueFinished", job: QueueJobMetadata): boolean;
 
   /**
-   * This event emitted for every scheduled job.
+   * This event emitted for every scheduled job executed.
    *
    * @param event scheduleStarted
    * @param listener Called with job metadata
    */
   on(
     event: "scheduleStarted",
-    listener: (job: Omit<ScheduleJobMetadata, "signal">) => void
+    listener: (job: ScheduledJobMetadata) => void
   ): this;
-  emit(
-    event: "scheduleStarted",
-    job: Omit<ScheduleJobMetadata, "signal">
-  ): boolean;
+  emit(event: "scheduleStarted", job: ScheduledJobMetadata): boolean;
 
   /**
    * This event emitted for every scheduled job that finished successfully.
@@ -206,12 +197,9 @@ declare interface Logger {
    */
   on(
     event: "scheduleFinished",
-    listener: (job: Omit<ScheduleJobMetadata, "signal">) => void
+    listener: (job: ScheduledJobMetadata) => void
   ): this;
-  emit(
-    event: "scheduleFinished",
-    job: Omit<ScheduleJobMetadata, "signal">
-  ): boolean;
+  emit(event: "scheduleFinished", job: ScheduledJobMetadata): boolean;
 
   /**
    * This event emitted on every WebSocket request from the client.

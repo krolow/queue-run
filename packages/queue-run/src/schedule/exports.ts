@@ -7,7 +7,7 @@ import type { AbortSignal } from "node-abort-controller";
  * @param metadata Metadata about the job
  */
 export type ScheduleHandler = (
-  metadata: ScheduledJobMetadata
+  metadata: ScheduledJobMetadata & { signal: AbortSignal }
 ) => Promise<void> | void;
 
 /**
@@ -26,10 +26,6 @@ export type ScheduledJobMetadata = {
    * The schedule as cron expression.
    */
   cron: string;
-  /**
-   * Abort signal notified when the job is aborted due to a timeout.
-   */
-  signal: AbortSignal;
 };
 
 /**
