@@ -194,7 +194,11 @@ The schedule value "never", `false`, or `null`, means that schedule job would no
 
 You can use this to to temporarily take a scheduled job out of rotation, without having to delete the code. Simply change the scheduled and re-deploy.
 
-You can also use this to create scheduled jobs that you [run manually](#run-job-manually).
+The scheduled job will show when you use the `build` command with "never" as the schedule, since it reports all available schedules, and you can run this schedule manually.
+
+It will not show when you use the `status` command, since this command only reports on schedules that are scheduled to run in the future.
+
+You can also use this to create scheduled jobs that you [run manually](#run-job-manually) ie "on your schedule".
 
 
 ## Run Job Manually
@@ -207,6 +211,8 @@ You can trigger a scheduled job in production using the `schedule` command:
 npx queue-run schedule my_schedule
 npx queue-run logs
 ```
+
+The `schedule` command does not wait for the schedule to complete. Use the `logs` command to monitor progress.
 
 
 ## Monitoring

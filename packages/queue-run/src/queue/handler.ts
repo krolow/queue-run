@@ -22,7 +22,7 @@ export default async function handleQueuedJob({
 }) {
   const { queues } = await loadManifest();
   const queue = queues.get(queueName);
-  if (!queue) throw new Error(`No handler for queue ${queueName}`);
+  if (!queue) throw new Error(`No handler for queue "${queueName}"`);
 
   const loaded = await loadModule<QueueExports, never>(`queues/${queueName}`);
   invariant(loaded, "Could not load queue module");

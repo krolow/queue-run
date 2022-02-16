@@ -19,7 +19,7 @@ export default async function handleScheduledJob({
   const schedule = Array.from(schedules.values()).find(
     (schedule) => schedule.name === name
   );
-  if (!schedule) throw new Error(`No handler for schedule ${name}`);
+  if (!schedule) throw new Error(`No handler for schedule "${name}"`);
 
   const loaded = await loadModule<ScheduleExports, never>(`schedules/${name}`);
   invariant(loaded, "Could not load scheduled module");

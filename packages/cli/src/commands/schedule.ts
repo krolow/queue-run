@@ -13,12 +13,11 @@ const command = new Command("schedule")
       const lambda = new Lambda({ region });
       const lambdaName = `qr-${project}`;
       const payload = { source: "cli.schedule", schedule };
-      const { StatusCode } = await lambda.invoke({
+      await lambda.invoke({
         FunctionName: lambdaName,
-        InvocationType: "RequestResponse",
+        InvocationType: "Event",
         Payload: Buffer.from(JSON.stringify(payload)),
       });
-      if (StatusCode !== 200) throw new Error(`No scheduled job "${schedule}"`);
       spinner.succeed();
     } catch (error) {
       spinner.fail();
