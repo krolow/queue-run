@@ -4,11 +4,12 @@ import { URL } from "node:url";
 import primary from "./primary.js";
 import worker from "./worker.js";
 
-const port = Number(process.env.PORT);
-if (cluster.isWorker) worker(port);
-else {
+if (cluster.isWorker) worker(Number(process.env.PORT));
+
+export default async function devServer(port: number) {
   cluster.setupMaster({
     exec: new URL(import.meta.url).pathname,
   });
+  process.env.PORT = String(port);
   primary(port);
 }

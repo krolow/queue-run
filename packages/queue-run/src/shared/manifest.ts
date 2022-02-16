@@ -13,6 +13,7 @@ export type HTTPRoute = {
   cors: boolean;
   filename: string;
   match: MatchFunction<{ [key: string]: string | string[] }>;
+  path: string;
   methods: Set<string>;
   original: string;
   timeout: number;
@@ -37,6 +38,7 @@ export type ScheduledJob = {
 export type WebSocketRoute = {
   filename: string;
   original: string;
+  path: string;
   timeout: number;
 };
 
@@ -72,9 +74,9 @@ export type Manifest = {
     timeout: number;
   }>;
   socket: Array<{
-    path: string;
     filename: string;
     original: string;
+    path: string;
     timeout: number;
   }>;
 };
@@ -114,6 +116,7 @@ export async function loadManifest(dirname = process.cwd()): Promise<{
         methods: new Set(route.methods ?? "*"),
         filename: route.filename,
         match: match<{ [key: string]: string | string[] }>(route.path),
+        path: route.path,
         original: route.original,
         timeout: route.timeout,
       },
@@ -126,6 +129,7 @@ export async function loadManifest(dirname = process.cwd()): Promise<{
       {
         filename: socket.filename,
         original: socket.original,
+        path: socket.path,
         timeout: socket.timeout,
       },
     ])
@@ -133,7 +137,7 @@ export async function loadManifest(dirname = process.cwd()): Promise<{
 
   const schedules = new Map(
     manifest.schedules.map((schedule) => [
-      schedule.cron,
+      schedule.name,
       {
         cron: schedule.cron,
         filename: schedule.filename,

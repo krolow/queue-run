@@ -4,15 +4,15 @@ import displayTable from "../displayTable.js";
 export default async function displayManifest(dirname: string) {
   const manifest = await loadManifest(dirname);
 
-  const routes = tabulate(manifest.routes, (path) =>
+  const routes = tabulate(manifest.routes, ({ path }) =>
     path
       .replace(/^\//, "")
       .replace(/:([a-zA-Z0-9_]+)/gi, "[$1]")
       .replace(/:([a-zA-Z0-9_]+)\*/gi, "[...$1]")
   );
-  const socket = tabulate(manifest.socket);
-  const queues = tabulate(manifest.queues);
-  const schedules = tabulate(manifest.schedules);
+  const socket = tabulate(manifest.socket, ({ path }) => path);
+  const queues = tabulate(manifest.queues, ({ queueName }) => queueName);
+  const schedules = tabulate(manifest.schedules, ({ cron }) => cron);
 
   const colWidths = calculate(routes, socket, queues, schedules);
 
@@ -42,14 +42,14 @@ export default async function displayManifest(dirname: string) {
   process.stdout.write("\n");
 }
 
-function tabulate(
-  map: Map<string, { original: string }>,
+function tabulate<T extends { original: string }>(
+  map: Map<string, T>,
   // eslint-disable-next-line no-unused-vars
-  rename?: (match: string) => string
+  label: (entry: T) => string
 ): [string, string][] {
-  return Array.from(map.entries()).map(([match, { original }]) => [
-    rename?.(match) ?? match,
-    original,
+  return Array.from(map.values()).map((entry) => [
+    label(entry),
+    entry.original,
   ]);
 }
 

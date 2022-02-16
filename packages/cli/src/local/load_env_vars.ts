@@ -10,15 +10,17 @@ import path from "node:path";
  * 4. QueueRun environment variables
  */
 export default async function loadEnvVars({
-  cliEnvVars,
+  env,
   port,
+  production,
 }: {
-  cliEnvVars: string[];
+  env: string[] | null;
   port: number;
+  production: boolean;
 }) {
   dotenv.config({ path: path.resolve(".env") });
 
-  for (const envVar of cliEnvVars) {
+  for (const envVar of env ?? []) {
     const match = envVar.match(/^([^=]+)=(.*)$/)?.slice(1);
     if (!match)
       throw new Error('Environment variable must be in the form "name=value"');
@@ -27,9 +29,8 @@ export default async function loadEnvVars({
   }
 
   Object.assign(process.env, {
-    NODE_ENV: process.env.NODE_ENV ?? "development",
-    QUEUE_RUN_ENV:
-      process.env.NODE_ENV === "development" ? "development" : "production",
+    NODE_ENV: production ? "production" : "development",
+    QUEUE_RUN_ENV: production ? "production" : "development",
     QUEUE_RUN_INDENT: process.env.QUEUE_RUN_INDENT ?? "2",
     QUEUE_RUN_URL: `http://localhost:${port}`,
     QUEUE_RUN_WS: `ws://localhost:${port}`,

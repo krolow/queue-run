@@ -11,6 +11,7 @@ import {
   handleWebSocketConnect,
   handleWebSocketMessage,
   Headers,
+  loadManifest,
   NewExecutionContext,
   socket,
   url,
@@ -141,6 +142,13 @@ async function queueJob(
   const [queueName, groupId] = req.url!.split("/").slice(2);
   invariant(queueName, "Queue name is required");
 
+  const hasQueue = (await loadManifest()).queues.get(queueName);
+  if (!hasQueue) {
+    res.writeHead(404, "Not Found").end();
+    return;
+  }
+
+  res.writeHead(202, "Accepted").end();
   try {
     await handleQueuedJob({
       metadata: {
@@ -158,10 +166,8 @@ async function queueJob(
       queueName,
       remainingTime: ms("30s"),
     });
-    res.writeHead(200, "OK").end();
   } catch (error) {
     console.error("💥 Queue job failed!", error);
-    res.writeHead(500, "Internal Server Error").end();
   }
 }
 
@@ -177,17 +183,21 @@ async function scheduleJob(
 
   const [name] = req.url!.split("/").slice(2);
   invariant(name, "Schedule name is required");
+  const hasSchedule = (await loadManifest()).schedules.get(name);
+  if (!hasSchedule) {
+    res.writeHead(404, "Not Found").end();
+    return;
+  }
 
+  res.writeHead(202, "Accepted").end();
   try {
     await handleScheduledJob({
       jobId: crypto.randomUUID!(),
       name,
       newExecutionContext,
     });
-    res.writeHead(200, "OK").end();
   } catch (error) {
     console.error("💥 Scheduled job failed!", error);
-    res.writeHead(500, "Internal Server Error").end();
   }
 }
 
