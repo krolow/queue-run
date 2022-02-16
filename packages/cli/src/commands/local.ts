@@ -50,8 +50,11 @@ async function loadEnvVars({
     region,
   });
   const { httpUrl, wsUrl } = await getAPIGatewayURLs({ project, region });
+  // These are not available in production unless you explicitly add as
+  // environment variables
   delete process.env.AWS_ACCESS_KEY_ID;
   delete process.env.AWS_SECRET_ACCESS_KEY;
+
   Object.assign(process.env, Object.fromEntries(envVars.entries()));
   Object.assign(process.env, {
     NODE_ENV: "production",

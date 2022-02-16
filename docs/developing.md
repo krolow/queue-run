@@ -75,17 +75,6 @@ You can press Ctrl+C to exit the server, Ctrl+R to force a reload, and Ctrl+L to
 The development server will load environment variables from the file `.env` file. You can also set environment variables with the `-e` option.
 
 
-### init
-
-Use this to initialize a new project.
-
-```bash
-npx queue-run init
-```
-
-It will ask you a few questions and then create appropriate files. See [Project Files](#project-files).
-
-
 ### dev queue
 
 You can use this command to test a queued job using the dev server.
@@ -113,6 +102,18 @@ You can use this command to test a scheduled job using the dev server.
 ```bash
 npx queue-run dev schedule <name>
 ```
+
+
+### init
+
+Use this to initialize a new project.
+
+```bash
+npx queue-run init
+```
+
+It will ask you a few questions and then create appropriate files. See [Project Files](#project-files).
+
 
 
 ## Project Files
@@ -200,7 +201,9 @@ Kh9NV...
 -----END DSA PRIVATE KEY-----"
 ```
 
-Use the [`env` command](deploying#environment-variables) to manage environment variables for your backend in production.
+You cannot change the following environment variables: `NODE_ENV`, `QUEUE_RUN_URL`, `QUEUE_RUN_WS`, and `QUEUE_RUN_ENV` (see [Environment Variables](deploying#environment-variables))
+
+To manage environment variables in production, use the [`env` command](deploying#environment-variables).
 
 
 ### index.ts

@@ -99,7 +99,7 @@ npx queue-run run local db/migrate.ts
 
 Can be useful to run an ad-hoc task using the QueueRun environment: variables, logging, TypeScript, WebSocket connection, etc. Also for troubleshooting.
 
-The `run local` command uses the same [environment variables](#environment-variables) as production, which would be different from environment variables used by [the dev server](developing#dev).
+The `run local` command uses the same [environment variables](#environment-variables) as production, which would be different from environment variables used by [the dev server](developing#env).
 
 
 ### logs
