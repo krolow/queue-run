@@ -1,6 +1,5 @@
 import { Command, Option } from "commander";
-import devServer from "../local/dev_server.js";
-import loadEnvVars from "../local/load_env_vars.js";
+import devServer from "../dev/dev_server.js";
 import readPayload from "../shared/read_payload.js";
 
 const portOption = new Option("-p, --port <port>", "port to run the server on")
@@ -20,8 +19,7 @@ You can use --env to override these environment variables.
 `
   )
   .action(async ({ port, env }: { port: number; env: string[] }) => {
-    await loadEnvVars({ env, port, production: false });
-    await devServer(port);
+    await devServer({ env, port });
   });
 
 command

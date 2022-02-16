@@ -17,7 +17,7 @@ To download environment variables from the server to use locally:
 $ npx queue-run env ls > .env
 
 You can change environment variables when deploying:
-$ npx queue-run deploy --environment DEBUG=true
+$ npx queue-run deploy --env DEBUG=true
 
 ⚠️  You need to re-deploy your project after changing environment variables.
 `

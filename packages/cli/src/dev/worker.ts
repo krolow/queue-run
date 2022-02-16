@@ -30,9 +30,10 @@ import {
 const sourceDir = process.cwd();
 const buildDir = path.resolve(".queue-run");
 
-export default async function worker(port: number) {
-  url.baseUrl = `http://localhost:${port}`;
-  socket.url = `ws://localhost:${port}`;
+export default async function worker() {
+  url.baseUrl = process.env.QUEUE_RUN_URL;
+  socket.url = process.env.QUEUE_RUN_WS;
+  const port = process.env.QUEUE_RUN_URL.split(":")[2];
 
   const ready = (async () => {
     await buildProject({ buildDir, sourceDir });
@@ -40,24 +41,18 @@ export default async function worker(port: number) {
 
     process.chdir(buildDir);
 
-    await warmup((args) => new DevExecutionContext({ port, ...args }));
+    await warmup((args) => new DevExecutionContext(args));
   })();
 
   const ws = new WebSocketServer({ noServer: true });
   const http = createServer()
     .on("request", async (req, res) => {
       await ready;
-      onRequest(req, res, (args) => new DevExecutionContext({ port, ...args }));
+      onRequest(req, res, (args) => new DevExecutionContext(args));
     })
     .on("upgrade", async (req, socket, head) => {
       await ready;
-      onUpgrade(
-        req,
-        socket,
-        head,
-        ws,
-        (args) => new DevExecutionContext({ port, ...args })
-      );
+      onUpgrade(req, socket, head, ws, (args) => new DevExecutionContext(args));
     })
     .listen(port);
 

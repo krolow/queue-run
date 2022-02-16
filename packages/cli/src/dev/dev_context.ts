@@ -33,13 +33,6 @@ let queued = 0;
 const events = new EventEmitter();
 
 export class DevExecutionContext extends ExecutionContext {
-  private port;
-
-  constructor(args: { port: number } & Parameters<NewExecutionContext>[0]) {
-    super(args);
-    this.port = args.port;
-  }
-
   async queueJob({
     queueName,
     groupId,
@@ -84,8 +77,7 @@ export class DevExecutionContext extends ExecutionContext {
               user: userId ? { id: userId } : null,
             },
             payload: serializedPayload,
-            newExecutionContext: (args) =>
-              new DevExecutionContext({ port: this.port, ...args }),
+            newExecutionContext: (args) => new DevExecutionContext(args),
             remainingTime: ms("30s"),
           });
         } finally {
@@ -110,8 +102,7 @@ export class DevExecutionContext extends ExecutionContext {
         getExecutionContext().exit(() =>
           handleUserOnline({
             user,
-            newExecutionContext: (args) =>
-              new DevExecutionContext({ port: this.port, ...args }),
+            newExecutionContext: (args) => new DevExecutionContext(args),
           })
         );
       }

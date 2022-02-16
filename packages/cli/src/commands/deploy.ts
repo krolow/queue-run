@@ -16,7 +16,7 @@ const command = new Command("deploy")
   .argument("[name]", "the project name")
   .addOption(
     new Option(
-      "-e, --environment <environment...>",
+      "-e, --env <env...>",
       "environment variables (format: name=value)"
     ).default([])
   )
@@ -41,12 +41,9 @@ Deploying from
   .action(
     async (
       name: string | undefined,
-      {
-        environment,
-        region: awsRegion,
-      }: { environment: string[]; region: string }
+      { env, region: awsRegion }: { env: string[]; region: string }
     ) => {
-      const envVars = getEnvVars(environment);
+      const envVars = getEnvVars(env);
       const project = await loadCredentials({ name, awsRegion });
       const accountId = await getAccountId(project.awsRegion);
 
