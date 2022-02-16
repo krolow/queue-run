@@ -17,7 +17,9 @@ import {
 import { DevExecutionContext } from "../dev/dev_context.js";
 import { loadCredentials } from "../shared/config.js";
 
-const command = new Command("local")
+const command = new Command("run");
+command
+  .command("local")
   .description("run the file locally")
   .argument("<filename>", "filename to run")
   .action(async (filename: string) => {

@@ -111,7 +111,7 @@ For a FIFO queue, you also need to specify the group ID using the `--group` opti
 You can use this command to test a scheduled job using the dev server.
 
 ```bash
-npx queue-run dev schedule prod <name>
+npx queue-run dev schedule <name>
 ```
 
 
