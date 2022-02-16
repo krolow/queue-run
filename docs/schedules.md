@@ -176,13 +176,13 @@ To make sure your jobs are completely failing, consider using a separate service
 
 You can test your scheduled job locally using the dev server.
 
-Run the dev server in one terminal, and use the `schedule` command from a second terminal:
+Run the dev server in one terminal, and use the `dev schedule` command from a second terminal:
 
 ```bash
 npx queue-run dev
 
 # in a separate session
-npx queue-run schedule my_schedule
+npx queue-run dev schedule my_schedule
 ```
 
 If you have a maintenance window, you can use `npx queue-run reserved 0` to shut down your backend ([learn more](optimizing#reserved-concurrency)). This will also disable all scheduled jobs until you add or reset reserved concurrency.
@@ -192,10 +192,10 @@ If you have a maintenance window, you can use `npx queue-run reserved 0` to shut
 
 There are cases when you need to run a job outside its schedule.
 
-You can manually trigger a scheduled job in production with the `--prod` option:
+You can manually trigger a scheduled job in production using the `schedule` command:
 
 ```bash
-npx queue-run schedule my_schedule --prod
+npx queue-run schedule my_schedule
 ```
 
 

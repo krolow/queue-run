@@ -186,10 +186,8 @@ If you made any of these changes to your project, and you want to revert them, y
 
 You can use this command to trigger a scheduled job in production at any time.
 
-You need to add the `--prod` option:
-
 ```bash
-npx queue-run schedule --prod <name>
+npx queue-run schedule <name>
 ```
 
 

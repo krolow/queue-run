@@ -86,14 +86,14 @@ npx queue-run init
 It will ask you a few questions and then create appropriate files. See [Project Files](#project-files).
 
 
-### queue
+### dev queue
 
-You can use this command to queue a job.
+You can use this command to test a queued job using the dev server.
 
 ```bash
-npx queue-run queue <name> [payload]
-npx queue-run queue <name> @filename
-npx queue-run queue <name> -
+npx queue-run dev queue <name> [payload]
+npx queue-run dev queue <name> @filename
+npx queue-run dev queue <name> -
 ```
 
 You can provide the job payload as:
@@ -106,12 +106,12 @@ You can provide the job payload as:
 For a FIFO queue, you also need to specify the group ID using the `--group` option.
 
 
-### schedule
+### dev schedule
 
-You can use this command to trigger a scheduled job.
+You can use this command to test a scheduled job using the dev server.
 
 ```bash
-npx queue-run schedule prod <name>
+npx queue-run dev schedule prod <name>
 ```
 
 
