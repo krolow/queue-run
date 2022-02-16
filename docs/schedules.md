@@ -211,9 +211,9 @@ The `npx queue-run status` command lists each schedule, when it last ran, and wh
 The logs will show when the job starts and finishes, and any errors:
 
 ```
-2/4/2022, 4:00:07 AM: [INFO] Job started: name="daily" schedule="0 0 12 * * *" job="77ccfc1f-f6f9-c6d4-b58f-501022db55f6"
+2/4/2022, 4:00:07 AM: [INFO] Schedule started: "daily" schedule="0 0 12 * * *" jobId="77ccfc1f-f6f9-c6d4-b58f-501022db55f6"
 
-2/4/2022, 4:00:07 AM: [INFO] Job finished: name="daily" jobId="77ccfc1f-f6f9-c6d4-b58f-501022db55f6"
+2/4/2022, 4:00:07 AM: [INFO] Schedule finished: "daily" jobId="77ccfc1f-f6f9-c6d4-b58f-501022db55f6"
 ```
 
 The `npx queue-run metrics schedule <name>` command will show the invocation metrics for that schedule:

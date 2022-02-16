@@ -49,13 +49,15 @@ Since logging is such a common use case, QueueRun includes default logging middl
 
 You can add your own logging, by listening to the following events:
 
-- `logger.on('request', request)` - Called for every HTTP request
-- `logger.on('response', request, response)` - Called for every HTTP response
+- `logger.on('error')` — Called specifically for errors
 - `logger.on('messageReceived', wsRequest)` - Called for every WebSocket message received
 - `logger.on('messageSent', message)` - Called for every WebSocket message sent
-- `logger.on('jobStarted', metadata)` - Called for every queued or scheduled job on start
-- `logger.on('jobFinished', metadata)` - Called for every queued or scheduled job when finished successfully
-- `logger.on('error')` — Called specifically for errors
+- `logger.on('queueFinished', metadata)` - Called for every queued job when finished successfully
+- `logger.on('queueStarted', metadata)` - Called for every queued job on start
+- `logger.on('request', request)` - Called for every HTTP request
+- `logger.on('response', request, response)` - Called for every HTTP response
+- `logger.on('scheduleFinished', metadata)` - Called for every scheduled job when finished successfully
+- `logger.on('scheduleStarted', metadata)` - Called for every scheduled job on start
 
 For example, if you wanted to count HTTP requests/responses:
 

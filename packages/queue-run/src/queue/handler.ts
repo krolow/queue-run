@@ -37,12 +37,12 @@ export default async function handleQueuedJob({
       newExecutionContext({ timeout }),
       async (context) => {
         context.user = metadata.user;
-        logger.emit("jobStarted", metadata);
+        logger.emit("queueStarted", metadata);
         await module.default(payload as JSONObject, {
           ...metadata,
           signal: context.signal,
         });
-        logger.emit("jobFinished", metadata);
+        logger.emit("queueFinished", metadata);
       }
     );
   } catch (error) {

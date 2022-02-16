@@ -160,41 +160,57 @@ declare interface Logger {
   emit(event: "response", request: Request, response: Response): boolean;
 
   /**
-   * This event emitted on every queue or scheduled job.
+   * This event emitted for every queued job.
    *
-   * @param event jobStarted
-   * @param listener Called with event metadata
+   * @param event queueStarted
+   * @param listener Called with job metadata
    */
   on(
-    event: "jobStarted",
-    listener: (
-      job:
-        | Omit<QueueJobMetadata, "signal">
-        | Omit<ScheduleJobMetadata, "signal">
-    ) => void
+    event: "queueStarted",
+    listener: (job: Omit<QueueJobMetadata, "signal">) => void
+  ): this;
+  emit(event: "queueStarted", job: Omit<QueueJobMetadata, "signal">): boolean;
+
+  /**
+   * This event emitted for every queue job that finished successfully.
+   *
+   * @param event queueFinished
+   * @param listener Called with job metadata
+   */
+  on(
+    event: "queueFinished",
+    listener: (job: Omit<QueueJobMetadata, "signal">) => void
+  ): this;
+  emit(event: "queueFinished", job: Omit<QueueJobMetadata, "signal">): boolean;
+
+  /**
+   * This event emitted for every scheduled job.
+   *
+   * @param event scheduleStarted
+   * @param listener Called with job metadata
+   */
+  on(
+    event: "scheduleStarted",
+    listener: (job: Omit<ScheduleJobMetadata, "signal">) => void
   ): this;
   emit(
-    event: "jobStarted",
-    job: Omit<QueueJobMetadata, "signal"> | Omit<ScheduleJobMetadata, "signal">
+    event: "scheduleStarted",
+    job: Omit<ScheduleJobMetadata, "signal">
   ): boolean;
 
   /**
-   * This event emitted on every queue or scheduled job that finished successfully.
+   * This event emitted for every scheduled job that finished successfully.
    *
-   * @param event jobFinished
-   * @param listener Called with event metadata
+   * @param event scheduleFinished
+   * @param listener Called with job metadata
    */
   on(
-    event: "jobFinished",
-    listener: (
-      job:
-        | Omit<QueueJobMetadata, "signal">
-        | Omit<ScheduleJobMetadata, "signal">
-    ) => void
+    event: "scheduleFinished",
+    listener: (job: Omit<ScheduleJobMetadata, "signal">) => void
   ): this;
   emit(
-    event: "jobFinished",
-    job: Omit<QueueJobMetadata, "signal"> | Omit<ScheduleJobMetadata, "signal">
+    event: "scheduleFinished",
+    job: Omit<ScheduleJobMetadata, "signal">
   ): boolean;
 
   /**
@@ -239,35 +255,31 @@ logger.on("response", async (request, response) => {
   );
 });
 
-logger.on("jobStarted", (job) => {
-  if ("queueName" in job) {
-    console.info(
-      'Job started: queue="%s" jobId="%s" received=%d seq=%s',
-      job.queueName,
-      job.jobId,
-      job.receivedCount,
-      job.sequenceNumber ?? "--"
-    );
-  } else {
-    console.info(
-      'Job started: name="%s" schedule="%s" job="%s"',
-      job.name,
-      job.cron,
-      job.jobId
-    );
-  }
+logger.on("queueStarted", (job) => {
+  console.info(
+    'Queue started: "%s" jobId="%s" received=%d seq=%s',
+    job.queueName,
+    job.jobId,
+    job.receivedCount,
+    job.sequenceNumber ?? "--"
+  );
 });
 
-logger.on("jobFinished", (job) => {
-  if ("queueName" in job) {
-    console.info(
-      'Job finished: queue="%s" jobId="%s"',
-      job.queueName,
-      job.jobId
-    );
-  } else {
-    console.info('Job finished: name="%s" jobId="%s"', job.name, job.jobId);
-  }
+logger.on("queueFinished", (job) => {
+  console.info('Queue finished: "%s" jobId="%s"', job.queueName, job.jobId);
+});
+
+logger.on("scheduleStarted", (job) => {
+  console.info(
+    'Schedule started: "%s" schedule="%s" jobId="%s"',
+    job.name,
+    job.cron,
+    job.jobId
+  );
+});
+
+logger.on("scheduleFinished", (job) => {
+  console.info('Schedule finished: "%s" jobId="%s"', job.name, job.jobId);
 });
 
 logger.on("messageReceived", (request) => {

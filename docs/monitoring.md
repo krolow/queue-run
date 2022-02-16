@@ -44,8 +44,8 @@ You can use Ctrl+C to stop, and Ctrl+L to clear the screen.
 If you only want to retrieve the latest logs, use `--no-watch` in combination with `--hours`.
 
 ```
-2022-02-05 04:00:06: [INFO] Job started: name="daily" schedule="0 0 12 * * *" job="4b34115c-f94a-1c20-0a91-c4c22a9f436f"
-2022-02-05 04:00:06: [INFO] Job finished: name="daily" jobId="4b34115c-f94a-1c20-0a91-c4c22a9f436f"
+2022-02-05 04:00:06: [INFO] Schedule started: "daily" schedule="0 0 12 * * *" jobId="4b34115c-f94a-1c20-0a91-c4c22a9f436f"
+2022-02-05 04:00:06: [INFO] Schedule finished: "daily" jobId="4b34115c-f94a-1c20-0a91-c4c22a9f436f"
 2022-02-05 12:49:44: [INFO] [136.25.153.66] "GET /" 200 814 "" "Mozilla/5.0 (Windows NT 6.1; rv:45.0) Gecko/20100101 Firefox/45.0"
 ```
 
