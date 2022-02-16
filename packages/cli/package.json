@@ -1,6 +1,6 @@
 {
   "name": "queue-run-cli",
-  "version": "0.12.1",
+  "version": "0.13.0",
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
@@ -34,8 +34,8 @@
     "node-fetch": "3.2.0",
     "ora": "6.0.1",
     "project-name-generator": "^2.1.9",
-    "queue-run": "^0.12.1",
-    "queue-run-builder": "^0.12.1",
+    "queue-run": "^0.13.0",
+    "queue-run-builder": "^0.13.0",
     "ws": "^8.5.0"
   },
   "devDependencies": {
