@@ -81,20 +81,23 @@ async function runModule({
 
   await warmup((args) => new DevExecutionContext(args));
 
-  const compiled = filename.replace(/\..*?$/, "");
-  const loaded = await loadModule<{ default?: () => Promise<unknown> }, never>(
-    compiled
-  );
-  if (!loaded) throw new Error(`Could not find ${filename}`);
-
-  const handler = loaded.module.default;
-  if (!handler) {
-    console.warn('Filename "%s" does not export a default function', filename);
-    return;
-  }
   const result = await withExecutionContext(
     new DevExecutionContext({ timeout: ms("5m") }),
-    handler
+    async () => {
+      const compiled = filename.replace(/\..*?$/, "");
+      const loaded = await loadModule<
+        { default?: () => Promise<unknown> },
+        never
+      >(compiled);
+      if (!loaded) throw new Error(`Could not find ${filename}`);
+      const handler = loaded.module.default;
+      if (!handler)
+        console.warn(
+          'Filename "%s" does not export a default function',
+          filename
+        );
+      return handler && (await handler());
+    }
   );
   if (typeof result === "string") process.stdout.write(result);
   else if (result && typeof result === "object")

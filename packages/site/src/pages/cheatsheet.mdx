@@ -90,3 +90,11 @@ Recommend using a 3rd party service like [cronitor.io](https://cronitor.io) or [
 Yes. Use `npx queue-run schedule <name>` to run the scheduled job. See [Run Job Manually](schedules#run-job-manually).
 
 </Entry>
+
+<Entry question="How do I disable a scheduled job?">
+
+Permanentaly? Remove the file and re-deploy.
+
+Temporarily? Change the schedule to `"never"` (or `null`) and re-deploy.
+
+</Entry>

@@ -97,9 +97,20 @@ npx queue-run run local queues/send_report.ts
 npx queue-run run local db/migrate.ts
 ```
 
-Can be useful to run an ad-hoc task using the QueueRun environment: variables, logging, TypeScript, WebSocket connection, etc. Also for troubleshooting.
+The module will run on your machine, so easier to debug. It would also benefit from your machine having more resources (CPU/RAM) than production, and no imposed time limit.
 
-The `run local` command uses the same [environment variables](#environment-variables) as production, which would be different from environment variables used by [the dev server](developing#env).
+It will include the full QueueRun environment: TypeScript compiler, logging, warmup function, URL constructor, etc.
+
+And specifically, it ignores `.env` file, and obtains all environment variables from the server (see [Environment Variables](#environment-variables)).
+
+Code that uses queues will still work, with queued jobs running in the same process, asynchronously. However, there is no persistence of queued jobs across runs, and no retry mechanism.
+
+:::tip Ad Hoc Tasks
+
+Besides troubleshooting, the `run local` command is useful for running ad-hoc tasks. For example, if you need to do a one-off database query, or update.
+
+If you have tasks that you want to run on-demand, but more than once, consider using [the `schedule` command](schedules#run-job-manually).
+:::
 
 
 ### logs

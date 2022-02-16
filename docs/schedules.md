@@ -188,17 +188,15 @@ npx queue-run dev schedule my_schedule
 If you have a maintenance window, you can use `npx queue-run reserved 0` to shut down your backend ([learn more](optimizing#reserved-concurrency)). This will also disable all scheduled jobs until you add or reset reserved concurrency.
 
 
-## Schedule Never
+## Schedule For Never
 
-The schedule value "never", `false`, or `null`, means that schedule job would not run on its own.
+If you need to take a scheduled job out of the rotation, set the schedule to "never" (`false` and `null` also work).
 
-You can use this to to temporarily take a scheduled job out of rotation, without having to delete the code. Simply change the scheduled and re-deploy.
+You can use this to temporarily disable a scheduled job without deleting the code. Simply change the schedule and re-deploy.
 
-The scheduled job will show when you use the `build` command with "never" as the schedule, since it reports all available schedules, and you can run this schedule manually.
+Jobs that are scheduled to run never will show when you run the `build` command, as they are available, and you can [run them manually](#run-job-manually).
 
-It will not show when you use the `status` command, since this command only reports on schedules that are scheduled to run in the future.
-
-You can also use this to create scheduled jobs that you [run manually](#run-job-manually) ie "on your schedule".
+However, they will not show when you run the `status` command, since this command only reports on active schedule and jobs that have a scheduled execution in the future.
 
 
 ## Run Job Manually
@@ -212,7 +210,12 @@ npx queue-run schedule my_schedule
 npx queue-run logs
 ```
 
-The `schedule` command does not wait for the schedule to complete. Use the `logs` command to monitor progress.
+The `schedule` command does not wait for the schedule to complete. Use the `logs` command to make sure it executed and watch progress.
+
+:::tip On My Schedule
+
+You can use the combination of `schedule = "never"` and the `schedule` command to deploy jobs that only run on demand, aka "on my schedule".
+:::
 
 
 ## Monitoring
