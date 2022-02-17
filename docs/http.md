@@ -236,7 +236,7 @@ type Fields = {
   password: string;
 };
 
-export aync function post({ body }: { body: FormData }) {
+export aync function post({ body }: { body: Fields }) {
   const { name, email, passowrd } = body;
   const user = await createUser({ name, email, password });
   return Response.redirect(url("/user/[id]", { user }), 303);
