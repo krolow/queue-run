@@ -1,5 +1,5 @@
 import { DynamoDB } from "@aws-sdk/client-dynamodb";
-import { createTables } from "./createTables.js";
+import { createTables } from "./create_tables.js";
 
 const tableName = "qr-env-vars";
 

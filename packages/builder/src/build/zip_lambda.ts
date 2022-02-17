@@ -4,7 +4,7 @@ import JSZip from "jszip";
 import { lstat, readFile } from "node:fs/promises";
 import path from "node:path";
 import ora from "ora";
-import displayTable from "../displayTable.js";
+import displayTable from "../display_table.js";
 
 export default async function zipLambda(dirname: string): Promise<Uint8Array> {
   const spinner = ora(`Creating zip archive for ${dirname}`).start();

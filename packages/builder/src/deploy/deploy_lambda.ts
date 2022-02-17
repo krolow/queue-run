@@ -7,13 +7,13 @@ import ora from "ora";
 import type { Manifest } from "queue-run";
 import invariant from "tiny-invariant";
 import { buildProject, displayManifest } from "../build/index.js";
-import { createTables } from "./createTables.js";
-import { getEnvVariables } from "./envVars.js";
-import { addTriggers, removeTriggers } from "./eventSource.js";
+import { createTables } from "./create_tables.js";
+import { getEnvVariables } from "./env_vars.js";
+import { addTriggers, removeTriggers } from "./event_source.js";
 import { createQueues, deleteOldQueues } from "./queues.js";
 import { removeUnusedSchedules, updateSchedules } from "./schedules.js";
-import updateAlias from "./updateAlias.js";
-import uploadLambda from "./uploadLambda.js";
+import updateAlias from "./update_alias.js";
+import uploadLambda from "./upload_lambda.js";
 
 const currentVersionAlias = "current";
 

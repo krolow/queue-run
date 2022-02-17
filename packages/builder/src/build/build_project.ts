@@ -1,15 +1,15 @@
+import fs from "node:fs/promises";
 import ora from "ora";
 import type { BackendExports, Manifest } from "queue-run";
 import { loadModule, writeManifest } from "queue-run";
-import compileSourceFiles from "./compileSourceFiles.js";
-import createBuildDirectory from "./createBuildDirectory.js";
-import getRuntime from "./getRuntime.js";
-import installDependencies from "./installDependencies.js";
-import mapQueues from "./mapQueues.js";
-import mapRoutes from "./mapRoutes.js";
-import mapSchedules from "./mapSchedules.js";
-import mapSocket from "./mapSocket.js";
-import zipLambda from "./zipLambda.js";
+import compileSourceFiles from "./compile_source_files.js";
+import getRuntime from "./get_runtime.js";
+import installDependencies from "./install_dependencies.js";
+import mapQueues from "./map_queues.js";
+import mapRoutes from "./map_routes.js";
+import mapSchedules from "./map_schedules.js";
+import mapSocket from "./map_socket.js";
+import zipLambda from "./zip_lambda.js";
 
 // Short build: compile source files to target directory.
 //
@@ -36,7 +36,8 @@ export default async function buildProject({
   zip: Uint8Array | undefined;
 }> {
   const { lambdaRuntime } = await getRuntime(sourceDir);
-  await createBuildDirectory(buildDir);
+  await fs.rm(buildDir, { force: true, recursive: true });
+  await fs.mkdir(buildDir);
 
   await compileSourceFiles({ sourceDir, targetDir: buildDir });
   if (signal?.aborted) throw new Error();

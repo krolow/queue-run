@@ -2,7 +2,7 @@ import { ACM, CertificateDetail } from "@aws-sdk/client-acm";
 import inquirer from "inquirer";
 import ora from "ora";
 import invariant from "tiny-invariant";
-import displayTable from "../displayTable.js";
+import displayTable from "../display_table.js";
 
 const acm = new ACM({});
 

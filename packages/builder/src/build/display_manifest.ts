@@ -1,5 +1,5 @@
 import { loadManifest } from "queue-run";
-import displayTable from "../displayTable.js";
+import displayTable from "../display_table.js";
 
 export default async function displayManifest(dirname: string) {
   const manifest = await loadManifest(dirname);

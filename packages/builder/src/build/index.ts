@@ -1,3 +1,3 @@
-export { default as buildProject } from "./buildProject.js";
-export { default as displayManifest } from "./displayManifest.js";
-export { default as getRuntime } from "./getRuntime.js";
+export { default as buildProject } from "./build_project.js";
+export { default as displayManifest } from "./display_manifest.js";
+export { default as getRuntime } from "./get_runtime.js";

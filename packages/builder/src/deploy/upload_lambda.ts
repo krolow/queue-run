@@ -2,8 +2,8 @@ import { FunctionConfiguration, Lambda } from "@aws-sdk/client-lambda";
 import filesize from "filesize";
 import ora from "ora";
 import invariant from "tiny-invariant";
-import { LambdaConfig } from "./deployLambda.js";
-import { deleteLambdaRole, getLambdaRole } from "./lambdaRole.js";
+import { LambdaConfig } from "./deploy_lambda.js";
+import { deleteLambdaRole, getLambdaRole } from "./lambda_role.js";
 
 export const handler = "runtime.handler";
 
