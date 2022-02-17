@@ -1,4 +1,5 @@
 import { loadManifest } from "queue-run";
+import displayCron from "../display_cron.js";
 import displayTable from "../display_table.js";
 
 export default async function displayManifest(dirname: string) {
@@ -12,7 +13,9 @@ export default async function displayManifest(dirname: string) {
   );
   const socket = tabulate(manifest.socket, ({ path }) => path);
   const queues = tabulate(manifest.queues, ({ queueName }) => queueName);
-  const schedules = tabulate(manifest.schedules, ({ cron }) => cron ?? "never");
+  const schedules = tabulate(manifest.schedules, ({ cron }) =>
+    displayCron(cron)
+  );
 
   const colWidths = calculate(routes, socket, queues, schedules);
 

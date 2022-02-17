@@ -4,6 +4,7 @@ import filesize from "filesize";
 import ms from "ms";
 import ora from "ora";
 import {
+  displayCron,
   displayTable,
   getAPIGatewayURLs,
   getRecentVersions,
@@ -149,7 +150,7 @@ async function showSchedules(lambdaArn: string) {
       headers: ["Schedule", "Recurring", "Last run", "Next run"],
       rows: schedules.map(({ cron, name, lastRun, nextRun }) => [
         name,
-        cron,
+        displayCron(cron),
         lastRun ? localTimestamp(lastRun) : "n/a",
         nextRun ? localTimestamp(nextRun) : "n/a",
       ]),
