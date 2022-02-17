@@ -11,7 +11,10 @@
     "watch:runtime": "yarn workspace queue-run-lambda watch",
     "watch:builder": "yarn workspace queue-run-builder watch",
     "watch:cli": "yarn workspace queue-run-cli watch",
-    "release": "yarn build && yarn lint && lerna publish && open https://github.com/assaf/queue-run/releases"
+    "release:publish": "lerna publish --otp $(op get totp npmjs)",
+    "release:open": "open https://github.com/assaf/queue-run/releases",
+    "release:test": "yarn test && yarn build && yarn lint",
+    "release": "yarn release:test && yarn release:publish && release:open"
   },
   "private": true,
   "devDependencies": {
