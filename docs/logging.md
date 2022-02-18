@@ -102,7 +102,7 @@ if (process.env.SENTRY_DSN) {
   Sentry.init({
     dsn: process.env.SENTRY_DSN,
     environment: process.env.NODE_ENV,
-    release: process.env.GIT_COMMIT,
+    release: process.env.GIT_TAG ?? process.env.GIT_SHA,
     attachStacktrace: true,
   });
   // This listens to errors that cause the process to crash,

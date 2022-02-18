@@ -33,6 +33,7 @@
     "fast-glob": "^3.2.11",
     "filesize": "^8.0.7",
     "friendly-node-cron": "^1.4.1",
+    "git-repo-info": "^2.1.1",
     "inquirer": "^8.2.0",
     "jszip": "^3.7.1",
     "lookpath": "^1.2.2",

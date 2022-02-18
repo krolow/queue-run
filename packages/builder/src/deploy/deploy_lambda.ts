@@ -1,6 +1,7 @@
 import { CloudWatchLogs } from "@aws-sdk/client-cloudwatch-logs";
 import { Lambda } from "@aws-sdk/client-lambda";
 import chalk from "chalk";
+import getRepoInfo from "git-repo-info";
 import { AbortSignal } from "node-abort-controller";
 import { debuglog } from "node:util";
 import ora from "ora";
@@ -210,6 +211,12 @@ async function loadEnvVars({
   merged.set("QUEUE_RUN_URL", httpUrl);
   merged.set("QUEUE_RUN_WS", wsUrl);
   merged.set("QUEUE_RUN_WS_API_ID", wsApiId);
+
+  const { branch, tag, sha } = getRepoInfo();
+  merged.set("GIT_BRANCH", branch);
+  merged.set("GIT_SHA", sha);
+  if (tag) merged.set("GIT_TAG", tag);
+
   return merged;
 }
 
