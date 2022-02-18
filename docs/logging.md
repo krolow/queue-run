@@ -110,3 +110,15 @@ if (process.env.SENTRY_DSN) {
   logger.on("error", (error) => Sentry.captureException(error));
 }
 ```
+
+:::tip reportError
+
+Use [`reportError`](https://developer.mozilla.org/en-US/docs/Web/API/reportError) with an `Error` object when you want to:
+
+- Report the error but throw an error/terminate the process
+- Send it to all `on(error)` event handler
+- Including error monitoring service (as shown in example above)
+- And showing in the console/log (default behavior)
+
+Use `console.error` when you want to show additional information in the console/log, but not necessarily trigger an error condition.
+:::
