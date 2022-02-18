@@ -94,15 +94,19 @@ const logtail = new Logtail(process.env.LOGTAIL_TOKEN);
 // send to logging service
 logger.on("log", (level, ...args) => {
   const message = format(...args);
-  if (level === "error)
-    logtail.error(message);
-  else
-    logtail.log(message);
+  if (level === "error) logtail.error(message);
+  else logtail.log(message);
 });
 
-// unhandled errors and rejected promises only
-// send to error tracking service
-logger.on("error", (error) => {
-  Sentry.captureException(error);
-});
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV,
+    release: process.env.GIT_COMMIT,
+    attachStacktrace: true,
+  });
+  // This listens to errors that cause the process to crash,
+  // or otherwise reported with call to reportError
+  logger.on("error", (error) => Sentry.captureException(error));
+}
 ```

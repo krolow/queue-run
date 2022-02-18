@@ -7,23 +7,8 @@ import {
   UpdateItemCommand,
 } from "@aws-sdk/client-dynamodb";
 
-export default function userConnections(dynamoDB: DynamoDBClient) {
-  return {
-    getConnections: (userIds: string[]) =>
-      getConnections({ dynamoDB, userIds }),
-    getAuthenticatedUserId: (connectionId: string) =>
-      getAuthenticatedUserId({ dynamoDB, connectionId }),
-    onAuthenticated: ({
-      connectionId,
-      userId,
-    }: {
-      connectionId: string;
-      userId: string;
-    }) => onAuthenticated({ dynamoDB, connectionId, userId }),
-    onDisconnected: (connectionId: string) =>
-      onDisconnected({ dynamoDB, connectionId }),
-  };
-}
+const region = process.env.AWS_REGION!;
+const dynamoDB = new DynamoDBClient({ region });
 
 /**
  * This table holds the authenticated user ID for each connection
@@ -47,13 +32,7 @@ const connectionsTable = "qr-connections";
  */
 const userConnectionsTable = "qr-user-connections";
 
-async function getConnections({
-  dynamoDB,
-  userIds,
-}: {
-  dynamoDB: DynamoDBClient;
-  userIds: string[];
-}): Promise<string[]> {
+export async function getConnections(userIds: string[]): Promise<string[]> {
   const { Responses } = await dynamoDB.send(
     new BatchGetItemCommand({
       RequestItems: {
@@ -67,13 +46,9 @@ async function getConnections({
   return records.flatMap((record) => record.connections?.SS ?? []) ?? [];
 }
 
-async function getAuthenticatedUserId({
-  dynamoDB,
-  connectionId,
-}: {
-  dynamoDB: DynamoDBClient;
-  connectionId: string;
-}): Promise<string | null | undefined> {
+export async function getAuthenticatedUserId(
+  connectionId: string
+): Promise<string | null | undefined> {
   const user = await dynamoDB.send(
     new GetItemCommand({
       TableName: connectionsTable,
@@ -83,12 +58,10 @@ async function getAuthenticatedUserId({
   return user?.Item?.user_id?.S;
 }
 
-async function onAuthenticated({
-  dynamoDB,
+export async function onAuthenticated({
   connectionId,
   userId,
 }: {
-  dynamoDB: DynamoDBClient;
   connectionId: string;
   userId: string;
 }): Promise<{ wentOnline: boolean }> {
@@ -119,13 +92,9 @@ async function onAuthenticated({
   return { wentOnline };
 }
 
-async function onDisconnected({
-  dynamoDB,
-  connectionId,
-}: {
-  dynamoDB: DynamoDBClient;
-  connectionId: string;
-}): Promise<
+export async function onDisconnected(
+  connectionId: string
+): Promise<
   { wentOffline: false; userId?: never } | { wentOffline: true; userId: string }
 > {
   const connection = await dynamoDB.send(

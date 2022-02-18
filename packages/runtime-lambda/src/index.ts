@@ -1,23 +1,7 @@
-import {
-  ApiGatewayManagementApiClient,
-  DeleteConnectionCommand,
-  PostToConnectionCommand,
-} from "@aws-sdk/client-apigatewaymanagementapi";
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { SQSClient } from "@aws-sdk/client-sqs";
 import { format } from "node:util";
-import {
-  AuthenticatedUser,
-  ExecutionContext,
-  getExecutionContext,
-  handleUserOnline,
-  logger,
-  NewExecutionContext,
-  socket,
-  url,
-  warmup,
-} from "queue-run";
-import swapAWSEnvVars from "./environment";
+import { logger, reportError, socket, url, warmup } from "queue-run";
+import LambdaExecutionContext from "./execution_context";
 import handleHTTPRequest, {
   APIGatewayHTTPEvent,
   APIGatewayResponse,
@@ -31,111 +15,26 @@ import handleSQSMessages, {
 import handleWebSocketRequest, {
   APIGatewayWebSocketEvent,
 } from "./handle_websocket";
-import queueJob from "./queueJob";
-import userConnections from "./user_connections";
 
-logger.removeAllListeners("log");
-logger.addListener("log", (level, ...args) => {
-  const formatted = format(...args);
-  process.stdout.write(
-    `[${level.toUpperCase()}] ${formatted.replace(/\n/g, "\r")}\n`
-  );
-});
+// How long to wait before exiting after a fatal error.
+// Gives you some time to flush the logs, send error reports, etc.
+const failedExitDelay = 200;
+
+prepareLogging();
 
 url.baseUrl = process.env.QUEUE_RUN_URL!;
 socket.url = process.env.QUEUE_RUN_WS!;
 
-const { slug, region, wsApiId, ...clientConfig } = swapAWSEnvVars();
+const region = process.env.AWS_REGION!;
+const sqs = new SQSClient({ region });
 
-const dynamoDB = new DynamoDBClient({ ...clientConfig, region });
-const gateway = new ApiGatewayManagementApiClient({
-  ...clientConfig,
-  endpoint: `https://${wsApiId}.execute-api.${region}.amazonaws.com/_ws`,
-  region,
-});
-const sqs = new SQSClient({ ...clientConfig, region });
+// This must come after we create clients for SQS, DynamoDB, etc.
+switchEnvVars();
 
-const connections = userConnections(dynamoDB);
-
-class LambdaExecutionContext extends ExecutionContext {
-  constructor(
-    args: { connectionId?: string } & Parameters<NewExecutionContext>[0]
-  ) {
-    super(args);
-    this.connectionId = args.connectionId;
-  }
-
-  queueJob(args: Parameters<ExecutionContext["queueJob"]>[0]) {
-    const { dedupeId, groupId, params, payload, queueName, user } = args;
-    return queueJob({
-      dedupeId,
-      groupId,
-      params,
-      payload,
-      queueName,
-      sqs,
-      slug,
-      user: user === undefined ? this.user ?? null : user,
-    });
-  }
-
-  async sendWebSocketMessage(
-    message: Buffer,
-    connectionId: string
-  ): Promise<void> {
-    try {
-      await gateway.send(
-        new PostToConnectionCommand({
-          ConnectionId: connectionId,
-          Data: message,
-        })
-      );
-    } catch (error) {
-      if (error && typeof error === "object" && "$metadata" in error) {
-        const { httpStatusCode } = (
-          error as { $metadata: { httpStatusCode: number } }
-        ).$metadata;
-        // 410 Gone: this connection has been closed
-        // 403 Forbidden: this connection belongs to different API
-        // (this could happend if you add/remove domain)
-        if (httpStatusCode === 410 || httpStatusCode === 403)
-          connections.onDisconnected(connectionId);
-      } else throw error;
-    }
-  }
-
-  async closeWebSocket(connectionId: string): Promise<void> {
-    await gateway.send(
-      new DeleteConnectionCommand({ ConnectionId: connectionId })
-    );
-  }
-
-  // eslint-disable-next-line no-unused-vars
-  async getConnections(userIds: string[]): Promise<string[]> {
-    return await connections.getConnections(userIds);
-  }
-
-  async authenticated(user: AuthenticatedUser | null) {
-    super.authenticated(user);
-    const { connectionId } = this;
-    if (user && connectionId) {
-      const { wentOnline } = await connections.onAuthenticated({
-        connectionId,
-        userId: user.id,
-      });
-      if (wentOnline) {
-        getExecutionContext().exit(() =>
-          handleUserOnline({
-            user,
-            newExecutionContext: (args) => new LambdaExecutionContext(args),
-          })
-        );
-      }
-    }
-  }
-}
-
-// Top-level await: this only makes a difference if you user provisioned concurrency
+// Top-level await. Do not place this inside handler.
+//
+// If you have provisioned concurrency, this will run when the instance loads.
+// The instance sticks around until it's tasked, and only then is handler called.
 await warmup((args) => new LambdaExecutionContext(args));
 
 // Entry point for AWS Lambda
@@ -143,43 +42,46 @@ export async function handler(
   event: LambdaEvent,
   context: LambdaContext
 ): Promise<APIGatewayResponse | SQSBatchResponse | void> {
-  if (isWebSocketRequest(event)) {
-    const { connectionId } = event.requestContext;
-    return await handleWebSocketRequest(
-      event as APIGatewayWebSocketEvent,
-      connections,
-      (args) => new LambdaExecutionContext({ ...args, connectionId })
-    );
-  }
+  try {
+    if (isWebSocketRequest(event)) {
+      const { connectionId } = event.requestContext;
+      return await handleWebSocketRequest(
+        event as APIGatewayWebSocketEvent,
+        (args) => new LambdaExecutionContext({ ...args, connectionId })
+      );
+    }
 
-  if (isHTTPRequest(event)) {
-    return await handleHTTPRequest(
-      event,
-      (args) => new LambdaExecutionContext(args)
-    );
-  }
+    if (isHTTPRequest(event)) {
+      return await handleHTTPRequest(
+        event,
+        (args) => new LambdaExecutionContext(args)
+      );
+    }
 
-  if (isSQSMessages(event)) {
-    const { getRemainingTimeInMillis } = context;
-    const messages = event.Records.filter(
-      (record) => record.eventSource === "aws:sqs"
-    );
-    return await handleSQSMessages({
-      getRemainingTimeInMillis,
-      messages,
-      newExecutionContext: (args) => new LambdaExecutionContext(args),
-      sqs,
-    });
-  }
+    if (isSQSMessages(event)) {
+      const { getRemainingTimeInMillis } = context;
+      const messages = event.Records.filter(
+        (record) => record.eventSource === "aws:sqs"
+      );
+      return await handleSQSMessages({
+        getRemainingTimeInMillis,
+        messages,
+        newExecutionContext: (args) => new LambdaExecutionContext(args),
+        sqs,
+      });
+    }
 
-  if (isScheduledEvent(event)) {
-    return await handleScheduledEvent(
-      event,
-      (args) => new LambdaExecutionContext(args)
-    );
-  }
+    if (isScheduledEvent(event)) {
+      return await handleScheduledEvent(
+        event,
+        (args) => new LambdaExecutionContext(args)
+      );
+    }
 
-  throw new Error("Unknown event type");
+    throw new Error("Unknown event type");
+  } catch (error) {
+    await handleErrorAndFail(error);
+  }
 }
 
 function isWebSocketRequest(
@@ -197,6 +99,51 @@ function isSQSMessages(event: LambdaEvent): event is { Records: SQSMessage[] } {
     "Records" in event &&
     event.Records.every((record) => record.eventSource === "aws:sqs")
   );
+}
+
+function prepareLogging() {
+  // CloudWatch logs are captured from the output stream. Messages separated with
+  // NL, and multi-line messages must use CR for linebreak.
+  logger.removeAllListeners("log");
+  logger.addListener("log", (level, ...args) => {
+    const formatted = format(...args);
+    process.stdout.write(
+      `[${level.toUpperCase()}] ${formatted.replace(/\n/g, "\r")}\n`
+    );
+  });
+}
+
+// Replace AWS_ environment variables with those set by the user,
+// which were aliased during deploy.
+function switchEnvVars() {
+  const replace = [
+    "AWS_SESSION_TOKEN",
+    "AWS_ACCESS_KEY_ID",
+    "AWS_SECRET_ACCESS_KEY",
+    "AWS_REGION",
+  ];
+  const envVarPrefix = "ALIASED_FOR_CLIENT__";
+  for (const key of replace) {
+    delete process.env[key];
+    const aliased = process.env[envVarPrefix + key];
+    if (aliased) {
+      process.env[key] = aliased;
+      delete process.env[envVarPrefix + key];
+    }
+  }
+}
+
+async function handleErrorAndFail(error: unknown) {
+  // We call reportError because our error handler reports more information
+  // (eg request ID, job ID, queue name, etc)
+  reportError(error instanceof Error ? error : new Error(String(error)));
+  // We're going to pause the process just long enough to send error messages
+  // to 3rd party service
+  logger.emit("flush");
+  await new Promise((resolve) => setTimeout(resolve, failedExitDelay));
+  // And then we're going to crash the process, so AWS doesn't reuse this
+  // Lambda instance, since we don't know what stat it's in
+  throw error;
 }
 
 function isScheduledEvent(event: LambdaEvent): event is ScheduledEvent {

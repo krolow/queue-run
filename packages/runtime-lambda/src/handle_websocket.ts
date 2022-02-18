@@ -6,26 +6,24 @@ import {
   NewExecutionContext,
 } from "queue-run";
 import { APIGatewayResponse } from "./handle_http_request";
-import type userConnections from "./user_connections";
+import * as userConnections from "./user_connections";
 
 export default async function handleWebSocketRequest(
   event: APIGatewayWebSocketEvent,
-  connections: ReturnType<typeof userConnections>,
   newLocalStorage: NewExecutionContext
 ): Promise<APIGatewayResponse | void> {
   switch (event.requestContext.eventType) {
     case "CONNECT":
-      return await connect(event, connections, newLocalStorage);
+      return await connect(event, newLocalStorage);
     case "DISCONNECT":
-      return await disconnect(event, connections, newLocalStorage);
+      return await disconnect(event, newLocalStorage);
     case "MESSAGE":
-      return await onMessage(event, connections, newLocalStorage);
+      return await onMessage(event, newLocalStorage);
   }
 }
 
 async function connect(
   event: APIGatewayWebSocketEvent,
-  connections: ReturnType<typeof userConnections>,
   newExecutionContext: NewExecutionContext
 ): Promise<APIGatewayResponse> {
   const url = `wss://${event.requestContext.domainName}${event.requestContext.stage}`;
@@ -62,7 +60,6 @@ async function connect(
 
 async function onMessage(
   event: APIGatewayWebSocketEvent,
-  connections: ReturnType<typeof userConnections>,
   newExecutionContext: NewExecutionContext
 ): Promise<APIGatewayResponse> {
   const data = Buffer.from(
@@ -71,7 +68,7 @@ async function onMessage(
   );
   try {
     const { connectionId } = event.requestContext;
-    const userId = await connections.getAuthenticatedUserId(connectionId);
+    const userId = await userConnections.getAuthenticatedUserId(connectionId);
 
     await handleWebSocketMessage({
       connectionId: connectionId,
@@ -97,11 +94,10 @@ async function onMessage(
 
 async function disconnect(
   event: APIGatewayWebSocketEvent,
-  connections: ReturnType<typeof userConnections>,
   newExecutionContext: NewExecutionContext
 ): Promise<APIGatewayResponse> {
   const { connectionId } = event.requestContext;
-  const { wentOffline, userId } = await connections.onDisconnected(
+  const { wentOffline, userId } = await userConnections.onDisconnected(
     connectionId
   );
   if (wentOffline && userId)
