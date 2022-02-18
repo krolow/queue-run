@@ -77,7 +77,6 @@ export const logger = new Logger();
  * @param error The Error object
  */
 export function reportError(error: Error) {
-  // @ts-ignore
   logger.emit("error", error);
 }
 
@@ -123,9 +122,7 @@ logger.on("log", (level, ...args) => {
   stream.write(formatted + "\n");
 });
 
-logger.on("error", (error: Error) => {
-  console.error("Error: %s", String(error), error.stack);
-});
+logger.on("error", (error: Error) => console.error("%s", error.stack ?? error));
 
 // Node's default handler that shows an error, we prefer to show a warning
 process.removeAllListeners("warning");

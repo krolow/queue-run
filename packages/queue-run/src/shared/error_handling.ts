@@ -4,56 +4,44 @@ import { ScheduledJobError } from "../schedule/exports.js";
 import { WebSocketError } from "../ws/exports.js";
 import logger, { reportError } from "./logger.js";
 
-const exitDelay = 500;
-
-process.on("unhandledRejection", onFatalError);
-process.on("uncaughtException", onFatalError);
-
-function onFatalError(error: Error) {
-  reportError(error);
-  logger.emit("flush");
-  setTimeout(() => process.exit(1), exitDelay);
-}
+process.on("unhandledRejection", reportError);
+process.on("uncaughtException", reportError);
 
 logger.removeAllListeners("error");
 logger.on("error", (error: Error) => {
   if (error instanceof HTTPRequestError) {
     const { method, url } = error.request;
     console.error(
-      '"%s %s" error: %s',
+      'HTTP request method="%s" path="%s"\n%s',
       method,
       new URL(url).pathname,
-      error,
-      error.stack
+      error.stack ?? error
     );
   } else if (error instanceof WebSocketError) {
     const { connectionId, requestId } = error;
     console.error(
-      "connection: %s request: %s error: %s",
+      'WS connectionId="%s" requestId="%s"\n%s',
       connectionId,
       requestId,
-      error,
-      error.stack
+      error.stack ?? error
     );
   } else if (error instanceof QueuedJobError) {
     const { jobId, queueName } = error;
     console.error(
-      "Queued job failed on %s: %s: %s",
+      'Queued job "%s" failed jobId="%s"\n%s',
       queueName,
       jobId,
-      String(error),
-      error.stack
+      error.stack ?? error
     );
   } else if (error instanceof ScheduledJobError) {
     const { jobId, scheduleName } = error;
     console.error(
-      "Scheduled job failed on %s: %s: %s",
+      'Scheduled job "%s" failed jobId="%s"\n%s',
       scheduleName,
       jobId,
-      String(error),
-      error.stack
+      error.stack ?? error
     );
   } else {
-    console.error("Error: %s", String(error), error.stack);
+    console.error("%s", error.stack ?? error);
   }
 });
