@@ -1,6 +1,7 @@
 import { Command } from "commander";
 import glob from "fast-glob";
 import inquirer from "inquirer";
+import { lookpath } from "lookpath";
 import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -103,18 +104,9 @@ async function updatePackageJSON() {
     await fs.copyFile(path.join(templates, "package.json"), "package.json");
   }
 
-  try {
-    await fs.access("yarn.lock");
-  } catch {
-    return await yarnInstall();
-  }
-
-  try {
-    await fs.access("package-lock.json");
-    return await npmInstall(true);
-  } catch {
-    return await npmInstall(false);
-  }
+  const hasYarn = await lookpath("yarn");
+  if (hasYarn) await yarnInstall();
+  else await npmInstall(false);
 }
 
 async function yarnInstall() {
