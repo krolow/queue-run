@@ -270,18 +270,19 @@ function parsePath({
       : new URL(pathOrUrl, baseUrl ? new URL(baseUrl).href : relativeOrigin);
 
   if (protocol === "file:") {
-    const relative = path.relative(
-      // This is so "/" is interpreted relative to current working directory
-      path.resolve(process.cwd(), path.join(".", rootDir ?? "")),
-      pathname
-    );
+    const relative =
+      path
+        .relative(
+          // This is so "/" is interpreted relative to current working directory
+          path.resolve(process.cwd(), path.join(".", rootDir ?? "")),
+          pathname
+        )
+        .replace(/\.[^.]+$/, "")
+        .replace(/(^|[/])index$/, "") || ".";
+
     if (relative.startsWith(".."))
       throw new Error(`File path is outside of root directory "${rootDir}"`);
-    return parsePath({
-      path: relative.replace(/\.\w+$/, ""),
-      baseUrl,
-      rootDir,
-    });
+    return parsePath({ path: relative, baseUrl, rootDir });
   } else {
     return {
       hash,

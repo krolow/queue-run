@@ -60,6 +60,52 @@ describe("with base URL", () => {
   });
 });
 
+describe("url with URL object", () => {
+  it("should return exact URL", () =>
+    expect(url(new URL("http://url.example.com/path"))).toEqual(
+      "http://url.example.com/path"
+    ));
+});
+
+describe("url with file: URL", () => {
+  it("should return path if inside root directory", () => {
+    url.rootDir = "/src";
+    expect(url(`file:///${process.cwd()}/src/test.js`)).toEqual("/test");
+  });
+
+  it("should ignore file extension", () => {
+    expect(url(`file:///${process.cwd()}/test.js`)).toEqual("/test");
+    expect(url(`file:///${process.cwd()}/test.mjs`)).toEqual("/test");
+    expect(url(`file:///${process.cwd()}/test.ts`)).toEqual("/test");
+    expect(url(`file:///${process.cwd()}/test.tsx`)).toEqual("/test");
+  });
+
+  it("should ignore index if entire path", () => {
+    expect(url(`file:///${process.cwd()}/index.js`)).toEqual("/");
+  });
+
+  it("should ignore index if basename", () => {
+    expect(url(`file:///${process.cwd()}/test/index.js`)).toEqual("/test");
+  });
+
+  it("should not ignore index if dirname", () => {
+    expect(url(`file:///${process.cwd()}/index/test.js`)).toEqual(
+      "/index/test"
+    );
+  });
+
+  it("should error if outside root directory", () => {
+    url.rootDir = "/opt";
+    expect(() => url("file:///usr/assaf/queue-run/src/test.js")).toThrowError(
+      /outside of root directory/
+    );
+  });
+
+  afterEach(() => {
+    url.rootDir = "";
+  });
+});
+
 describe("url.self", () => {
   it("should return URL relative to root dir (empty)", () => {
     url.rootDir = "";
@@ -90,7 +136,7 @@ describe("url.self", () => {
     expect(() => url.self()()).toThrow(/path is outside of root directory/);
   });
 
-  afterAll(() => {
+  afterEach(() => {
     url.rootDir = "";
   });
 });
@@ -243,7 +289,7 @@ describe("url.relative", () => {
     url.rootDir = "";
   });
 
-  afterAll(() => {
+  afterEach(() => {
     url.baseUrl = undefined;
   });
 });
@@ -271,7 +317,7 @@ describe("url.base", () => {
     url.rootDir = "";
   });
 
-  afterAll(() => {
+  afterEach(() => {
     url.baseUrl = undefined;
   });
 });
