@@ -1,20 +1,21 @@
 {
   "scripts": {
-    "build": "yarn build:queue-run && yarn build:runtime && yarn build:builder && yarn build:cli",
-    "build:queue-run": "yarn workspace queue-run build",
-    "build:runtime": "yarn workspace queue-run-lambda build",
     "build:builder": "yarn workspace queue-run-builder build",
     "build:cli": "yarn workspace queue-run-cli build",
+    "build:queue-run": "yarn workspace queue-run build",
+    "build:runtime": "yarn workspace queue-run-lambda build",
+    "build": "yarn build:queue-run && yarn build:runtime && yarn build:builder && yarn build:cli",
     "docs": "yarn workspace site dev",
     "lint": "lerna run lint",
-    "watch:queue-run": "yarn workspace queue-run watch",
-    "watch:runtime": "yarn workspace queue-run-lambda watch",
+    "release:open": "open https://github.com/assaf/queue-run/releases",
+    "release:publish": "lerna publish --otp $(op get totp npmjs)",
+    "release:test": "yarn test && yarn build && yarn lint",
+    "release": "yarn release:test && yarn release:publish && release:open",
+    "test": "lerna run test",
     "watch:builder": "yarn workspace queue-run-builder watch",
     "watch:cli": "yarn workspace queue-run-cli watch",
-    "release:publish": "lerna publish --otp $(op get totp npmjs)",
-    "release:open": "open https://github.com/assaf/queue-run/releases",
-    "release:test": "yarn test && yarn build && yarn lint",
-    "release": "yarn release:test && yarn release:publish && release:open"
+    "watch:queue-run": "yarn workspace queue-run watch",
+    "watch:runtime": "yarn workspace queue-run-lambda watch"
   },
   "private": true,
   "devDependencies": {
