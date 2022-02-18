@@ -1,5 +1,6 @@
 import chalk from "chalk";
 import glob from "fast-glob";
+import { lookpath } from "lookpath";
 import ms from "ms";
 import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
@@ -88,22 +89,21 @@ async function copyFile(
 }
 
 async function guessPackageManager(dirname: string): Promise<"npm" | "yarn"> {
-  try {
-    await fs.access(path.resolve(dirname, "package-lock.json"));
-    return "npm";
-  } catch {
-    // Ignore
-  }
+  const usingNPM = await fs
+    .access(path.resolve(dirname, "package-lock.json"))
+    .then(
+      () => true,
+      () => false
+    );
+  if (usingNPM) return "npm";
 
-  try {
-    await fs.access(path.resolve(dirname, "yarn.lock"));
-    return "yarn";
-  } catch {
-    // Ignore
-  }
+  const hasYarn = await lookpath("yarn");
+  if (hasYarn) return "yarn";
+
   const parent = path.dirname(dirname);
-  if (parent === dirname) return "npm";
-  return await guessPackageManager(parent);
+  const isRoot = parent === dirname;
+  console.log({ isRoot });
+  return isRoot ? "npm" : await guessPackageManager(parent);
 }
 
 async function yarnInstall(dirname: string) {
