@@ -40,12 +40,9 @@ module.exports = {
         { to: "/", label: "Documentation" },
         { to: "/cheatsheet", label: "Cheat Sheet" },
         {
-          href: "https://github.com/assaf/queue-run",
-          label: "GitHub",
-        },
-        {
           href: "https://github.com/assaf/queue-run/releases",
           label: "Releases",
+          position: "right",
         },
       ],
     },
