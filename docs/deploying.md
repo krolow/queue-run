@@ -33,6 +33,18 @@ npx queue-run status
 npx queue-run logs
 ```
 
+:::note Node 14 -> 16
+
+AWS Lambda is still on Node 14. When AWS upgrades in the coming months, QueueRun will also switch from Node 14 to 16.
+
+QueueRun will compile your code to ES2020, so new ECMAScript features should work regardless of which Node version you use, although some newer Node APIs would not be available.
+
+If you're seeing the warning `EBADENGINE Unsupported engine`:
+
+- YOLO: ignore the warning, or drop `engines` from `package.json`
+- Use [nvm](https://github.com/nvm-sh/nvm) or similar tool to run Node 14.x
+:::
+
 
 ## Commands
 
