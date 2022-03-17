@@ -135,7 +135,7 @@ export async function authenticate({ data }) {
 
 ### Authenticating HTTP Connection
 
-Every WebSoekct connection starts with an HTTP request. You can use the `onConnect` middleware to authenticate or reject requests based on that HTTP request.
+Every WebSocket connection starts with an HTTP request. You can use the `onConnect` middleware to authenticate or reject requests based on that HTTP request.
 
 * The [WebSocket](https://developer.mozilla.org/en-US/docs/Web/API/WebSocket) API supported by most browsers does not allow sending HTTP headers
 * The server has no access to the URL path or query string
