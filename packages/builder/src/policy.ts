@@ -101,6 +101,11 @@ export default function policy(slug?: string) {
         Effect: "Allow",
         Resource: "*",
       },
+      {
+        Action: ["cloudformation:*"],
+        Effect: "Allow",
+        Resource: "*",
+      },
     ],
   };
 }

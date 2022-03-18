@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import { buildProject, displayManifest } from "queue-run-builder";
+import { loadProject } from "../shared/config.js";
 
 const command = new Command("build")
   .description("build the backend")
@@ -11,8 +12,10 @@ const command = new Command("build")
       source: string,
       { output, full }: { output: string; full: boolean }
     ) => {
+      const { name } = await loadProject();
       await buildProject({
         buildDir: output,
+        lambdaName: `qr-${name}`,
         sourceDir: source,
         full,
       });

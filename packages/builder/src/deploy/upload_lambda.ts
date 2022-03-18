@@ -5,7 +5,7 @@ import invariant from "tiny-invariant";
 import { LambdaConfig } from "./deploy_lambda.js";
 import { deleteLambdaRole, getLambdaRole } from "./lambda_role.js";
 
-export const handler = "runtime.handler";
+const handler = "runtime.handler";
 
 const maxTimeout = 900;
 

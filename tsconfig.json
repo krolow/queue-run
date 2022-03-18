@@ -3,7 +3,6 @@
   "extends": "@tsconfig/node14/tsconfig.json",
   "compilerOptions": {
     "declaration": true,
-    "exactOptionalPropertyTypes": true,
     "incremental": true,
     "module": "esnext",
     "moduleResolution": "node",

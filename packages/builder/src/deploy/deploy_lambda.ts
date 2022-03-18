@@ -87,6 +87,7 @@ export async function deployLambda({
   const { lambdaRuntime, zip, manifest } = await buildProject({
     buildDir,
     full: true,
+    lambdaName,
     signal,
     sourceDir,
   });

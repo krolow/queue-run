@@ -77,7 +77,7 @@ async function updateSchedule({
 
 // cron is typically second, minute … day of week
 // AWS cron is minute, hour … year
-function toCloudWatchCronExpression(cron: string) {
+export function toCloudWatchCronExpression(cron: string) {
   const parsed = cronParser.parseExpression(cron, { iterator: false });
   // Drop seconds
   const [minute, hour, dayOfMonth, month, dayOfWeek] = parsed

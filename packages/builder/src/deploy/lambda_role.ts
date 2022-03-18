@@ -19,7 +19,7 @@ const assumeRolePolicy = {
   ],
 };
 
-const LambdaPolicy = {
+const lambdaPolicy = {
   Version,
   Statement: [
     {
@@ -87,7 +87,7 @@ export async function getLambdaRole({
   const role = await upsertRole(iam, roleName);
   invariant(role.Arn, "Role has no ARN");
 
-  const policy = JSON.stringify(LambdaPolicy)
+  const policy = JSON.stringify(lambdaPolicy)
     .replace(/\$accountId/g, accountId)
     .replace(/\$region/g, region)
     .replace(/\$lambdaName/g, lambdaName)
