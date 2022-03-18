@@ -369,7 +369,7 @@ export async function addAPIGatewayDomain({
       domain: `*.${domain}`,
       stage: "$default",
     }),
-    await addDomainMapping({
+    addDomainMapping({
       apiGateway,
       apiId: ws?.ApiId!,
       certificateArn,

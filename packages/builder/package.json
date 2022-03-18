@@ -28,6 +28,7 @@
     "@aws-sdk/client-sqs": "^3.54.1",
     "@swc/core": "^1.2.157",
     "chalk": "^5.0.1",
+    "cloudform": "^7.3.0",
     "cron-parser": "^4.2.1",
     "dotenv": "^16.0.0",
     "fast-glob": "^3.2.11",
