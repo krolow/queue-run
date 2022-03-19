@@ -8,6 +8,7 @@ import {
   displayTable,
   getAPIGatewayURLs,
   getRecentVersions,
+  getStackStatus,
   listQueues,
   listSchedules,
 } from "queue-run-builder";
@@ -59,6 +60,7 @@ async function showDeployment({
       { MemorySize: memory, Timeout: timeout },
       { ReservedConcurrentExecutions: reserved },
       { ProvisionedConcurrencyConfigs: provisioned },
+      stackStatus,
     ] = await Promise.all([
       lambda.getFunctionConfiguration({
         FunctionName: currentArn,
@@ -69,6 +71,7 @@ async function showDeployment({
       lambda.listProvisionedConcurrencyConfigs({
         FunctionName: concurrencyArn,
       }),
+      getStackStatus(`qr-${project}`),
     ]);
 
     spinner.stop();
@@ -82,7 +85,7 @@ async function showDeployment({
         ["Region", region],
         ["Available memory", filesize(memory! * 10000 * 1000)],
         ["Timeout", ms(timeout! * 1000)],
-        ["Reserved concurrency", reserved ?? "no reserve"],
+        ["Reserved concurrency", reserved ?? "No reserve"],
         ...(provisioned
           ? (provisioned
               .map((concurrency) => [
@@ -102,6 +105,7 @@ async function showDeployment({
               ])
               .flat() as [string, string][])
           : [["Provisioned", "no"]]),
+        ["Stack status", stackStatus ?? "Unknown"],
         ["HTTP", httpUrl],
         ["WebSocket", wsUrl],
       ],
