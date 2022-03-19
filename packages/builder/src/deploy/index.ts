@@ -1,5 +1,9 @@
 export { createTables } from "./create_tables.js";
-export { deployLambda, getRecentVersions } from "./deploy_lambda.js";
+export {
+  deleteLambda,
+  deployLambda,
+  getRecentVersions,
+} from "./deploy_lambda.js";
 export * from "./env_vars.js";
 export { listQueues } from "./queues.js";
 export { listSchedules } from "./schedules.js";
