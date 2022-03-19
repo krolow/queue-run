@@ -40,6 +40,7 @@ export async function deployStack({
     cloudFormation.cancelUpdateStack({ StackName: stackName });
   }
 
+  let successful, events;
   const spinner = ora(`Deploying stack ${stackName}`).start();
   try {
     const existing = await findStack(stackName);
@@ -65,31 +66,28 @@ export async function deployStack({
 
     signal.addEventListener("abort", cancel);
 
-    const events = await waitForStackUpdate(stackName, spinner);
+    events = await waitForStackUpdate(stackName, spinner);
     const finalStatus = (await findStack(stackName))?.StackStatus;
-    spinner.succeed();
-
-    const successful =
+    successful =
       finalStatus === "UPDATE_COMPLETE" || finalStatus === "CREATE_COMPLETE";
-    if (successful) {
-      displayEvents(events, [
-        "CREATE_COMPLETE",
-        "UPDATE_COMPLETE",
-        "DELETE_COMPLETE",
-      ]);
-    } else {
-      displayEvents(events, [
-        "CREATE_FAILED",
-        "UPDATE_FAILED",
-        "DELETE_FAILED",
-      ]);
-      throw new Error("Stack deploy failed");
-    }
   } catch (error) {
-    spinner.fail(`Failed to create stack ${stackName}: ${String(error)}`);
+    spinner.fail();
     throw error;
   } finally {
     signal.removeEventListener("abort", cancel);
+  }
+
+  if (successful) {
+    spinner.succeed();
+    displayEvents(events, [
+      "CREATE_COMPLETE",
+      "UPDATE_COMPLETE",
+      "DELETE_COMPLETE",
+    ]);
+  } else {
+    spinner.fail("Stack deploy failed, see above for details");
+    displayEvents(events, ["CREATE_FAILED", "UPDATE_FAILED", "DELETE_FAILED"]);
+    throw new Error("Stack deploy failed, see above for details");
   }
 }
 
@@ -98,25 +96,17 @@ export async function deleteStack(lambdaName: string) {
   const stackName = lambdaName;
 
   const spinner = ora(`Deleting stack ${stackName}`).start();
-  try {
-    const stack = await findStack(stackName);
-    if (!stack) {
-      spinner.succeed();
-      return;
-    }
-    if (stack.StackStatus?.endsWith("_IN_PROGRESS"))
-      throw new Error(`Stack ${stackName} is currently updating`);
-
-    const stackId = stack.StackId;
-    invariant(stackId);
-    await cloudFormation.deleteStack({ StackName: stackId });
-    const events = await waitForStackUpdate(stackId, spinner);
+  const stack = await findStack(stackName);
+  if (!stack) {
     spinner.succeed();
-    displayEvents(events, ["DELETE_COMPLETE"]);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    spinner.fail(`Failed to delete stack ${stackName}: ${message}`);
+    return;
   }
+  const stackId = stack.StackId;
+  invariant(stackId);
+  await cloudFormation.deleteStack({ StackName: stackId });
+  const events = await waitForStackUpdate(stackId, spinner);
+  spinner.succeed();
+  displayEvents(events, ["DELETE_COMPLETE"]);
 }
 
 export async function getStackStatus(lambdaName: string) {

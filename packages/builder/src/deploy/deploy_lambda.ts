@@ -7,10 +7,10 @@ import { debuglog } from "node:util";
 import ora from "ora";
 import invariant from "tiny-invariant";
 import { buildProject, displayManifest } from "../build/index.js";
-import { setupAPIGateway } from "../setup/gateway.js";
+import { deleteAPIGateway, setupAPIGateway } from "../setup/gateway.js";
 import { createTables } from "./create_tables.js";
 import { getEnvVariables } from "./env_vars.js";
-import { deployStack } from "./stack.js";
+import { deleteStack, deployStack } from "./stack.js";
 import updateAlias from "./update_alias.js";
 import uploadLambda from "./upload_lambda.js";
 
@@ -216,6 +216,23 @@ async function loadEnvVars({
   if (tag) merged.set("GIT_TAG", tag);
 
   return merged;
+}
+
+export async function deleteLambda({
+  project,
+  region,
+}: {
+  project: string;
+  region: string;
+}) {
+  const lambdaName = `qr-${project}`;
+  await deleteStack(lambdaName);
+  const lambda = new Lambda({ region });
+
+  const spinner = ora(`Deleting Lambda function ${lambdaName}`).start();
+  await lambda.deleteFunction({ FunctionName: lambdaName });
+  await deleteAPIGateway({ project, region });
+  spinner.succeed();
 }
 
 export async function getRecentVersions({

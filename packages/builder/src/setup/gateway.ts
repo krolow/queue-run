@@ -144,6 +144,60 @@ async function findGatewayAPI({
     : null;
 }
 
+export async function deleteAPIGateway({
+  project,
+  region,
+}: {
+  project: string;
+  region: string;
+}) {
+  const apiGateway = new ApiGatewayV2({ region });
+  await Promise.all([
+    deleteApi(apiGateway, project, ProtocolType.HTTP),
+    deleteApi(apiGateway, project, ProtocolType.WEBSOCKET),
+  ]);
+}
+
+async function deleteApi(
+  apiGateway: ApiGatewayV2,
+  project: string,
+  protocol: ProtocolType
+) {
+  const api = await findGatewayAPI({ apiGateway, protocol, project });
+  const apiId = api?.ApiId;
+  if (apiId) {
+    await deleteDomainMappings(apiGateway, apiId);
+    await apiGateway.deleteApi({ ApiId: api.ApiId });
+  }
+}
+
+async function deleteDomainMappings(
+  apiGateway: ApiGatewayV2,
+  apiId: string,
+  nextToken?: string
+) {
+  const { Items: domainNames, NextToken } = await apiGateway.getDomainNames({
+    ...(nextToken && { NextToken: nextToken }),
+  });
+  if (!domainNames?.length) return;
+  await Promise.all(
+    domainNames.map(async ({ DomainName }) => {
+      const { Items: mappings } = await apiGateway.getApiMappings({
+        DomainName,
+      });
+      if (!mappings) return;
+      await Promise.all(
+        mappings
+          .filter(({ ApiId }) => ApiId === apiId)
+          .map(({ ApiMappingId }) =>
+            apiGateway.deleteApiMapping({ ApiMappingId, DomainName })
+          )
+      );
+    })
+  );
+  if (NextToken) await deleteDomainMappings(apiGateway, apiId, NextToken);
+}
+
 export async function addAPIGatewayDomain({
   certificateArn,
   domain,
