@@ -95,7 +95,7 @@ export async function deployLambda({
 
   // DDB tables are referenced in the Lambda policy, so we need these to exist
   // before we can deploy.
-  await createTables(region);
+  await createTables();
   if (signal?.aborted) throw new Error();
 
   const envVars = await loadEnvVars({
@@ -103,7 +103,6 @@ export async function deployLambda({
     envVars: config.envVars,
     httpUrl,
     project,
-    region,
     wsUrl: websocketUrl,
     wsApiId,
   });
@@ -181,7 +180,6 @@ async function loadEnvVars({
   envVars,
   httpUrl,
   project,
-  region,
   wsUrl,
   wsApiId,
 }: {
@@ -189,7 +187,6 @@ async function loadEnvVars({
   envVars: Map<string, string>;
   httpUrl: string;
   project: string;
-  region: string;
   wsUrl: string;
   wsApiId: string;
 }) {
@@ -197,7 +194,6 @@ async function loadEnvVars({
   const merged = await getEnvVariables({
     environment,
     project,
-    region,
   });
 
   // Command line environment variables over-ride database

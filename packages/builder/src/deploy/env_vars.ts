@@ -1,18 +1,15 @@
 import { DynamoDB } from "@aws-sdk/client-dynamodb";
-import { createTables } from "./create_tables.js";
 
 const tableName = "qr-env-vars";
 
 export async function getEnvVariables({
   environment,
   project,
-  region,
 }: {
   environment: string;
   project: string;
-  region: string;
 }): Promise<Map<string, string>> {
-  const dynamoDB = new DynamoDB({ region });
+  const dynamoDB = new DynamoDB({});
   try {
     const { Item } = await dynamoDB.getItem({
       TableName: tableName,
@@ -33,13 +30,11 @@ export async function getEnvVariables({
 export async function setEnvVariable({
   environment,
   project,
-  region,
   varName,
   varValue,
 }: {
   environment: string;
   project: string;
-  region: string;
   varName: string;
   varValue: string;
 }): Promise<void> {
@@ -48,13 +43,13 @@ export async function setEnvVariable({
       "Environment variable must be alphanumeric, dash, or underscore"
     );
 
-  const dynamoDB = new DynamoDB({ region });
+  const dynamoDB = new DynamoDB({});
   try {
     await dynamoDB.describeTable({ TableName: tableName });
   } catch (error) {
     if ((error as { name: string }).name !== "ResourceNotFoundException")
       throw error;
-    await createTables(region);
+    await createTable(dynamoDB);
   }
 
   try {
@@ -81,12 +76,10 @@ export async function setEnvVariable({
 export async function deleteEnvVariable({
   environment,
   project,
-  region,
   varName,
 }: {
   environment: string;
   project: string;
-  region: string;
   varName: string;
 }): Promise<void> {
   if (!/^[a-zA-Z0-9-_]+$/.test(varName))
@@ -95,7 +88,7 @@ export async function deleteEnvVariable({
     );
 
   try {
-    const dynamoDB = new DynamoDB({ region });
+    const dynamoDB = new DynamoDB({});
     await dynamoDB.updateItem({
       TableName: tableName,
       Key: { project: { S: project }, env: { S: environment } },
@@ -105,5 +98,38 @@ export async function deleteEnvVariable({
   } catch (error) {
     if ((error as { name: string }).name !== "ResourceNotFoundException")
       throw error;
+  }
+}
+
+async function createTable(dynamoDB: DynamoDB) {
+  if (await hasTable(dynamoDB)) return;
+  await dynamoDB.createTable({
+    TableName: tableName,
+    AttributeDefinitions: [
+      { AttributeName: "project", AttributeType: "S" },
+      { AttributeName: "env", AttributeType: "S" },
+    ],
+    KeySchema: [
+      { AttributeName: "project", KeyType: "HASH" },
+      { AttributeName: "env", KeyType: "RANGE" },
+    ],
+    BillingMode: "PAY_PER_REQUEST",
+  });
+
+  let created = false;
+  do {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    created = await hasTable(dynamoDB);
+  } while (!created);
+}
+
+async function hasTable(dynamoDB: DynamoDB): Promise<boolean> {
+  try {
+    const { Table } = await dynamoDB.describeTable({ TableName: tableName });
+    return Table?.TableStatus === "ACTIVE";
+  } catch (error) {
+    if ((error as { name?: string }).name !== "ResourceNotFoundException")
+      throw error;
+    return false;
   }
 }
