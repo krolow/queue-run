@@ -2,12 +2,7 @@ import { IAM } from "@aws-sdk/client-iam";
 import chalk from "chalk";
 import { Command, Option } from "commander";
 import ms from "ms";
-import ora from "ora";
-import {
-  deployLambda,
-  setupAPIGateway,
-  setupIntegrations,
-} from "queue-run-builder";
+import { deployLambda } from "queue-run-builder";
 import invariant from "tiny-invariant";
 import { loadCredentials } from "../shared/config.js";
 
@@ -47,42 +42,21 @@ Deploying from
       const project = await loadCredentials({ name, awsRegion });
       const accountId = await getAccountId(project.awsRegion);
 
-      const spinner = ora("Setting up API Gateway...").start();
-      const { httpUrl, wsUrl, wsApiId } = await setupAPIGateway({
-        project: project.name,
-        region: project.awsRegion,
-      });
-      spinner.stop();
-
-      console.info(
-        chalk.bold.green('🐇 Deploying "%s" to %s\n'),
-        project.name,
-        new URL(httpUrl).origin
-      );
-
-      const lambdaArn = await deployLambda({
+      const { httpUrl, websocketUrl } = await deployLambda({
         buildDir: ".queue-run",
         sourceDir: process.cwd(),
         config: {
           accountId,
           env: "production",
           envVars,
-          httpUrl,
           region: project.awsRegion,
           project: project.name,
-          wsApiId,
-          wsUrl,
         },
-      });
-      await setupIntegrations({
-        project: project.name,
-        lambdaArn,
-        region: project.awsRegion,
       });
 
       console.info("");
       console.info(chalk.bold(" HTTP\t\t: %s"), httpUrl);
-      console.info(chalk.bold(" WebSocket\t: %s"), wsUrl);
+      console.info(chalk.bold(" WebSocket\t: %s"), websocketUrl);
       console.info("");
       console.info(`Try:\n  %s\n`, chalk.blueBright(`curl ${httpUrl}`));
 

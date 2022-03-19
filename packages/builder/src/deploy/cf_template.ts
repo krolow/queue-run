@@ -1,82 +1,50 @@
 /* eslint-disable sonarjs/no-duplicate-string */
-import { ProtocolType } from "@aws-sdk/client-apigatewayv2";
-import cloudform, {
-  ApiGatewayV2,
-  Events,
-  Fn,
-  IAM,
-  Lambda,
-  Logs,
-  SQS,
-} from "cloudform";
-import { DeletionPolicy, ResourceBase, StringParameter } from "cloudform-types";
+import cloudform, { ApiGatewayV2, Events, Fn, Lambda, SQS } from "cloudform";
+import { ResourceBase, StringParameter } from "cloudform-types";
+import cronParser from "cron-parser";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
+import { debuglog } from "node:util";
 import { loadManifest, Manifest } from "queue-run";
-import { toCloudWatchCronExpression } from "./schedules.js";
 
 const httpStage = "$default";
-const lambdaRolePath = "/queue-run/projects/";
 const wsStage = "_ws";
-const RefLambdaArn = Fn.Ref("LambdaArn");
+const RefLambdaArn = Fn.Ref("lambdaArn");
+const RefLambdaName = Fn.Ref("lambdaName");
+const debug = debuglog("queue-run:build");
 
-export async function cfTemplate({
-  buildDir,
-  lambdaName,
-}: {
-  buildDir: string;
-  lambdaName: string;
-}) {
+export async function cfTemplate(buildDir: string) {
   const manifest = await loadManifest(buildDir);
   const resources = [
-    getRole(lambdaName),
-    getLogs(lambdaName),
-    getAPIGatewate(lambdaName),
-    ...getQueues(lambdaName, [...manifest.queues.values()]),
-    ...getSchedules(lambdaName, [...manifest.schedules.values()]),
+    getHTTPGateway(),
+    getWebsocketGateway(),
+    ...getQueues(...manifest.queues.values()),
+    ...getSchedules(...manifest.schedules.values()),
   ].reduce((all, set) => ({ ...all, ...set }), {});
   // @ts-ignore
   const stack = cloudform.default({
     AWSTemplateFormatVersion: "2010-09-09",
-    Description: `Stack for ${lambdaName}`,
     Parameters: {
-      LambdaArn: new StringParameter({
-        Description: "Lambda function ARN",
-      }),
-      LambdaName: new StringParameter({ Default: lambdaName }),
+      httpApiId: new StringParameter(),
+      lambdaArn: new StringParameter(),
+      lambdaName: new StringParameter(),
+      websocketApiId: new StringParameter(),
     },
     Resources: resources,
   });
   await writeFile(path.join(buildDir, "cfn.json"), stack);
 }
 
-function getAPIGatewate(lambdaName: string) {
+function getHTTPGateway(): { [key: string]: ResourceBase } {
+  const RefApiId = Fn.Ref("httpApiId");
   return {
-    ...getHTTPGateway(lambdaName),
-    ...getWebsocketGateway(lambdaName),
-    gatewayInvoke: new Lambda.Permission({
-      Action: "lambda:InvokeFunction",
-      FunctionName: lambdaName,
-      Principal: "apigateway.amazonaws.com",
-    }),
-  };
-}
-
-function getHTTPGateway(lambdaName: string) {
-  const RefApiId = Fn.Ref("httpApi");
-  return {
-    httpApi: new ApiGatewayV2.Api({
-      Description: `QueueRun API gateway for project ${lambdaName}`,
-      Name: `qr-http-${lambdaName}`,
-      ProtocolType: "HTTP",
-    }).deletionPolicy(DeletionPolicy.Delete),
     httpIntegration: new ApiGatewayV2.Integration({
       ApiId: RefApiId,
       IntegrationType: "AWS_PROXY",
       IntegrationUri: RefLambdaArn,
       PayloadFormatVersion: "2.0",
       TimeoutInMillis: 30000,
-    }).dependsOn("httpApi"),
+    }),
     httpRoute: new ApiGatewayV2.Route({
       ApiId: RefApiId,
       RouteKey: "ANY /{proxy+}",
@@ -84,28 +52,29 @@ function getHTTPGateway(lambdaName: string) {
     }).dependsOn("httpIntegration"),
     httpDeployment: new ApiGatewayV2.Deployment({
       ApiId: RefApiId,
-    }).dependsOn("httpIntegration"),
+    }).dependsOn("httpRoute"),
     httpStage: new ApiGatewayV2.Stage({
       ApiId: RefApiId,
       DeploymentId: Fn.Ref("httpDeployment"),
       StageName: httpStage,
     }).dependsOn("httpDeployment"),
+
+    gatewayInvoke: new Lambda.Permission({
+      Action: "lambda:InvokeFunction",
+      FunctionName: RefLambdaName,
+      Principal: "apigateway.amazonaws.com",
+    }),
   };
 }
 
-function getWebsocketGateway(lambdaName: string) {
-  const RefApiId = Fn.Ref("websocketApi");
+function getWebsocketGateway(): { [key: string]: ResourceBase } {
+  const RefApiId = Fn.Ref("websocketApiId");
   const RefIntegration = Fn.Join("/", [
     "integrations",
     Fn.Ref("websocketIntegration"),
   ]);
 
   return {
-    websocketApi: new ApiGatewayV2.Api({
-      Name: `qr-ws-${lambdaName}`,
-      ProtocolType: ProtocolType.WEBSOCKET,
-      RouteSelectionExpression: "*",
-    }).deletionPolicy(DeletionPolicy.Delete),
     websocketIntegration: new ApiGatewayV2.Integration({
       ApiId: RefApiId,
       ContentHandlingStrategy: "CONVERT_TO_TEXT",
@@ -118,7 +87,7 @@ function getWebsocketGateway(lambdaName: string) {
       ]),
       PassthroughBehavior: "WHEN_NO_MATCH",
       TimeoutInMillis: 29000,
-    }).dependsOn("websocketApi"),
+    }),
     websocketConnect: new ApiGatewayV2.Route({
       ApiId: RefApiId,
       AuthorizationType: "NONE",
@@ -137,7 +106,11 @@ function getWebsocketGateway(lambdaName: string) {
     }).dependsOn("websocketIntegration"),
     websocketDeployment: new ApiGatewayV2.Deployment({
       ApiId: RefApiId,
-    }).dependsOn("websocketIntegration"),
+    }).dependsOn([
+      "websocketConnect",
+      "websocketDisconnect",
+      "websocketDefault",
+    ]),
     websocketStage: new ApiGatewayV2.Stage({
       ApiId: RefApiId,
       DeploymentId: Fn.Ref("websocketDeployment"),
@@ -146,38 +119,15 @@ function getWebsocketGateway(lambdaName: string) {
   };
 }
 
-function getLogs(lambdaName: string) {
-  const logGroupName = `/aws/lambda/${lambdaName}`;
-  return {
-    logsGroup: new Logs.LogGroup({ LogGroupName: logGroupName }).deletionPolicy(
-      DeletionPolicy.Retain
-    ),
-  };
-}
-
-function getRole(lambdaName: string) {
-  return {
-    lambdaRole: new IAM.Role({
-      Path: lambdaRolePath,
-      RoleName: lambdaName,
-      AssumeRolePolicyDocument: assumeRolePolicy,
-      Policies: [{ PolicyName: "queue-run", PolicyDocument: lambdaPolicy }],
-    }).deletionPolicy(DeletionPolicy.Delete),
-  };
-}
-
 function getQueues(
-  lambdaName: string,
-  queues: Manifest["queues"]
-): {
-  [key: string]: ResourceBase;
-}[] {
+  ...queues: Manifest["queues"]
+): { [key: string]: ResourceBase }[] {
   return queues.map((queue, index) => {
-    const { queueName } = queue;
-    const queueId = `sqsQueue${index}`;
+    const resourceId = `sqsQueue${index}`;
+    const queueName = Fn.Join("__", [RefLambdaName, queue.queueName]);
     return {
-      [queueId]: new SQS.Queue({
-        QueueName: `${lambdaName}__${queueName}`,
+      [resourceId]: new SQS.Queue({
+        QueueName: queueName,
         ...(queue.isFifo
           ? {
               ContentBasedDeduplication: true,
@@ -187,140 +137,72 @@ function getQueues(
             }
           : undefined),
         VisibilityTimeout: queue.timeout * 6,
-      }).deletionPolicy(DeletionPolicy.Delete),
+      }),
 
       [`sqsSource${index}`]: new Lambda.EventSourceMapping({
         Enabled: true,
-        EventSourceArn: Fn.Ref(queueId),
+        EventSourceArn: Fn.Join(":", [
+          "arn:aws:sqs",
+          Fn.Ref("AWS::Region"),
+          Fn.Ref("AWS::AccountId"),
+          queueName,
+        ]),
         FunctionName: RefLambdaArn,
         FunctionResponseTypes: ["ReportBatchItemFailures"],
-      }).dependsOn(queueId),
+      }).dependsOn(resourceId),
     };
   });
 }
 
-function getSchedules(lambdaName: string, schedules: Manifest["schedules"]) {
+function getSchedules(
+  ...schedules: Manifest["schedules"]
+): { [key: string]: ResourceBase }[] {
   return schedules.map((schedule, index) => {
     if (schedule.cron === null) return {};
-    const ruleId = `cloudwatchSchedule${index}`;
+    const resourceId = `cloudwatchSchedule${index}`;
+    const ruleName = Fn.Join(".", [RefLambdaName, schedule.name]);
     return {
-      [ruleId]: new Events.Rule({
-        Name: `${lambdaName}.${schedule.name}`,
+      [resourceId]: new Events.Rule({
+        Name: ruleName,
         ScheduleExpression: `cron(${toCloudWatchCronExpression(
           schedule.cron
         )})`,
         State: "ENABLED",
         Targets: [{ Id: "lambda", Arn: RefLambdaArn }],
-      }).deletionPolicy(DeletionPolicy.Delete),
+      }),
 
       [`cloudwatchPermission${index}`]: new Lambda.Permission({
-        FunctionName: lambdaName,
+        FunctionName: RefLambdaArn,
         Action: "lambda:InvokeFunction",
         Principal: "events.amazonaws.com",
-        SourceArn: Fn.Ref(ruleId),
-      }),
+        SourceArn: Fn.Join(":", [
+          "arn:aws:events",
+          Fn.Ref("AWS::Region"),
+          Fn.Ref("AWS::AccountId"),
+          Fn.Join("/", ["rule", ruleName]),
+        ]),
+      }).dependsOn(resourceId),
     };
   });
 }
 
-const assumeRolePolicy = {
-  Version: "2012-10-17",
-  Statement: [
-    {
-      Effect: "Allow",
-      Principal: {
-        Service: ["lambda.amazonaws.com", "apigateway.amazonaws.com"],
-      },
-      Action: "sts:AssumeRole",
-    },
-  ],
-};
+// cron is typically second, minute … day of week
+// AWS cron is minute, hour … year
+function toCloudWatchCronExpression(cron: string) {
+  const parsed = cronParser.parseExpression(cron, { iterator: false });
+  // Drop seconds
+  const [minute, hour, dayOfMonth, month, dayOfWeek] = parsed
+    .stringify(false)
+    .split(" ");
 
-const RefRegion = Fn.Ref("AWS::Region");
-const RefAccountId = Fn.Ref("AWS::AccountId");
-const RefLambdaName = Fn.Ref("LambdaName");
-const RefLogGroup = Fn.Join("", ["/aws/lambda/", RefLambdaName]);
-
-const lambdaPolicy = {
-  Version: "2012-10-17",
-  Statement: [
-    {
-      Effect: "Allow",
-      Action: [
-        "sqs:ChangeMessageVisibility",
-        "sqs:ChangeMessageVisibilityBatch",
-        "sqs:DeleteMessage",
-        "sqs:GetQueueAttributes",
-        "sqs:GetQueueUrl",
-        "sqs:ReceiveMessage",
-        "sqs:SendMessage",
-      ],
-      Resource: Fn.Join(":", [
-        "arn:aws:sqs",
-        RefRegion,
-        RefAccountId,
-        Fn.Join("__", [RefLambdaName, "*"]),
-      ]),
-    },
-    {
-      Effect: "Allow",
-      Action: ["execute-api:ManageConnections", "execute-api:Invoke"],
-      Resource: [
-        Fn.Join(":", [
-          "arn:aws:execute-api",
-          RefRegion,
-          RefAccountId,
-          Fn.Join("", [Fn.Ref("websocketApi"), "/_ws/*"]),
-        ]),
-      ],
-    },
-    {
-      Effect: "Allow",
-      Action: [
-        "dynamodb:DeleteItem",
-        "dynamodb:BatchGetItem",
-        "dynamodb:GetItem",
-        "dynamodb:PutItem",
-        "dynamodb:UpdateItem",
-      ],
-      Resource: [
-        Fn.Join(":", [
-          "arn:aws:dynamodb",
-          RefRegion,
-          RefAccountId,
-          "table/qr-connections",
-        ]),
-        Fn.Join(":", [
-          "arn:aws:dynamodb",
-          RefRegion,
-          RefAccountId,
-          "table/qr-user-connections",
-        ]),
-      ],
-    },
-    {
-      Effect: "Allow",
-      Action: "logs:CreateLogGroup",
-      Resource: Fn.Join(":", [
-        "arn:aws:logs",
-        RefRegion,
-        RefAccountId,
-        RefLogGroup,
-      ]),
-    },
-    {
-      Effect: "Allow",
-      Action: ["logs:CreateLogStream", "logs:PutLogEvents"],
-      Resource: [
-        Fn.Join(":", [
-          "arn:aws:logs",
-          RefRegion,
-          RefAccountId,
-          "log-group",
-          RefLogGroup,
-          "*",
-        ]),
-      ],
-    },
-  ],
-};
+  const expr = [
+    minute,
+    hour,
+    dayOfMonth === "*" ? "?" : dayOfMonth,
+    month,
+    dayOfWeek === "0" ? "7" : dayOfWeek, // cron accepts 0-6, AWS wants 1-7
+    "*", // any year (we don't support this)
+  ].join(" ");
+  debug("EventBridge schedule expression: %s", expr);
+  return expr;
+}

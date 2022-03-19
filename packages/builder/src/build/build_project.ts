@@ -25,13 +25,11 @@ import zipLambda from "./zip_lambda.js";
 export default async function buildProject({
   buildDir,
   full = false,
-  lambdaName,
   signal,
   sourceDir,
 }: {
   buildDir: string;
   full?: boolean;
-  lambdaName: string;
   signal?: AbortSignal;
   sourceDir: string;
 }): Promise<{
@@ -50,15 +48,11 @@ export default async function buildProject({
   if (signal?.aborted) throw new Error();
 
   const manifest = await createManifest(buildDir);
+  await cfTemplate(buildDir);
   if (signal?.aborted) throw new Error();
 
   const zip = full ? await zipLambda(buildDir) : undefined;
   if (signal?.aborted) throw new Error();
-
-  await cfTemplate({
-    buildDir,
-    lambdaName,
-  });
 
   return { lambdaRuntime, manifest, zip };
 }

@@ -5,14 +5,12 @@ import getRepoInfo from "git-repo-info";
 import { AbortSignal } from "node-abort-controller";
 import { debuglog } from "node:util";
 import ora from "ora";
-import type { Manifest } from "queue-run";
 import invariant from "tiny-invariant";
 import { buildProject, displayManifest } from "../build/index.js";
+import { setupAPIGateway } from "../setup/gateway.js";
 import { createTables } from "./create_tables.js";
 import { getEnvVariables } from "./env_vars.js";
-import { addTriggers, removeTriggers } from "./event_source.js";
-import { createQueues, deleteOldQueues } from "./queues.js";
-import { removeUnusedSchedules, updateSchedules } from "./schedules.js";
+import { deployStack } from "./stack.js";
 import updateAlias from "./update_alias.js";
 import uploadLambda from "./upload_lambda.js";
 
@@ -28,10 +26,6 @@ export type LambdaConfig = {
   /** Environment variables from command line */
   envVars: Map<string, string>;
 
-  /** The full URL for this backend's HTTP API. Available to the backed as the
-   *  environment variable QUEUE_RUN_URL. */
-  httpUrl: string;
-
   /** AWS region */
   region: string;
 
@@ -39,13 +33,6 @@ export type LambdaConfig = {
    *  Limited to 40 characters, alphanumeric, and dashes, eg "my-project-pr-13".
    *  It should be unique for each project/branch. */
   project: string;
-
-  /**  WebSocket Gateway API ID. */
-  wsApiId: string;
-
-  /** The full URL for this backend's WebSocket. Available to the backed as the
-   *  environment variable QUEUE_RUN_WS. */
-  wsUrl: string;
 };
 
 const debug = debuglog("queue-run:deploy");
@@ -60,7 +47,10 @@ export async function deployLambda({
   config: LambdaConfig;
   signal?: AbortSignal;
   sourceDir: string;
-}): Promise<string> {
+}): Promise<{
+  httpUrl: string;
+  websocketUrl: string;
+}> {
   const { project } = config;
 
   // Note: queue names have 80 characters limit, when we combine
@@ -71,14 +61,7 @@ export async function deployLambda({
       "Project name must be 40 characters or less, alphanumeric and dashes"
     );
 
-  const { httpUrl, wsUrl } = config;
-  if (!/^https:\/\//.test(httpUrl))
-    throw new Error('HTTP URL must start with "https://"');
-  if (!/^wss:\/\//.test(wsUrl))
-    throw new Error('WS URL must start with "https://"');
-
   const region = config.region;
-
   const lambdaName = `qr-${project}`;
   debug('Lamba name: "%s"', lambdaName);
   const queuePrefix = `${lambdaName}__`;
@@ -87,7 +70,6 @@ export async function deployLambda({
   const { lambdaRuntime, zip, manifest } = await buildProject({
     buildDir,
     full: true,
-    lambdaName,
     signal,
     sourceDir,
   });
@@ -96,7 +78,19 @@ export async function deployLambda({
 
   await displayManifest(buildDir);
 
-  console.info(chalk.bold("\nDeploying Lambda function and queues\n"));
+  console.info(chalk.bold("\nDeploying Lambda function\n"));
+
+  const spinner = ora("Setting up API Gateway...").start();
+  const {
+    httpApiId,
+    httpUrl,
+    websocketUrl,
+    websocketApiId: wsApiId,
+  } = await setupAPIGateway({
+    project,
+    region,
+  });
+  spinner.stop();
 
   // DDB tables are referenced in the Lambda policy, so we need these to exist
   // before we can deploy.
@@ -109,8 +103,8 @@ export async function deployLambda({
     httpUrl,
     project,
     region,
-    wsUrl,
-    wsApiId: config.wsApiId,
+    wsUrl: websocketUrl,
+    wsApiId,
   });
 
   if (signal?.aborted) throw new Error();
@@ -140,11 +134,9 @@ export async function deployLambda({
     lambdaRuntime,
     limits,
     region,
-    wsApiId: config.wsApiId,
+    wsApiId,
     zip,
   });
-
-  if (signal?.aborted) throw new Error();
 
   const { nextSequenceToken } = await cw.putLogEvents({
     logGroupName,
@@ -153,14 +145,19 @@ export async function deployLambda({
       { message: `Uploaded new version ${versionArn}`, timestamp: Date.now() },
     ],
   });
+  if (signal?.aborted) throw new Error();
 
-  // From this point on, we hope to complete successfully and so ignore abort signal
-  const aliasArn = await switchOver({
-    queues: manifest.queues,
-    queuePrefix,
-    region,
-    schedules: manifest.schedules,
-    versionArn,
+  const aliasArn = versionArn.replace(/(\d+)$/, currentVersionAlias);
+  await updateAlias({ aliasArn, versionArn, region });
+  if (signal?.aborted) throw new Error();
+
+  // If aborted in time and stack deploy cancelled, then deployStack will throw.
+  await deployStack({
+    buildDir,
+    httpApiId: httpApiId,
+    lambdaArn: aliasArn,
+    signal,
+    websocketApiId: wsApiId,
   });
 
   await cw.putLogEvents({
@@ -175,7 +172,7 @@ export async function deployLambda({
     sequenceToken: nextSequenceToken!,
   });
 
-  return aliasArn;
+  return { httpUrl, websocketUrl };
 }
 
 async function loadEnvVars({
@@ -219,61 +216,6 @@ async function loadEnvVars({
   if (tag) merged.set("GIT_TAG", tag);
 
   return merged;
-}
-
-async function switchOver({
-  queues,
-  queuePrefix,
-  region,
-  schedules,
-  versionArn,
-}: {
-  queuePrefix: string;
-  queues: Manifest["queues"];
-  region: string;
-  schedules: Manifest["schedules"];
-  versionArn: string;
-}): Promise<string> {
-  const aliasArn = versionArn.replace(/(\d+)$/, currentVersionAlias);
-
-  // Create queues that new version expects, and remove triggers for event
-  // sources that new version does not understand.
-  const queueArns = await createQueues({
-    queues,
-    region,
-    prefix: queuePrefix,
-  });
-
-  await removeTriggers({ lambdaArn: aliasArn, sourceArns: queueArns, region });
-  const active = schedules.filter(({ cron }) => cron !== null);
-  await removeUnusedSchedules({
-    lambdaArn: aliasArn,
-    region,
-    schedules: new Set(active.map(({ name }) => name)),
-  });
-
-  // Update alias to point to new version.
-  //
-  // The alias includes the branch name, so if you parallel deploy in two
-  // branches, you would have two aliases pointing to two different published
-  // versions:
-  //
-  //    {projectId}-{branch} => {projectId}:{version}
-  await updateAlias({ aliasArn, versionArn, region });
-
-  // Add triggers for queues that new version can handle.  We do that for the
-  // alias, so we only need to add new triggers, existing triggers carry over:
-  //
-  //   trigger {projectId}-{branch}__{queueName} => {projectId}-{branch}
-  await addTriggers({ lambdaArn: aliasArn, sourceArns: queueArns, region });
-  await updateSchedules({ lambdaArn: aliasArn, region, schedules: active });
-
-  ora(`This is version ${versionArn.split(":").slice(-1)[0]}`).succeed();
-
-  // Delete any queues that are no longer needed.
-  await deleteOldQueues({ prefix: queuePrefix, queueArns, region });
-
-  return aliasArn;
 }
 
 export async function getRecentVersions({
