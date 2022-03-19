@@ -105,7 +105,7 @@ async function showDeployment({
               ])
               .flat() as [string, string][])
           : [["Provisioned", "no"]]),
-        ["Stack status", stackStatus ?? "Unknown"],
+        ["CloudFormation", stackStatus ?? "Unknown"],
         ["HTTP", httpUrl],
         ["WebSocket", wsUrl],
       ],
