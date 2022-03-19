@@ -61,6 +61,15 @@ echo ".queue-run.json" >> .gitignore
 ```
 
 
+### delete
+
+Delete previously deployed project.
+
+```bash
+npx queue-run delete
+```
+
+
 ### deploy
 
 Deploy your project to production.

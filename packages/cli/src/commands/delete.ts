@@ -22,6 +22,7 @@ const command = new Command("delete")
           message: `Are you sure you want to delete ${project.name}?`,
           name: "confirm",
           type: "confirm",
+          default: false,
         },
       ]);
       if (answers.confirm) {
