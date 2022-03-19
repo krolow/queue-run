@@ -1,8 +1,8 @@
 import { CreateTableCommandInput, DynamoDB } from "@aws-sdk/client-dynamodb";
 import ora from "ora";
 
-export async function createTables(region: string): Promise<void> {
-  const dynamoDB = new DynamoDB({ region });
+export async function createTables(): Promise<void> {
+  const dynamoDB = new DynamoDB({});
   const spinner = ora(`Setting up database tables`).start();
 
   await Promise.all([
@@ -17,19 +17,6 @@ export async function createTables(region: string): Promise<void> {
       TableName: "qr-user-connections",
       AttributeDefinitions: [{ AttributeName: "id", AttributeType: "S" }],
       KeySchema: [{ AttributeName: "id", KeyType: "HASH" }],
-      BillingMode: "PAY_PER_REQUEST",
-    }),
-
-    createTable(dynamoDB, {
-      TableName: "qr-env-vars",
-      AttributeDefinitions: [
-        { AttributeName: "project", AttributeType: "S" },
-        { AttributeName: "env", AttributeType: "S" },
-      ],
-      KeySchema: [
-        { AttributeName: "project", KeyType: "HASH" },
-        { AttributeName: "env", KeyType: "RANGE" },
-      ],
       BillingMode: "PAY_PER_REQUEST",
     }),
   ]);
