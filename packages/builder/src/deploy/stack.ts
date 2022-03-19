@@ -60,7 +60,7 @@ export async function deployStack({
     }
 
     const isCreating = !existing || initialStatus === "ROLLBACK_COMPLETE";
-    spinner.text = "Reviewing change set …";
+    spinner.text = "Reviewing stack changes …";
     const changes = await useChangeSet(stackUpdate, isCreating, requestToken);
     if (signal.aborted) throw new Error("Deployment cancelled");
     signal.addEventListener("abort", cancel);
@@ -137,27 +137,31 @@ async function useChangeSet(
 export async function deleteStack(lambdaName: string) {
   const cloudFormation = new CloudFormation({});
   const stackName = lambdaName;
-
   const spinner = ora(`Deleting stack ${stackName}`).start();
-  const stack = await findStack(stackName);
-  if (!stack) {
+  try {
+    const stack = await findStack(stackName);
+    if (!stack) {
+      spinner.succeed();
+      return;
+    }
+    const stackId = stack.StackId;
+    invariant(stackId);
+    await cloudFormation.updateTerminationProtection({
+      EnableTerminationProtection: false,
+      StackName: stackId,
+    });
+    const requestToken = crypto.randomUUID!();
+    await cloudFormation.deleteStack({
+      StackName: stackId,
+      ClientRequestToken: requestToken,
+    });
+    const events = await waitForStackUpdate(stackId, requestToken, spinner);
     spinner.succeed();
-    return;
+    displayEvents(events, requestToken, ["DELETE_COMPLETE", "DELETE_FAILED"]);
+  } catch (error) {
+    spinner.fail();
+    throw error;
   }
-  const stackId = stack.StackId;
-  invariant(stackId);
-  await cloudFormation.updateTerminationProtection({
-    EnableTerminationProtection: false,
-    StackName: stackId,
-  });
-  const requestToken = crypto.randomUUID!();
-  await cloudFormation.deleteStack({
-    StackName: stackId,
-    ClientRequestToken: requestToken,
-  });
-  const events = await waitForStackUpdate(stackId, requestToken, spinner);
-  spinner.succeed();
-  displayEvents(events, requestToken, ["DELETE_COMPLETE"]);
 }
 
 export async function getStackStatus(lambdaName: string) {
@@ -220,16 +224,17 @@ function displayEvents(
   token: string,
   statuses: string[]
 ) {
-  if (!events) return;
+  events = events
+    .filter((event) => event.ClientRequestToken === token)
+    .filter((event) => statuses.includes(event.ResourceStatus!));
+  if (events.length === 0) return;
+
   displayTable({
     headers: ["Resource", "Status"],
-    rows: events
-      .filter((event) => event.ClientRequestToken === token)
-      .filter((event) => statuses.includes(event.ResourceStatus!))
-      .map((event) => [
-        event.LogicalResourceId,
-        event.ResourceStatusReason ?? formatStatus(event.ResourceStatus),
-      ]),
+    rows: events.map((event) => [
+      event.LogicalResourceId,
+      event.ResourceStatusReason ?? formatStatus(event.ResourceStatus),
+    ]),
     options: { wrapCells: true },
   });
 }

@@ -10,6 +10,7 @@ import { buildProject, displayManifest } from "../build/index.js";
 import { deleteAPIGateway, setupAPIGateway } from "../setup/gateway.js";
 import { createTables } from "./create_tables.js";
 import { getEnvVariables } from "./env_vars.js";
+import { deleteLambdaRole } from "./lambda_role.js";
 import { deleteStack, deployStack } from "./stack.js";
 import updateAlias from "./update_alias.js";
 import uploadLambda from "./upload_lambda.js";
@@ -230,7 +231,13 @@ export async function deleteLambda({
   const lambda = new Lambda({ region });
 
   const spinner = ora(`Deleting Lambda function ${lambdaName}`).start();
-  await lambda.deleteFunction({ FunctionName: lambdaName });
+  try {
+    await lambda.deleteFunction({ FunctionName: lambdaName });
+  } catch (error) {
+    if ((error as { name: string }).name !== "ResourceNotFoundException")
+      throw error;
+  }
+  await deleteLambdaRole({ lambdaName, region });
   await deleteAPIGateway({ project, region });
   spinner.succeed();
 }

@@ -37,7 +37,10 @@ export default function policy(slug?: string) {
       },
       {
         Effect: "Allow",
-        Action: ["lambda:ListEventSourceMappings"],
+        Action: [
+          "lambda:ListEventSourceMappings",
+          "lambda:DeleteEventSourceMapping",
+        ],
         Resource: "*",
       },
       {
@@ -51,6 +54,7 @@ export default function policy(slug?: string) {
           "iam:SimulatePrincipalPolicy",
           "iam:CreateRole",
           "iam:DeleteRole",
+          "iam:DeleteRolePolicy",
           "iam:PutRolePolicy",
         ],
         Resource: "arn:aws:iam::*:role/*",
