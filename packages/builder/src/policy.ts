@@ -38,24 +38,25 @@ export default function policy(slug?: string) {
       {
         Effect: "Allow",
         Action: [
-          "lambda:ListEventSourceMappings",
           "lambda:DeleteEventSourceMapping",
+          "lambda:GetEventSourceMapping",
+          "lambda:ListEventSourceMappings",
         ],
         Resource: "*",
       },
       {
         Effect: "Allow",
         Action: [
+          "iam:CreateRole",
+          "iam:DeleteRole",
+          "iam:DeleteRolePolicy",
           "iam:GetRole",
           "iam:GetRolePolicy",
           "iam:ListAttachedRolePolicies",
           "iam:ListRolePolicies",
           "iam:PassRole",
-          "iam:SimulatePrincipalPolicy",
-          "iam:CreateRole",
-          "iam:DeleteRole",
-          "iam:DeleteRolePolicy",
           "iam:PutRolePolicy",
+          "iam:SimulatePrincipalPolicy",
         ],
         Resource: "arn:aws:iam::*:role/*",
       },
@@ -89,7 +90,7 @@ export default function policy(slug?: string) {
       {
         Action: ["dynamodb:*"],
         Effect: "Allow",
-        Resource: [`arn:aws:dynamodb:*:*:table/${lambdaPrefix}`],
+        Resource: `arn:aws:dynamodb:*:*:table/${lambdaPrefix}`,
       },
       {
         Action: ["events:*"],
