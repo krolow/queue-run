@@ -4,10 +4,10 @@ import { Command, Option } from "commander";
 import dns from "node:dns";
 import ora from "ora";
 import {
-  addAPIGatewayDomain,
+  addCustomDomain,
   discardCertificateRequest,
   displayTable,
-  removeAPIGatewayDomain,
+  removeCustomDomain,
   requestCertificate,
 } from "queue-run-builder";
 import invariant from "tiny-invariant";
@@ -78,7 +78,7 @@ async function addDomain({
   });
 
   const spinner = ora(`Adding domain ${domain}`).start();
-  const { httpUrl, wsUrl } = await addAPIGatewayDomain({
+  const { httpUrl, wsUrl } = await addCustomDomain({
     certificateArn,
     domain,
     project,
@@ -161,7 +161,7 @@ command
     const { name, awsRegion: region } = await loadCredentials();
 
     const spinner = ora(`Removing domain ${domain}`).start();
-    await removeAPIGatewayDomain({ domain, project: name, region });
+    await removeCustomDomain({ domain, project: name, region });
     await discardCertificateRequest(domain);
     spinner.succeed();
   });

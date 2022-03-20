@@ -11,7 +11,7 @@ import {
 } from "queue-run";
 import {
   buildProject,
-  getAPIGatewayURLs,
+  getAPIGatewayUrls,
   getEnvVariables,
 } from "queue-run-builder";
 import { DevExecutionContext } from "../dev/dev_context.js";
@@ -49,7 +49,7 @@ async function loadEnvVars({
     project,
     region,
   });
-  const { httpUrl, wsUrl } = await getAPIGatewayURLs({ project, region });
+  const { httpUrl, wsUrl } = await getAPIGatewayUrls({ project, region });
   // These are not available in production unless you explicitly add as
   // environment variables
   delete process.env.AWS_ACCESS_KEY_ID;

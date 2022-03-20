@@ -2,7 +2,7 @@ import { CloudWatch, Datapoint } from "@aws-sdk/client-cloudwatch";
 import { Command, Option } from "commander";
 import ms from "ms";
 import ora from "ora";
-import { displayTable, getAPIGatewayURLs } from "queue-run-builder";
+import { displayTable, getAPIGatewayUrls } from "queue-run-builder";
 import { loadCredentials } from "../shared/config.js";
 import { localTime, localTimestamp } from "../shared/timestamp.js";
 
@@ -68,7 +68,7 @@ command
   .action(async ({ range }: { range: string }) => {
     const { name, awsRegion: region } = await loadCredentials();
 
-    const { httpApiId } = await getAPIGatewayURLs({ project: name, region });
+    const { httpApiId } = await getAPIGatewayUrls({ project: name, region });
 
     const metrics = await collectMetrics2({
       dimension: { name: "ApiId", value: httpApiId },
@@ -111,7 +111,7 @@ command
   .action(async ({ range }: { range: string }) => {
     const { name, awsRegion: region } = await loadCredentials();
 
-    const { wsApiId } = await getAPIGatewayURLs({ project: name, region });
+    const { wsApiId } = await getAPIGatewayUrls({ project: name, region });
 
     const metrics = await collectMetrics2({
       dimension: { name: "ApiId", value: wsApiId },

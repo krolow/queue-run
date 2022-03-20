@@ -1,8 +1,7 @@
 import { IAM } from "@aws-sdk/client-iam";
 import ora from "ora";
 import invariant from "tiny-invariant";
-
-const lambdaRolePath = "/queue-run/projects/";
+import { lambdaRolePath } from "../constants.js";
 
 const assumeRolePolicy = {
   Version: "2012-10-17",

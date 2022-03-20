@@ -5,12 +5,13 @@ import cronParser from "cron-parser";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import { loadManifest, Manifest } from "queue-run";
+import { httpStage, wsStage } from "../constants.js";
 
-const httpStage = "$default";
-const wsStage = "_ws";
+const RefHttpApiId = Fn.Ref("httpApiId");
 const RefLambdaArn = Fn.Ref("lambdaArn");
 const RefLambdaCurrentArn = Fn.Ref("lambdaCurrentArn");
 const RefLambdaName = Fn.Ref("lambdaName");
+const RefWebsocketApiId = Fn.Ref("websocketApiId");
 
 export async function cfTemplate(buildDir: string) {
   const manifest = await loadManifest(buildDir);
@@ -68,7 +69,7 @@ function getPolicy(): { [key: string]: ResourceBase } {
               "arn:aws:execute-api",
               Fn.Ref("AWS::Region"),
               Fn.Ref("AWS::AccountId"),
-              Fn.Join("/", [Fn.Ref("websocketApiId"), wsStage, "*"]),
+              Fn.Join("/", [RefWebsocketApiId, wsStage, "*"]),
             ]),
           },
           {
@@ -125,22 +126,21 @@ const RefLambdaUrl = Fn.Join(":", [
 ]);
 
 function getHTTPGateway(): { [key: string]: ResourceBase } {
-  const RefApiId = Fn.Ref("httpApiId");
   return {
     httpIntegration: new ApiGatewayV2.Integration({
-      ApiId: RefApiId,
+      ApiId: RefHttpApiId,
       IntegrationType: "AWS_PROXY",
       IntegrationUri: RefLambdaUrl,
       PayloadFormatVersion: "2.0",
       TimeoutInMillis: 30000,
     }),
     httpRoute: new ApiGatewayV2.Route({
-      ApiId: RefApiId,
+      ApiId: RefHttpApiId,
       RouteKey: "ANY /{proxy+}",
       Target: Fn.Join("/", ["integrations", Fn.Ref("httpIntegration")]),
     }),
     httpStage: new ApiGatewayV2.Stage({
-      ApiId: RefApiId,
+      ApiId: RefHttpApiId,
       StageName: httpStage,
       AutoDeploy: true,
     }).dependsOn(["httpRoute", "policy"]),
@@ -153,14 +153,13 @@ function getHTTPGateway(): { [key: string]: ResourceBase } {
         "arn:aws:execute-api",
         Fn.Ref("AWS::Region"),
         Fn.Ref("AWS::AccountId"),
-        Fn.Join("/", [RefApiId, "*/*/{proxy+}"]),
+        Fn.Join("/", [RefHttpApiId, "*/*/{proxy+}"]),
       ]),
     }),
   };
 }
 
 function getWebsocketGateway(): { [key: string]: ResourceBase } {
-  const RefApiId = Fn.Ref("websocketApiId");
   const RefIntegration = Fn.Join("/", [
     "integrations",
     Fn.Ref("websocketIntegration"),
@@ -168,7 +167,7 @@ function getWebsocketGateway(): { [key: string]: ResourceBase } {
 
   return {
     websocketIntegration: new ApiGatewayV2.Integration({
-      ApiId: RefApiId,
+      ApiId: RefWebsocketApiId,
       ContentHandlingStrategy: "CONVERT_TO_TEXT",
       IntegrationMethod: "POST",
       IntegrationType: "AWS_PROXY",
@@ -177,23 +176,23 @@ function getWebsocketGateway(): { [key: string]: ResourceBase } {
       TimeoutInMillis: 29000,
     }),
     websocketConnect: new ApiGatewayV2.Route({
-      ApiId: RefApiId,
+      ApiId: RefWebsocketApiId,
       AuthorizationType: "NONE",
       RouteKey: "$connect",
       Target: RefIntegration,
     }),
     websocketDisconnect: new ApiGatewayV2.Route({
-      ApiId: RefApiId,
+      ApiId: RefWebsocketApiId,
       RouteKey: "$disconnect",
       Target: RefIntegration,
     }),
     websocketDefault: new ApiGatewayV2.Route({
-      ApiId: RefApiId,
+      ApiId: RefWebsocketApiId,
       RouteKey: "$default",
       Target: RefIntegration,
     }),
     websocketStage: new ApiGatewayV2.Stage({
-      ApiId: RefApiId,
+      ApiId: RefWebsocketApiId,
       AutoDeploy: true,
       StageName: wsStage,
     }).dependsOn([
@@ -211,7 +210,7 @@ function getWebsocketGateway(): { [key: string]: ResourceBase } {
         "arn:aws:execute-api",
         Fn.Ref("AWS::Region"),
         Fn.Ref("AWS::AccountId"),
-        Fn.Join("/", [RefApiId, "*"]),
+        Fn.Join("/", [RefWebsocketApiId, "*"]),
       ]),
     }),
   };

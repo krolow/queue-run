@@ -5,9 +5,7 @@ import {
   ProtocolType,
 } from "@aws-sdk/client-apigatewayv2";
 import invariant from "tiny-invariant";
-
-const wsStage = "_ws";
-const httpStage = "$default";
+import { wsStage } from "../constants.js";
 
 // See https://docs.aws.amazon.com/lambda/latest/dg/services-apigateway.html#apigateway-permissions
 
@@ -18,7 +16,7 @@ const httpStage = "$default";
  * @returns HTTP and WS URLs
  * @throws If API Gateway not configured yet
  */
-export async function getAPIGatewayURLs({
+export async function getAPIGatewayUrls({
   project,
   region,
 }: {
@@ -86,7 +84,7 @@ export async function setupAPIGateway({
   invariant(http.ApiId);
   invariant(websocket.ApiId);
 
-  const { httpUrl, wsUrl } = await getAPIGatewayURLs({ project, region });
+  const { httpUrl, wsUrl } = await getAPIGatewayUrls({ project, region });
   return {
     httpApiId: http.ApiId,
     httpUrl,
@@ -117,7 +115,7 @@ async function createApi(
   return api;
 }
 
-async function findGatewayAPI({
+export async function findGatewayAPI({
   apiGateway,
   nextToken,
   project,
@@ -196,163 +194,4 @@ async function deleteDomainMappings(
     })
   );
   if (NextToken) await deleteDomainMappings(apiGateway, apiId, NextToken);
-}
-
-export async function addAPIGatewayDomain({
-  certificateArn,
-  domain,
-  project,
-  region,
-}: {
-  certificateArn: string;
-  domain: string;
-  project: string;
-  region: string;
-}): Promise<{
-  httpUrl: string;
-  wsUrl: string;
-}> {
-  const apiGateway = new ApiGatewayV2({ region });
-  const [http, ws] = await Promise.all([
-    findGatewayAPI({ apiGateway, protocol: ProtocolType.HTTP, project }),
-    findGatewayAPI({ apiGateway, protocol: ProtocolType.WEBSOCKET, project }),
-  ]);
-
-  await Promise.all([
-    addDomainMapping({
-      apiGateway,
-      apiId: http?.ApiId!,
-      certificateArn,
-      domain: domain,
-      stage: "$default",
-    }),
-    addDomainMapping({
-      apiGateway,
-      apiId: http?.ApiId!,
-      certificateArn,
-      domain: `*.${domain}`,
-      stage: "$default",
-    }),
-    addDomainMapping({
-      apiGateway,
-      apiId: ws?.ApiId!,
-      certificateArn,
-      domain: `ws.${domain}`,
-      stage: wsStage,
-    }),
-  ]);
-  return {
-    httpUrl: `https://${domain}`,
-    wsUrl: `wss://ws.${domain}`,
-  };
-}
-
-async function addDomainMapping({
-  apiGateway,
-  apiId,
-  certificateArn,
-  domain,
-  stage,
-}: {
-  apiGateway: ApiGatewayV2;
-  apiId: string;
-  certificateArn: string;
-  domain: string;
-  stage: string;
-}) {
-  try {
-    await apiGateway.getDomainName({
-      DomainName: domain,
-    });
-  } catch (error) {
-    await apiGateway.createDomainName({
-      DomainName: domain,
-      DomainNameConfigurations: [
-        {
-          CertificateArn: certificateArn,
-          EndpointType: "REGIONAL",
-        },
-      ],
-    });
-  }
-
-  const { Items } = await apiGateway
-    .getApiMappings({
-      DomainName: domain,
-    })
-    .catch(() => ({ Items: [] }));
-  if (!Items?.find((item) => item.ApiId === apiId)) {
-    await apiGateway.createApiMapping({
-      ApiId: apiId,
-      DomainName: domain,
-      Stage: stage,
-    });
-  }
-}
-
-export async function removeAPIGatewayDomain({
-  domain,
-  project,
-  region,
-}: {
-  domain: string;
-  project: string;
-  region: string;
-}) {
-  const apiGateway = new ApiGatewayV2({ region });
-  const [http, ws] = await Promise.all([
-    findGatewayAPI({ apiGateway, protocol: ProtocolType.HTTP, project }),
-    findGatewayAPI({ apiGateway, protocol: ProtocolType.WEBSOCKET, project }),
-  ]);
-  await Promise.all([
-    http &&
-      removeDomainMapping({
-        apiGateway,
-        apiId: http.ApiId!,
-        domain: `*.${domain}`,
-        stage: httpStage,
-      }),
-    http &&
-      removeDomainMapping({
-        apiGateway,
-        apiId: http.ApiId!,
-        domain,
-        stage: httpStage,
-      }),
-    ws &&
-      removeDomainMapping({
-        apiGateway,
-        apiId: ws.ApiId!,
-        domain: `ws.${domain}`,
-        stage: wsStage,
-      }),
-  ]);
-}
-
-async function removeDomainMapping({
-  apiGateway,
-  apiId,
-  domain,
-  stage,
-}: {
-  apiGateway: ApiGatewayV2;
-  apiId: string;
-  domain: string;
-  stage: string;
-}) {
-  const { Items } = await apiGateway
-    .getApiMappings({
-      DomainName: domain,
-    })
-    .catch(() => ({ Items: [] }));
-  const mappingId = Items?.find(
-    ({ ApiId, Stage }) => ApiId === apiId && Stage === stage
-  )?.ApiMappingId;
-  if (mappingId) {
-    await apiGateway.deleteApiMapping({
-      ApiMappingId: mappingId,
-      DomainName: domain,
-    });
-  }
-  await apiGateway.deleteDomainName({ DomainName: domain }).catch(() => null);
 }

@@ -2,7 +2,7 @@ import { FunctionConfiguration, Lambda } from "@aws-sdk/client-lambda";
 import filesize from "filesize";
 import ora from "ora";
 import invariant from "tiny-invariant";
-import { createLambdaRole, deleteLambdaRole } from "./lambda_role.js";
+import { createLambdaRole } from "./lambda_role.js";
 
 const handler = "runtime.handler";
 
@@ -156,16 +156,4 @@ function aliasAWSEnvVars(envVars: Map<string, string>): Record<string, string> {
     else aliased[key] = value;
   }
   return aliased;
-}
-
-export async function deleteLambda({
-  lambdaName,
-  region,
-}: {
-  lambdaName: string;
-  region: string;
-}) {
-  const lambda = new Lambda({ region });
-  await lambda.deleteFunction({ FunctionName: lambdaName });
-  await deleteLambdaRole({ lambdaName, region });
 }
