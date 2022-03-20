@@ -91,7 +91,10 @@ function isWebSocketRequest(
 }
 
 function isHTTPRequest(event: LambdaEvent): event is APIGatewayHTTPEvent {
-  return "requestContext" in event && "http" in event.requestContext;
+  return (
+    "requestContext" in event &&
+    ("http" in event.requestContext || "httpMethod" in event.requestContext)
+  );
 }
 
 function isSQSMessages(event: LambdaEvent): event is { Records: SQSMessage[] } {

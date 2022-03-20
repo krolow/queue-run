@@ -4,14 +4,13 @@ import { ResourceBase, StringParameter } from "cloudform-types";
 import cronParser from "cron-parser";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
-import { debuglog } from "node:util";
 import { loadManifest, Manifest } from "queue-run";
 
 const httpStage = "$default";
 const wsStage = "_ws";
 const RefLambdaArn = Fn.Ref("lambdaArn");
+const RefLambdaCurrentArn = Fn.Ref("lambdaCurrentArn");
 const RefLambdaName = Fn.Ref("lambdaName");
-const debug = debuglog("queue-run:build");
 
 export async function cfTemplate(buildDir: string) {
   const manifest = await loadManifest(buildDir);
@@ -27,6 +26,7 @@ export async function cfTemplate(buildDir: string) {
     Parameters: {
       httpApiId: new StringParameter(),
       lambdaArn: new StringParameter(),
+      lambdaCurrentArn: new StringParameter(),
       lambdaName: new StringParameter(),
       websocketApiId: new StringParameter(),
     },
@@ -35,13 +35,20 @@ export async function cfTemplate(buildDir: string) {
   await writeFile(path.join(buildDir, "cfn.json"), stack);
 }
 
+const RefLambdaUrl = Fn.Join(":", [
+  "arn:aws:apigateway",
+  Fn.Ref("AWS::Region"),
+  "lambda",
+  Fn.Join("/", ["path/2015-03-31/functions", RefLambdaArn, "invocations"]),
+]);
+
 function getHTTPGateway(): { [key: string]: ResourceBase } {
   const RefApiId = Fn.Ref("httpApiId");
   return {
     httpIntegration: new ApiGatewayV2.Integration({
       ApiId: RefApiId,
       IntegrationType: "AWS_PROXY",
-      IntegrationUri: RefLambdaArn,
+      IntegrationUri: RefLambdaUrl,
       PayloadFormatVersion: "2.0",
       TimeoutInMillis: 30000,
     }),
@@ -49,20 +56,23 @@ function getHTTPGateway(): { [key: string]: ResourceBase } {
       ApiId: RefApiId,
       RouteKey: "ANY /{proxy+}",
       Target: Fn.Join("/", ["integrations", Fn.Ref("httpIntegration")]),
-    }).dependsOn("httpIntegration"),
-    httpDeployment: new ApiGatewayV2.Deployment({
-      ApiId: RefApiId,
-    }).dependsOn("httpRoute"),
+    }),
     httpStage: new ApiGatewayV2.Stage({
       ApiId: RefApiId,
-      DeploymentId: Fn.Ref("httpDeployment"),
       StageName: httpStage,
-    }).dependsOn("httpDeployment"),
+      AutoDeploy: true,
+    }).dependsOn("httpRoute"),
 
     gatewayInvoke: new Lambda.Permission({
       Action: "lambda:InvokeFunction",
-      FunctionName: RefLambdaName,
+      FunctionName: RefLambdaArn,
       Principal: "apigateway.amazonaws.com",
+      SourceArn: Fn.Join(":", [
+        "arn:aws:execute-api",
+        Fn.Ref("AWS::Region"),
+        Fn.Ref("AWS::AccountId"),
+        Fn.Join("/", [RefApiId, "*/*/{proxy+}"]),
+      ]),
     }),
   };
 }
@@ -80,11 +90,7 @@ function getWebsocketGateway(): { [key: string]: ResourceBase } {
       ContentHandlingStrategy: "CONVERT_TO_TEXT",
       IntegrationMethod: "POST",
       IntegrationType: "AWS_PROXY",
-      IntegrationUri: Fn.Join("/", [
-        "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions",
-        RefLambdaArn,
-        "invocations",
-      ]),
+      IntegrationUri: RefLambdaUrl,
       PassthroughBehavior: "WHEN_NO_MATCH",
       TimeoutInMillis: 29000,
     }),
@@ -93,29 +99,41 @@ function getWebsocketGateway(): { [key: string]: ResourceBase } {
       AuthorizationType: "NONE",
       RouteKey: "$connect",
       Target: RefIntegration,
-    }).dependsOn("websocketIntegration"),
+    }),
     websocketDisconnect: new ApiGatewayV2.Route({
       ApiId: RefApiId,
       RouteKey: "$disconnect",
       Target: RefIntegration,
-    }).dependsOn("websocketIntegration"),
+    }),
     websocketDefault: new ApiGatewayV2.Route({
       ApiId: RefApiId,
       RouteKey: "$default",
       Target: RefIntegration,
-    }).dependsOn("websocketIntegration"),
-    websocketDeployment: new ApiGatewayV2.Deployment({
+    }),
+    websocketStage: new ApiGatewayV2.Stage({
       ApiId: RefApiId,
+      StageName: wsStage,
     }).dependsOn([
       "websocketConnect",
       "websocketDisconnect",
       "websocketDefault",
     ]),
-    websocketStage: new ApiGatewayV2.Stage({
+    websocketDeployment: new ApiGatewayV2.Deployment({
       ApiId: RefApiId,
-      DeploymentId: Fn.Ref("websocketDeployment"),
-      StageName: wsStage,
-    }).dependsOn("websocketDeployment"),
+      StageName: Fn.Ref("websocketStage"),
+    }),
+
+    websocketPermission: new Lambda.Permission({
+      Action: "lambda:InvokeFunction",
+      FunctionName: RefLambdaArn,
+      Principal: "apigateway.amazonaws.com",
+      SourceArn: Fn.Join(":", [
+        "arn:aws:execute-api",
+        Fn.Ref("AWS::Region"),
+        Fn.Ref("AWS::AccountId"),
+        Fn.Join("/", [RefApiId, "*"]),
+      ]),
+    }),
   };
 }
 
@@ -147,7 +165,7 @@ function getQueues(
           Fn.Ref("AWS::AccountId"),
           queueName,
         ]),
-        FunctionName: RefLambdaArn,
+        FunctionName: RefLambdaCurrentArn,
         FunctionResponseTypes: ["ReportBatchItemFailures"],
       }).dependsOn(resourceId),
     };
@@ -168,11 +186,11 @@ function getSchedules(
           schedule.cron
         )})`,
         State: "ENABLED",
-        Targets: [{ Id: "lambda", Arn: RefLambdaArn }],
+        Targets: [{ Id: "lambda", Arn: RefLambdaCurrentArn }],
       }),
 
       [`cloudwatchPermission${index}`]: new Lambda.Permission({
-        FunctionName: RefLambdaArn,
+        FunctionName: RefLambdaCurrentArn,
         Action: "lambda:InvokeFunction",
         Principal: "events.amazonaws.com",
         SourceArn: Fn.Join(":", [
@@ -195,7 +213,7 @@ function toCloudWatchCronExpression(cron: string) {
     .stringify(false)
     .split(" ");
 
-  const expr = [
+  return [
     minute,
     hour,
     dayOfMonth === "*" ? "?" : dayOfMonth,
@@ -203,6 +221,4 @@ function toCloudWatchCronExpression(cron: string) {
     dayOfWeek === "0" ? "7" : dayOfWeek, // cron accepts 0-6, AWS wants 1-7
     "*", // any year (we don't support this)
   ].join(" ");
-  debug("EventBridge schedule expression: %s", expr);
-  return expr;
 }

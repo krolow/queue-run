@@ -26,7 +26,7 @@ export default async function uploadLambda({
   lambdaRuntime,
   limits,
   region,
-  wsApiId,
+  websocketApiId,
   zip,
 }: {
   accountId: string;
@@ -36,7 +36,7 @@ export default async function uploadLambda({
   lambdaRuntime: string;
   limits: Limits;
   region: string;
-  wsApiId: string;
+  websocketApiId: string;
   zip: Uint8Array;
 }): Promise<string> {
   const lambda = new Lambda({ region });
@@ -46,7 +46,7 @@ export default async function uploadLambda({
     accountId,
     lambdaName,
     region,
-    wsApiId,
+    websocketApiId,
   });
 
   const configuration = {
@@ -110,6 +110,7 @@ export default async function uploadLambda({
 
   spinner.succeed();
 
+  ora(`Version ${arn.split(":").pop()}`).succeed();
   ora(
     `Available memory: ${filesize(configuration.MemorySize * 1000 * 1000)}`
   ).succeed();

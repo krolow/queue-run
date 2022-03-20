@@ -50,8 +50,8 @@ const lambdaPolicy = {
         "dynamodb:UpdateItem",
       ],
       Resource: [
-        "arn:aws:dynamodb:$region:$accountId:table/qr-connections",
-        "arn:aws:dynamodb:$region:$accountId:table/qr-user-connections",
+        "arn:aws:dynamodb:$region:$accountId:table/qr-connections-$lambdaName",
+        "arn:aws:dynamodb:$region:$accountId:table/qr-user-connections-$lambdaName",
       ],
     },
     {
@@ -74,12 +74,12 @@ export async function getLambdaRole({
   accountId,
   lambdaName,
   region,
-  wsApiId,
+  websocketApiId,
 }: {
   accountId: string;
   lambdaName: string;
   region: string;
-  wsApiId: string;
+  websocketApiId: string;
 }): Promise<string> {
   const spinner = ora("Updating role/permissions").start();
   const iam = new IAM({ region });
@@ -91,7 +91,7 @@ export async function getLambdaRole({
     .replace(/\$accountId/g, accountId)
     .replace(/\$region/g, region)
     .replace(/\$lambdaName/g, lambdaName)
-    .replace(/\$wsApiId/g, wsApiId);
+    .replace(/\$wsApiId/g, websocketApiId);
 
   await iam.putRolePolicy({
     RoleName: role.RoleName,

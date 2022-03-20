@@ -11,7 +11,8 @@ export type APIGatewayHTTPEvent = {
   rawQueryString: string;
   requestContext: {
     domainName: string;
-    http: {
+    httpMethod?: string;
+    http?: {
       method: string;
       path: string;
       protocol: string;
@@ -65,8 +66,8 @@ function toFetchRequest(
   event: APIGatewayHTTPEvent | BackendLambdaRequest
 ): Request {
   if ("requestContext" in event) {
-    const { http } = event.requestContext;
-    const { method } = http;
+    const method =
+      event.requestContext.httpMethod ?? event.requestContext.http?.method;
     const url = new URL(
       `https://${event.requestContext.domainName}${event.rawPath}?${event.rawQueryString}`
     ).href;

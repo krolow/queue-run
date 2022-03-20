@@ -7,8 +7,7 @@ import {
   UpdateItemCommand,
 } from "@aws-sdk/client-dynamodb";
 
-const region = process.env.AWS_REGION!;
-const dynamoDB = new DynamoDBClient({ region });
+const dynamoDB = new DynamoDBClient({});
 
 /**
  * This table holds the authenticated user ID for each connection

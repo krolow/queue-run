@@ -90,9 +90,9 @@ export default function policy(slug?: string) {
         Action: ["dynamodb:*"],
         Effect: "Allow",
         Resource: [
-          "arn:aws:dynamodb:*:*:table/qr-connections",
+          "arn:aws:dynamodb:*:*:table/qr-connections-*",
           "arn:aws:dynamodb:*:*:table/qr-env-vars",
-          "arn:aws:dynamodb:*:*:table/qr-user-connections",
+          "arn:aws:dynamodb:*:*:table/qr-user-connections-*",
         ],
       },
       {
