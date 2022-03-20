@@ -1,6 +1,6 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 import cloudform, { ApiGatewayV2, Events, Fn, Lambda, SQS } from "cloudform";
-import { ResourceBase, StringParameter } from "cloudform-types";
+import { DynamoDB, ResourceBase, StringParameter } from "cloudform-types";
 import cronParser from "cron-parser";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -17,6 +17,7 @@ export async function cfTemplate(buildDir: string) {
   const resources = [
     getHTTPGateway(),
     getWebsocketGateway(),
+    getTables(),
     ...getQueues(...manifest.queues.values()),
     ...getSchedules(...manifest.schedules.values()),
   ].reduce((all, set) => ({ ...all, ...set }), {});
@@ -133,6 +134,23 @@ function getWebsocketGateway(): { [key: string]: ResourceBase } {
         Fn.Ref("AWS::AccountId"),
         Fn.Join("/", [RefApiId, "*"]),
       ]),
+    }),
+  };
+}
+
+function getTables(): { [key: string]: ResourceBase } {
+  return {
+    connectionsTable: new DynamoDB.Table({
+      TableName: Fn.Join("-", [RefLambdaName, "connections"]),
+      AttributeDefinitions: [{ AttributeName: "id", AttributeType: "S" }],
+      KeySchema: [{ AttributeName: "id", KeyType: "HASH" }],
+      BillingMode: "PAY_PER_REQUEST",
+    }),
+    userConnectionsTable: new DynamoDB.Table({
+      TableName: Fn.Join("-", [RefLambdaName, "user-connections"]),
+      AttributeDefinitions: [{ AttributeName: "id", AttributeType: "S" }],
+      KeySchema: [{ AttributeName: "id", KeyType: "HASH" }],
+      BillingMode: "PAY_PER_REQUEST",
     }),
   };
 }

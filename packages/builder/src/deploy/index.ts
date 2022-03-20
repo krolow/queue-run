@@ -1,4 +1,3 @@
-export { createTables } from "./create_tables.js";
 export {
   deleteLambda,
   deployLambda,

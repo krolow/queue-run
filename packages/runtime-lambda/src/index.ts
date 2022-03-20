@@ -1,4 +1,3 @@
-import { SQSClient } from "@aws-sdk/client-sqs";
 import { format } from "node:util";
 import { logger, reportError, socket, url, warmup } from "queue-run";
 import LambdaExecutionContext from "./execution_context";
@@ -25,11 +24,8 @@ prepareLogging();
 url.baseUrl = process.env.QUEUE_RUN_URL!;
 socket.url = process.env.QUEUE_RUN_WS!;
 
-const region = process.env.AWS_REGION!;
-const sqs = new SQSClient({ region });
-
 // This must come after we create clients for SQS, DynamoDB, etc.
-switchEnvVars();
+await switchEnvVars();
 
 // Top-level await. Do not place this inside handler.
 //
@@ -67,7 +63,6 @@ export async function handler(
         getRemainingTimeInMillis,
         messages,
         newExecutionContext: (args) => new LambdaExecutionContext(args),
-        sqs,
       });
     }
 
