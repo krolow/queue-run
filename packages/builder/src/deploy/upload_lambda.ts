@@ -2,8 +2,7 @@ import { FunctionConfiguration, Lambda } from "@aws-sdk/client-lambda";
 import filesize from "filesize";
 import ora from "ora";
 import invariant from "tiny-invariant";
-import { LambdaConfig } from "./deploy_lambda.js";
-import { deleteLambdaRole, getLambdaRole } from "./lambda_role.js";
+import { createLambdaRole, deleteLambdaRole } from "./lambda_role.js";
 
 const handler = "runtime.handler";
 
@@ -20,34 +19,24 @@ export type Limits = {
 // Creates or updates Lambda function with latest configuration and code.
 // Publishes the new version and returns the published version ARN.
 export default async function uploadLambda({
-  accountId,
   envVars,
   lambdaName,
   lambdaRuntime,
   limits,
   region,
-  websocketApiId,
   zip,
 }: {
-  accountId: string;
-  config: LambdaConfig;
   envVars: Map<string, string>;
   lambdaName: string;
   lambdaRuntime: string;
   limits: Limits;
   region: string;
-  websocketApiId: string;
   zip: Uint8Array;
 }): Promise<string> {
   const lambda = new Lambda({ region });
-  const spinner = ora(`Uploading Lambda "${lambdaName}"`).start();
 
-  const roleArn = await getLambdaRole({
-    accountId,
-    lambdaName,
-    region,
-    websocketApiId,
-  });
+  const roleArn = await createLambdaRole({ lambdaName, region });
+  const spinner = ora(`Uploading Lambda "${lambdaName}"`).start();
 
   const configuration = {
     Environment: { Variables: aliasAWSEnvVars(envVars) },

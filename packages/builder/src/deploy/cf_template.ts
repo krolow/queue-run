@@ -1,6 +1,6 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 import cloudform, { ApiGatewayV2, Events, Fn, Lambda, SQS } from "cloudform";
-import { DynamoDB, ResourceBase, StringParameter } from "cloudform-types";
+import { DynamoDB, IAM, ResourceBase, StringParameter } from "cloudform-types";
 import cronParser from "cron-parser";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -15,6 +15,7 @@ const RefLambdaName = Fn.Ref("lambdaName");
 export async function cfTemplate(buildDir: string) {
   const manifest = await loadManifest(buildDir);
   const resources = [
+    getPolicy(),
     getHTTPGateway(),
     getWebsocketGateway(),
     getTables(),
@@ -34,6 +35,86 @@ export async function cfTemplate(buildDir: string) {
     Resources: resources,
   });
   await writeFile(path.join(buildDir, "cfn.json"), stack);
+}
+
+function getPolicy(): { [key: string]: ResourceBase } {
+  return {
+    policy: new IAM.Policy({
+      PolicyDocument: {
+        Version: "2012-10-17",
+        Statement: [
+          {
+            Effect: "Allow",
+            Action: [
+              "sqs:ChangeMessageVisibility",
+              "sqs:ChangeMessageVisibilityBatch",
+              "sqs:DeleteMessage",
+              "sqs:GetQueueAttributes",
+              "sqs:GetQueueUrl",
+              "sqs:ReceiveMessage",
+              "sqs:SendMessage",
+            ],
+            Resource: Fn.Join(":", [
+              "arn:aws:sqs",
+              Fn.Ref("AWS::Region"),
+              Fn.Ref("AWS::AccountId"),
+              Fn.Join("__", [RefLambdaName, "*"]),
+            ]),
+          },
+          {
+            Effect: "Allow",
+            Action: ["execute-api:ManageConnections", "execute-api:Invoke"],
+            Resource: Fn.Join(":", [
+              "arn:aws:execute-api",
+              Fn.Ref("AWS::Region"),
+              Fn.Ref("AWS::AccountId"),
+              Fn.Join("/", [Fn.Ref("websocketApiId"), wsStage, "*"]),
+            ]),
+          },
+          {
+            Effect: "Allow",
+            Action: [
+              "dynamodb:DeleteItem",
+              "dynamodb:BatchGetItem",
+              "dynamodb:GetItem",
+              "dynamodb:PutItem",
+              "dynamodb:UpdateItem",
+            ],
+            Resource: Fn.Join(":", [
+              "arn:aws:dynamodb",
+              Fn.Ref("AWS::Region"),
+              Fn.Ref("AWS::AccountId"),
+              Fn.Join("/", ["table", Fn.Join("-", [RefLambdaName, "*"])]),
+            ]),
+          },
+          {
+            Effect: "Allow",
+            Action: "logs:CreateLogGroup",
+            Resource: Fn.Join(":", [
+              "arn:aws:logs",
+              Fn.Ref("AWS::Region"),
+              Fn.Ref("AWS::AccountId"),
+              Fn.Join("/", ["/aws/lambda", RefLambdaName]),
+            ]),
+          },
+          {
+            Effect: "Allow",
+            Action: ["logs:CreateLogStream", "logs:PutLogEvents"],
+            Resource: Fn.Join(":", [
+              "arn:aws:logs",
+              Fn.Ref("AWS::Region"),
+              Fn.Ref("AWS::AccountId"),
+              "log-group",
+              Fn.Join("/", ["/aws/lambda", RefLambdaName]),
+              "*",
+            ]),
+          },
+        ],
+      },
+      PolicyName: "queue-run",
+      Roles: [RefLambdaName],
+    }),
+  };
 }
 
 const RefLambdaUrl = Fn.Join(":", [
@@ -62,7 +143,7 @@ function getHTTPGateway(): { [key: string]: ResourceBase } {
       ApiId: RefApiId,
       StageName: httpStage,
       AutoDeploy: true,
-    }).dependsOn("httpRoute"),
+    }).dependsOn(["httpRoute", "policy"]),
 
     gatewayInvoke: new Lambda.Permission({
       Action: "lambda:InvokeFunction",
@@ -113,16 +194,14 @@ function getWebsocketGateway(): { [key: string]: ResourceBase } {
     }),
     websocketStage: new ApiGatewayV2.Stage({
       ApiId: RefApiId,
+      AutoDeploy: true,
       StageName: wsStage,
     }).dependsOn([
       "websocketConnect",
       "websocketDisconnect",
       "websocketDefault",
+      "policy",
     ]),
-    websocketDeployment: new ApiGatewayV2.Deployment({
-      ApiId: RefApiId,
-      StageName: Fn.Ref("websocketStage"),
-    }),
 
     websocketPermission: new Lambda.Permission({
       Action: "lambda:InvokeFunction",
@@ -173,7 +252,7 @@ function getQueues(
             }
           : undefined),
         VisibilityTimeout: queue.timeout * 6,
-      }),
+      }).dependsOn("policy"),
 
       [`sqsSource${index}`]: new Lambda.EventSourceMapping({
         Enabled: true,
@@ -195,17 +274,16 @@ function getSchedules(
 ): { [key: string]: ResourceBase }[] {
   return schedules.map((schedule, index) => {
     if (schedule.cron === null) return {};
-    const resourceId = `cloudwatchSchedule${index}`;
     const ruleName = Fn.Join(".", [RefLambdaName, schedule.name]);
     return {
-      [resourceId]: new Events.Rule({
+      [`cloudwatchSchedule${index}`]: new Events.Rule({
         Name: ruleName,
         ScheduleExpression: `cron(${toCloudWatchCronExpression(
           schedule.cron
         )})`,
         State: "ENABLED",
         Targets: [{ Id: "lambda", Arn: RefLambdaCurrentArn }],
-      }),
+      }).dependsOn("policy"),
 
       [`cloudwatchPermission${index}`]: new Lambda.Permission({
         FunctionName: RefLambdaCurrentArn,
@@ -217,7 +295,7 @@ function getSchedules(
           Fn.Ref("AWS::AccountId"),
           Fn.Join("/", ["rule", ruleName]),
         ]),
-      }).dependsOn(resourceId),
+      }),
     };
   });
 }
