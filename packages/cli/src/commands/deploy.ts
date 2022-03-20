@@ -1,9 +1,7 @@
-import { IAM } from "@aws-sdk/client-iam";
 import chalk from "chalk";
 import { Command, Option } from "commander";
 import ms from "ms";
 import { deployLambda } from "queue-run-builder";
-import invariant from "tiny-invariant";
 import { loadCredentials } from "../shared/config.js";
 
 const command = new Command("deploy")
@@ -70,12 +68,4 @@ function getEnvVars(environment: string[]): Map<string, string> {
     const [key, value] = match;
     return map.set(key, value);
   }, new Map());
-}
-
-async function getAccountId(region: string): Promise<string> {
-  const iam = new IAM({ region });
-  const { User: user } = await iam.getUser({});
-  const accountId = user?.Arn?.split(":")[4];
-  invariant(accountId, "Could not determine account ID");
-  return accountId;
 }
