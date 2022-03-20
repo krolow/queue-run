@@ -1,4 +1,4 @@
-import { DeleteMessageCommand, SQSClient } from "@aws-sdk/client-sqs";
+import { DeleteMessageCommand } from "@aws-sdk/client-sqs";
 import { URLSearchParams } from "node:url";
 import {
   handleQueuedJob,
@@ -6,6 +6,7 @@ import {
   QueueHandler,
   reportError,
 } from "queue-run";
+import { sqs } from "./execution_context";
 
 export type SQSBatchResponse = {
   // https://docs.aws.amazon.com/lambda/latest/dg/with-ddb.html#services-ddb-batchfailurereporting
@@ -40,25 +41,21 @@ export default async function handleSQSMessages({
   getRemainingTimeInMillis,
   messages,
   newExecutionContext,
-  sqs,
 }: {
   getRemainingTimeInMillis: () => number;
   messages: SQSMessage[];
   newExecutionContext: NewExecutionContext;
-  sqs: SQSClient;
 }): Promise<SQSBatchResponse> {
   return isFifoQueue(messages[0]!)
     ? await handleFifoMessages({
         getRemainingTimeInMillis,
         messages,
         newExecutionContext,
-        sqs,
       })
     : await handleStandardMessages({
         getRemainingTimeInMillis,
         messages,
         newExecutionContext,
-        sqs,
       });
 }
 
@@ -73,12 +70,10 @@ async function handleStandardMessages({
   getRemainingTimeInMillis,
   messages,
   newExecutionContext,
-  sqs,
 }: {
   getRemainingTimeInMillis: () => number;
   messages: SQSMessage[];
   newExecutionContext: NewExecutionContext;
-  sqs: SQSClient;
 }) {
   const remainingTime = getRemainingTimeInMillis();
   const failedMessageIds = await Promise.all(
@@ -86,7 +81,6 @@ async function handleStandardMessages({
       const successful = await handleOneSQSMessage({
         message,
         newExecutionContext,
-        sqs,
         remainingTime,
       });
       return successful ? null : message.messageId;
@@ -106,12 +100,10 @@ async function handleFifoMessages({
   getRemainingTimeInMillis,
   messages,
   newExecutionContext,
-  sqs,
 }: {
   getRemainingTimeInMillis: () => number;
   messages: SQSMessage[];
   newExecutionContext: NewExecutionContext;
-  sqs: SQSClient;
 }) {
   let next;
   while ((next = messages.shift())) {
@@ -120,7 +112,6 @@ async function handleFifoMessages({
     const successful = await handleOneSQSMessage({
       message,
       newExecutionContext,
-      sqs,
       remainingTime,
     });
 
@@ -139,12 +130,10 @@ export async function handleOneSQSMessage({
   message,
   newExecutionContext,
   remainingTime,
-  sqs,
 }: {
   message: SQSMessage;
   newExecutionContext: NewExecutionContext;
   remainingTime: number;
-  sqs: SQSClient;
 }) {
   const queueName = getQueueName(message);
   try {

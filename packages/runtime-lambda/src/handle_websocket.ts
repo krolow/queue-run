@@ -5,8 +5,8 @@ import {
   Headers,
   NewExecutionContext,
 } from "queue-run";
+import LambdaExecutionContext from "./execution_context";
 import { APIGatewayResponse } from "./handle_http_request";
-import * as userConnections from "./user_connections";
 
 export default async function handleWebSocketRequest(
   event: APIGatewayWebSocketEvent,
@@ -68,7 +68,9 @@ async function onMessage(
   );
   try {
     const { connectionId } = event.requestContext;
-    const userId = await userConnections.getAuthenticatedUserId(connectionId);
+    const userId = await LambdaExecutionContext.getAuthenticatedUserId(
+      connectionId
+    );
 
     await handleWebSocketMessage({
       connectionId: connectionId,
@@ -97,7 +99,7 @@ async function disconnect(
   newExecutionContext: NewExecutionContext
 ): Promise<APIGatewayResponse> {
   const { connectionId } = event.requestContext;
-  const { wentOffline, userId } = await userConnections.onDisconnected(
+  const { wentOffline, userId } = await LambdaExecutionContext.onDisconnected(
     connectionId
   );
   if (wentOffline && userId)

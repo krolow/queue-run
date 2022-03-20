@@ -89,11 +89,7 @@ export default function policy(slug?: string) {
       {
         Action: ["dynamodb:*"],
         Effect: "Allow",
-        Resource: [
-          "arn:aws:dynamodb:*:*:table/qr-connections-*",
-          "arn:aws:dynamodb:*:*:table/qr-env-vars",
-          "arn:aws:dynamodb:*:*:table/qr-user-connections-*",
-        ],
+        Resource: [`arn:aws:dynamodb:*:*:table/${lambdaPrefix}`],
       },
       {
         Action: ["events:*"],

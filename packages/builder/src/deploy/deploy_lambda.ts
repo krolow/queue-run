@@ -8,7 +8,6 @@ import ora from "ora";
 import invariant from "tiny-invariant";
 import { buildProject, displayManifest } from "../build/index.js";
 import { deleteAPIGateway, setupAPIGateway } from "../setup/gateway.js";
-import { createTables } from "./create_tables.js";
 import { getEnvVariables } from "./env_vars.js";
 import { deleteLambdaRole } from "./lambda_role.js";
 import { deleteStack, deployStack } from "./stack.js";
@@ -88,11 +87,6 @@ export async function deployLambda({
       region,
     });
   spinner.stop();
-
-  // DDB tables are referenced in the Lambda policy, so we need these to exist
-  // before we can deploy.
-  await createTables();
-  if (signal?.aborted) throw new Error();
 
   const envVars = await loadEnvVars({
     environment: config.env,
