@@ -5,11 +5,13 @@ const tableName = "qr-env-vars";
 export async function getEnvVariables({
   environment,
   project,
+  region,
 }: {
   environment: string;
   project: string;
+  region: string;
 }): Promise<Map<string, string>> {
-  const dynamoDB = new DynamoDB({});
+  const dynamoDB = new DynamoDB({ region });
   try {
     const { Item } = await dynamoDB.getItem({
       TableName: tableName,
@@ -30,11 +32,13 @@ export async function getEnvVariables({
 export async function setEnvVariable({
   environment,
   project,
+  region,
   varName,
   varValue,
 }: {
   environment: string;
   project: string;
+  region: string;
   varName: string;
   varValue: string;
 }): Promise<void> {
@@ -43,7 +47,7 @@ export async function setEnvVariable({
       "Environment variable must be alphanumeric, dash, or underscore"
     );
 
-  const dynamoDB = new DynamoDB({});
+  const dynamoDB = new DynamoDB({ region });
   try {
     await dynamoDB.describeTable({ TableName: tableName });
   } catch (error) {
@@ -76,10 +80,12 @@ export async function setEnvVariable({
 export async function deleteEnvVariable({
   environment,
   project,
+  region,
   varName,
 }: {
   environment: string;
   project: string;
+  region: string;
   varName: string;
 }): Promise<void> {
   if (!/^[a-zA-Z0-9-_]+$/.test(varName))
@@ -88,7 +94,7 @@ export async function deleteEnvVariable({
     );
 
   try {
-    const dynamoDB = new DynamoDB({});
+    const dynamoDB = new DynamoDB({ region });
     await dynamoDB.updateItem({
       TableName: tableName,
       Key: { project: { S: project }, env: { S: environment } },
