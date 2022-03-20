@@ -99,6 +99,7 @@ export async function deployLambda({
     envVars: config.envVars,
     httpUrl,
     project,
+    region,
     websocketUrl,
     websocketApiId,
   });
@@ -177,6 +178,7 @@ async function loadEnvVars({
   envVars,
   httpUrl,
   project,
+  region,
   websocketUrl,
   websocketApiId,
 }: {
@@ -184,6 +186,7 @@ async function loadEnvVars({
   envVars: Map<string, string>;
   httpUrl: string;
   project: string;
+  region: string;
   websocketUrl: string;
   websocketApiId: string;
 }) {
@@ -191,6 +194,7 @@ async function loadEnvVars({
   const merged = await getEnvVariables({
     environment,
     project,
+    region,
   });
 
   // Command line environment variables over-ride database
