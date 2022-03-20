@@ -6,7 +6,7 @@ import ora from "ora";
 import {
   displayCron,
   displayTable,
-  getAPIGatewayURLs,
+  getAPIGatewayUrls,
   getRecentVersions,
   getStackStatus,
   listQueues,
@@ -50,7 +50,7 @@ async function showDeployment({
     if (!current)
       throw new Error("No current version found: did you deploy this project?");
 
-    const { httpUrl, wsUrl } = await getAPIGatewayURLs({ project, region });
+    const { httpUrl, wsUrl } = await getAPIGatewayUrls({ project, region });
 
     const lambda = new Lambda({ region });
     const currentArn = current.arn.replace(/:\d+$/, ":current");
