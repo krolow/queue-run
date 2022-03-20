@@ -15,44 +15,28 @@ import updateAlias from "./update_alias.js";
 import uploadLambda from "./upload_lambda.js";
 
 const currentVersionAlias = "current";
-
-export type LambdaConfig = {
-  /**  AWS account ID  */
-  accountId: string;
-
-  /** Deployment environment */
-  env: "production" | "preview";
-
-  /** Environment variables from command line */
-  envVars: Map<string, string>;
-
-  /** AWS region */
-  region: string;
-
-  /** The slug is used as the Lambda function name, queue prefix name, etc.
-   *  Limited to 40 characters, alphanumeric, and dashes, eg "my-project-pr-13".
-   *  It should be unique for each project/branch. */
-  project: string;
-};
-
 const debug = debuglog("queue-run:deploy");
 
 export async function deployLambda({
   buildDir,
-  config,
+  environment,
+  envVars: cliEnvVars,
+  project,
+  region,
   signal = new AbortSignal(),
   sourceDir,
 }: {
   buildDir: string;
-  config: LambdaConfig;
+  environment: "production" | "preview";
+  envVars: Map<string, string>;
+  project: string;
+  region: string;
   signal?: AbortSignal;
   sourceDir: string;
 }): Promise<{
   httpUrl: string;
   websocketUrl: string;
 }> {
-  const { project } = config;
-
   // Note: queue names have 80 characters limit, when we combine
   // {qrPrefix}{project}_{branch}__{queueName} we have a total of 27 characters
   // available.
@@ -61,7 +45,6 @@ export async function deployLambda({
       "Project name must be 40 characters or less, alphanumeric and dashes"
     );
 
-  const region = config.region;
   const lambdaName = `qr-${project}`;
   debug('Lamba name: "%s"', lambdaName);
   const queuePrefix = `${lambdaName}__`;
@@ -89,8 +72,8 @@ export async function deployLambda({
   spinner.stop();
 
   const envVars = await loadEnvVars({
-    environment: config.env,
-    envVars: config.envVars,
+    environment,
+    envVars: cliEnvVars,
     httpUrl,
     project,
     region,
@@ -118,14 +101,11 @@ export async function deployLambda({
   // This doesn't make any difference yet: event sources are tied to an alias,
   // and the alias points to an earlier version (or no version on first deploy).
   const versionArn = await uploadLambda({
-    config,
     envVars,
-    accountId: config.accountId,
     lambdaName,
     lambdaRuntime,
     limits,
     region,
-    websocketApiId,
     zip,
   });
 

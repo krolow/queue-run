@@ -1,13 +1,11 @@
-import { IAM, Role } from "@aws-sdk/client-iam";
+import { IAM } from "@aws-sdk/client-iam";
 import ora from "ora";
 import invariant from "tiny-invariant";
 
 const lambdaRolePath = "/queue-run/projects/";
 
-const Version = "2012-10-17";
-
 const assumeRolePolicy = {
-  Version,
+  Version: "2012-10-17",
   Statement: [
     {
       Effect: "Allow",
@@ -19,94 +17,25 @@ const assumeRolePolicy = {
   ],
 };
 
-const lambdaPolicy = {
-  Version,
-  Statement: [
-    {
-      Effect: "Allow",
-      Action: [
-        "sqs:ChangeMessageVisibility",
-        "sqs:ChangeMessageVisibilityBatch",
-        "sqs:DeleteMessage",
-        "sqs:GetQueueAttributes",
-        "sqs:GetQueueUrl",
-        "sqs:ReceiveMessage",
-        "sqs:SendMessage",
-      ],
-      Resource: `arn:aws:sqs:$region:$accountId:$lambdaName__*`,
-    },
-    {
-      Effect: "Allow",
-      Action: ["execute-api:ManageConnections", "execute-api:Invoke"],
-      Resource: ["arn:aws:execute-api:$region:$accountId:$wsApiId/_ws/*"],
-    },
-    {
-      Effect: "Allow",
-      Action: [
-        "dynamodb:DeleteItem",
-        "dynamodb:BatchGetItem",
-        "dynamodb:GetItem",
-        "dynamodb:PutItem",
-        "dynamodb:UpdateItem",
-      ],
-      Resource: [
-        "arn:aws:dynamodb:$region:$accountId:table/qr-connections-$lambdaName",
-        "arn:aws:dynamodb:$region:$accountId:table/qr-user-connections-$lambdaName",
-      ],
-    },
-    {
-      Effect: "Allow",
-      Action: "logs:CreateLogGroup",
-      Resource: `arn:aws:logs:$region:$accountId:/aws/lambda/$lambdaName`,
-    },
-    {
-      Effect: "Allow",
-      Action: ["logs:CreateLogStream", "logs:PutLogEvents"],
-      Resource: [
-        `arn:aws:logs:$region:$accountId:log-group:/aws/lambda/$lambdaName:*`,
-      ],
-    },
-  ],
-};
-
 // Returns ARN for a role that only applies to the named function.
-export async function getLambdaRole({
-  accountId,
+export async function createLambdaRole({
   lambdaName,
   region,
-  websocketApiId,
 }: {
-  accountId: string;
   lambdaName: string;
   region: string;
-  websocketApiId: string;
 }): Promise<string> {
-  const spinner = ora("Updating role/permissions").start();
+  const spinner = ora("Creating execution role").start();
   const iam = new IAM({ region });
   const roleName = lambdaName;
-  const role = await upsertRole(iam, roleName);
-  invariant(role.Arn, "Role has no ARN");
 
-  const policy = JSON.stringify(lambdaPolicy)
-    .replace(/\$accountId/g, accountId)
-    .replace(/\$region/g, region)
-    .replace(/\$lambdaName/g, lambdaName)
-    .replace(/\$wsApiId/g, websocketApiId);
-
-  await iam.putRolePolicy({
-    RoleName: role.RoleName,
-    PolicyName: "queue-run",
-    PolicyDocument: policy,
-  });
-
-  spinner.succeed(`Update role "${roleName}"`);
-  return role.Arn;
-}
-
-async function upsertRole(iam: IAM, roleName: string): Promise<Role> {
   try {
     const { Role: role } = await iam.getRole({ RoleName: roleName });
-    if (role) return role;
+    if (role) {
+      spinner.succeed();
+      invariant(role.Arn);
+      return role.Arn;
+    }
   } catch (error) {
     if (!(error instanceof Error && error.name === "NoSuchEntity")) throw error;
   }
@@ -116,8 +45,12 @@ async function upsertRole(iam: IAM, roleName: string): Promise<Role> {
     RoleName: roleName,
     AssumeRolePolicyDocument: JSON.stringify(assumeRolePolicy),
   });
-  invariant(newRole, "Failed to create role");
-  return newRole;
+  invariant(newRole?.Arn);
+  // If we don't wait for IAM here, we may get the error:
+  // "The role defined for the function cannot be assumed by Lambda."
+  await new Promise((resolve) => setTimeout(resolve, 3000));
+  spinner.succeed();
+  return newRole.Arn;
 }
 
 export async function deleteLambdaRole({

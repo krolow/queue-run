@@ -40,18 +40,14 @@ Deploying from
     ) => {
       const envVars = getEnvVars(env);
       const project = await loadCredentials({ name, awsRegion });
-      const accountId = await getAccountId(project.awsRegion);
 
       const { httpUrl, websocketUrl } = await deployLambda({
         buildDir: ".queue-run",
+        environment: "production",
+        envVars,
+        project: project.name,
+        region: project.awsRegion,
         sourceDir: process.cwd(),
-        config: {
-          accountId,
-          env: "production",
-          envVars,
-          region: project.awsRegion,
-          project: project.name,
-        },
       });
 
       console.info("");
