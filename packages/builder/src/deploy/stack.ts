@@ -24,8 +24,9 @@ export async function deployStack({
   signal: AbortSignal;
   websocketApiId: string;
 }) {
-  const lambdaName = lambdaArn.match(/:function:(.+):/)![1];
+  const lambdaName = lambdaArn.match(/:function:(.+)/)![1];
   invariant(lambdaName);
+  const lambdaCurrentArn = lambdaArn + ":current";
   const stackName = lambdaName;
   const template = await readFile(path.join(buildDir, "cfn.json"), "utf8");
   const requestToken = crypto.randomUUID!();
@@ -34,6 +35,7 @@ export async function deployStack({
     Parameters: [
       { ParameterKey: "httpApiId", ParameterValue: httpApiId },
       { ParameterKey: "lambdaArn", ParameterValue: lambdaArn },
+      { ParameterKey: "lambdaCurrentArn", ParameterValue: lambdaCurrentArn },
       { ParameterKey: "lambdaName", ParameterValue: lambdaName },
       { ParameterKey: "websocketApiId", ParameterValue: websocketApiId },
     ],
@@ -53,13 +55,17 @@ export async function deployStack({
     const initialStatus = existing?.StackStatus;
     if (initialStatus?.endsWith("_IN_PROGRESS"))
       throw new Error(`Stack ${stackName} is currently updating`);
+    let isCreating = !existing;
 
-    if (initialStatus === "ROLLBACK_COMPLETE") {
+    if (
+      initialStatus === "ROLLBACK_COMPLETE" ||
+      initialStatus === "DELETE_FAILED"
+    ) {
       spinner.text = "Previous deploy failed, deleting old stack …";
       await recoverFromFailedDeploy(existing!.StackId!);
+      isCreating = true;
     }
 
-    const isCreating = !existing || initialStatus === "ROLLBACK_COMPLETE";
     spinner.text = "Reviewing stack changes …";
     const changes = await useChangeSet(stackUpdate, isCreating, requestToken);
     if (signal.aborted) throw new Error("Deployment cancelled");

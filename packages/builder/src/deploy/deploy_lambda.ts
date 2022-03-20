@@ -82,15 +82,11 @@ export async function deployLambda({
   console.info(chalk.bold("\nDeploying Lambda function\n"));
 
   const spinner = ora("Setting up API Gateway...").start();
-  const {
-    httpApiId,
-    httpUrl,
-    websocketUrl,
-    websocketApiId: wsApiId,
-  } = await setupAPIGateway({
-    project,
-    region,
-  });
+  const { httpApiId, httpUrl, websocketUrl, websocketApiId } =
+    await setupAPIGateway({
+      project,
+      region,
+    });
   spinner.stop();
 
   // DDB tables are referenced in the Lambda policy, so we need these to exist
@@ -103,8 +99,8 @@ export async function deployLambda({
     envVars: config.envVars,
     httpUrl,
     project,
-    wsUrl: websocketUrl,
-    wsApiId,
+    websocketUrl,
+    websocketApiId,
   });
 
   if (signal?.aborted) throw new Error();
@@ -134,7 +130,7 @@ export async function deployLambda({
     lambdaRuntime,
     limits,
     region,
-    wsApiId,
+    websocketApiId,
     zip,
   });
 
@@ -147,6 +143,7 @@ export async function deployLambda({
   });
   if (signal?.aborted) throw new Error();
 
+  const lambdaArn = versionArn.replace(/:(\d+)$/, "");
   const aliasArn = versionArn.replace(/(\d+)$/, currentVersionAlias);
   await updateAlias({ aliasArn, versionArn, region });
   if (signal?.aborted) throw new Error();
@@ -154,10 +151,10 @@ export async function deployLambda({
   // If aborted in time and stack deploy cancelled, then deployStack will throw.
   await deployStack({
     buildDir,
-    httpApiId: httpApiId,
-    lambdaArn: aliasArn,
+    httpApiId,
+    lambdaArn,
     signal,
-    websocketApiId: wsApiId,
+    websocketApiId,
   });
 
   await cw.putLogEvents({
@@ -180,15 +177,15 @@ async function loadEnvVars({
   envVars,
   httpUrl,
   project,
-  wsUrl,
-  wsApiId,
+  websocketUrl,
+  websocketApiId,
 }: {
   environment: "production" | "preview";
   envVars: Map<string, string>;
   httpUrl: string;
   project: string;
-  wsUrl: string;
-  wsApiId: string;
+  websocketUrl: string;
+  websocketApiId: string;
 }) {
   // Environment from database
   const merged = await getEnvVariables({
@@ -204,8 +201,8 @@ async function loadEnvVars({
   merged.set("NODE_ENV", "production");
   merged.set("QUEUE_RUN_ENV", environment);
   merged.set("QUEUE_RUN_URL", httpUrl);
-  merged.set("QUEUE_RUN_WS", wsUrl);
-  merged.set("QUEUE_RUN_WS_API_ID", wsApiId);
+  merged.set("QUEUE_RUN_WS", websocketUrl);
+  merged.set("QUEUE_RUN_WS_API_ID", websocketApiId);
 
   const { branch, tag, sha } = getRepoInfo();
   merged.set("GIT_BRANCH", branch);
