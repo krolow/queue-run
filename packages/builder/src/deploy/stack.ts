@@ -132,9 +132,12 @@ async function useChangeSet(
       return true;
     }
 
-    if (Status === "FAILED" && Changes?.length === 0) return false;
-    if (Status === "FAILED")
-      throw new Error(StatusReason ?? "Can't create changeset");
+    if (Status === "FAILED") {
+      await cloudFormation.deleteChangeSet({ ChangeSetName: changeSetId });
+      if (Changes?.length === 0) return false;
+      else throw new Error(StatusReason ?? "Can't create changeset");
+    }
+
     await new Promise((resolve) => setTimeout(resolve, 500));
     // eslint-disable-next-line no-constant-condition
   } while (true);
