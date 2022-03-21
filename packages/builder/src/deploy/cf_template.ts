@@ -5,7 +5,7 @@ import cronParser from "cron-parser";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import { loadManifest, Manifest } from "queue-run";
-import { httpStage, wsStage } from "../constants.js";
+import { cloudFormationFilename, httpStage, wsStage } from "../constants.js";
 
 const RefHttpApiId = Fn.Ref("httpApiId");
 const RefLambdaArn = Fn.Ref("lambdaArn");
@@ -35,7 +35,7 @@ export async function cfTemplate(buildDir: string) {
     },
     Resources: resources,
   });
-  await writeFile(path.join(buildDir, "cfn.json"), stack);
+  await writeFile(path.join(buildDir, cloudFormationFilename), stack);
 }
 
 function getPolicy(): { [key: string]: ResourceBase } {

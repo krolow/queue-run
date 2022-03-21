@@ -62,7 +62,6 @@ export async function deleteLambdaRole({
   const roleName = lambdaName;
   const iam = new IAM({ region });
   try {
-    await iam.deleteRolePolicy({ RoleName: roleName, PolicyName: "queue-run" });
     await iam.deleteRole({ RoleName: roleName });
   } catch (error) {
     if (!(error instanceof Error && error.name === "NoSuchEntity")) throw error;

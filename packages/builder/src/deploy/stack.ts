@@ -3,10 +3,11 @@ import {
   CreateStackInput,
   StackEvent,
 } from "@aws-sdk/client-cloudformation";
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import ora, { Ora } from "ora";
 import invariant from "tiny-invariant";
+import { changeSetFilename, cloudFormationFilename } from "../constants.js";
 import displayTable from "../display_table.js";
 
 const cloudFormation = new CloudFormation({});
@@ -28,7 +29,10 @@ export async function deployStack({
   invariant(lambdaName);
   const lambdaCurrentArn = lambdaArn + ":current";
   const stackName = lambdaName;
-  const template = await readFile(path.join(buildDir, "cfn.json"), "utf8");
+  const template = await readFile(
+    path.join(buildDir, cloudFormationFilename),
+    "utf8"
+  );
   const requestToken = crypto.randomUUID!();
   const stackUpdate = {
     Capabilities: ["CAPABILITY_NAMED_IAM"],
@@ -67,7 +71,12 @@ export async function deployStack({
     }
 
     spinner.text = "Reviewing stack changes …";
-    const changes = await useChangeSet(stackUpdate, isCreating, requestToken);
+    const changes = await useChangeSet({
+      filename: path.join(buildDir, changeSetFilename),
+      isCreating,
+      requestToken,
+      stackUpdate,
+    });
     if (signal.aborted) throw new Error("Deployment cancelled");
     signal.addEventListener("abort", cancel);
 
@@ -110,21 +119,31 @@ async function recoverFromFailedDeploy(existingId: string) {
     await new Promise((resolve) => setTimeout(resolve, 500));
 }
 
-async function useChangeSet(
-  stackUpdate: CreateStackInput,
-  isCreating: boolean,
-  requestToken: string
-) {
+async function useChangeSet({
+  filename,
+  stackUpdate,
+  isCreating,
+  requestToken,
+}: {
+  filename: string;
+  stackUpdate: CreateStackInput;
+  isCreating: boolean;
+  requestToken: string;
+}) {
   const { Id: changeSetId } = await cloudFormation.createChangeSet({
     ChangeSetName: `qr-${crypto.randomUUID!()}`,
     ChangeSetType: isCreating ? "CREATE" : "UPDATE",
     ...stackUpdate,
   });
   do {
-    const { Changes, Status, StatusReason } =
-      await cloudFormation.describeChangeSet({ ChangeSetName: changeSetId });
+    const {
+      Changes: changes,
+      Status: status,
+      StatusReason: reason,
+    } = await cloudFormation.describeChangeSet({ ChangeSetName: changeSetId });
 
-    if (Status === "CREATE_COMPLETE") {
+    if (status === "CREATE_COMPLETE") {
+      await writeFile(filename, JSON.stringify(changes, null, 2));
       await cloudFormation.executeChangeSet({
         ChangeSetName: changeSetId,
         ClientRequestToken: requestToken,
@@ -132,10 +151,10 @@ async function useChangeSet(
       return true;
     }
 
-    if (Status === "FAILED") {
+    if (status === "FAILED") {
       await cloudFormation.deleteChangeSet({ ChangeSetName: changeSetId });
-      if (Changes?.length === 0) return false;
-      else throw new Error(StatusReason ?? "Can't create changeset");
+      if (changes?.length === 0) return false;
+      else throw new Error(reason ?? "Can't create changeset");
     }
 
     await new Promise((resolve) => setTimeout(resolve, 500));
