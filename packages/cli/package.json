@@ -24,7 +24,7 @@
     "async-sema": "^3.1.1",
     "chalk": "5.0.1",
     "chokidar": "^3.5.3",
-    "commander": "^9.0.0",
+    "commander": "^9.1.0",
     "dotenv": "^16.0.0",
     "fast-glob": "^3.2.11",
     "filesize": "^8.0.7",
