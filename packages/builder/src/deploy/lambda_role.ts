@@ -25,31 +25,35 @@ export async function createLambdaRole({
   region: string;
 }): Promise<string> {
   const spinner = ora("Creating execution role").start();
-  const iam = new IAM({ region });
-  const roleName = lambdaName;
+  try {
+    const iam = new IAM({ region });
+    const roleName = lambdaName;
+    const roleArn = await getRoleArn(iam, roleName);
+    if (roleArn) return roleArn;
 
+    const { Role: newRole } = await iam.createRole({
+      Path: lambdaRolePath,
+      RoleName: roleName,
+      AssumeRolePolicyDocument: JSON.stringify(assumeRolePolicy),
+    });
+    invariant(newRole?.Arn);
+    return newRole.Arn;
+  } finally {
+    spinner.succeed();
+  }
+}
+
+async function getRoleArn(iam: IAM, roleName: string): Promise<string | null> {
   try {
     const { Role: role } = await iam.getRole({ RoleName: roleName });
     if (role) {
-      spinner.succeed();
       invariant(role.Arn);
       return role.Arn;
     }
   } catch (error) {
     if (!(error instanceof Error && error.name === "NoSuchEntity")) throw error;
   }
-
-  const { Role: newRole } = await iam.createRole({
-    Path: lambdaRolePath,
-    RoleName: roleName,
-    AssumeRolePolicyDocument: JSON.stringify(assumeRolePolicy),
-  });
-  invariant(newRole?.Arn);
-  // If we don't wait for IAM here, we may get the error:
-  // "The role defined for the function cannot be assumed by Lambda."
-  await new Promise((resolve) => setTimeout(resolve, 3000));
-  spinner.succeed();
-  return newRole.Arn;
+  return null;
 }
 
 export async function deleteLambdaRole({
