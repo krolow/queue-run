@@ -9,7 +9,7 @@ import ora from "ora";
 import invariant from "tiny-invariant";
 import { buildProject, displayManifest } from "../build/index.js";
 import { currentVersionAlias } from "../constants.js";
-import { getEnvVariables } from "../manage/env_vars.js";
+import { deleteEnvVariables, getEnvVariables } from "../manage/env_vars.js";
 import { deleteAPIGateway, setupAPIGateway } from "./gateway.js";
 import { deleteLambdaRole } from "./lambda_role.js";
 import { deleteStack, deployStack } from "./stack.js";
@@ -224,6 +224,23 @@ export async function deleteLambda({
   const lambda = new Lambda({ region });
 
   const spinner = ora(`Deleting Lambda function ${lambdaName}`).start();
+  await Promise.all([
+    deleteFunction({ lambda, lambdaName, region }),
+    deleteAPIGateway({ project, region }),
+    deleteEnvVariables({ project, region }),
+  ]);
+  spinner.succeed();
+}
+
+async function deleteFunction({
+  lambda,
+  lambdaName,
+  region,
+}: {
+  lambda: Lambda;
+  lambdaName: string;
+  region: string;
+}) {
   try {
     await lambda.deleteFunction({ FunctionName: lambdaName });
   } catch (error) {
@@ -231,6 +248,4 @@ export async function deleteLambda({
       throw error;
   }
   await deleteLambdaRole({ lambdaName, region });
-  await deleteAPIGateway({ project, region });
-  spinner.succeed();
 }
