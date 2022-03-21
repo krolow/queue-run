@@ -14,11 +14,12 @@ Use the `status` command to see the current status of your project:
 ```
  Project                  │ grumpy-sunshine
  Version                  │ 359
- Code size                │ 1.27 MB
  Deployed                 │ 2022-02-03 10:23:35
- Region                   │ us-east-1
  Available memory         │ 5.12 GB
  Timeout                  │ 5m
+ Code size                │ 1.27 MB
+ Region                   │ us-east-1
+ CloudFormation           │ create complete
  Reserved concurrency     │ no reserve
  Provisioned concurrency  │ READY
   - Requested             │ 3
