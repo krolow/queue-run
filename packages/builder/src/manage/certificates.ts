@@ -20,16 +20,16 @@ const acm = new ACM({});
  * @returns The certificate ARN
  */
 export async function requestCertificate({
-  domain,
+  domainName,
   method,
   verifyDomain,
 }: {
-  domain: string;
+  domainName: string;
   method?: "email" | "dns" | undefined;
   verifyDomain?: string | undefined;
 }): Promise<string> {
   const spinner = ora("Looking up existing certificate").start();
-  const wildcard = `*.${domain}`;
+  const wildcard = `*.${domainName}`;
   const certificate = await findCertificate(wildcard);
   spinner.succeed();
   if (certificate?.Status === "ISSUED") return certificate.CertificateArn!;
@@ -49,7 +49,7 @@ export async function requestCertificate({
     {
       type: "text",
       name: "email",
-      default: verifyDomain ?? domain,
+      default: verifyDomain ?? domainName,
       message: "Which domain should I send the verification email to?",
       when: (answers) => answers.method === "EMAIL" && !verifyDomain,
     },
@@ -58,38 +58,38 @@ export async function requestCertificate({
   const arn =
     answers.method === "email"
       ? await useEmailVerification({
-          domain,
+          domainName: domainName,
           verifyDomain: answers.verifyDomain,
         })
-      : await useDNSVerification({ certificate, domain });
+      : await useDNSVerification({ certificate, domainName: domainName });
 
   await waitForCertificateIssued(arn);
   return arn;
 }
 
-export async function discardCertificateRequest(domain: string) {
-  const wildcard = `*.${domain}`;
+export async function discardCertificateRequest(domainName: string) {
+  const wildcard = `*.${domainName}`;
   const certificate = await findCertificate(wildcard);
   if (certificate?.Status !== "ISSUED") {
     await acm.deleteCertificate({
       CertificateArn: certificate!.CertificateArn!,
     });
-    await discardCertificateRequest(domain);
+    await discardCertificateRequest(domainName);
   }
 }
 
 async function findCertificate(
-  domain: string,
+  domainName: string,
   nextToken?: string
 ): Promise<CertificateDetail | null> {
   const { CertificateSummaryList, NextToken } = await acm.listCertificates({
     ...(nextToken && { NextToken: nextToken }),
   });
   const certificateArn = CertificateSummaryList?.find(
-    (certificate) => certificate.DomainName === domain
+    (certificate) => certificate.DomainName === domainName
   )?.CertificateArn;
   if (!certificateArn)
-    return NextToken ? findCertificate(domain, NextToken) : null;
+    return NextToken ? findCertificate(domainName, NextToken) : null;
 
   const { Certificate } = await acm.describeCertificate({
     CertificateArn: certificateArn,
@@ -115,20 +115,20 @@ async function waitForCertificateIssued(arn: string) {
 }
 
 async function useEmailVerification({
-  domain,
+  domainName,
   verifyDomain,
 }: {
-  domain: string;
+  domainName: string;
   verifyDomain: string;
 }): Promise<string> {
   const spinner = ora("Requesting a new certificate").start();
-  const wildcard = `*.${domain}`;
+  const wildcard = `*.${domainName}`;
   const { CertificateArn } = await acm.requestCertificate({
-    DomainName: domain,
+    DomainName: domainName,
     DomainValidationOptions: [
       { DomainName: wildcard, ValidationDomain: verifyDomain },
     ],
-    SubjectAlternativeNames: [domain],
+    SubjectAlternativeNames: [domainName],
     ValidationMethod: "EMAIL",
   });
   invariant(CertificateArn);
@@ -150,10 +150,10 @@ async function useEmailVerification({
 
 async function useDNSVerification({
   certificate,
-  domain,
+  domainName,
 }: {
   certificate: CertificateDetail | null;
-  domain: string;
+  domainName: string;
 }): Promise<string> {
   let validation = certificate?.DomainValidationOptions?.find(
     ({ ValidationMethod }) => ValidationMethod === "DNS"
@@ -161,11 +161,11 @@ async function useDNSVerification({
 
   if (!validation) {
     const spinner = ora("Requesting a new certificate").start();
-    const wildcard = `*.${domain}`;
+    const wildcard = `*.${domainName}`;
     const { CertificateArn } = await acm.requestCertificate({
       DomainName: wildcard,
       ValidationMethod: "DNS",
-      SubjectAlternativeNames: [domain],
+      SubjectAlternativeNames: [domainName],
     });
 
     while (!validation) {

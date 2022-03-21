@@ -11,21 +11,23 @@ const command = new Command("delete")
       .env("AWS_REGION")
       .default("us-east-1")
   )
+  .option("--yes", "skip confirmation prompt", false)
   .action(
     async (
       name: string | undefined,
-      { region: awsRegion }: { region: string }
+      { region: awsRegion, yes }: { region: string; yes: boolean }
     ) => {
       const project = await loadCredentials({ name, awsRegion });
       const answers = await inquirer.prompt([
         {
+          default: false,
           message: `Are you sure you want to delete ${project.name}?`,
           name: "confirm",
           type: "confirm",
-          default: false,
+          when: !yes,
         },
       ]);
-      if (answers.confirm) {
+      if (yes ?? answers.confirm) {
         await deleteLambda({
           project: project.name,
           region: project.awsRegion,

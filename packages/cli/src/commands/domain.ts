@@ -32,7 +32,7 @@ command
   )
   .action(
     async (
-      domain: string,
+      domainName: string,
       {
         method,
         verifyDomain,
@@ -46,10 +46,16 @@ command
       console.info(
         chalk.green.bold("\n1. Let's get you a new TLS certificate\n")
       );
-      await addDomain({ domain, method, project: name, region, verifyDomain });
+      await addDomain({
+        domainName,
+        method,
+        project: name,
+        region,
+        verifyDomain,
+      });
 
       console.info(chalk.green.bold("\n2. Update your DNS:\n"));
-      await updateCNames({ domain, region });
+      await updateCNames({ domainName: domainName, region });
 
       console.info(
         chalk.green.bold("\n3. Last step, we promise: re-deploy your project\n")
@@ -59,28 +65,28 @@ command
   );
 
 async function addDomain({
-  domain,
+  domainName,
   method,
   project,
   region,
   verifyDomain,
 }: {
-  domain: string;
+  domainName: string;
   method: "email" | "dns" | undefined;
   project: string;
   region: string;
   verifyDomain: string | undefined;
 }) {
   const certificateArn = await requestCertificate({
-    domain,
+    domainName,
     method,
     verifyDomain,
   });
 
-  const spinner = ora(`Adding domain ${domain}`).start();
+  const spinner = ora(`Adding domain ${domainName}`).start();
   const { httpUrl, wsUrl } = await addCustomDomain({
     certificateArn,
-    domain,
+    domainName,
     project,
     region,
   });
@@ -89,17 +95,17 @@ async function addDomain({
 }
 
 async function updateCNames({
-  domain,
+  domainName,
   region,
 }: {
-  domain: string;
+  domainName: string;
   region: string;
 }) {
   const cnames = (
     await Promise.all([
-      getCNames({ domain, region }),
-      getCNames({ domain: `*.${domain}`, region }),
-      getCNames({ domain: `ws.${domain}`, region }),
+      getCNames({ domainName: domainName, region }),
+      getCNames({ domainName: `*.${domainName}`, region }),
+      getCNames({ domainName: `ws.${domainName}`, region }),
     ])
   ).flat();
 
@@ -108,19 +114,19 @@ async function updateCNames({
 }
 
 async function getCNames({
-  domain,
+  domainName,
   region,
 }: {
-  domain: string;
+  domainName: string;
   region: string;
 }) {
   const apiGateway = new ApiGatewayV2({ region });
   const { DomainNameConfigurations } = await apiGateway.getDomainName({
-    DomainName: domain,
+    DomainName: domainName,
   });
   invariant(DomainNameConfigurations);
   return DomainNameConfigurations.map(({ ApiGatewayDomainName }) => ({
-    cname: domain,
+    cname: domainName,
     value: ApiGatewayDomainName!,
   }));
 }
@@ -157,12 +163,12 @@ command
   .command("remove")
   .description("remove custom domain")
   .argument("<domain>", 'domain name (example: "example.com")')
-  .action(async (domain: string) => {
+  .action(async (domainName: string) => {
     const { name, awsRegion: region } = await loadCredentials();
 
-    const spinner = ora(`Removing domain ${domain}`).start();
-    await removeCustomDomain({ domain, project: name, region });
-    await discardCertificateRequest(domain);
+    const spinner = ora(`Removing domain ${domainName}`).start();
+    await removeCustomDomain({ domainName, project: name, region });
+    await discardCertificateRequest(domainName);
     spinner.succeed();
   });
 

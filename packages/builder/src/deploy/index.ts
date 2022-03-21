@@ -9,6 +9,7 @@ import ora from "ora";
 import invariant from "tiny-invariant";
 import { buildProject, displayManifest } from "../build/index.js";
 import { currentVersionAlias } from "../constants.js";
+import { removeCustomDomains } from "../manage/domains.js";
 import { deleteEnvVariables, getEnvVariables } from "../manage/env_vars.js";
 import { deleteAPIGateway, setupAPIGateway } from "./gateway.js";
 import { deleteLambdaRole } from "./lambda_role.js";
@@ -219,33 +220,35 @@ export async function deleteLambda({
   project: string;
   region: string;
 }) {
+  // We go in reverse order, custom domain is something we add to stack,
+  // so we need to delete it first.
+  await removeCustomDomains({ project, region });
+
   const lambdaName = `qr-${project}`;
   await deleteStack(lambdaName);
-  const lambda = new Lambda({ region });
 
   const spinner = ora(`Deleting Lambda function ${lambdaName}`).start();
   await Promise.all([
-    deleteFunction({ lambda, lambdaName, region }),
-    deleteAPIGateway({ project, region }),
     deleteEnvVariables({ project, region }),
+    deleteAPIGateway({ project, region }),
+    deleteFunction({ lambdaName, region }),
   ]);
   spinner.succeed();
 }
 
 async function deleteFunction({
-  lambda,
   lambdaName,
   region,
 }: {
-  lambda: Lambda;
   lambdaName: string;
   region: string;
 }) {
+  const lambda = new Lambda({ region });
   try {
     await lambda.deleteFunction({ FunctionName: lambdaName });
+    await deleteLambdaRole({ lambdaName, region });
   } catch (error) {
     if ((error as { name: string }).name !== "ResourceNotFoundException")
       throw error;
   }
-  await deleteLambdaRole({ lambdaName, region });
 }

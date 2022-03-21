@@ -87,12 +87,14 @@ export default async function uploadLambda({
     arn = updatedCode.FunctionArn;
     invariant(arn);
   } else {
-    const newLambda = await lambda.createFunction({
-      ...configuration,
-      Code: { ZipFile: zip },
-      PackageType: "Zip",
-      Publish: true,
-    });
+    const newLambda = await retry(() =>
+      lambda.createFunction({
+        ...configuration,
+        Code: { ZipFile: zip },
+        PackageType: "Zip",
+        Publish: true,
+      })
+    );
     // FunctionArn does not include version number
     arn = `${newLambda.FunctionArn}:${newLambda.Version}`;
   }
@@ -122,6 +124,19 @@ async function getFunction({
     if (error instanceof Error && error.name === "ResourceNotFoundException")
       return null;
     else throw error;
+  }
+}
+
+async function retry<T>(cb: () => Promise<T>): Promise<T> {
+  try {
+    return await cb();
+  } catch (error) {
+    // Race condition with IAM, we get this error:
+    // "The role defined for the function cannot be assumed by Lambda."
+    if ((error as { name: string }).name === "InvalidParameterValueException") {
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      return retry(cb);
+    } else throw error;
   }
 }
 
