@@ -24,7 +24,7 @@ export async function deployStack({
   lambdaArn: string;
   signal: AbortSignal;
   websocketApiId: string;
-}) {
+}): Promise<string | null> {
   const lambdaName = lambdaArn.match(/:function:(.+)/)![1];
   invariant(lambdaName);
   const lambdaCurrentArn = lambdaArn + ":current";
@@ -71,7 +71,7 @@ export async function deployStack({
     }
 
     spinner.text = "Reviewing stack changes …";
-    const changes = await useChangeSet({
+    const changeSetId = await useChangeSet({
       filename: path.join(buildDir, changeSetFilename),
       isCreating,
       requestToken,
@@ -80,9 +80,9 @@ export async function deployStack({
     if (signal.aborted) throw new Error("Deployment cancelled");
     signal.addEventListener("abort", cancel);
 
-    if (!changes) {
+    if (!changeSetId) {
       spinner.succeed("No stack changes to deploy");
-      return;
+      return null;
     }
 
     const events = await waitForStackUpdate(stackName, requestToken, spinner);
@@ -105,6 +105,7 @@ export async function deployStack({
       ]);
       throw new Error("Stack deploy failed");
     }
+    return changeSetId;
   } catch (error) {
     spinner.fail();
     throw error;
@@ -129,12 +130,14 @@ async function useChangeSet({
   stackUpdate: CreateStackInput;
   isCreating: boolean;
   requestToken: string;
-}) {
+}): Promise<string | null> {
   const { Id: changeSetId } = await cloudFormation.createChangeSet({
     ChangeSetName: `qr-${crypto.randomUUID!()}`,
     ChangeSetType: isCreating ? "CREATE" : "UPDATE",
     ...stackUpdate,
   });
+  invariant(changeSetId);
+
   do {
     const {
       Changes: changes,
@@ -148,12 +151,12 @@ async function useChangeSet({
         ChangeSetName: changeSetId,
         ClientRequestToken: requestToken,
       });
-      return true;
+      return changeSetId;
     }
 
     if (status === "FAILED") {
       await cloudFormation.deleteChangeSet({ ChangeSetName: changeSetId });
-      if (changes?.length === 0) return false;
+      if (changes?.length === 0) return null;
       else throw new Error(reason ?? "Can't create changeset");
     }
 
