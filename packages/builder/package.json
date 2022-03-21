@@ -27,7 +27,7 @@
     "@aws-sdk/client-iam": "^3.54.1",
     "@aws-sdk/client-lambda": "^3.54.1",
     "@aws-sdk/client-sqs": "^3.54.1",
-    "@swc/core": "^1.2.157",
+    "@swc/core": "^1.2.159",
     "chalk": "^5.0.1",
     "cloudform": "^7.3.0",
     "cron-parser": "^4.2.1",
