@@ -80,13 +80,17 @@ async function showDeployment({
       headers: ["Project", project],
       rows: [
         ["Version", current.version],
-        ["Code size", filesize(current.size)],
         ["Deployed", localTimestamp(current.modified)],
-        ["Region", region],
         ["Available memory", filesize(memory! * 10000 * 1000)],
         ["Timeout", ms(timeout! * 1000)],
-        ["Reserved concurrency", reserved ?? "No reserve"],
-        ...(provisioned
+        ["Code size", filesize(current.size)],
+        ["Region", region],
+        [
+          "CloudFormation",
+          (stackStatus ?? "unknown").toLowerCase().replace(/_/g, " "),
+        ],
+        ["Reserved concurrency", reserved ?? "no reserve"],
+        ...(provisioned?.length
           ? (provisioned
               .map((concurrency) => [
                 ["Provisioned concurrency", concurrency.Status],
@@ -104,8 +108,7 @@ async function showDeployment({
                 ],
               ])
               .flat() as [string, string][])
-          : [["Provisioned", "no"]]),
-        ["CloudFormation", stackStatus ?? "Unknown"],
+          : [["Provisioned", "no provisioned"]]),
         ["HTTP", httpUrl],
         ["WebSocket", wsUrl],
       ],
