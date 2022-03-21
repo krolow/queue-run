@@ -391,3 +391,18 @@ npx queue-run env add AWS_ACCESS_KEY_ID "AKI..."
 npx queue-run env add AWS_SECRET_ACCESS_KEY "v…"
 npx queue-run env add AWS_REGION "us-east-1"
 ```
+
+
+## Behind The Scenes
+
+- QueueRune compiles your project ES2020, so it can run on AWS Lambda, and support both ESM and CommonJS modules
+- All deployment artifcates, including manifest, CloudFormation stack, etc are stored in the `.queue-run` directory
+- It packages the entire backend into a single Lambda function
+- The `manifest.json` file lists all HTTP routes, queues, scheduled jobs, etc — the manifest allows QueueRun to load modules on demand, for faster response time
+- QueueRun sets up one API Gateway (regional) to handle HTTP, and API Gateway to handle WebSocket
+- For every file in the `queues` directory, it creates an SQS queue: AWS polls the queue and forwards messages to the Lambda function (in batches)
+- For every file in the `scheduled` directory, it creates a CloudWatch rule: AWS triggers the Lambda function based on that schedule
+- Each project includes DynamoDB tables for storing environment variables, and for tracking WebSocket connections for authenticated users
+- AWS Lambda would run as many instances as allowed by your account, you can control reserved and provisioned concurrency (see [Optimizing](optimizing))
+- QueueRun uses a CloudFormation stack to manage most of these resources (excluding the initial API Gateway, Lambda function, and environment variables)
+- You can inspect the CloudFormation stack by looking at `.cloudformation.json`, and deployed changes at `.changeset.json`
