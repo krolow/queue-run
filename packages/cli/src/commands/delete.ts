@@ -27,7 +27,7 @@ const command = new Command("delete")
           when: !yes,
         },
       ]);
-      if (yes ?? answers.confirm) {
+      if (answers.confirm || yes) {
         await deleteLambda({
           project: project.name,
           region: project.awsRegion,
