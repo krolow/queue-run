@@ -37,7 +37,7 @@ export async function getAPIGatewayUrls({
   if (!(http?.ApiEndpoint && ws?.ApiEndpoint))
     throw new Error("Project has not been deployed successfully");
 
-  const domainNames = await listDomainNames(apiGateway);
+  const domainNames = await listDomainNames(apiGateway, http.ApiId!);
   for (const domainName of domainNames) {
     const { Items } = await apiGateway.getApiMappings({
       DomainName: domainName,

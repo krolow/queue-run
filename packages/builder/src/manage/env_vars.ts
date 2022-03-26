@@ -10,10 +10,9 @@ export async function getEnvVariables({
   region: string;
 }): Promise<Map<string, string>> {
   const dynamoDB = new DynamoDB({ region });
-  const tableName = `qr-${project}-env-vars`;
   try {
     const { Items } = await dynamoDB.scan({
-      TableName: tableName,
+      TableName: tableName(project),
       FilterExpression: "env = :env",
       ExpressionAttributeValues: { ":env": { S: environment } },
     });
@@ -46,11 +45,10 @@ export async function setEnvVariable({
     );
 
   const dynamoDB = new DynamoDB({ region });
-  const tableName = `qr-${project}-env-vars`;
-  await createTable(dynamoDB, tableName);
+  await createTable(dynamoDB, tableName(project));
 
   await dynamoDB.updateItem({
-    TableName: tableName,
+    TableName: tableName(project),
     Key: { name: { S: varName }, env: { S: environment } },
     UpdateExpression: "SET val = :varValue",
     ExpressionAttributeValues: { ":varValue": { S: varValue } },
@@ -75,9 +73,8 @@ export async function deleteEnvVariable({
 
   try {
     const dynamoDB = new DynamoDB({ region });
-    const tableName = `qr-${project}-env-vars`;
     await dynamoDB.deleteItem({
-      TableName: tableName,
+      TableName: tableName(project),
       Key: { name: { S: varName }, env: { S: environment } },
     });
   } catch (error) {
@@ -101,6 +98,19 @@ export async function deleteEnvVariables({
     if ((error as { name: string }).name !== "ResourceNotFoundException")
       throw error;
   }
+}
+
+export async function whichEnvTable({
+  project,
+  region,
+}: {
+  project: string;
+  region: string;
+}): Promise<string | null> {
+  const dynamoDB = new DynamoDB({ region });
+  return (await hasTable(dynamoDB, tableName(project)))
+    ? tableName(project)
+    : null;
 }
 
 async function createTable(dynamoDB: DynamoDB, tableName: string) {
@@ -137,4 +147,8 @@ async function hasTable(
       throw error;
     return false;
   }
+}
+
+function tableName(project: string) {
+  return `qr-${project}-env-vars`;
 }
