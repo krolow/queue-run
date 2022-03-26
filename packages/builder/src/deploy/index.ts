@@ -10,9 +10,17 @@ import { debuglog, format } from "node:util";
 import ora from "ora";
 import invariant from "tiny-invariant";
 import { buildProject, displayManifest } from "../build/index.js";
-import { changeSetFilename, currentVersionAlias } from "../constants.js";
+import {
+  changeSetFilename,
+  currentVersionAlias,
+  lambdaRolePath,
+} from "../constants.js";
 import { removeCustomDomains } from "../manage/domains.js";
-import { deleteEnvVariables, getEnvVariables } from "../manage/env_vars.js";
+import {
+  deleteEnvVariables,
+  getEnvVariables,
+  whichEnvTable,
+} from "../manage/env_vars.js";
 import { readStackTemplate } from "./cf_template.js";
 import {
   deleteAPIGateway,
@@ -232,23 +240,33 @@ export async function deleteLambda({
   project: string;
   region: string;
 }) {
-  // We go in reverse order, custom domain is something we add to stack,
-  // so we need to delete it first.
+  // custom domains stack depends on api gateway apis
+  // lambda function stack depends on api gateway apis + lambda function
+  // lambda function depends on role
+  // we don't delete cloudwatch logs
   await removeCustomDomains({ project, region });
+  await deleteStack(`qr-${project}`);
+  await deleteStackDependencies({ project, region });
+}
 
+async function deleteStackDependencies({
+  project,
+  region,
+}: {
+  project: string;
+  region: string;
+}) {
   const lambdaName = `qr-${project}`;
-  await deleteStack(lambdaName);
-
   const spinner = ora(`Deleting Lambda function ${lambdaName}`).start();
   await Promise.all([
     deleteEnvVariables({ project, region }),
     deleteAPIGateway({ project, region }),
-    deleteFunction({ lambdaName, region }),
+    deleteFunctionAndRole({ lambdaName, region }),
   ]);
   spinner.succeed();
 }
 
-async function deleteFunction({
+async function deleteFunctionAndRole({
   lambdaName,
   region,
 }: {
@@ -278,26 +296,27 @@ export async function mapStack({
   const stack = await findStack(lambdaName);
   if (!stack) return null;
 
-  const { StackResources: resources } =
-    await cloudFormation.describeStackResources({
-      StackName: stack.StackId,
-    });
+  const [{ StackResources: resources }, { httpApiId, wsApiId }, envVarTable] =
+    await Promise.all([
+      cloudFormation.describeStackResources({
+        StackName: stack.StackId,
+      }),
+      getAPIGatewayUrls({ project, region }),
+      whichEnvTable({ project, region }),
+    ]);
 
-  const { httpApiId, wsApiId } = await getAPIGatewayUrls({ project, region });
-
-  return [
-    ["Lambda::Function", lambdaName],
-    ["Logs::LogGroup", `/aws/lambda/${lambdaName}`],
-    ["ApiGatewayV2::Api", httpApiId],
-    ["ApiGatewayV2::Api", wsApiId],
-    ["IAM::Role", lambdaName],
-    ["DynamoDB::Table", `${lambdaName}-env-vars`],
-  ]
-    .concat(
-      resources!.map((resource) => [
+  return (
+    [
+      ["Lambda::Function", lambdaName],
+      ["Logs::LogGroup", `/aws/lambda/${lambdaName}`],
+      ["ApiGatewayV2::Api", httpApiId],
+      ["ApiGatewayV2::Api", wsApiId],
+      ["IAM::Role", `${lambdaRolePath}${lambdaName}`],
+      envVarTable ? ["DynamoDB::Table", envVarTable] : null,
+      ...resources!.map((resource) => [
         resource.ResourceType!,
         resource.PhysicalResourceId!,
-      ])
-    )
-    .map(([type, name]) => [type!.replace("AWS::", ""), name!]);
+      ]),
+    ].filter(Boolean) as [string, string][]
+  ).map(([type, name]) => [type.replace("AWS::", ""), name]);
 }

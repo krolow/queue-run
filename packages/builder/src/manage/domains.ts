@@ -1,5 +1,6 @@
 import { ApiGatewayV2, ProtocolType } from "@aws-sdk/client-apigatewayv2";
 import cloudform, { ApiGatewayV2 as APGWV2, Fn } from "cloudform";
+import { filter } from "modern-async";
 import { createHash } from "node:crypto";
 import { httpStage, wsStage } from "../constants.js";
 import { findGatewayAPI } from "../deploy/gateway.js";
@@ -91,21 +92,37 @@ export async function removeCustomDomains({
   region: string;
 }) {
   const apiGateway = new ApiGatewayV2({ region });
-  const domainNames = await listDomainNames(apiGateway);
+  const httpApi = await findGatewayAPI({
+    apiGateway,
+    project,
+    protocol: ProtocolType.HTTP,
+  });
+  if (!httpApi) return;
+
+  const domainNames = await listDomainNames(apiGateway, httpApi.ApiId!);
   for (const domainName of domainNames) {
     const stackName = getStackName(project, domainName);
     if (await findStack(stackName)) await deleteStack(stackName);
   }
 }
 
-async function listDomainNames(
+export async function listDomainNames(
   apiGateway: ApiGatewayV2,
+  apiId: string,
   nextToken?: string
 ): Promise<string[]> {
   const { Items, NextToken } = await apiGateway.getDomainNames({
     ...(nextToken && { NextToken: nextToken }),
   });
-  const domainNames = Items?.map(({ DomainName }) => DomainName!) ?? [];
+  const domainNames = await filter(
+    Items!.map(({ DomainName }) => DomainName!),
+    async (DomainName) => {
+      const { Items } = await apiGateway.getApiMappings({
+        DomainName,
+      });
+      return Items!.some(({ ApiId }) => ApiId === apiId);
+    }
+  );
   return NextToken
     ? [...domainNames, ...(await listDomainNames(apiGateway, NextToken))]
     : domainNames;

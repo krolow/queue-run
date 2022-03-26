@@ -250,6 +250,15 @@ npx queue-run status
 See [Monitoring & Visibility](monitoring#status).
 
 
+### stack
+
+This command lists all the resources that are part of the project stack.
+
+```bash
+npx queue-run stack
+```
+
+
 ## Custom Domains
 
 When adding a custom domain, QueueRun will guide you through the process of verifying ownership, and updating your DNS to the new endpoints.
