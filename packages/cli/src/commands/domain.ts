@@ -46,13 +46,12 @@ command
       console.info(
         chalk.green.bold("\n1. Let's get you a new TLS certificate\n")
       );
-      await addDomain({
+      const certificateArn = await requestCertificate({
         domainName,
         method,
-        project: name,
-        region,
         verifyDomain,
       });
+      await addDomain({ certificateArn, domainName, project: name, region });
 
       console.info(chalk.green.bold("\n2. Update your DNS:\n"));
       await updateCNames({ domainName: domainName, region });
@@ -65,31 +64,23 @@ command
   );
 
 async function addDomain({
+  certificateArn,
   domainName,
-  method,
   project,
   region,
-  verifyDomain,
 }: {
+  certificateArn: string;
   domainName: string;
-  method: "email" | "dns" | undefined;
   project: string;
   region: string;
-  verifyDomain: string | undefined;
 }) {
-  const certificateArn = await requestCertificate({
-    domainName,
-    method,
-    verifyDomain,
-  });
-
-  const spinner = ora(`Adding domain ${domainName}`).start();
   const { httpUrl, wsUrl } = await addCustomDomain({
     certificateArn,
     domainName,
     project,
     region,
   });
+  const spinner = ora(`Adding domain ${domainName}`).start();
   spinner.succeed(`HTTP API:\t${httpUrl}`);
   spinner.succeed(`WebSocket:\t${wsUrl}`);
 }
@@ -104,7 +95,6 @@ async function updateCNames({
   const cnames = (
     await Promise.all([
       getCNames({ domainName: domainName, region }),
-      getCNames({ domainName: `*.${domainName}`, region }),
       getCNames({ domainName: `ws.${domainName}`, region }),
     ])
   ).flat();
@@ -164,12 +154,10 @@ command
   .description("remove custom domain")
   .argument("<domain>", 'domain name (example: "example.com")')
   .action(async (domainName: string) => {
-    const { name, awsRegion: region } = await loadCredentials();
+    const { name } = await loadCredentials();
 
-    const spinner = ora(`Removing domain ${domainName}`).start();
-    await removeCustomDomain({ domainName, project: name, region });
+    await removeCustomDomain({ domainName, project: name });
     await discardCertificateRequest(domainName);
-    spinner.succeed();
   });
 
 export default command;

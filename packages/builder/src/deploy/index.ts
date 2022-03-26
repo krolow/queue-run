@@ -1,19 +1,26 @@
+import { CloudFormation } from "@aws-sdk/client-cloudformation";
 import { CloudWatchLogs } from "@aws-sdk/client-cloudwatch-logs";
 import { Lambda } from "@aws-sdk/client-lambda";
 import chalk from "chalk";
 import filesize from "filesize";
 import getRepoInfo from "git-repo-info";
 import { AbortSignal } from "node-abort-controller";
+import path from "node:path";
 import { debuglog, format } from "node:util";
 import ora from "ora";
 import invariant from "tiny-invariant";
 import { buildProject, displayManifest } from "../build/index.js";
-import { currentVersionAlias } from "../constants.js";
+import { changeSetFilename, currentVersionAlias } from "../constants.js";
 import { removeCustomDomains } from "../manage/domains.js";
 import { deleteEnvVariables, getEnvVariables } from "../manage/env_vars.js";
-import { deleteAPIGateway, setupAPIGateway } from "./gateway.js";
+import { readStackTemplate } from "./cf_template.js";
+import {
+  deleteAPIGateway,
+  getAPIGatewayUrls,
+  setupAPIGateway,
+} from "./gateway.js";
 import { deleteLambdaRole } from "./lambda_role.js";
-import { deleteStack, deployStack } from "./stack.js";
+import { deleteStack, deployStack, findStack } from "./stack.js";
 import updateAlias from "./update_alias.js";
 import uploadLambda from "./upload_lambda.js";
 export { getAPIGatewayUrls } from "./gateway.js";
@@ -123,12 +130,17 @@ export async function deployLambda({
   if (signal?.aborted) throw new Error();
 
   // If aborted in time and stack deploy cancelled, then deployStack will throw.
-  const changeSetId = await deployStack({
+  const stack = await readStackTemplate({
     buildDir,
+    description: `QueueRun stack for ${project}`,
     httpApiId,
     lambdaArn,
-    signal,
     websocketApiId,
+  });
+  const changeSetId = await deployStack({
+    changeSetFilename: path.join(buildDir, changeSetFilename),
+    signal,
+    stack,
   });
   if (changeSetId)
     await logToCloudWatch("Deployed stack change-set: %s", changeSetId);
@@ -251,4 +263,41 @@ async function deleteFunction({
     if ((error as { name: string }).name !== "ResourceNotFoundException")
       throw error;
   }
+}
+
+export async function mapStack({
+  project,
+  region,
+}: {
+  project: string;
+  region: string;
+}): Promise<[string, string][] | null> {
+  const lambdaName = `qr-${project}`;
+
+  const cloudFormation = new CloudFormation({});
+  const stack = await findStack(lambdaName);
+  if (!stack) return null;
+
+  const { StackResources: resources } =
+    await cloudFormation.describeStackResources({
+      StackName: stack.StackId,
+    });
+
+  const { httpApiId, wsApiId } = await getAPIGatewayUrls({ project, region });
+
+  return [
+    ["Lambda::Function", lambdaName],
+    ["Logs::LogGroup", `/aws/lambda/${lambdaName}`],
+    ["ApiGatewayV2::Api", httpApiId],
+    ["ApiGatewayV2::Api", wsApiId],
+    ["IAM::Role", lambdaName],
+    ["DynamoDB::Table", `${lambdaName}-env-vars`],
+  ]
+    .concat(
+      resources!.map((resource) => [
+        resource.ResourceType!,
+        resource.PhysicalResourceId!,
+      ])
+    )
+    .map(([type, name]) => [type!.replace("AWS::", ""), name!]);
 }
