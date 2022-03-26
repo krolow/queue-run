@@ -6,6 +6,7 @@ import {
 } from "@aws-sdk/client-apigatewayv2";
 import invariant from "tiny-invariant";
 import { wsStage } from "../constants.js";
+import { listDomainNames } from "../manage/domains.js";
 
 // See https://docs.aws.amazon.com/lambda/latest/dg/services-apigateway.html#apigateway-permissions
 
@@ -36,13 +37,13 @@ export async function getAPIGatewayUrls({
   if (!(http?.ApiEndpoint && ws?.ApiEndpoint))
     throw new Error("Project has not been deployed successfully");
 
-  const { Items: domains } = await apiGateway.getDomainNames({});
-  for (const { DomainName } of domains ?? []) {
+  const domainNames = await listDomainNames(apiGateway);
+  for (const domainName of domainNames) {
     const { Items } = await apiGateway.getApiMappings({
-      DomainName,
+      DomainName: domainName,
     });
     if (Items?.find(({ ApiId }) => ApiId === http.ApiId)) {
-      const domain = DomainName!.replace("*.", "");
+      const domain = domainName!.replace("*.", "");
       return {
         httpApiId: http.ApiId!,
         httpUrl: `https://${domain}`,

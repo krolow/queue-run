@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import ora from "ora";
 import type { BackendExports, Manifest } from "queue-run";
 import { loadModule, writeManifest } from "queue-run";
-import { cfTemplate } from "../deploy/cf_template.js";
+import { writeStackTemplate } from "../deploy/cf_template.js";
 import compileSourceFiles from "./compile_source_files.js";
 import getRuntime from "./get_runtime.js";
 import installDependencies from "./install_dependencies.js";
@@ -48,7 +48,7 @@ export default async function buildProject({
   if (signal?.aborted) throw new Error();
 
   const manifest = await createManifest(buildDir);
-  await cfTemplate(buildDir);
+  await writeStackTemplate(buildDir);
   if (signal?.aborted) throw new Error();
 
   const zip = full ? await zipLambda(buildDir) : undefined;

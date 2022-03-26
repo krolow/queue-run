@@ -1,10 +1,21 @@
 /* eslint-disable sonarjs/no-duplicate-string */
-import cloudform, { ApiGatewayV2, Events, Fn, Lambda, SQS } from "cloudform";
-import { DynamoDB, IAM, ResourceBase, StringParameter } from "cloudform-types";
+import { CreateStackInput } from "@aws-sdk/client-cloudformation";
+import cloudform, {
+  ApiGatewayV2,
+  DynamoDB,
+  Events,
+  Fn,
+  IAM,
+  Lambda,
+  ResourceBase,
+  SQS,
+  StringParameter,
+} from "cloudform";
 import cronParser from "cron-parser";
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { loadManifest, Manifest } from "queue-run";
+import invariant from "tiny-invariant";
 import { cloudFormationFilename, httpStage, wsStage } from "../constants.js";
 
 const RefHttpApiId = Fn.Ref("httpApiId");
@@ -13,7 +24,7 @@ const RefLambdaCurrentArn = Fn.Ref("lambdaCurrentArn");
 const RefLambdaName = Fn.Ref("lambdaName");
 const RefWebsocketApiId = Fn.Ref("websocketApiId");
 
-export async function cfTemplate(buildDir: string) {
+export async function writeStackTemplate(buildDir: string) {
   const manifest = await loadManifest(buildDir);
   const resources = [
     getPolicy(),
@@ -36,6 +47,45 @@ export async function cfTemplate(buildDir: string) {
     Resources: resources,
   });
   await writeFile(path.join(buildDir, cloudFormationFilename), stack);
+}
+
+export async function readStackTemplate({
+  buildDir,
+  description,
+  httpApiId,
+  lambdaArn,
+  websocketApiId,
+}: {
+  buildDir: string;
+  description: string;
+  httpApiId: string;
+  lambdaArn: string;
+  websocketApiId: string;
+}): Promise<CreateStackInput> {
+  const lambdaName = lambdaArn.match(/:function:(.+)/)![1];
+  invariant(lambdaName);
+  const lambdaCurrentArn = lambdaArn + ":current";
+  const stackName = lambdaName;
+  const template = JSON.parse(
+    await readFile(path.join(buildDir, cloudFormationFilename), "utf8")
+  );
+
+  return {
+    Capabilities: ["CAPABILITY_NAMED_IAM"],
+    Parameters: [
+      { ParameterKey: "httpApiId", ParameterValue: httpApiId },
+      { ParameterKey: "lambdaArn", ParameterValue: lambdaArn },
+      { ParameterKey: "lambdaCurrentArn", ParameterValue: lambdaCurrentArn },
+      { ParameterKey: "lambdaName", ParameterValue: lambdaName },
+      { ParameterKey: "websocketApiId", ParameterValue: websocketApiId },
+    ],
+    StackName: stackName,
+    TemplateBody: JSON.stringify({
+      ...template,
+      Description: description,
+    }),
+    EnableTerminationProtection: true,
+  };
 }
 
 function getPolicy(): { [key: string]: ResourceBase } {

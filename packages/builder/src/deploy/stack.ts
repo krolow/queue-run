@@ -3,50 +3,24 @@ import {
   CreateStackInput,
   StackEvent,
 } from "@aws-sdk/client-cloudformation";
-import { readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
+import { writeFile } from "node:fs/promises";
 import ora, { Ora } from "ora";
 import invariant from "tiny-invariant";
-import { changeSetFilename, cloudFormationFilename } from "../constants.js";
 import displayTable from "../display_table.js";
 
 const cloudFormation = new CloudFormation({});
 
 export async function deployStack({
-  buildDir,
-  httpApiId,
-  lambdaArn,
+  changeSetFilename,
   signal,
-  websocketApiId,
+  stack,
 }: {
-  buildDir: string;
-  httpApiId: string;
-  lambdaArn: string;
-  signal: AbortSignal;
-  websocketApiId: string;
-}): Promise<string | null> {
-  const lambdaName = lambdaArn.match(/:function:(.+)/)![1];
-  invariant(lambdaName);
-  const lambdaCurrentArn = lambdaArn + ":current";
-  const stackName = lambdaName;
-  const template = await readFile(
-    path.join(buildDir, cloudFormationFilename),
-    "utf8"
-  );
+  changeSetFilename?: string;
+  signal?: AbortSignal;
+  stack: CreateStackInput;
+}) {
+  const stackName = stack.StackName!;
   const requestToken = crypto.randomUUID!();
-  const stackUpdate = {
-    Capabilities: ["CAPABILITY_NAMED_IAM"],
-    Parameters: [
-      { ParameterKey: "httpApiId", ParameterValue: httpApiId },
-      { ParameterKey: "lambdaArn", ParameterValue: lambdaArn },
-      { ParameterKey: "lambdaCurrentArn", ParameterValue: lambdaCurrentArn },
-      { ParameterKey: "lambdaName", ParameterValue: lambdaName },
-      { ParameterKey: "websocketApiId", ParameterValue: websocketApiId },
-    ],
-    StackName: stackName,
-    TemplateBody: template,
-    TerminationProtection: true,
-  };
 
   function cancel() {
     cloudFormation.cancelUpdateStack({ StackName: stackName });
@@ -72,13 +46,13 @@ export async function deployStack({
 
     spinner.text = "Reviewing stack changes …";
     const changeSetId = await useChangeSet({
-      filename: path.join(buildDir, changeSetFilename),
+      changeSetFilename,
       isCreating,
       requestToken,
-      stackUpdate,
+      stack: stack,
     });
-    if (signal.aborted) throw new Error("Deployment cancelled");
-    signal.addEventListener("abort", cancel);
+    if (signal?.aborted) throw new Error("Deployment cancelled");
+    signal?.addEventListener("abort", cancel);
 
     if (!changeSetId) {
       spinner.succeed("No stack changes to deploy");
@@ -110,7 +84,7 @@ export async function deployStack({
     spinner.fail();
     throw error;
   } finally {
-    signal.removeEventListener("abort", cancel);
+    signal?.removeEventListener("abort", cancel);
   }
 }
 
@@ -121,20 +95,20 @@ async function recoverFromFailedDeploy(existingId: string) {
 }
 
 async function useChangeSet({
-  filename,
-  stackUpdate,
+  changeSetFilename,
+  stack,
   isCreating,
   requestToken,
 }: {
-  filename: string;
-  stackUpdate: CreateStackInput;
+  changeSetFilename?: string;
+  stack: CreateStackInput;
   isCreating: boolean;
   requestToken: string;
 }): Promise<string | null> {
   const { Id: changeSetId } = await cloudFormation.createChangeSet({
     ChangeSetName: `qr-${crypto.randomUUID!()}`,
     ChangeSetType: isCreating ? "CREATE" : "UPDATE",
-    ...stackUpdate,
+    ...stack,
   });
   invariant(changeSetId);
 
@@ -146,7 +120,8 @@ async function useChangeSet({
     } = await cloudFormation.describeChangeSet({ ChangeSetName: changeSetId });
 
     if (status === "CREATE_COMPLETE") {
-      await writeFile(filename, JSON.stringify(changes, null, 2));
+      if (changeSetFilename)
+        await writeFile(changeSetFilename, JSON.stringify(changes, null, 2));
       await cloudFormation.executeChangeSet({
         ChangeSetName: changeSetId,
         ClientRequestToken: requestToken,
@@ -165,9 +140,8 @@ async function useChangeSet({
   } while (true);
 }
 
-export async function deleteStack(lambdaName: string) {
+export async function deleteStack(stackName: string) {
   const cloudFormation = new CloudFormation({});
-  const stackName = lambdaName;
   const spinner = ora(`Deleting stack ${stackName}`).start();
   try {
     const stack = await findStack(stackName);
@@ -204,7 +178,7 @@ export async function getStackStatus(lambdaName: string) {
   }
 }
 
-async function findStack(stackName: string) {
+export async function findStack(stackName: string) {
   try {
     const { Stacks } = await cloudFormation.describeStacks({
       StackName: stackName,
