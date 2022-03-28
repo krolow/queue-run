@@ -21,8 +21,8 @@
   "devDependencies": {
     "@tsconfig/node14": "^1.0.1",
     "@types/jest": "^27.4.1",
-    "@typescript-eslint/eslint-plugin": "^5.16.0",
-    "@typescript-eslint/parser": "^5.16.0",
+    "@typescript-eslint/eslint-plugin": "^5.17.0",
+    "@typescript-eslint/parser": "^5.17.0",
     "concurrently": "^7.0.0",
     "esbuild": "^0.14.28",
     "eslint": "8.12.0",
