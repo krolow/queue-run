@@ -122,17 +122,19 @@ export async function withExecutionContext<T>(
   fn: (context: ExecutionContext) => Promise<T> | T
 ): Promise<T> {
   if (asyncLocal.getStore()) throw new Error("Can't nest runtimes");
+
+  let onTimeout: () => any;
   try {
     return await Promise.race<T>([
       asyncLocal.run(context, () => fn(context)),
-      new Promise((resolve, reject) =>
-        context.signal.addEventListener("abort", () =>
-          reject(new TimeoutError())
-        )
-      ),
+      new Promise((resolve, reject) => {
+        onTimeout = () => reject(new TimeoutError());
+        context.signal.addEventListener("abort", onTimeout);
+      }),
     ]);
   } finally {
     // Clear timeout and abort controller
+    context.signal.addEventListener("abort", onTimeout!);
     context.finalize();
   }
 }
