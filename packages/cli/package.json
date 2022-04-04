@@ -40,7 +40,7 @@
     "ws": "^8.5.0"
   },
   "devDependencies": {
-    "@types/inquirer": "^8.2.0",
+    "@types/inquirer": "^8.2.1",
     "@types/project-name-generator": "^2.1.1"
   },
   "homepage": "https://queue.run",
