@@ -18,7 +18,7 @@ If the WebSocket request times out, that's treated as an error, and the server w
 
 :::info Quick Responses and Queues
 
-If you're doing anything lengthy, there's a chance it will fail. HTTP responses with an error are not a great user experience. And WebSocket doesn't have a solid error hanlding model.
+If you're doing anything lengthy, there's a chance it will fail. HTTP responses with an error are not a great user experience. And WebSocket doesn't have a solid error handling model.
 
 In either case, you get a more responsive UI and better user experience by keeping request/response short and simple, and offloading everything else to a queue.
 :::
