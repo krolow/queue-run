@@ -12,7 +12,7 @@ import cloudform, {
   StringParameter,
 } from "cloudform";
 import cronParser from "cron-parser";
-import { readFile, writeFile } from "node:fs/promises";
+import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import { loadManifest, Manifest } from "queue-run";
 import invariant from "tiny-invariant";
@@ -24,32 +24,7 @@ const RefLambdaCurrentArn = Fn.Ref("lambdaCurrentArn");
 const RefLambdaName = Fn.Ref("lambdaName");
 const RefWebsocketApiId = Fn.Ref("websocketApiId");
 
-export async function writeStackTemplate(buildDir: string) {
-  const manifest = await loadManifest(buildDir);
-  const resources = [
-    getPolicy(),
-    getHTTPGateway(),
-    getWebsocketGateway(),
-    getTables(),
-    ...getQueues(...manifest.queues.values()),
-    ...getSchedules(...manifest.schedules.values()),
-  ].reduce((all, set) => ({ ...all, ...set }), {});
-  // @ts-ignore
-  const stack = cloudform.default({
-    AWSTemplateFormatVersion: "2010-09-09",
-    Parameters: {
-      httpApiId: new StringParameter(),
-      lambdaArn: new StringParameter(),
-      lambdaCurrentArn: new StringParameter(),
-      lambdaName: new StringParameter(),
-      websocketApiId: new StringParameter(),
-    },
-    Resources: resources,
-  });
-  await writeFile(path.join(buildDir, cloudFormationFilename), stack);
-}
-
-export async function readStackTemplate({
+export async function createStackTemplate({
   buildDir,
   description,
   httpApiId,
@@ -62,13 +37,37 @@ export async function readStackTemplate({
   lambdaArn: string;
   websocketApiId: string;
 }): Promise<CreateStackInput> {
+  const manifest = await loadManifest(buildDir);
+
   const lambdaName = lambdaArn.match(/:function:(.+)/)![1];
   invariant(lambdaName);
   const lambdaCurrentArn = lambdaArn + ":current";
   const stackName = lambdaName;
-  const template = JSON.parse(
-    await readFile(path.join(buildDir, cloudFormationFilename), "utf8")
-  );
+
+  const resources = [
+    getPolicy(),
+    getHTTPGateway(),
+    getWebsocketGateway(),
+    getTables(),
+    ...getQueues(...manifest.queues.values()),
+    ...getSchedules(...manifest.schedules.values()),
+  ].reduce((all, set) => ({ ...all, ...set }), {});
+
+  // @ts-ignore
+  const template = cloudform.default({
+    AWSTemplateFormatVersion: "2010-09-09",
+    Description: description,
+    Parameters: {
+      httpApiId: new StringParameter(),
+      lambdaArn: new StringParameter(),
+      lambdaCurrentArn: new StringParameter(),
+      lambdaName: new StringParameter(),
+      websocketApiId: new StringParameter(),
+    },
+    Resources: resources,
+  });
+
+  await writeFile(path.join(buildDir, cloudFormationFilename), template);
 
   return {
     Capabilities: ["CAPABILITY_NAMED_IAM"],
@@ -80,10 +79,7 @@ export async function readStackTemplate({
       { ParameterKey: "websocketApiId", ParameterValue: websocketApiId },
     ],
     StackName: stackName,
-    TemplateBody: JSON.stringify({
-      ...template,
-      Description: description,
-    }),
+    TemplateBody: template,
     EnableTerminationProtection: true,
   };
 }

@@ -21,7 +21,7 @@ import {
   getEnvVariables,
   whichEnvTable,
 } from "../manage/env_vars.js";
-import { readStackTemplate } from "./cf_template.js";
+import { createStackTemplate } from "./cf_template.js";
 import {
   deleteAPIGateway,
   getAPIGatewayUrls,
@@ -138,7 +138,7 @@ export async function deployLambda({
   if (signal?.aborted) throw new Error();
 
   // If aborted in time and stack deploy cancelled, then deployStack will throw.
-  const stack = await readStackTemplate({
+  const stack = await createStackTemplate({
     buildDir,
     description: `QueueRun stack for ${project}`,
     httpApiId,
