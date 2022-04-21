@@ -9,7 +9,6 @@ import cloudform, {
   Lambda,
   ResourceBase,
   SQS,
-  StringParameter,
 } from "cloudform";
 import cronParser from "cron-parser";
 import { writeFile } from "node:fs/promises";
@@ -17,12 +16,6 @@ import path from "node:path";
 import { loadManifest, Manifest } from "queue-run";
 import invariant from "tiny-invariant";
 import { cloudFormationFilename, httpStage, wsStage } from "../constants.js";
-
-const RefHttpApiId = Fn.Ref("httpApiId");
-const RefLambdaArn = Fn.Ref("lambdaArn");
-const RefLambdaCurrentArn = Fn.Ref("lambdaCurrentArn");
-const RefLambdaName = Fn.Ref("lambdaName");
-const RefWebsocketApiId = Fn.Ref("websocketApiId");
 
 export async function createStackTemplate({
   buildDir,
@@ -39,31 +32,38 @@ export async function createStackTemplate({
 }): Promise<CreateStackInput> {
   const manifest = await loadManifest(buildDir);
 
-  const lambdaName = lambdaArn.match(/:function:(.+)/)![1];
-  invariant(lambdaName);
-  const lambdaCurrentArn = lambdaArn + ":current";
+  const [region, accountId, lambdaName] = lambdaArn
+    .match(/^arn:aws:lambda:(.*):(.*):function:(.+)/)!
+    .slice(1);
+  invariant(accountId && region && lambdaName);
   const stackName = lambdaName;
+  const lambdaCurrentArn = lambdaArn + ":current";
 
   const resources = [
-    getPolicy(),
-    getHTTPGateway(),
-    getWebsocketGateway(),
-    getTables(),
-    ...getQueues(...manifest.queues.values()),
-    ...getSchedules(...manifest.schedules.values()),
+    getPolicy({ accountId, lambdaName, region, websocketApiId }),
+    getHTTPGateway({ accountId, httpApiId, lambdaArn, region }),
+    getWebsocketGateway({ accountId, lambdaArn, region, websocketApiId }),
+    getTables({ lambdaName }),
+    ...getQueues({
+      accountId,
+      lambdaCurrentArn,
+      lambdaName,
+      queues: [...manifest.queues.values()],
+      region,
+    }),
+    ...getSchedules({
+      accountId,
+      lambdaCurrentArn,
+      lambdaName,
+      region,
+      schedules: [...manifest.schedules.values()],
+    }),
   ].reduce((all, set) => ({ ...all, ...set }), {});
 
   // @ts-ignore
   const template = cloudform.default({
     AWSTemplateFormatVersion: "2010-09-09",
     Description: description,
-    Parameters: {
-      httpApiId: new StringParameter(),
-      lambdaArn: new StringParameter(),
-      lambdaCurrentArn: new StringParameter(),
-      lambdaName: new StringParameter(),
-      websocketApiId: new StringParameter(),
-    },
     Resources: resources,
   });
 
@@ -71,20 +71,25 @@ export async function createStackTemplate({
 
   return {
     Capabilities: ["CAPABILITY_NAMED_IAM"],
-    Parameters: [
-      { ParameterKey: "httpApiId", ParameterValue: httpApiId },
-      { ParameterKey: "lambdaArn", ParameterValue: lambdaArn },
-      { ParameterKey: "lambdaCurrentArn", ParameterValue: lambdaCurrentArn },
-      { ParameterKey: "lambdaName", ParameterValue: lambdaName },
-      { ParameterKey: "websocketApiId", ParameterValue: websocketApiId },
-    ],
     StackName: stackName,
     TemplateBody: template,
     EnableTerminationProtection: true,
   };
 }
 
-function getPolicy(): { [key: string]: ResourceBase } {
+function getPolicy({
+  accountId,
+  lambdaName,
+  region,
+  websocketApiId,
+}: {
+  accountId: string;
+  lambdaName: string;
+  region: string;
+  websocketApiId: string;
+}): {
+  [key: string]: ResourceBase;
+} {
   return {
     policy: new IAM.Policy({
       PolicyDocument: {
@@ -101,22 +106,12 @@ function getPolicy(): { [key: string]: ResourceBase } {
               "sqs:ReceiveMessage",
               "sqs:SendMessage",
             ],
-            Resource: Fn.Join(":", [
-              "arn:aws:sqs",
-              Fn.Ref("AWS::Region"),
-              Fn.Ref("AWS::AccountId"),
-              Fn.Join("__", [RefLambdaName, "*"]),
-            ]),
+            Resource: `arn:aws:sqs:${region}:${accountId}:${lambdaName}__*`,
           },
           {
             Effect: "Allow",
             Action: ["execute-api:ManageConnections", "execute-api:Invoke"],
-            Resource: Fn.Join(":", [
-              "arn:aws:execute-api",
-              Fn.Ref("AWS::Region"),
-              Fn.Ref("AWS::AccountId"),
-              Fn.Join("/", [RefWebsocketApiId, wsStage, "*"]),
-            ]),
+            Resource: `arn:aws:execute-api:${region}:${accountId}:${websocketApiId}/${wsStage}/*`,
           },
           {
             Effect: "Allow",
@@ -127,93 +122,95 @@ function getPolicy(): { [key: string]: ResourceBase } {
               "dynamodb:PutItem",
               "dynamodb:UpdateItem",
             ],
-            Resource: Fn.Join(":", [
-              "arn:aws:dynamodb",
-              Fn.Ref("AWS::Region"),
-              Fn.Ref("AWS::AccountId"),
-              Fn.Join("/", ["table", Fn.Join("-", [RefLambdaName, "*"])]),
-            ]),
+            Resource: `arn:aws:dynamodb:${region}:${accountId}:table/${lambdaName}-*`,
           },
           {
             Effect: "Allow",
             Action: "logs:CreateLogGroup",
-            Resource: Fn.Join(":", [
-              "arn:aws:logs",
-              Fn.Ref("AWS::Region"),
-              Fn.Ref("AWS::AccountId"),
-              Fn.Join("/", ["/aws/lambda", RefLambdaName]),
-            ]),
+            Resource: `arn:aws:logs:${region}:${accountId}:/aws/lambda/${lambdaName}`,
           },
           {
             Effect: "Allow",
             Action: ["logs:CreateLogStream", "logs:PutLogEvents"],
-            Resource: Fn.Join(":", [
-              "arn:aws:logs",
-              Fn.Ref("AWS::Region"),
-              Fn.Ref("AWS::AccountId"),
-              "log-group",
-              Fn.Join("/", ["/aws/lambda", RefLambdaName]),
-              "*",
-            ]),
+            Resource: `arn:aws:logs:${region}:${accountId}:log-group:/aws/lambda/${lambdaName}:*`,
           },
         ],
       },
       PolicyName: "queue-run",
-      Roles: [RefLambdaName],
+      Roles: [lambdaName],
     }),
   };
 }
 
-const RefLambdaUrl = Fn.Join(":", [
-  "arn:aws:apigateway",
-  Fn.Ref("AWS::Region"),
-  "lambda",
-  Fn.Join("/", ["path/2015-03-31/functions", RefLambdaArn, "invocations"]),
-]);
+function getHTTPGateway({
+  accountId,
+  httpApiId,
+  lambdaArn,
+  region,
+}: {
+  accountId: string;
+  httpApiId: string;
+  lambdaArn: string;
+  region: string;
+}): {
+  [key: string]: ResourceBase;
+} {
+  const RefHttpIntegration = Fn.Join("/", [
+    "integrations",
+    Fn.Ref("httpIntegration"),
+  ]);
+  const RefLambdaUrl = `arn:aws:apigateway:${region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations`;
 
-function getHTTPGateway(): { [key: string]: ResourceBase } {
   return {
     httpIntegration: new ApiGatewayV2.Integration({
-      ApiId: RefHttpApiId,
+      ApiId: httpApiId,
       IntegrationType: "AWS_PROXY",
       IntegrationUri: RefLambdaUrl,
       PayloadFormatVersion: "2.0",
       TimeoutInMillis: 30000,
     }),
     httpRoute: new ApiGatewayV2.Route({
-      ApiId: RefHttpApiId,
+      ApiId: httpApiId,
       RouteKey: "ANY /{proxy+}",
-      Target: Fn.Join("/", ["integrations", Fn.Ref("httpIntegration")]),
+      Target: RefHttpIntegration,
     }),
     httpStage: new ApiGatewayV2.Stage({
-      ApiId: RefHttpApiId,
+      ApiId: httpApiId,
       StageName: httpStage,
       AutoDeploy: true,
     }).dependsOn(["httpRoute", "policy"]),
 
     gatewayInvoke: new Lambda.Permission({
       Action: "lambda:InvokeFunction",
-      FunctionName: RefLambdaArn,
+      FunctionName: lambdaArn,
       Principal: "apigateway.amazonaws.com",
-      SourceArn: Fn.Join(":", [
-        "arn:aws:execute-api",
-        Fn.Ref("AWS::Region"),
-        Fn.Ref("AWS::AccountId"),
-        Fn.Join("/", [RefHttpApiId, "*/*/{proxy+}"]),
-      ]),
+      SourceArn: `arn:aws:execute-api:${region}:${accountId}:${httpApiId}/*/*/{proxy+}`,
     }),
   };
 }
 
-function getWebsocketGateway(): { [key: string]: ResourceBase } {
-  const RefIntegration = Fn.Join("/", [
+function getWebsocketGateway({
+  accountId,
+  lambdaArn,
+  region,
+  websocketApiId,
+}: {
+  accountId: string;
+  lambdaArn: string;
+  region: string;
+  websocketApiId: string;
+}): {
+  [key: string]: ResourceBase;
+} {
+  const RefWebsocketIntegration = Fn.Join("/", [
     "integrations",
     Fn.Ref("websocketIntegration"),
   ]);
+  const RefLambdaUrl = `arn:aws:apigateway:${region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations`;
 
   return {
     websocketIntegration: new ApiGatewayV2.Integration({
-      ApiId: RefWebsocketApiId,
+      ApiId: websocketApiId,
       ContentHandlingStrategy: "CONVERT_TO_TEXT",
       IntegrationMethod: "POST",
       IntegrationType: "AWS_PROXY",
@@ -222,23 +219,23 @@ function getWebsocketGateway(): { [key: string]: ResourceBase } {
       TimeoutInMillis: 29000,
     }),
     websocketConnect: new ApiGatewayV2.Route({
-      ApiId: RefWebsocketApiId,
+      ApiId: websocketApiId,
       AuthorizationType: "NONE",
       RouteKey: "$connect",
-      Target: RefIntegration,
+      Target: RefWebsocketIntegration,
     }),
     websocketDisconnect: new ApiGatewayV2.Route({
-      ApiId: RefWebsocketApiId,
+      ApiId: websocketApiId,
       RouteKey: "$disconnect",
-      Target: RefIntegration,
+      Target: RefWebsocketIntegration,
     }),
     websocketDefault: new ApiGatewayV2.Route({
-      ApiId: RefWebsocketApiId,
+      ApiId: websocketApiId,
       RouteKey: "$default",
-      Target: RefIntegration,
+      Target: RefWebsocketIntegration,
     }),
     websocketStage: new ApiGatewayV2.Stage({
-      ApiId: RefWebsocketApiId,
+      ApiId: websocketApiId,
       AutoDeploy: true,
       StageName: wsStage,
     }).dependsOn([
@@ -250,28 +247,25 @@ function getWebsocketGateway(): { [key: string]: ResourceBase } {
 
     websocketPermission: new Lambda.Permission({
       Action: "lambda:InvokeFunction",
-      FunctionName: RefLambdaArn,
+      FunctionName: lambdaArn,
       Principal: "apigateway.amazonaws.com",
-      SourceArn: Fn.Join(":", [
-        "arn:aws:execute-api",
-        Fn.Ref("AWS::Region"),
-        Fn.Ref("AWS::AccountId"),
-        Fn.Join("/", [RefWebsocketApiId, "*"]),
-      ]),
+      SourceArn: `arn:aws:execute-api:${region}:${accountId}:${websocketApiId}/*`,
     }),
   };
 }
 
-function getTables(): { [key: string]: ResourceBase } {
+function getTables({ lambdaName }: { lambdaName: string }): {
+  [key: string]: ResourceBase;
+} {
   return {
     connectionsTable: new DynamoDB.Table({
-      TableName: Fn.Join("-", [RefLambdaName, "connections"]),
+      TableName: `${lambdaName}-connections`,
       AttributeDefinitions: [{ AttributeName: "id", AttributeType: "S" }],
       KeySchema: [{ AttributeName: "id", KeyType: "HASH" }],
       BillingMode: "PAY_PER_REQUEST",
     }),
     userConnectionsTable: new DynamoDB.Table({
-      TableName: Fn.Join("-", [RefLambdaName, "user-connections"]),
+      TableName: `${lambdaName}-user-connections`,
       AttributeDefinitions: [{ AttributeName: "id", AttributeType: "S" }],
       KeySchema: [{ AttributeName: "id", KeyType: "HASH" }],
       BillingMode: "PAY_PER_REQUEST",
@@ -279,12 +273,22 @@ function getTables(): { [key: string]: ResourceBase } {
   };
 }
 
-function getQueues(
-  ...queues: Manifest["queues"]
-): { [key: string]: ResourceBase }[] {
+function getQueues({
+  accountId,
+  lambdaCurrentArn,
+  lambdaName,
+  queues,
+  region,
+}: {
+  accountId: string;
+  lambdaCurrentArn: string;
+  lambdaName: string;
+  queues: Manifest["queues"];
+  region: string;
+}): { [key: string]: ResourceBase }[] {
   return queues.map((queue, index) => {
     const resourceId = `sqsQueue${index}`;
-    const queueName = Fn.Join("__", [RefLambdaName, queue.queueName]);
+    const queueName = `${lambdaName}__${queue.queueName}`;
     return {
       [resourceId]: new SQS.Queue({
         QueueName: queueName,
@@ -301,25 +305,30 @@ function getQueues(
 
       [`sqsSource${index}`]: new Lambda.EventSourceMapping({
         Enabled: true,
-        EventSourceArn: Fn.Join(":", [
-          "arn:aws:sqs",
-          Fn.Ref("AWS::Region"),
-          Fn.Ref("AWS::AccountId"),
-          queueName,
-        ]),
-        FunctionName: RefLambdaCurrentArn,
+        EventSourceArn: `arn:aws:sqs:${region}:${accountId}:${queueName}`,
+        FunctionName: lambdaCurrentArn,
         FunctionResponseTypes: ["ReportBatchItemFailures"],
       }).dependsOn(resourceId),
     };
   });
 }
 
-function getSchedules(
-  ...schedules: Manifest["schedules"]
-): { [key: string]: ResourceBase }[] {
+function getSchedules({
+  accountId,
+  lambdaCurrentArn,
+  lambdaName,
+  region,
+  schedules,
+}: {
+  accountId: string;
+  lambdaCurrentArn: string;
+  lambdaName: string;
+  region: string;
+  schedules: Manifest["schedules"];
+}): { [key: string]: ResourceBase }[] {
   return schedules.map((schedule, index) => {
     if (schedule.cron === null) return {};
-    const ruleName = Fn.Join(".", [RefLambdaName, schedule.name]);
+    const ruleName = `${lambdaName}.${schedule.name}`;
     return {
       [`cloudwatchSchedule${index}`]: new Events.Rule({
         Name: ruleName,
@@ -327,19 +336,14 @@ function getSchedules(
           schedule.cron
         )})`,
         State: "ENABLED",
-        Targets: [{ Id: "lambda", Arn: RefLambdaCurrentArn }],
+        Targets: [{ Id: "lambda", Arn: lambdaCurrentArn }],
       }).dependsOn("policy"),
 
       [`cloudwatchPermission${index}`]: new Lambda.Permission({
-        FunctionName: RefLambdaCurrentArn,
+        FunctionName: lambdaCurrentArn,
         Action: "lambda:InvokeFunction",
         Principal: "events.amazonaws.com",
-        SourceArn: Fn.Join(":", [
-          "arn:aws:events",
-          Fn.Ref("AWS::Region"),
-          Fn.Ref("AWS::AccountId"),
-          Fn.Join("/", ["rule", ruleName]),
-        ]),
+        SourceArn: `arn:aws:events:${region}:${accountId}:rule/${ruleName}`,
       }),
     };
   });
