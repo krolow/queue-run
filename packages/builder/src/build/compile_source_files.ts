@@ -15,6 +15,13 @@ export default async function compileSourceFiles({
   sourceDir: string;
   targetDir: string;
 }) {
+  const esm = await getIsModule(sourceDir);
+  if (!esm) {
+    console.warn(
+      `NOTE: Your project is not ESM. To switch to ESM, add \`"type": "module"\` to your package.json file.\nTo keep using CJS, make sure you are importing modules using ".mjs" extension (not ".js").`
+    );
+  }
+
   const spinner = ora("Compiling source files").start();
   try {
     const ignore = (
@@ -35,7 +42,6 @@ export default async function compileSourceFiles({
     });
 
     const { jscTarget } = await getRuntimeVersion(sourceDir);
-    const esm = await getIsModule(sourceDir);
     const extension = esm ? ".js" : ".mjs";
 
     let compiled = 0;
