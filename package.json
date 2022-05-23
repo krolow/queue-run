@@ -10,7 +10,7 @@
     "release:open": "open https://github.com/assaf/queue-run/releases",
     "release:publish": "lerna publish",
     "release:test": "yarn test && yarn build && yarn lint",
-    "release": "yarn release:test && yarn release:publish && release:open",
+    "release": "yarn release:test && yarn release:publish && yarn release:open",
     "test": "lerna run test",
     "watch:builder": "yarn workspace queue-run-builder watch",
     "watch:cli": "yarn workspace queue-run-cli watch",
