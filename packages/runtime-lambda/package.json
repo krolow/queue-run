@@ -25,7 +25,7 @@
     "tiny-invariant": "^1.2.0"
   },
   "engines": {
-    "node": "14.x"
+    "node": "16.x"
   },
   "homepage": "https://queue.run",
   "gitHead": "8fd7f66958b6b030362b2d96946cfd804c015f70"

@@ -16,7 +16,7 @@
     "dev": "queue-run dev"
   },
   "engines": {
-    "node": "14.x"
+    "node": "16.x"
   },
   "devDependencies": {
     "@types/jest": "^27.5.1",

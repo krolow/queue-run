@@ -133,7 +133,7 @@ You don't need to have a `package.json`, but if you do:
 ```json
 {
   "engines": {
-    "node": "14.x"
+    "node": "16.x"
   },
   "imports": {
     "#api/*": "./api/*",

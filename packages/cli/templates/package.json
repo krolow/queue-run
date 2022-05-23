@@ -11,7 +11,7 @@
     "dev": "queue-run dev"
   },
   "engines": {
-    "node": "14.x"
+    "node": "16.x"
   },
   "private": true,
   "type": "module",

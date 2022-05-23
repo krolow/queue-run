@@ -5,8 +5,8 @@ import semver from "semver";
 
 type RuntimeVersion = {
   // Primary Node version (14, 16, etc)
-  nodeVersion: "14";
-  // Lambda runtime version, eg nodejs14.x
+  nodeVersion: "14" | "16";
+  // Lambda runtime version, eg nodejs16.x
   lambdaRuntime: string;
   // Tell SWC which Node version to compile for
   jscTarget: swc.JscTarget;
@@ -38,9 +38,9 @@ export default async function getRuntime(
 
 const runtimes: Array<RuntimeVersion> = [
   {
-    nodeVersion: "14",
+    nodeVersion: "16",
     jscTarget: "es2020",
-    lambdaRuntime: "nodejs14.x",
+    lambdaRuntime: "nodejs16.x",
   },
 ];
 
