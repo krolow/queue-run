@@ -173,7 +173,7 @@ function getCookies(request: Request): { [key: string]: string } {
     .split(";")
     .map((cookie) => cookie.trim())
     .map((cookie) => cookie.match(/^([^=]+?)=(.*)$/)?.slice(1)!)
-    .filter(([name]) => name) as [string, string][];
+    .filter(entry => entry && entry.slice(-1)) as [string, string][];
 
   return cookies.reduce(
     (cookies, [key, value]) => ({ ...cookies, [key]: value }),
