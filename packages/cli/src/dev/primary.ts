@@ -28,7 +28,7 @@ function watchForChanges() {
   console.info(chalk.gray("   Watching for changes (Crtl+R to reload) …"));
   chokidar
     .watch(sourceDir, {
-      ignored: ["**/node_modules/**", buildDir, "**/.*/**"],
+      ignored: ["**/node_modules/**", buildDir, "**/.*/**", "**/*.test.ts"],
       ignoreInitial: true,
     })
     .on("all", (event, filename) => onFileChange({ event, filename }));
